@@ -6,9 +6,11 @@ See them live: [anfra.ai/data-apps](https://anfra.ai/data-apps)
 
 ## Apps
 
+Every app lives in its own folder under `projects/`.
+
 | App | Idea | Demo | Author |
 |---|---|---|---|
-| [football-predictions](football-predictions) | Predicts football results and shows the reasons behind each call | [Demo](https://football-predictions.pages.holistics.dev/apps/football-predictions/1-matches) | Khai To |
+| [football-predictions](projects/football-predictions) | Predicts football results and shows the reasons behind each call | [Demo](https://football-predictions.pages.holistics.dev/apps/football-predictions/1-matches) | Khai To |
 
 ## Add your app
 

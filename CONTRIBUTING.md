@@ -1,6 +1,6 @@
 # Adding your app
 
-1. Copy `_template/` to a new folder at the repo root.
+1. Copy `_template/` to a new folder under `projects/`.
 	- Name it in kebab-case after the app, for example `football-predictions` or `metric-tree`.
 2. Put your app source in that folder.
 3. Fill in the folder's `README.md`: one-line idea, demo link, video link, author.

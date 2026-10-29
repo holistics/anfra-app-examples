@@ -1,0 +1,179 @@
+Model lap {
+  type: 'table'
+  label: 'Laps'
+  description: 'One row per lap of an activity (auto-laps or workout steps).'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."lap"'
+
+  dimension lap_id {
+    label: 'Lap ID'
+    type: 'number'
+    description: 'Surrogate key: activity ID and lap number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.lap_id }};;
+  }
+
+  dimension activity_id {
+    label: 'Activity ID'
+    type: 'number'
+    description: 'Garmin activity ID'
+    hidden: true
+    definition: @sql {{ #SOURCE.activity_id }};;
+  }
+
+  dimension lap_index {
+    label: 'Lap #'
+    type: 'number'
+    description: 'Lap number within the activity (Garmin splits)'
+    definition: @sql {{ #SOURCE.lap_index }};;
+  }
+
+  dimension start_time_gmt {
+    label: 'Lap Start (UTC)'
+    type: 'datetime'
+    description: 'Lap start in UTC (Garmin splits)'
+    definition: @sql {{ #SOURCE.start_time_gmt }};;
+  }
+
+  dimension workout_step {
+    label: 'Workout Step'
+    type: 'number'
+    description: 'Step index in the workout the activity followed; empty without a workout'
+    definition: @sql {{ #SOURCE.workout_step }};;
+  }
+  dimension intensity_type {
+    label: 'Intensity'
+    type: 'text'
+    description: 'ACTIVE, WARMUP, COOLDOWN, RECOVERY, REST, INTERVAL'
+    definition: @sql {{ #SOURCE.intensity_type }};;
+  }
+
+  dimension distance_km {
+    label: 'Distance (km)'
+    type: 'number'
+    description: 'Lap distance / 1000 (Garmin splits)'
+    definition: @sql {{ #SOURCE.distance_km }};;
+  }
+
+  dimension duration_s {
+    label: 'Duration (s)'
+    type: 'number'
+    description: 'Lap elapsed time (Garmin splits)'
+    definition: @sql {{ #SOURCE.duration_s }};;
+  }
+
+  dimension moving_s {
+    label: 'Moving Time (s)'
+    type: 'number'
+    description: 'Lap moving time (Garmin splits)'
+    definition: @sql {{ #SOURCE.moving_s }};;
+  }
+
+  dimension avg_speed_mps {
+    label: 'Avg Speed (m/s)'
+    type: 'number'
+    description: 'Lap average speed (Garmin splits)'
+    definition: @sql {{ #SOURCE.avg_speed_mps }};;
+  }
+
+  dimension pace_s_per_km {
+    label: 'Pace (s/km)'
+    type: 'number'
+    description: 'Lap duration / lap km'
+    definition: @sql {{ #SOURCE.pace_s_per_km }};;
+  }
+
+  dimension avg_gap_speed_mps {
+    label: 'Avg GAP Speed (m/s)'
+    type: 'number'
+    description: 'Lap grade-adjusted speed (Garmin splits)'
+    definition: @sql {{ #SOURCE.avg_gap_speed_mps }};;
+  }
+
+  dimension avg_hr {
+    label: 'Avg HR'
+    type: 'number'
+    description: 'Lap average HR (Garmin splits)'
+    definition: @sql {{ #SOURCE.avg_hr }};;
+  }
+
+  dimension max_hr {
+    label: 'Max HR'
+    type: 'number'
+    description: 'Lap max HR (Garmin splits)'
+    definition: @sql {{ #SOURCE.max_hr }};;
+  }
+
+  dimension avg_cadence_spm {
+    label: 'Avg Cadence (spm)'
+    type: 'number'
+    description: 'Lap average cadence (Garmin splits)'
+    definition: @sql {{ #SOURCE.avg_cadence_spm }};;
+  }
+
+  dimension elevation_gain_m {
+    label: 'Elevation Gain (m)'
+    type: 'number'
+    description: 'Lap ascent (Garmin splits)'
+    definition: @sql {{ #SOURCE.elevation_gain_m }};;
+  }
+
+  dimension elevation_loss_m {
+    label: 'Elevation Loss (m)'
+    type: 'number'
+    description: 'Lap descent (Garmin splits)'
+    definition: @sql {{ #SOURCE.elevation_loss_m }};;
+  }
+
+  dimension stride_cm {
+    label: 'Stride (cm)'
+    type: 'number'
+    description: 'Lap stride length (Garmin splits)'
+    definition: @sql {{ #SOURCE.stride_cm }};;
+  }
+
+  dimension gct_ms {
+    label: 'Ground Contact (ms)'
+    type: 'number'
+    description: 'Lap ground contact time (Garmin splits)'
+    definition: @sql {{ #SOURCE.gct_ms }};;
+  }
+
+  dimension vert_osc_cm {
+    label: 'Vertical Oscillation (cm)'
+    type: 'number'
+    description: 'Lap vertical oscillation (Garmin splits)'
+    definition: @sql {{ #SOURCE.vert_osc_cm }};;
+  }
+
+  measure lap_count {
+    label: 'Laps'
+    type: 'number'
+    description: 'Number of laps'
+    definition: @aql count(lap.lap_id) ;;
+  }
+
+  measure lap_distance_km {
+    label: 'Distance (km)'
+    type: 'number'
+    description: 'Sum of lap distance'
+    format: '#,##0.00'
+    definition: @aql sum(lap.distance_km) ;;
+  }
+
+  measure lap_pace_s_per_km {
+    label: 'Pace (s/km)'
+    type: 'number'
+    description: 'Total lap time / total lap km (distance-weighted pace)'
+    definition: @aql sum(lap.duration_s) / sum(lap.distance_km) ;;
+  }
+
+  measure lap_avg_hr {
+    label: 'Avg HR'
+    type: 'number'
+    description: 'Duration-weighted mean of lap HR'
+    format: '#,##0'
+    definition: @aql sum(lap.avg_hr * lap.duration_s) / sum(lap.duration_s) ;;
+  }
+}

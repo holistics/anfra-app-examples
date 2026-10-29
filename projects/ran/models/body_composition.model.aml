@@ -1,0 +1,87 @@
+Model body_composition {
+  type: 'table'
+  label: 'Weigh-ins'
+  description: 'One row per weigh-in (manual or Garmin scale).'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."body_composition"'
+
+  dimension sample_pk {
+    label: 'Sample ID'
+    type: 'text'
+    description: 'Garmin weigh-in sample key, or app:<id> for weigh-ins logged in this app'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.sample_pk }};;
+  }
+
+  dimension measured_at {
+    label: 'Measured At'
+    type: 'datetime'
+    description: 'Time of the weigh-in'
+    definition: @sql {{ #SOURCE.measured_at }};;
+  }
+
+  dimension calendar_date {
+    label: 'Date'
+    type: 'date'
+    description: 'Date of the weigh-in'
+    definition: @sql {{ #SOURCE.calendar_date }};;
+  }
+
+  dimension weight_kg {
+    label: 'Weight (kg)'
+    type: 'number'
+    description: 'Body weight (Garmin scale / Garmin Connect entry, or logged in this app). D9 body mass'
+    definition: @sql {{ #SOURCE.weight_kg }};;
+  }
+
+  dimension bmi {
+    label: 'BMI'
+    type: 'number'
+    description: 'Body-mass index from Garmin (weight / height squared); null for app weigh-ins'
+    definition: @sql {{ #SOURCE.bmi }};;
+  }
+
+  dimension body_fat_pct {
+    label: 'Body Fat (%)'
+    type: 'number'
+    description: 'Body fat % (smart scale, or entered in this app)'
+    definition: @sql {{ #SOURCE.body_fat_pct }};;
+  }
+
+  dimension muscle_mass_kg {
+    label: 'Muscle Mass (kg)'
+    type: 'number'
+    description: 'Muscle mass from a Garmin smart scale'
+    definition: @sql {{ #SOURCE.muscle_mass_kg }};;
+  }
+
+  dimension weigh_in_id {
+    label: 'App Weigh-in ID'
+    type: 'number'
+    hidden: true
+    description: 'Set for weigh-ins entered in the app (deletable there)'
+    definition: @sql {{ #SOURCE.weigh_in_id }};;
+  }
+  dimension source_type {
+    label: 'Source'
+    type: 'text'
+    description: 'Where the weigh-in came from: Garmin source type, or APP for this app'
+    definition: @sql {{ #SOURCE.source_type }};;
+  }
+
+  measure weigh_in_count {
+    label: 'Weigh-ins'
+    type: 'number'
+    description: 'Number of weigh-ins'
+    definition: @aql count(body_composition.sample_pk) ;;
+  }
+
+  measure avg_weight_kg {
+    label: 'Avg Weight (kg)'
+    type: 'number'
+    description: 'Mean weight across weigh-ins'
+    format: '#,##0.0'
+    definition: @aql avg(body_composition.weight_kg) ;;
+  }
+}

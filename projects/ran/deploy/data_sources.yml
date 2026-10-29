@@ -1,0 +1,10 @@
+# The deploy image's data source: the sample database inside the container (deploy/Dockerfile).
+data_sources:
+  garmin:
+    type: postgresql
+    connection:
+      host: 127.0.0.1
+      port: 5432
+      user: anfra_reader
+      dbname: garmin
+      password: anfra_reader

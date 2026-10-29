@@ -1,0 +1,565 @@
+Model day {
+  type: 'table'
+  label: 'Days'
+  description: 'One row per calendar day from the first synced day to today. Wellness from Garmin daily summaries; training load = Banister TRIMP summed over that days activities (garmin.activity_load); ATL/CTL/TSB are 7/42-day exponentially weighted TRIMP (Banister impulse-response, Runalyze style). Garmin load versions are kept as *_garmin for comparison. CTL is under-estimated for the first ~6 weeks of history (it starts at 0).'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."day"'
+
+  dimension calendar_date {
+    label: 'Date'
+    type: 'date'
+    description: 'Calendar day (local date). One row per day from the first activity to today'
+    primary_key: true
+    definition: @sql {{ #SOURCE.calendar_date }};;
+  }
+
+  dimension training_load {
+    label: 'Training Load (TRIMP)'
+    type: 'number'
+    description: 'The day total of Banister TRIMP (Banister 1991; Morton, Fitz-Clarke and Banister 1990): sum over samples of minutes x HRr x a x e^(b x HRr), HRr = (HR - HRrest) / (HRmax - HRrest), a, b = 0.64, 1.92 (male) or 0.86, 1.67 (female) from the Garmin profile. All load metrics on this model (ATL, CTL, TSB, A:C, monotony, strain, easy load, rest days, flags) are computed from it'
+    definition: @sql {{ #SOURCE.training_load }};;
+  }
+
+  dimension training_load_garmin {
+    label: 'Garmin Training Load'
+    type: 'number'
+    description: 'Day total of Garmin EPOC-based training load (undisclosed formula), kept for comparison with TRIMP'
+    definition: @sql {{ #SOURCE.training_load_garmin }};;
+  }
+  dimension atl_garmin {
+    label: 'Fatigue (ATL, Garmin load)'
+    type: 'number'
+    description: '7-day exponentially weighted Garmin training load, for comparison'
+    definition: @sql {{ #SOURCE.atl_garmin }};;
+  }
+  dimension ctl_garmin {
+    label: 'Fitness (CTL, Garmin load)'
+    type: 'number'
+    description: '42-day exponentially weighted Garmin training load, for comparison'
+    definition: @sql {{ #SOURCE.ctl_garmin }};;
+  }
+  dimension tsb_garmin {
+    label: 'Form (TSB, Garmin load)'
+    type: 'number'
+    description: 'CTL minus ATL on Garmin training load, for comparison'
+    definition: @sql {{ #SOURCE.tsb_garmin }};;
+  }
+
+  dimension atl {
+    label: 'Fatigue (ATL)'
+    type: 'number'
+    description: 'Banister fatigue: 7-day exponentially weighted TRIMP, ATL(t) = ATL(t-1) + (load - ATL(t-1)) x (1 - e^(-1/7))'
+    definition: @sql {{ #SOURCE.atl }};;
+  }
+
+  dimension ctl {
+    label: 'Fitness (CTL)'
+    type: 'number'
+    description: 'Banister fitness: 42-day exponentially weighted TRIMP, CTL(t) = CTL(t-1) + (load - CTL(t-1)) x (1 - e^(-1/42))'
+    definition: @sql {{ #SOURCE.ctl }};;
+  }
+
+  dimension tsb {
+    label: 'Form (TSB)'
+    type: 'number'
+    description: 'CTL minus ATL; negative = fatigued, positive = fresh'
+    definition: @sql {{ #SOURCE.tsb }};;
+  }
+
+  dimension atl_pct {
+    label: 'Fatigue (ATL, % of max)'
+    type: 'number'
+    description: 'ATL as % of the highest ATL up to that day'
+    definition: @sql {{ #SOURCE.atl_pct }};;
+  }
+  dimension ctl_pct {
+    label: 'Fitness (CTL, % of max)'
+    type: 'number'
+    description: 'CTL as % of the highest CTL up to that day'
+    definition: @sql {{ #SOURCE.ctl_pct }};;
+  }
+  dimension acwr {
+    label: 'Acute:Chronic Ratio'
+    type: 'number'
+    description: 'ATL / CTL. ~0.8-1.3 is the usual safe band; above 1.5 = sharp load spike'
+    definition: @sql {{ #SOURCE.acwr }};;
+  }
+  dimension load_7d {
+    label: 'Load (7 days)'
+    type: 'number'
+    description: 'Sum of daily TRIMP over the last 7 days, including today'
+    definition: @sql {{ #SOURCE.load_7d }};;
+  }
+  dimension monotony {
+    label: 'Monotony'
+    type: 'number'
+    description: '7-day mean / standard deviation of daily load (capped at 10). Below 1.5 good, above 2.0 critical'
+    definition: @sql {{ #SOURCE.monotony }};;
+  }
+  dimension strain {
+    label: 'Training Strain'
+    type: 'number'
+    description: '7-day load x monotony'
+    definition: @sql {{ #SOURCE.strain }};;
+  }
+  dimension easy_load {
+    label: 'Easy Load Tomorrow'
+    type: 'number'
+    description: 'The training load tomorrow that keeps TSB at 0 (Runalyze "easy TRIMP"); 0 when rest is needed'
+    definition: @sql {{ #SOURCE.easy_load }};;
+  }
+  dimension rest_days {
+    label: 'Rest Days Needed'
+    type: 'number'
+    description: 'Rest days until TSB is back to 0, when even a zero-load day would leave it negative'
+    definition: @sql {{ #SOURCE.rest_days }};;
+  }
+  dimension tsb_morning {
+    label: 'Form (TSB) That Morning'
+    type: 'number'
+    description: 'Form before the training of the day: the previous day CTL - ATL, recovered from this day by undoing its load (same exponential weights as db/views.sql). How fresh a run started'
+    definition: @sql ({{ #SOURCE.ctl }} - coalesce({{ #SOURCE.training_load }}, 0) * (1 - exp(-1.0 / 42))) / exp(-1.0 / 42)
+                     - ({{ #SOURCE.atl }} - coalesce({{ #SOURCE.training_load }}, 0) * (1 - exp(-1.0 / 7))) / exp(-1.0 / 7);;
+  }
+  dimension ready_days {
+    label: 'Rest Days Until Ready to Train'
+    type: 'number'
+    description: 'Days with no training until form (TSB) is back above -30, out of the overload zone, so a normal training day is fine again. 0 = ready now. With no load fatigue falls by 1/7 a day and fitness by 1/42'
+    definition: @sql (select min(n) from generate_series(0, 90) n
+                      where {{ #SOURCE.ctl }} * exp(-n / 42.0) - {{ #SOURCE.atl }} * exp(-n / 7.0) >= -30);;
+  }
+  dimension fresh_days {
+    label: 'Rest Days Until Fully Fresh'
+    type: 'number'
+    description: 'Days with no training until form (TSB) reaches +5, fresh enough to race at full performance. 0 = fresh now. When fitness is too low for TSB to reach +5, the day it peaks'
+    definition: @sql (select coalesce(min(n) filter (where t >= 5), (array_agg(n order by t desc, n))[1])
+                      from (select n, {{ #SOURCE.ctl }} * exp(-n / 42.0) - {{ #SOURCE.atl }} * exp(-n / 7.0) as t
+                            from generate_series(0, 90) n) s);;
+  }
+  dimension vo2_effective {
+    label: 'Effective VO2max (30d)'
+    type: 'number'
+    description: 'Runalyze-style VO2max from pace vs heart rate of runs (Daniels), duration-weighted over the last 30 days. Uncorrected: no race calibration'
+    definition: @sql {{ #SOURCE.vo2_effective }};;
+  }
+  dimension vo2max_garmin {
+    label: 'Garmin VO2max'
+    type: 'number'
+    description: 'Latest Garmin VO2max estimate recorded with a run'
+    definition: @sql {{ #SOURCE.vo2max_garmin }};;
+  }
+  dimension km_182d {
+    label: 'Run km (182 days)'
+    type: 'number'
+    description: 'Run km over the last 182 days, including today (input to marathon shape)'
+    definition: @sql {{ #SOURCE.km_182d }};;
+  }
+  dimension marathon_shape {
+    label: 'Marathon Shape (%)'
+    type: 'number'
+    description: 'Runalyze basic endurance: 2/3 weekly-km score (182 days vs VO2max^1.135) + 1/3 long-run score (runs of 13 km+ over 70 days). Required: distance^1.23 % (10K 17, HM 42.5, M 100)'
+    definition: @sql {{ #SOURCE.marathon_shape }};;
+  }
+  dimension resting_hr {
+    label: 'Resting HR'
+    type: 'number'
+    description: 'Daily resting heart rate (Garmin daily summary)'
+    definition: @sql {{ #SOURCE.resting_hr }};;
+  }
+
+  dimension steps {
+    label: 'Steps'
+    type: 'number'
+    description: 'Daily steps (Garmin daily summary)'
+    definition: @sql {{ #SOURCE.steps }};;
+  }
+
+  dimension avg_stress {
+    label: 'Avg Stress'
+    type: 'number'
+    description: 'Average all-day stress level 0 to 100 (Garmin daily summary, HRV-based)'
+    definition: @sql {{ #SOURCE.avg_stress }};;
+  }
+
+  dimension body_battery_high {
+    label: 'Body Battery High'
+    type: 'number'
+    description: 'Highest Body Battery of the day (Garmin daily summary)'
+    definition: @sql {{ #SOURCE.body_battery_high }};;
+  }
+
+  dimension body_battery_low {
+    label: 'Body Battery Low'
+    type: 'number'
+    description: 'Lowest Body Battery of the day (Garmin daily summary)'
+    definition: @sql {{ #SOURCE.body_battery_low }};;
+  }
+
+  dimension total_kcal {
+    label: 'Total kcal'
+    type: 'number'
+    description: 'Total energy expenditure, kcal (Garmin daily summary)'
+    definition: @sql {{ #SOURCE.total_kcal }};;
+  }
+
+  dimension active_kcal {
+    label: 'Active kcal'
+    type: 'number'
+    description: 'Active energy expenditure, kcal (Garmin daily summary)'
+    definition: @sql {{ #SOURCE.active_kcal }};;
+  }
+
+  dimension moderate_minutes {
+    label: 'Moderate Intensity Minutes'
+    type: 'number'
+    description: 'Moderate-intensity minutes (Garmin daily summary)'
+    definition: @sql {{ #SOURCE.moderate_minutes }};;
+  }
+
+  dimension vigorous_minutes {
+    label: 'Vigorous Intensity Minutes'
+    type: 'number'
+    description: 'Vigorous-intensity minutes (Garmin daily summary)'
+    definition: @sql {{ #SOURCE.vigorous_minutes }};;
+  }
+
+  dimension sleep_s {
+    label: 'Sleep (s)'
+    type: 'number'
+    description: 'Sleep duration for the night ending this morning (Garmin sleep)'
+    definition: @sql {{ #SOURCE.sleep_s }};;
+  }
+
+  dimension deep_sleep_s {
+    label: 'Deep Sleep (s)'
+    type: 'number'
+    description: 'Deep sleep (Garmin sleep)'
+    definition: @sql {{ #SOURCE.deep_sleep_s }};;
+  }
+
+  dimension light_sleep_s {
+    label: 'Light Sleep (s)'
+    type: 'number'
+    description: 'Light sleep (Garmin sleep)'
+    definition: @sql {{ #SOURCE.light_sleep_s }};;
+  }
+
+  dimension rem_sleep_s {
+    label: 'REM Sleep (s)'
+    type: 'number'
+    description: 'REM sleep (Garmin sleep)'
+    definition: @sql {{ #SOURCE.rem_sleep_s }};;
+  }
+
+  dimension awake_sleep_s {
+    label: 'Awake (s)'
+    type: 'number'
+    description: 'Time awake during the sleep window (Garmin sleep)'
+    definition: @sql {{ #SOURCE.awake_sleep_s }};;
+  }
+
+  dimension sleep_score {
+    label: 'Sleep Score'
+    type: 'number'
+    description: 'Garmin sleep score 0 to 100'
+    definition: @sql {{ #SOURCE.sleep_score }};;
+  }
+
+  dimension hrv_last_night_ms {
+    label: 'HRV Last Night (ms)'
+    type: 'number'
+    description: 'Average overnight HRV, rMSSD in ms (Garmin HRV status)'
+    definition: @sql {{ #SOURCE.hrv_last_night_ms }};;
+  }
+
+  dimension hrv_weekly_ms {
+    label: 'HRV 7-day Avg (ms)'
+    type: 'number'
+    description: '7-day average overnight HRV (Garmin HRV status)'
+    definition: @sql {{ #SOURCE.hrv_weekly_ms }};;
+  }
+
+  dimension hrv_status {
+    label: 'HRV Status'
+    type: 'text'
+    description: 'Garmin HRV status: BALANCED, UNBALANCED, LOW, POOR'
+    definition: @sql {{ #SOURCE.hrv_status }};;
+  }
+
+  dimension readiness_score {
+    label: 'Training Readiness'
+    type: 'number'
+    description: 'Garmin Training Readiness 0 to 100 (morning reading)'
+    definition: @sql {{ #SOURCE.readiness_score }};;
+  }
+
+  dimension readiness_level {
+    label: 'Readiness Level'
+    type: 'text'
+    description: 'Garmin Training Readiness level label'
+    definition: @sql {{ #SOURCE.readiness_level }};;
+  }
+
+  measure day_count {
+    label: 'Days'
+    type: 'number'
+    description: 'Number of days'
+    definition: @aql count(day.calendar_date) ;;
+  }
+
+  measure avg_resting_hr {
+    label: 'Avg Resting HR'
+    type: 'number'
+    description: 'Mean daily resting HR'
+    format: '#,##0.0'
+    definition: @aql avg(day.resting_hr) ;;
+  }
+
+  measure avg_steps {
+    label: 'Avg Steps'
+    type: 'number'
+    description: 'Mean daily steps'
+    format: '#,##0'
+    definition: @aql avg(day.steps) ;;
+  }
+
+  measure avg_stress_level {
+    label: 'Avg Stress'
+    type: 'number'
+    description: 'Mean daily stress level'
+    format: '#,##0'
+    definition: @aql avg(day.avg_stress) ;;
+  }
+
+  measure avg_sleep_h {
+    label: 'Avg Sleep (h)'
+    type: 'number'
+    description: 'Mean sleep duration in hours'
+    format: '#,##0.0'
+    definition: @aql avg(day.sleep_s) / 3600 ;;
+  }
+
+  measure avg_sleep_score {
+    label: 'Avg Sleep Score'
+    type: 'number'
+    description: 'Mean Garmin sleep score'
+    format: '#,##0'
+    definition: @aql avg(day.sleep_score) ;;
+  }
+
+  measure avg_hrv_ms {
+    label: 'Avg HRV (ms)'
+    type: 'number'
+    description: 'Mean overnight HRV'
+    format: '#,##0'
+    definition: @aql avg(day.hrv_last_night_ms) ;;
+  }
+
+  measure avg_atl {
+    label: 'Avg Fatigue (ATL)'
+    type: 'number'
+    description: 'Mean fatigue (ATL, 7-day exponentially weighted TRIMP)'
+    format: '#,##0'
+    definition: @aql avg(day.atl) ;;
+  }
+
+  measure avg_ctl {
+    label: 'Avg Fitness (CTL)'
+    type: 'number'
+    description: 'Mean fitness (CTL, 42-day exponentially weighted TRIMP)'
+    format: '#,##0'
+    definition: @aql avg(day.ctl) ;;
+  }
+
+  measure avg_tsb {
+    label: 'Avg Form (TSB)'
+    type: 'number'
+    description: 'Mean form (TSB = CTL - ATL)'
+    format: '#,##0'
+    definition: @aql avg(day.tsb) ;;
+  }
+
+  measure day_training_load {
+    label: 'Training Load (TRIMP)'
+    description: 'Sum of daily Banister TRIMP'
+    type: 'number'
+    format: '#,##0'
+    definition: @aql sum(day.training_load) ;;
+  }
+
+  measure avg_vo2_effective {
+    label: 'Avg Effective VO2max'
+    type: 'number'
+    description: 'Mean effective VO2max (Daniels, from runs)'
+    format: '#,##0.0'
+    definition: @aql avg(day.vo2_effective) ;;
+  }
+  dimension lthr_bpm {
+    label: 'Threshold HR (bpm)'
+    type: 'number'
+    description: 'D2: Garmin lactate-threshold heart rate in force that day'
+    definition: @sql {{ #SOURCE.lthr_bpm }};;
+  }
+  dimension lt_speed_mps {
+    label: 'Threshold Speed (m/s)'
+    type: 'number'
+    description: 'D2: Garmin lactate-threshold speed in force that day'
+    definition: @sql {{ #SOURCE.lt_speed_mps }};;
+  }
+  dimension lt_pace_s_per_km {
+    label: 'Threshold Pace (s/km)'
+    type: 'number'
+    description: 'D2: Garmin lactate-threshold pace in force that day'
+    definition: @sql {{ #SOURCE.lt_pace_s_per_km }};;
+  }
+  dimension ftp_w {
+    label: 'Threshold Power (W)'
+    type: 'number'
+    description: 'Garmin running functional threshold power in force that day'
+    definition: @sql {{ #SOURCE.ftp_w }};;
+  }
+  dimension lt_speed_own_mps {
+    label: 'Own Threshold Speed (m/s)'
+    type: 'number'
+    description: 'D2 from the runs themselves: median speed at threshold HR over the last 42 days'
+    definition: @sql {{ #SOURCE.lt_speed_own_mps }};;
+  }
+  dimension lt_pace_own_s_per_km {
+    label: 'Own Threshold Pace (s/km)'
+    type: 'number'
+    description: 'D2 from the runs themselves: median pace at threshold HR over the last 42 days. Not heat-adjusted'
+    definition: @sql {{ #SOURCE.lt_pace_own_s_per_km }};;
+  }
+  dimension easy_hr_speed_mps {
+    label: 'Speed at Easy HR (m/s)'
+    type: 'number'
+    description: 'D1+D3: median speed at 77 % HRmax over the last 28 days'
+    definition: @sql {{ #SOURCE.easy_hr_speed_mps }};;
+  }
+  dimension easy_hr_pace_s_per_km {
+    label: 'Pace at Easy HR (s/km)'
+    type: 'number'
+    description: 'D1+D3: median pace at 77 % HRmax over the last 28 days. Not heat-adjusted'
+    definition: @sql {{ #SOURCE.easy_hr_pace_s_per_km }};;
+  }
+  dimension vvo2max_mps {
+    label: 'Speed at VO2max (m/s)'
+    type: 'number'
+    description: 'Speed at Garmin VO2max from the Daniels oxygen-cost curve: VO2 = -4.60 + 0.182258 v + 0.000104 v² (v in m/min)'
+    definition: @sql {{ #SOURCE.vvo2max_mps }};;
+  }
+  dimension lt_fraction {
+    label: 'Fractional Utilisation'
+    type: 'number'
+    description: 'D2: threshold speed / speed at VO2max, the share of the aerobic ceiling sustainable for about an hour (typically 0.75 to 0.90)'
+    definition: @sql {{ #SOURCE.lt_fraction }};;
+  }
+  dimension weight_kg {
+    label: 'Weight (kg)'
+    type: 'number'
+    description: 'D9: the latest weigh-in on or before the day (Garmin or entered in the app)'
+    definition: @sql {{ #SOURCE.weight_kg }};;
+  }
+  dimension days_off_7d {
+    label: 'Days Off (7 days)'
+    type: 'number'
+    description: 'Days with zero training load in the last 7'
+    definition: @sql {{ #SOURCE.days_off_7d }};;
+  }
+  dimension flag_ramp {
+    label: 'Flag: Load Ramp'
+    type: 'truefalse'
+    description: 'D10 caution: acute:chronic load above 1.5. Its link to injury is disputed: a caution, not a prediction'
+    definition: @sql {{ #SOURCE.flag_ramp }};;
+  }
+  dimension flag_monotony {
+    label: 'Flag: Monotony'
+    type: 'truefalse'
+    description: 'D10 caution: 7-day monotony above 2 (little variation between hard and easy days)'
+    definition: @sql {{ #SOURCE.flag_monotony }};;
+  }
+  dimension flag_no_rest {
+    label: 'Flag: No Day Off'
+    type: 'truefalse'
+    description: 'D10 caution: no day without training in the last 7'
+    definition: @sql {{ #SOURCE.flag_no_rest }};;
+  }
+  dimension flag_resting_hr {
+    label: 'Flag: Resting HR Up'
+    type: 'truefalse'
+    description: 'D10 caution: 3-day mean resting HR above the 28-day median by at least 5 bpm and one standard deviation'
+    definition: @sql {{ #SOURCE.flag_resting_hr }};;
+  }
+  dimension risk_flags {
+    label: 'Risk Flags'
+    type: 'number'
+    description: 'Number of D10 caution flags raised that day (0 to 4)'
+    definition: @sql {{ #SOURCE.risk_flags }};;
+  }
+  measure avg_lthr {
+    label: 'Avg Threshold HR (bpm)'
+    type: 'number'
+    description: 'Mean Garmin lactate-threshold HR in force'
+    format: '#,##0'
+    definition: @aql avg(day.lthr_bpm) ;;
+  }
+  measure avg_lt_pace {
+    label: 'Avg Threshold Pace (s/km)'
+    type: 'number'
+    description: 'Mean Garmin threshold pace in force'
+    definition: @aql avg(day.lt_pace_s_per_km) ;;
+  }
+  measure avg_lt_pace_own {
+    label: 'Avg Own Threshold Pace (s/km)'
+    type: 'number'
+    description: 'Mean own threshold pace (42-day median of pace at threshold HR)'
+    definition: @aql avg(day.lt_pace_own_s_per_km) ;;
+  }
+  measure avg_easy_hr_pace {
+    label: 'Avg Pace at Easy HR (s/km)'
+    type: 'number'
+    description: 'Mean 28-day median pace at easy HR'
+    definition: @aql avg(day.easy_hr_pace_s_per_km) ;;
+  }
+  measure avg_lt_fraction {
+    label: 'Avg Fractional Utilisation'
+    type: 'number'
+    description: 'Mean fractional utilisation (threshold speed / vVO2max)'
+    format: '0.00'
+    definition: @aql avg(day.lt_fraction) ;;
+  }
+  measure avg_weight_kg {
+    label: 'Avg Weight (kg)'
+    type: 'number'
+    description: 'Mean as-of body weight'
+    format: '#,##0.0'
+    definition: @aql avg(day.weight_kg) ;;
+  }
+  measure risk_flag_days {
+    label: 'Days with a Risk Flag'
+    type: 'number'
+    description: 'Days with at least one injury-risk caution (ramp, monotony, no rest, resting HR). Cautions, not predictions'
+    definition: @aql count(day.calendar_date) | where(day.risk_flags > 0) ;;
+  }
+  measure avg_marathon_shape {
+    label: 'Avg Marathon Shape (%)'
+    type: 'number'
+    description: 'Mean Runalyze marathon shape %'
+    format: '#,##0'
+    definition: @aql avg(day.marathon_shape) ;;
+  }
+  measure avg_monotony {
+    label: 'Avg Monotony'
+    type: 'number'
+    description: 'Mean Foster monotony (7-day mean load / SD)'
+    format: '#,##0.00'
+    definition: @aql avg(day.monotony) ;;
+  }
+  measure avg_acwr {
+    label: 'Avg Acute:Chronic Ratio'
+    type: 'number'
+    description: 'Mean acute:chronic ratio (ATL / CTL)'
+    format: '#,##0.00'
+    definition: @aql avg(day.acwr) ;;
+  }
+}

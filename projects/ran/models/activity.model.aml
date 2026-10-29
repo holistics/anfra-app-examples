@@ -1,0 +1,618 @@
+Model activity {
+  type: 'table'
+  label: 'Activities'
+  description: 'One row per Garmin activity (all sports). Filter is_run for running. Distance in km, durations in seconds, speeds in m/s, pace in seconds per km.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."activity"'
+
+  dimension activity_id {
+    label: 'Activity ID'
+    type: 'number'
+    description: 'Garmin activity ID (source: Garmin Connect)'
+    primary_key: true
+    definition: @sql {{ #SOURCE.activity_id }};;
+  }
+
+  dimension activity_name {
+    label: 'Name'
+    type: 'text'
+    description: 'Activity name as set in Garmin Connect'
+    definition: @sql {{ #SOURCE.activity_name }};;
+  }
+
+  dimension activity_type {
+    label: 'Activity Type'
+    type: 'text'
+    description: 'Garmin type key, e.g. running, treadmill_running, strength_training'
+    definition: @sql {{ #SOURCE.activity_type }};;
+  }
+
+  dimension is_run {
+    label: 'Is Run'
+    type: 'truefalse'
+    description: 'Running of any kind (outdoor, treadmill, trail)'
+    definition: @sql {{ #SOURCE.is_run }};;
+  }
+
+  dimension sport {
+    label: 'Sport'
+    type: 'text'
+    description: 'Garmin activity type key (running, treadmill_running, trail_running, strength_training, ...)'
+    definition: @sql {{ #SOURCE.sport }};;
+  }
+
+  dimension start_time_gmt {
+    label: 'Start Time (UTC)'
+    type: 'datetime'
+    description: 'Start instant in UTC (Garmin activity summary: startTimeGMT)'
+    hidden: true
+    definition: @sql {{ #SOURCE.start_time_gmt }};;
+  }
+
+  dimension start_time_local {
+    label: 'Start Time'
+    type: 'datetime'
+    description: 'Local wall-clock time where the activity happened'
+    definition: @sql {{ #SOURCE.start_time_local }};;
+  }
+
+  dimension workout_id {
+    label: 'Workout ID'
+    type: 'number'
+    description: 'Garmin structured-workout ID the run was executed from; null for free runs (D8 execution)'
+    hidden: true
+    definition: @sql {{ #SOURCE.workout_id }};;
+  }
+  dimension is_workout {
+    label: 'Workout'
+    type: 'truefalse'
+    description: 'Run from a Garmin workout (structured steps); its laps carry the step'
+    definition: @sql {{ #SOURCE.is_workout }};;
+  }
+  dimension start_label {
+    label: 'Start (local, text)'
+    type: 'text'
+    description: 'Local wall-clock start as YYYY-MM-DD HH:MI, for display: no time-zone conversion'
+    definition: @sql {{ #SOURCE.start_label }};;
+  }
+
+  dimension start_date {
+    label: 'Date'
+    type: 'date'
+    description: 'Local calendar date of the start. Use this date for activity trends.'
+    definition: @sql {{ #SOURCE.start_date }};;
+  }
+
+  dimension location_name {
+    label: 'Location'
+    type: 'text'
+    description: 'Location name (Garmin activity summary)'
+    definition: @sql {{ #SOURCE.location_name }};;
+  }
+
+  dimension distance_km {
+    label: 'Distance (km)'
+    type: 'number'
+    description: 'Distance / 1000 (Garmin activity summary: distance, m)'
+    format: '#,##0.00'
+    definition: @sql {{ #SOURCE.distance_km }};;
+  }
+
+  dimension duration_s {
+    label: 'Duration (s)'
+    type: 'number'
+    description: 'Timer time: excludes pauses. Garmin pace/speed use this.'
+    definition: @sql {{ #SOURCE.duration_s }};;
+  }
+
+  dimension moving_s {
+    label: 'Moving Time (s)'
+    type: 'number'
+    description: 'Moving time, pauses excluded (Garmin activity summary: movingDuration)'
+    definition: @sql {{ #SOURCE.moving_s }};;
+  }
+
+  dimension elapsed_s {
+    label: 'Elapsed Time (s)'
+    type: 'number'
+    description: 'Wall-clock time including pauses'
+    definition: @sql {{ #SOURCE.elapsed_s }};;
+  }
+
+  dimension avg_speed_mps {
+    label: 'Avg Speed (m/s)'
+    type: 'number'
+    description: 'Average speed over the whole activity (Garmin activity summary: averageSpeed)'
+    definition: @sql {{ #SOURCE.avg_speed_mps }};;
+  }
+
+  dimension pace_s_per_km {
+    label: 'Pace (s/km)'
+    type: 'number'
+    description: 'Timer time / distance, in seconds per km. Format as m:ss.'
+    definition: @sql {{ #SOURCE.pace_s_per_km }};;
+  }
+
+  dimension avg_gap_speed_mps {
+    label: 'Avg Grade-Adjusted Speed (m/s)'
+    type: 'number'
+    description: 'Average grade-adjusted speed: speed corrected for climbing and descending (Garmin activity summary: avgGradeAdjustedSpeed)'
+    definition: @sql {{ #SOURCE.avg_gap_speed_mps }};;
+  }
+
+  dimension max_speed_mps {
+    label: 'Max Speed (m/s)'
+    type: 'number'
+    description: 'Fastest speed recorded (Garmin activity summary: maxSpeed)'
+    definition: @sql {{ #SOURCE.max_speed_mps }};;
+  }
+
+  dimension avg_hr {
+    label: 'Avg HR'
+    type: 'number'
+    description: 'Average heart rate, bpm (Garmin activity summary: averageHR)'
+    definition: @sql {{ #SOURCE.avg_hr }};;
+  }
+
+  dimension max_hr {
+    label: 'Max HR'
+    type: 'number'
+    description: 'Highest heart rate, bpm (Garmin activity summary: maxHR)'
+    definition: @sql {{ #SOURCE.max_hr }};;
+  }
+
+  dimension avg_cadence_spm {
+    label: 'Avg Cadence (spm)'
+    type: 'number'
+    description: 'Average steps per minute, both feet (Garmin activity summary)'
+    definition: @sql {{ #SOURCE.avg_cadence_spm }};;
+  }
+
+  dimension elevation_gain_m {
+    label: 'Elevation Gain (m)'
+    type: 'number'
+    description: 'Total ascent (Garmin activity summary: elevationGain)'
+    definition: @sql {{ #SOURCE.elevation_gain_m }};;
+  }
+
+  dimension elevation_loss_m {
+    label: 'Elevation Loss (m)'
+    type: 'number'
+    description: 'Total descent (Garmin activity summary: elevationLoss)'
+    definition: @sql {{ #SOURCE.elevation_loss_m }};;
+  }
+
+  dimension calories {
+    label: 'Calories'
+    type: 'number'
+    description: 'Energy estimate, kcal (Garmin activity summary)'
+    definition: @sql {{ #SOURCE.calories }};;
+  }
+
+  dimension steps {
+    label: 'Steps'
+    type: 'number'
+    description: 'Steps counted (Garmin activity summary)'
+    definition: @sql {{ #SOURCE.steps }};;
+  }
+
+  dimension training_load {
+    label: 'Garmin Training Load'
+    type: 'number'
+    description: 'Garmin EPOC-based training load of the activity (undisclosed formula). The load model uses TRIMP instead: activity_load.trimp'
+    definition: @sql {{ #SOURCE.training_load }};;
+  }
+
+  dimension aerobic_te {
+    label: 'Aerobic Training Effect'
+    type: 'number'
+    description: 'Garmin (Firstbeat) aerobic training effect, 0 to 5 (Garmin activity summary: aerobicTrainingEffect)'
+    definition: @sql {{ #SOURCE.aerobic_te }};;
+  }
+
+  dimension anaerobic_te {
+    label: 'Anaerobic Training Effect'
+    type: 'number'
+    description: 'Garmin (Firstbeat) anaerobic training effect, 0 to 5 (Garmin activity summary: anaerobicTrainingEffect)'
+    definition: @sql {{ #SOURCE.anaerobic_te }};;
+  }
+
+  dimension te_label {
+    label: 'Training Effect Label'
+    type: 'text'
+    description: 'Garmin primary benefit label, e.g. BASE, TEMPO, THRESHOLD, VO2MAX (Garmin activity summary: trainingEffectLabel)'
+    definition: @sql {{ #SOURCE.te_label }};;
+  }
+
+  dimension vo2max {
+    label: 'VO2max'
+    type: 'number'
+    description: 'Garmin VO2max estimate recorded with the activity'
+    definition: @sql {{ #SOURCE.vo2max }};;
+  }
+
+  dimension vo2_effective {
+    label: 'Effective VO2max'
+    type: 'number'
+    description: 'Runalyze-style: Daniels oxygen cost of the average speed / %VO2max implied by avg HR vs HRmax. Runs of 1 km+, 10 min+ only; uncorrected'
+    definition: @sql {{ #SOURCE.vo2_effective }};;
+  }
+  dimension is_race {
+    label: 'Is Race'
+    type: 'truefalse'
+    description: 'Marked as a race by the user (Activities page)'
+    definition: @sql {{ #SOURCE.is_race }};;
+  }
+  dimension race_id {
+    label: 'Race ID'
+    type: 'number'
+    description: 'Race this activity was marked as (app.race, set in the Activities page); null if not a race'
+    hidden: true
+    definition: @sql {{ #SOURCE.race_id }};;
+  }
+  dimension race_name {
+    label: 'Race Name'
+    type: 'text'
+    description: 'Name of the race this activity was marked as (app.race)'
+    definition: @sql {{ #SOURCE.race_name }};;
+  }
+  dimension race_distance_km {
+    label: 'Race Distance (km)'
+    type: 'number'
+    description: 'Official race distance as entered, e.g. 21.0975'
+    definition: @sql {{ #SOURCE.race_distance_km }};;
+  }
+  dimension race_time_s {
+    label: 'Race Time (s)'
+    type: 'number'
+    description: 'Official chip time when entered, else the activity timer time'
+    definition: @sql {{ #SOURCE.race_time_s }};;
+  }
+  dimension race_priority {
+    label: 'Race Priority'
+    type: 'text'
+    description: 'A = goal race, B = important, C = training race'
+    definition: @sql {{ #SOURCE.race_priority }};;
+  }
+  dimension race_goal_time_s {
+    label: 'Race Goal Time (s)'
+    type: 'number'
+    description: 'The goal time entered for the race, if any'
+    definition: @sql {{ #SOURCE.race_goal_time_s }};;
+  }
+  dimension is_race_candidate {
+    label: 'Looks Like a Race'
+    type: 'truefalse'
+    description: 'Unmarked outdoor run at a standard distance (within 4 %) and 85 %+ of HRmax on average'
+    definition: @sql {{ #SOURCE.is_race_candidate }};;
+  }
+  dimension standard_distance_km {
+    label: 'Nearest Standard Distance (km)'
+    type: 'number'
+    description: '5, 10, 21.0975 or 42.195 when the distance is within 4 %'
+    definition: @sql {{ #SOURCE.standard_distance_km }};;
+  }
+  dimension is_indoor {
+    label: 'Indoor'
+    type: 'truefalse'
+    description: 'No GPS (treadmill, gym): no weather, no heat adjustment'
+    definition: @sql {{ #SOURCE.is_indoor }};;
+  }
+  dimension weather_source {
+    label: 'Weather Source'
+    type: 'text'
+    description: 'open-meteo-archive (final), open-meteo-forecast (recent, re-fetched later) or garmin (station at start)'
+    definition: @sql {{ #SOURCE.weather_source }};;
+  }
+  dimension temp_c {
+    label: 'Temperature (°C)'
+    type: 'number'
+    description: 'Average over the hours the activity lasted'
+    definition: @sql {{ #SOURCE.temp_c }};;
+  }
+  dimension humidity_pct {
+    label: 'Humidity (%)'
+    type: 'number'
+    description: 'Mean relative humidity over the activity hours (Open-Meteo hourly, else Garmin station reading at the start)'
+    definition: @sql {{ #SOURCE.humidity_pct }};;
+  }
+  dimension dew_point_c {
+    label: 'Dew Point (°C)'
+    type: 'number'
+    description: 'Mean dew point over the activity hours (Open-Meteo hourly, else Garmin)'
+    definition: @sql {{ #SOURCE.dew_point_c }};;
+  }
+  dimension wind_kmh {
+    label: 'Wind (km/h)'
+    type: 'number'
+    description: 'Mean 10 m wind speed over the activity hours (Open-Meteo hourly, else Garmin)'
+    definition: @sql {{ #SOURCE.wind_kmh }};;
+  }
+  dimension radiation_wm2 {
+    label: 'Solar Radiation (W/m²)'
+    type: 'number'
+    description: 'Mean shortwave solar radiation over the activity hours (Open-Meteo hourly)'
+    definition: @sql {{ #SOURCE.radiation_wm2 }};;
+  }
+  dimension wbgt_c {
+    label: 'WBGT (°C)'
+    type: 'number'
+    description: 'Wet-bulb globe temperature estimate from temperature and humidity (Australian BoM shade formula; ignores sun). The heat-stress measure used in marathon studies'
+    definition: @sql {{ #SOURCE.wbgt_c }};;
+  }
+  dimension wbgt_band {
+    label: 'Heat (WBGT band)'
+    type: 'text'
+    description: 'WBGT in 2 °C bands; "indoor" when there is no weather'
+    definition: @sql case when {{ #SOURCE.wbgt_c }} is null then 'indoor'
+                          when {{ #SOURCE.wbgt_c }} < 26 then '< 26'
+                          else (2 * floor({{ #SOURCE.wbgt_c }} / 2))::int || '–' || (2 * floor({{ #SOURCE.wbgt_c }} / 2) + 2)::int end ;;
+  }
+
+  dimension avg_stride_cm {
+    label: 'Avg Stride (cm)'
+    type: 'number'
+    description: 'Average stride length (Garmin activity summary: avgStrideLength)'
+    definition: @sql {{ #SOURCE.avg_stride_cm }};;
+  }
+
+  dimension avg_vert_osc_cm {
+    label: 'Avg Vertical Oscillation (cm)'
+    type: 'number'
+    description: 'Average vertical oscillation; needs a running-dynamics sensor or a compatible watch (Garmin activity summary)'
+    definition: @sql {{ #SOURCE.avg_vert_osc_cm }};;
+  }
+
+  dimension avg_gct_ms {
+    label: 'Avg Ground Contact (ms)'
+    type: 'number'
+    description: 'Average ground contact time (Garmin activity summary)'
+    definition: @sql {{ #SOURCE.avg_gct_ms }};;
+  }
+
+  dimension avg_power_w {
+    label: 'Avg Power (W)'
+    type: 'number'
+    description: 'Average running power (Garmin activity summary: avgPower)'
+    definition: @sql {{ #SOURCE.avg_power_w }};;
+  }
+
+  dimension hr_z1_s {
+    label: 'HR Zone 1 (s)'
+    type: 'number'
+    description: 'Seconds in Garmin HR zone 1 (Garmin activity summary: hrTimeInZone_1)'
+    hidden: true
+    definition: @sql {{ #SOURCE.hr_z1_s }};;
+  }
+
+  dimension hr_z2_s {
+    label: 'HR Zone 2 (s)'
+    type: 'number'
+    description: 'Seconds in Garmin HR zone 2 (Garmin activity summary: hrTimeInZone_2)'
+    hidden: true
+    definition: @sql {{ #SOURCE.hr_z2_s }};;
+  }
+
+  dimension hr_z3_s {
+    label: 'HR Zone 3 (s)'
+    type: 'number'
+    description: 'Seconds in Garmin HR zone 3 (Garmin activity summary: hrTimeInZone_3)'
+    hidden: true
+    definition: @sql {{ #SOURCE.hr_z3_s }};;
+  }
+
+  dimension hr_z4_s {
+    label: 'HR Zone 4 (s)'
+    type: 'number'
+    description: 'Seconds in Garmin HR zone 4 (Garmin activity summary: hrTimeInZone_4)'
+    hidden: true
+    definition: @sql {{ #SOURCE.hr_z4_s }};;
+  }
+
+  dimension hr_z5_s {
+    label: 'HR Zone 5 (s)'
+    type: 'number'
+    description: 'Seconds in Garmin HR zone 5 (Garmin activity summary: hrTimeInZone_5)'
+    hidden: true
+    definition: @sql {{ #SOURCE.hr_z5_s }};;
+  }
+
+  dimension lap_count {
+    label: 'Laps'
+    type: 'number'
+    description: 'Number of laps (Garmin activity summary)'
+    definition: @sql {{ #SOURCE.lap_count }};;
+  }
+
+  dimension has_pr {
+    label: 'Has PR'
+    type: 'truefalse'
+    description: 'Garmin flagged a personal record in this activity (Garmin activity summary: pr)'
+    definition: @sql {{ #SOURCE.has_pr }};;
+  }
+
+  dimension min_temp_c {
+    label: 'Min Temp (°C)'
+    type: 'number'
+    description: 'Lowest watch temperature reading; skewed upward by body heat (Garmin activity summary: minTemperature)'
+    definition: @sql {{ #SOURCE.min_temp_c }};;
+  }
+
+  dimension max_temp_c {
+    label: 'Max Temp (°C)'
+    type: 'number'
+    description: 'Highest watch temperature reading; skewed upward by body heat (Garmin activity summary: maxTemperature)'
+    definition: @sql {{ #SOURCE.max_temp_c }};;
+  }
+
+  measure activity_count {
+    label: 'Activities'
+    type: 'number'
+    description: 'Number of activities'
+    definition: @aql count(activity.activity_id) ;;
+  }
+
+  measure total_distance_km {
+    label: 'Distance (km)'
+    type: 'number'
+    description: 'Sum of distance_km'
+    format: '#,##0.0'
+    definition: @aql sum(activity.distance_km) ;;
+  }
+
+  measure total_duration_h {
+    label: 'Duration (h)'
+    type: 'number'
+    description: 'Timer time in hours'
+    format: '#,##0.0'
+    definition: @aql sum(activity.duration_s) / 3600 ;;
+  }
+
+  measure total_elevation_gain_m {
+    label: 'Elevation Gain (m)'
+    type: 'number'
+    description: 'Sum of elevation gain'
+    format: '#,##0'
+    definition: @aql sum(activity.elevation_gain_m) ;;
+  }
+
+  measure total_training_load {
+    label: 'Garmin Training Load'
+    type: 'number'
+    description: 'Sum of Garmin (Firstbeat EPOC-based) training load. The app’s own load is TRIMP (activity_load)'
+    format: '#,##0'
+    definition: @aql sum(activity.training_load) ;;
+  }
+
+  measure avg_pace_s_per_km {
+    label: 'Avg Pace (s/km)'
+    type: 'number'
+    description: 'Total timer time / total distance: a distance-weighted pace. Format as m:ss per km.'
+    definition: @aql sum(activity.duration_s) / sum(activity.distance_km) ;;
+  }
+
+  measure avg_gap_pace_s_per_km {
+    label: 'Avg Grade-Adjusted Pace (s/km)'
+    type: 'number'
+    description: 'From the average of per-activity grade-adjusted speeds'
+    definition: @aql 1000 / avg(activity.avg_gap_speed_mps) ;;
+  }
+
+  measure avg_heart_rate {
+    label: 'Avg HR'
+    type: 'number'
+    description: 'Duration-weighted average heart rate'
+    format: '#,##0'
+    definition: @aql sum(activity.avg_hr * activity.duration_s) / (activity | where(activity.avg_hr is not null) | sum(activity.duration_s)) ;;
+  }
+
+  measure avg_cadence {
+    label: 'Avg Cadence (spm)'
+    type: 'number'
+    description: 'Mean of per-activity average cadence (not time-weighted)'
+    format: '#,##0'
+    definition: @aql avg(activity.avg_cadence_spm) ;;
+  }
+
+  measure avg_vo2max {
+    label: 'Avg VO2max'
+    type: 'number'
+    description: 'Mean of Garmin VO2max estimates on the activities'
+    format: '#,##0.0'
+    definition: @aql avg(activity.vo2max) ;;
+  }
+
+  measure max_vo2max {
+    label: 'Max VO2max'
+    type: 'number'
+    description: 'Highest Garmin VO2max estimate on the activities'
+    format: '#,##0.0'
+    definition: @aql max(activity.vo2max) ;;
+  }
+
+  measure metres_per_beat {
+    label: 'Efficiency (m per heartbeat)'
+    type: 'number'
+    description: 'Distance covered per heartbeat, over activities with HR. Rising = fitter at the same effort.'
+    format: '#,##0.00'
+    definition: @aql sum(activity.distance_km * 1000) / sum(activity.duration_s / 60 * activity.avg_hr) ;;
+  }
+
+  measure hr_z1_h {
+    label: 'Time in HR Zone 1 (h)'
+    type: 'number'
+    description: 'Sum of seconds in HR zone 1 / 3600'
+    format: '#,##0.0'
+    definition: @aql sum(activity.hr_z1_s) / 3600 ;;
+  }
+
+  measure hr_z2_h {
+    label: 'Time in HR Zone 2 (h)'
+    type: 'number'
+    description: 'Sum of seconds in HR zone 2 / 3600'
+    format: '#,##0.0'
+    definition: @aql sum(activity.hr_z2_s) / 3600 ;;
+  }
+
+  measure hr_z3_h {
+    label: 'Time in HR Zone 3 (h)'
+    type: 'number'
+    description: 'Sum of seconds in HR zone 3 / 3600'
+    format: '#,##0.0'
+    definition: @aql sum(activity.hr_z3_s) / 3600 ;;
+  }
+
+  measure hr_z4_h {
+    label: 'Time in HR Zone 4 (h)'
+    type: 'number'
+    description: 'Sum of seconds in HR zone 4 / 3600'
+    format: '#,##0.0'
+    definition: @aql sum(activity.hr_z4_s) / 3600 ;;
+  }
+
+  measure hr_z5_h {
+    label: 'Time in HR Zone 5 (h)'
+    type: 'number'
+    description: 'Sum of seconds in HR zone 5 / 3600'
+    format: '#,##0.0'
+    definition: @aql sum(activity.hr_z5_s) / 3600 ;;
+  }
+
+  measure longest_km {
+    label: 'Longest (km)'
+    type: 'number'
+    description: 'Longest single activity distance'
+    format: '#,##0.0'
+    definition: @aql max(activity.distance_km) ;;
+  }
+
+  measure avg_vo2_effective {
+    label: 'Avg Effective VO2max'
+    type: 'number'
+    description: 'Duration-weighted'
+    format: '#,##0.0'
+    definition: @aql sum(activity.vo2_effective * activity.duration_s) / (activity | where(activity.vo2_effective is not null) | sum(activity.duration_s)) ;;
+  }
+
+  measure race_count {
+    label: 'Races'
+    type: 'number'
+    description: 'Activities marked as a race'
+    definition: @aql count(activity.activity_id) | where(activity.is_race) ;;
+  }
+
+  measure race_candidate_count {
+    label: 'Possible Races'
+    type: 'number'
+    description: 'Unmarked activities that look like a race (see Looks Like a Race)'
+    definition: @aql count(activity.activity_id) | where(activity.is_race_candidate) ;;
+  }
+
+  measure avg_wbgt {
+    label: 'Avg WBGT (°C)'
+    type: 'number'
+    description: 'Mean of per-activity WBGT estimates (BoM formula from temperature and humidity)'
+    format: '#,##0.0'
+    definition: @aql avg(activity.wbgt_c) ;;
+  }
+}

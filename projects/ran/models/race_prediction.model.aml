@@ -1,0 +1,39 @@
+Model race_prediction {
+  type: 'table'
+  label: 'Race Predictions'
+  description: 'Garmin race time predictions, one row per day computed. Times in seconds.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."race_prediction"'
+
+  dimension calendar_date {
+    label: 'Date'
+    type: 'date'
+    description: 'Day of the Garmin prediction'
+    primary_key: true
+    definition: @sql {{ #SOURCE.calendar_date }};;
+  }
+  dimension time_5k_s {
+    label: '5K (s)'
+    type: 'number'
+    description: 'Garmin race predictor 5K time (Garmin Connect race predictions)'
+    definition: @sql {{ #SOURCE.time_5k_s }};;
+  }
+  dimension time_10k_s {
+    label: '10K (s)'
+    type: 'number'
+    description: 'Garmin race predictor 10K time'
+    definition: @sql {{ #SOURCE.time_10k_s }};;
+  }
+  dimension time_half_s {
+    label: 'Half Marathon (s)'
+    type: 'number'
+    description: 'Garmin race predictor half-marathon time'
+    definition: @sql {{ #SOURCE.time_half_s }};;
+  }
+  dimension time_marathon_s {
+    label: 'Marathon (s)'
+    type: 'number'
+    description: 'Garmin race predictor marathon time; about 11 % too fast on this runner (prediction_check)'
+    definition: @sql {{ #SOURCE.time_marathon_s }};;
+  }
+}

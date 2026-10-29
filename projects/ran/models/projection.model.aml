@@ -1,0 +1,112 @@
+Model projection {
+  type: 'table'
+  label: 'Form Projection'
+  description: 'Per upcoming race and day: load, fatigue (ATL), fitness (CTL) and form (TSB), as run for the last 8 weeks and projected from the plan to race day with the same time constants as garmin.day.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."projection"'
+
+  dimension projection_id {
+    label: 'Projection ID'
+    type: 'number'
+    description: 'Surrogate key: race and date'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.projection_id }};;
+  }
+  dimension race_id {
+    label: 'Race ID'
+    type: 'number'
+    description: 'Goal race'
+    hidden: true
+    definition: @sql {{ #SOURCE.race_id }};;
+  }
+  dimension calendar_date {
+    label: 'Date'
+    type: 'date'
+    description: 'Day. Past days are actual, future days projected from the plan'
+    definition: @sql {{ #SOURCE.calendar_date }};;
+  }
+  dimension is_projected {
+    label: 'Projected'
+    type: 'truefalse'
+    description: 'True after today: from the planned load'
+    definition: @sql {{ #SOURCE.is_projected }};;
+  }
+  dimension load {
+    label: 'Load'
+    type: 'number'
+    description: 'Daily TRIMP: actual up to today, the plan estimate after'
+    definition: @sql {{ #SOURCE.load }};;
+  }
+  dimension atl {
+    label: 'Fatigue (ATL)'
+    type: 'number'
+    description: 'Fatigue: ATL(t) = ATL(t-1) + (load - ATL(t-1)) x (1 - e^(-1/7)) (Banister)'
+    definition: @sql {{ #SOURCE.atl }};;
+  }
+  dimension ctl {
+    label: 'Fitness (CTL)'
+    type: 'number'
+    description: 'Fitness: CTL(t) = CTL(t-1) + (load - CTL(t-1)) x (1 - e^(-1/42)) (Banister)'
+    definition: @sql {{ #SOURCE.ctl }};;
+  }
+  dimension tsb {
+    label: 'Form (TSB)'
+    type: 'number'
+    description: 'CTL - ATL'
+    definition: @sql {{ #SOURCE.tsb }};;
+  }
+  dimension tsb_share {
+    label: 'Form / Fitness'
+    type: 'number'
+    description: 'TSB / CTL: scale-free form'
+    definition: @sql {{ #SOURCE.tsb_share }};;
+  }
+  dimension tsb_target_low {
+    label: 'Race Form Target, Low'
+    type: 'number'
+    description: '10 % of CTL (Allen & Coggan +15 to +25 TSS, made scale-free)'
+    definition: @sql {{ #SOURCE.tsb_target_low }};;
+  }
+  dimension tsb_target_high {
+    label: 'Race Form Target, High'
+    type: 'number'
+    description: '30 % of CTL'
+    definition: @sql {{ #SOURCE.tsb_target_high }};;
+  }
+  dimension days_to_race {
+    label: 'Days to Race'
+    type: 'number'
+    description: 'Race date - day'
+    definition: @sql {{ #SOURCE.days_to_race }};;
+  }
+
+  measure avg_atl {
+    label: 'Avg Fatigue (ATL)'
+    type: 'number'
+    description: 'Mean fatigue (ATL)'
+    format: '#,##0'
+    definition: @aql avg(projection.atl) ;;
+  }
+  measure avg_ctl {
+    label: 'Avg Fitness (CTL)'
+    type: 'number'
+    description: 'Mean fitness (CTL)'
+    format: '#,##0'
+    definition: @aql avg(projection.ctl) ;;
+  }
+  measure avg_tsb {
+    label: 'Avg Form (TSB)'
+    type: 'number'
+    description: 'Mean form (TSB = CTL - ATL)'
+    format: '#,##0'
+    definition: @aql avg(projection.tsb) ;;
+  }
+  measure total_load {
+    label: 'Load'
+    type: 'number'
+    description: 'Sum of daily TRIMP'
+    format: '#,##0'
+    definition: @aql sum(projection.load) ;;
+  }
+}

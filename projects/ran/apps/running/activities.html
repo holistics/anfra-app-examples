@@ -1,0 +1,294 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Activities</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="activity-detail.css">
+  <script src="shared.js"></script>
+  <script src="activity-detail.js"></script>
+  <style>
+    .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+    .filters label { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+    .filters input[type=search] { width: 220px; }
+    .summary { font-size: 13px; color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+    th.sortable { cursor: pointer; }
+    th.sortable:hover { color: var(--text); }
+    #activities-body tr { cursor: pointer; }
+    #activities-body tr:hover { background: var(--row-hover); }
+    .name { max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
+    .table-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+
+    .pill.race { border-color: var(--accent); color: var(--accent); }
+    .pill.maybe { border-style: dashed; }
+    .hint { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px;
+            padding: 8px 12px; border: 1px dashed var(--accent); border-radius: 8px; font-size: 13px; background: var(--panel); }
+    .hint[hidden] { display: none; }
+
+    @media (max-width: 900px) { .filters input[type=search] { width: 100%; } .summary { margin-left: 0; } }
+    #activities-body tr:focus-visible td { background: var(--row-hover); outline: none; }
+    #activities-body tr:focus-visible td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+    th.sortable:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .phone-line { display: none; }
+    /* phones: date and name, with distance · time · pace under the name; the other columns go */
+    @media (max-width: 560px) {
+      #search-input { width: 100%; flex: 1 1 100%; }
+      [data-anfra-block="activities"] thead th:nth-child(n+3), #activities-body td:nth-child(n+3) { display: none; }
+      #activities-body td { white-space: normal; vertical-align: top; }
+      #activities-body td:first-child { font-size: 12px; width: 34%; }
+      .phone-line { display: block; font-size: 12px; color: var(--muted); }
+    }
+  </style>
+</head>
+<body>
+<main data-anfra-container="page" data-anfra-label="Activities">
+  <header data-anfra-container="header" data-anfra-label="Header">
+    <div>
+      <h1>Activities</h1>
+      <div class="small muted">Click an activity for its route, per-second data and laps · ← → to step through, Esc to close</div>
+    </div>
+  </header>
+
+  <div class="filters" data-anfra-container="filters" data-anfra-label="Filters">
+    <label data-anfra-block="period-picker" data-anfra-label="Period" data-anfra-control="period">Period
+      <select id="period-select">
+        <option value="27 days ago - today">Last 4 weeks</option>
+        <option value="89 days ago - today">Last 3 months</option>
+        <option value="364 days ago - today">Last 12 months</option>
+        <option value="this year">This year</option>
+        <option value="last year">Last year</option>
+        <option value="" selected>All time</option>
+      </select>
+    </label>
+    <label data-anfra-block="sport-picker" data-anfra-label="Sport" data-anfra-control="sport">Sport
+      <select id="sport-select"><option value="">All sports</option></select>
+    </label>
+    <label data-anfra-block="type-picker" data-anfra-label="Races" data-anfra-control="races candidates">Show
+      <select id="type-select">
+        <option value="">All activities</option>
+        <option value="race">Races</option>
+        <option value="candidate">Possible races</option>
+      </select>
+    </label>
+    <label data-anfra-block="search" data-anfra-label="Name search" data-anfra-control="search">
+      <input id="search-input" type="search" placeholder="Search names…">
+    </label>
+    <span class="summary" id="summary" data-skeleton style="--sk-h:12px;display:inline-block;min-width:260px" data-anfra-block="summary" data-anfra-label="Filtered totals" data-anfra-query="totals"></span>
+  </div>
+
+  <div class="hint" id="candidates-hint" hidden data-anfra-block="race-hint" data-anfra-label="Possible races hint" data-anfra-query="raceCounts">
+    <span id="candidates-text"></span>
+    <button id="review-candidates" type="button">Review</button>
+  </div>
+
+  <section class="panel" data-anfra-block="activities" data-anfra-label="Activity list">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th class="sortable l" data-sort="started">Date ▼</th>
+          <th class="l">Name</th>
+          <th class="sortable" data-sort="km">Distance</th>
+          <th class="sortable" data-sort="secs">Time</th>
+          <th class="sortable" data-sort="pace">Pace</th>
+          <th class="sortable" data-sort="hr">Avg HR</th>
+          <th class="sortable" data-sort="elev">Elev +</th>
+          <th class="sortable" data-sort="load" title="Banister TRIMP from heart rate">TRIMP</th>
+          <th class="sortable" data-sort="vo2">VO2max*</th>
+          <th class="l">Effect</th>
+        </tr></thead>
+        <tbody id="activities-body" data-anfra-query="activities"></tbody>
+      </table>
+    </div>
+    <div class="table-foot">
+      <span id="activities-count" class="small muted"></span>
+      <button id="more" type="button" hidden>Load more</button>
+    </div>
+    <div class="note">* Effective VO2max of the run (Runalyze method, uncorrected).</div>
+    <div id="activities-status" class="status"></div>
+  </section>
+</main>
+
+<script>
+  const { num, fmt0, fmt1, fmt2, pace, paceFromSpeed, duration, or, localWhen, esc, css, axisBase, renderStatus, dash } = Run;
+  const DS = 'running';
+  const $ = (id) => document.getElementById(id);
+  const isTrue = (v) => v === true || v === 'true' || v === 1 || v === '1';
+  const app = Anfra.createApp({ title: 'Activities', timezone: Run.TZ });
+
+  // ---------- list ----------
+  const activities = app.createQuery('activities', { dataset: DS, pageSize: 30, aql: `
+    explore {
+      dimensions {
+        id: activity.activity_id,
+        started: activity.start_time_gmt,
+        started_label: activity.start_label,
+        name: activity.activity_name,
+        sport_name: activity.sport,
+        activity_kind: activity.activity_type,
+        km: activity.distance_km,
+        secs: activity.duration_s,
+        pace: activity.pace_s_per_km,
+        hr: activity.avg_hr,
+        elev: activity.elevation_gain_m,
+        load: activity_load.trimp,
+        vo2: activity.vo2_effective,
+        te: activity.te_label,
+        is_race: activity.is_race,
+        race_name: activity.race_name,
+        maybe_race: activity.is_race_candidate
+      }
+      sorts { started desc }
+    }` });
+
+  const totals = app.createQuery('totals', { dataset: DS, aql: `
+    explore {
+      measures {
+        n: activity.activity_count,
+        km: activity.total_distance_km,
+        hours: activity.total_duration_h,
+        load: activity_load.total_trimp
+      }
+    }` });
+
+  // Race counts for the "possible races" hint: not filtered, so the hint shows every candidate.
+  const raceCounts = app.createQuery('raceCounts', { dataset: DS, aql: `
+    explore { measures { races: activity.race_count, candidates: activity.race_candidate_count } }` });
+
+  const period = app.createFilter('period', { dataset: DS, field: 'activity.start_date', label: 'Period' });
+  const races = app.createFilter('races', { dataset: DS, field: 'activity.is_race', label: 'Races only' });
+  const candidates = app.createFilter('candidates', { dataset: DS, field: 'activity.is_race_candidate', label: 'Possible races only' });
+  const sport = app.createFilter('sport', { dataset: DS, field: 'activity.sport', label: 'Sport' });
+  const search = app.createFilter('search', { dataset: DS, field: 'activity.activity_name', label: 'Name' });
+  for (const q of [activities, totals]) {
+    app.mapControl(period, q, { field: 'activity.start_date' });
+    app.mapControl(sport, q, { field: 'activity.sport' });
+    app.mapControl(search, q, { field: 'activity.activity_name' });
+    app.mapControl(races, q, { field: 'activity.is_race' });
+    app.mapControl(candidates, q, { field: 'activity.is_race_candidate' });
+  }
+
+  // ---------- list rendering ----------
+  const changed = Run.changeTracker();
+  const logFirst = Run.logFirstResults();
+
+  function renderList () {
+    renderStatus(activities, $('activities-status'), 'No activities match');
+    // the list shows placeholder rows itself; the overlay is for errors and "no activities" only
+    $('activities-status').classList.remove('loading');
+    if (!$('activities-status').textContent) $('activities-status').classList.remove('visible');
+    if (activities.result && changed(activities)) {
+      $('activities-body').replaceChildren(...activities.result.rows.map((r) => {
+        const tr = document.createElement('tr');
+        tr.dataset.id = r.id;
+        tr.tabIndex = 0;   // Enter or Space opens it, as a click does
+        tr.setAttribute('aria-label', `${localWhen(r.started_label)}, ${isTrue(r.is_race) && r.race_name ? r.race_name : r.name}: open details`);
+        tr.innerHTML = `
+          <td class="l">${esc(localWhen(r.started_label))}</td>
+          <td class="l name" title="${esc(r.name)}">${isTrue(r.is_race) ? '<span class="pill race">🏁 race</span> ' : ''}${isTrue(r.maybe_race) ? '<span class="pill race maybe">race?</span> ' : ''}${esc(isTrue(r.is_race) && r.race_name ? r.race_name : r.name)}${r.sport_name !== 'Running' ? ` <span class="pill">${esc((r.activity_kind ?? '').replaceAll('_', ' '))}</span>` : ''}
+            <span class="phone-line">${[num(r.km) ? `${fmt2.format(num(r.km))} km` : '', duration(r.secs), num(r.km) ? `${pace(r.pace)} /km` : ''].filter(Boolean).join(' · ')}</span></td>
+          <td>${num(r.km) ? `${fmt2.format(num(r.km))} km` : dash}</td>
+          <td>${duration(r.secs)}</td>
+          <td>${num(r.km) ? pace(r.pace) : dash}</td>
+          <td>${or(r.hr, fmt0.format)}</td>
+          <td>${num(r.elev) === null ? dash : `${fmt0.format(num(r.elev))} m`}</td>
+          <td>${or(r.load, fmt0.format)}</td>
+          <td>${or(r.vo2, fmt1.format)}</td>
+          <td class="l small muted">${esc((r.te ?? '').replaceAll('_', ' ').toLowerCase())}</td>`;
+        return tr;
+      }));
+      const shown = activities.result.rows.length;
+      $('activities-count').textContent = shown ? `Showing ${shown}${activities.hasMore ? ' — scroll or load more' : ''}` : '';
+      $('more').hidden = !activities.hasMore;
+    }
+    const c = raceCounts.result?.rows[0];
+    const nCand = num(c?.candidates) ?? 0;
+    $('candidates-hint').hidden = !nCand || $('type-select').value === 'candidate';
+    $('candidates-text').textContent = `🏁 ${nCand} run${nCand === 1 ? '' : 's'} look${nCand === 1 ? 's' : ''} like a race `
+      + `(standard distance, hard effort). Marked races so far: ${num(c?.races) ?? 0}. Marking them calibrates the race model.`;
+    const t = totals.result?.rows[0];
+    if (t) $('summary').textContent = `${fmt0.format(num(t.n) ?? 0)} activities · ${fmt0.format(num(t.km) ?? 0)} km · ${fmt0.format(num(t.hours) ?? 0)} h · TRIMP ${fmt0.format(num(t.load) ?? 0)}`;
+  }
+
+  // the activity detail (activity-detail.js); ‹ › step through this list, loading more at its end
+  const detailView = Run.activityDetail(app, { dataset: DS, nav: {
+    rows: () => activities.result?.rows ?? [], hasMore: () => activities.hasMore, more: () => activities.fetchMore(),
+  } });
+  const openActivity = (id) => detailView.open(id);
+
+  app.subscribe(() => {
+    logFirst(activities, totals, raceCounts);
+    renderList();
+    detailView.refreshNav();
+  });
+
+  // ---------- wiring ----------
+  $('period-select').addEventListener('change', (e) => {
+    period.setCondition({ operator: 'matches', values: e.target.value ? [e.target.value] : [] });
+    app.execute();
+  });
+  sport.loadOptions().then((options) => {
+    $('sport-select').append(...options.map((v) => new Option(String(v), String(v))));
+  }).catch((err) => console.error('Could not load sports', err));
+  $('sport-select').addEventListener('change', (e) => {
+    sport.setCondition({ operator: 'is', values: e.target.value ? [e.target.value] : [] });
+    app.execute();
+  });
+  function setType (value) {
+    $('type-select').value = value;
+    races.setCondition(value === 'race' ? { operator: 'is_true', values: [] } : { operator: 'none', values: [] });
+    candidates.setCondition(value === 'candidate' ? { operator: 'is_true', values: [] } : { operator: 'none', values: [] });
+    app.execute();
+  }
+  $('type-select').addEventListener('change', (e) => setType(e.target.value));
+  $('review-candidates').addEventListener('click', () => {
+    $('period-select').value = '';
+    period.setCondition({ operator: 'matches', values: [] });
+    setType('candidate');
+  });
+  let searchTimer;
+  $('search-input').addEventListener('input', (e) => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      const v = e.target.value.trim();
+      search.setCondition({ operator: 'contains', values: v ? [v] : [] });
+      app.execute();
+    }, 300);
+  });
+
+  $('activities-body').addEventListener('click', (e) => {
+    const tr = e.target.closest('tr');
+    if (tr?.dataset.id) openActivity(tr.dataset.id);
+  });
+  $('activities-body').addEventListener('keydown', (e) => {
+    const tr = e.target.closest('tr');
+    if (tr?.dataset.id && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openActivity(tr.dataset.id); }
+  });
+  $('more').addEventListener('click', () => activities.fetchMore().catch((err) => console.error('Load more failed', err)));
+  let sortState = { field: 'started', direction: 'desc' };
+  // sortable headers: click, or Tab to one and press Enter/Space; aria-sort says which way
+  function sortBy (th) {
+    const field = th.dataset.sort;
+    sortState = { field, direction: sortState.field === field && sortState.direction === 'desc' ? 'asc' : 'desc' };
+    document.querySelectorAll('th.sortable').forEach((h) => { h.textContent = h.textContent.replace(/ [▲▼]$/, ''); h.removeAttribute('aria-sort'); });
+    th.textContent += sortState.direction === 'desc' ? ' ▼' : ' ▲';
+    th.setAttribute('aria-sort', sortState.direction === 'desc' ? 'descending' : 'ascending');
+    activities.setSort([sortState]);
+    app.execute();
+  }
+  document.querySelectorAll('th.sortable').forEach((th) => {
+    th.tabIndex = 0;
+    if (th.dataset.sort === sortState.field) th.setAttribute('aria-sort', 'descending');
+    th.addEventListener('click', () => sortBy(th));
+    th.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sortBy(th); } });
+  });
+
+
+  Run.skeletonRows($('activities-body'), 10, 12);
+  app.execute();
+</script>
+</body>
+</html>

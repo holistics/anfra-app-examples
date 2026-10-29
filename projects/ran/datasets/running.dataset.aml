@@ -1,0 +1,91 @@
+Dataset running {
+  label: 'Running & Wellness (Garmin)'
+  description: '''Garmin Connect data synced into Postgres by `garmin-sync`: every activity (all sports; `activity.is_run`
+for running), its laps and per-second samples, one row per day of wellness and training load, and
+weigh-ins.
+
+- Activity trends: use `activity.start_date` (local date). Pace metrics are seconds per km.
+- Day-grain metrics (resting HR, sleep, HRV, ATL/CTL/TSB) live on `day`; activities join to it by date.
+- Training load is Banister TRIMP from heart rate (`activity_load.trimp`, `day.training_load`); Garmin load is kept as `activity.training_load` and `day.*_garmin`.
+- `activity_sample` is per second: always filter it to one or a few activities.
+- Race Planner: `scenario_result`, `scenario_week`, `scenario_day`, `scenario_phase` and `scenario_sweep` compute a plan
+  and its race-day forecast for a set of settings (db/views.d/60_scenario.sql). Filter every setting dimension
+  (race_id, runs_per_week, peak_km, quality, long_max_km, ramp_pct, taper_weeks, front_loaded, tune_up, start_km) to
+  one value; `scenario_best` has the recommended settings per race and runs a week.
+'''
+  data_source_name: 'garmin'
+
+  models: [
+    activity,
+    activity_marker,
+    activity_hr_zone,
+    activity_zone,
+    activity_load,
+    best_effort,
+    lap,
+    activity_sample,
+    day,
+    body_composition,
+    race_prediction,
+    race_prediction_own,
+    race,
+    model_param,
+    prediction_check,
+    heat_fit_point,
+    plan_day,
+    plan_week,
+    projection,
+    race_forecast,
+    race_limiter,
+    session_profile,
+    planner_param,
+    scenario_best,
+    scenario_result,
+    scenario_week,
+    scenario_day,
+    scenario_phase,
+    scenario_sweep,
+  ]
+  relationships: [
+    relationship(lap.activity_id > activity.activity_id, true),
+    relationship(activity_marker.activity_id - activity.activity_id, true),
+    relationship(activity_hr_zone.activity_id > activity.activity_id, true),
+    relationship(activity_zone.activity_id > activity.activity_id, true),
+    relationship(activity_load.activity_id - activity.activity_id, true),
+    relationship(best_effort.activity_id > activity.activity_id, true),
+    relationship(activity_sample.activity_id > activity.activity_id, true),
+    relationship(activity.start_date > day.calendar_date, true),
+    relationship(body_composition.calendar_date > day.calendar_date, true),
+    relationship(race_prediction.calendar_date > day.calendar_date, true),
+    relationship(race_prediction_own.calendar_date - day.calendar_date, true),
+    relationship(race.activity_id > activity.activity_id, true),
+    relationship(prediction_check.race_id > race.race_id, true),
+    relationship(heat_fit_point.activity_id - activity.activity_id, true),
+    relationship(plan_day.race_id > race.race_id, true),
+    relationship(plan_week.race_id > race.race_id, true),
+    relationship(projection.race_id > race.race_id, true),
+    relationship(race_forecast.race_id - race.race_id, true),
+    relationship(race_limiter.race_id > race.race_id, true),
+  ]
+
+  metric run_count {
+    label: 'Runs'
+    type: 'number'
+    description: 'Running activities of any kind (outdoor, treadmill, trail)'
+    definition: @aql activity.activity_count | where(activity.is_run) ;;
+  }
+
+  metric run_distance_km {
+    label: 'Run Distance (km)'
+    type: 'number'
+    definition: @aql activity.total_distance_km | where(activity.is_run) ;;
+    format: '#,##0.0'
+  }
+
+  metric run_pace_s_per_km {
+    label: 'Run Pace (s/km)'
+    type: 'number'
+    description: 'Distance-weighted average pace of runs (timer time / distance)'
+    definition: @aql activity.avg_pace_s_per_km | where(activity.is_run) ;;
+  }
+}

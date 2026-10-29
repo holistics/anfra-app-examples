@@ -1,0 +1,1716 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overview</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="activity-detail.css">
+  <script src="shared.js"></script>
+  <script src="activity-detail.js"></script>
+  <script src="metrics.js"></script>
+  <script src="metric-modal.js"></script>
+  <style>
+    /* tiles draw their own dividers, so a cell left empty at some width reads as blank panel */
+    .banner { display: grid; grid-template-columns: repeat(5, 1fr); grid-auto-flow: dense; background: var(--panel);
+              border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+    .tile { background: var(--panel); padding: 10px 12px; min-width: 0; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 0 -1px -1px 0; }
+    .tile .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+    .tile .value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+    .tile .sub { font-size: 12px; color: var(--muted); }
+    .tile.wide { grid-column: span 2; }
+    .panel.full { grid-column: 1 / -1; }
+    .efforts td .pb { font-size: 10px; color: var(--good); border: 1px solid var(--good); border-radius: 999px; padding: 0 5px; margin-left: 4px; }
+    .flags { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 2px; }
+    .flag { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--warn); color: var(--warn); }
+    .flag.ok { border-color: var(--good); color: var(--good); }
+    .tile .link { padding: 1px 8px; font-size: 12px; }
+    details.how > summary { cursor: pointer; font-size: 12px; } details.how[open] { margin-bottom: 14px; }
+    #ev-methods-body td.l { white-space: normal; min-width: 160px; }
+    .banner-head { display: flex; justify-content: space-between; align-items: baseline; margin: 4px 2px 6px; }
+    .shape-bar { position: relative; height: 8px; background: var(--border); border-radius: 4px; margin: 8px 0 16px; }
+    .shape-bar .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 4px; }
+    .shape-bar .mark { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--muted); }
+    .shape-bar .mark span { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--muted); white-space: nowrap; }
+    .preds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 4px; }
+    .preds div { font-variant-numeric: tabular-nums; }
+    .preds b { display: block; font-size: 16px; }
+
+    .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 12px; }
+    .kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+    .kpi .label { font-size: 12px; color: var(--muted); }
+    .kpi .value { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; }
+    .sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 26px 2px 10px; }
+    .sec-title { font-size: 21px; font-weight: 750; margin: 0; letter-spacing: -.01em; padding-left: 10px; border-left: 4px solid var(--accent); line-height: 1.15; }
+    .sec-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: -4px 2px 6px; }
+    .more-link { color: var(--link); font-weight: 600; font-size: 14px; }
+    .more-link:hover { text-decoration: underline; }
+    .now.plan-sec { grid-template-columns: 1fr; }
+    #nm .banner { margin-bottom: 8px; }
+    .section-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 4px 2px 6px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .span-2 { grid-column: 1 / -1; }
+    .ev-headline { font-size: 13px; margin: 2px 0 4px; }
+    .ev-headline b { font-size: 20px; }
+    tr.best td { font-weight: 700; }
+    #efforts-body tr[data-open] { cursor: pointer; }
+    #efforts-body tr[data-open]:focus-visible td { background: var(--row-hover); outline: none; }
+    #efforts-body td.alltime[data-open] { color: var(--link); }
+    #efforts-body td.alltime[data-open]:hover { text-decoration: underline; }
+    td .err { font-size: 11px; margin-left: 4px; }
+
+
+    /* "How your training is going": plain answers first, the numbers behind them in the folds below */
+    .now { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+    .now .tile { border: 1px solid var(--border); border-radius: 10px; margin: 0; padding: 12px 14px; }
+    .now .tile.wide { grid-column: span 2; }
+    .now .tile.full { grid-column: 1 / -1; }
+    .now .tile .value { font-size: 28px; }
+    .now .tile .value .of { font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 6px; }
+    .now .line { font-size: 13px; margin-top: 6px; }
+    .now .tile.go { cursor: pointer; }
+    .now .tile.go:hover { background: var(--row-hover); }
+    .now .tile.go:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .now .label .more { float: right; text-transform: none; letter-spacing: 0; color: var(--link); }
+    .vs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    .vs div { background: var(--stripe); border-radius: 8px; padding: 8px 10px; }
+    .vs b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+    .vs small { color: var(--muted); font-size: 11px; }
+    .chip2 { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 9px; border-radius: 999px; border: 1px solid currentColor; }
+    /* progress toward the week's / month's target, with a tick where you'd be by today */
+    .progress { position: relative; height: 8px; border-radius: 4px; background: var(--track); margin: 8px 0 6px; }
+    .progress .fill { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--accent); }
+    .progress .fill.over { background: var(--warn); }
+    .progress .tick { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text); border-radius: 1px; }
+    .progress .tick span { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--muted); white-space: nowrap; }
+    .progress:has(.tick) { margin-bottom: 18px; }
+    /* load against what you are used to: four zones and a marker */
+    .scale { position: relative; display: grid; grid-template-columns: 30fr 50fr 20fr 30fr; gap: 2px; margin: 10px 0 20px; }
+    .scale i { height: 8px; border-radius: 2px; }
+    .scale span { position: absolute; top: 12px; font-size: 10px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
+    .scale .mark { position: absolute; top: -5px; width: 14px; height: 18px; margin-left: -7px; border-radius: 4px; background: var(--text); border: 2px solid var(--panel); }
+    /* race predictions: a distance per tab, its time and trend */
+    .dists { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 6px 0 10px; }
+    .dists button { text-align: left; padding: 6px 8px; border-radius: 8px; font-variant-numeric: tabular-nums; }
+    .dists button b { display: block; font-size: 15px; }
+    .dists button small { color: var(--muted); }
+    .dists button[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+    .pred-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .pred-head .badge { font-weight: 800; color: var(--accent); border: 2px solid var(--accent); border-radius: 10px; padding: 2px 8px; font-size: 13px; line-height: 1.1; text-align: center; }
+    .pred-head .badge small { display: block; font-size: 9px; }
+    .pred-head .t { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .pred-head .p { color: var(--muted); font-size: 15px; }
+    .pred-head .d { margin-left: auto; text-align: right; font-size: 12px; color: var(--muted); }
+    .delta { display: inline-block; font-weight: 700; font-size: 13px; padding: 2px 8px; border-radius: 6px; }
+    .delta.faster { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good-text); }
+    .delta.slower { background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad-text); }
+    #n-pred-chart { height: 130px; }
+    /* this week's plan, day by day, and the biggest gain for the race */
+    .plan-tile { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; }
+    .pt-status { font-size: 17px; font-weight: 650; margin: 4px 0 8px; }
+    .pt-km { font-size: 14px; font-weight: 400; margin-top: 2px; }
+    .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .day { border: 1px solid var(--border); border-radius: 8px; padding: 5px 6px; font-size: 12px; min-height: 64px; background: var(--panel); }
+    .day .w { color: var(--muted); font-size: 11px; }
+    .day .s { font-weight: 600; text-transform: capitalize; }
+    .day.key .s { color: var(--accent-strong); }
+    .day.today { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+    .day.rest { background: var(--stripe); color: var(--muted); }
+    .day .k { font-variant-numeric: tabular-nums; }
+    .day .ok { color: var(--good-text); font-weight: 700; }
+    .day .miss { color: var(--bad-text); font-weight: 700; }
+    .improve { list-style: none; margin: 6px 0 0; padding: 0; }
+    .improve li { padding: 6px 0; border-top: 1px solid var(--border); font-size: 13px; }
+    .improve li:first-child { border-top: 0; }
+    .improve .what { font-size: 17px; font-weight: 650; }
+    .improve .gain { display: inline-block; margin: 4px 0; font-weight: 700; color: var(--good-text); background: color-mix(in srgb, var(--good) 15%, transparent); padding: 2px 8px; border-radius: 6px; }
+    .improve details summary { font-size: 12px; cursor: pointer; }
+    ul.why { margin: 6px 0 2px; padding-left: 18px; font-size: 13px; }
+    .improve ul.why li { margin: 3px 0; padding: 0; border-top: 0; }
+    ul.why b { font-variant-numeric: tabular-nums; }
+    /* run distance modal: under the activity detail (z 1000) that its runs open */
+    button.linklike { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+    button.linklike:hover { color: var(--link); }
+    #volume-chart { cursor: pointer; }
+    .panel-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+    .dm-backdrop { position: fixed; inset: 0; z-index: 900; background: rgb(0 0 0 / .45); display: flex; align-items: flex-start; justify-content: center; padding: 24px 16px; overflow-y: auto; }
+    .dm-backdrop[hidden] { display: none; }
+    .dm { background: var(--panel); border-radius: 12px; width: min(1100px, 100%); padding: 14px 18px 18px; box-shadow: 0 20px 60px rgb(0 0 0 / .3); }
+    .dm-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 6px; }
+    .dm-head h2 { margin: 0; font-size: 18px; }
+    .dm-tools { display: flex; gap: 10px; align-items: center; }
+    .dm-close { border: 0; background: transparent; font-size: 22px; line-height: 1; padding: 2px 8px; color: var(--muted); }
+    #dm-chart { height: 300px; }
+    .dm-period { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+    .dm-period-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+    .dm-period-head h3 { margin: 0; font-size: 16px; }
+    table.dm-runs tbody tr { cursor: pointer; }
+    table.dm-runs tbody tr:focus-visible td { background: var(--row-hover); outline: none; }
+    table.dm-runs td.n { max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+    details.fold { margin: 8px 0 12px; }
+    details.fold > summary { cursor: pointer; list-style: none; font-size: 14px; padding: 8px 2px; }
+    details.fold > summary::-webkit-details-marker { display: none; }
+    details.fold > summary::before { content: '▸ '; color: var(--link); } details.fold[open] > summary::before { content: '▾ '; }
+    details.fold > summary .muted { font-size: 12px; }
+
+    @media (max-width: 1000px) { .banner { grid-template-columns: repeat(3, 1fr); } .now { grid-template-columns: repeat(2, 1fr); } .plan-tile { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) { .now { grid-template-columns: 1fr; } .now .tile.wide { grid-column: auto; } .days { grid-template-columns: repeat(4, 1fr); } .dists { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 900px) { .kpis { grid-template-columns: repeat(3, 1fr); } .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) { .banner { grid-template-columns: repeat(2, 1fr); } .kpis { grid-template-columns: repeat(2, 1fr); }
+                                .tile.wide { grid-column: span 2; } }
+  </style>
+</head>
+<body>
+<main data-anfra-container="page" data-anfra-label="Running overview">
+  <header data-anfra-container="header" data-anfra-label="Header">
+    <div>
+      <h1>Overview</h1>
+      <div class="small muted">Garmin Connect · Asia/Bangkok · activity list on the <b>Activities</b> page</div>
+    </div>
+  </header>
+
+  <!-- The plain answers: how much you run, is it too much or too little, how rested you are, what you
+       could race and what to work on. Always "as of today", not affected by the period picker. -->
+  <div class="sec-head" style="margin-top:8px"><h2 class="sec-title">How your training is going</h2><span id="asof" class="small muted"></span></div>
+  <section class="now" data-anfra-container="now" data-anfra-label="How your training is going">
+    <div class="tile go" id="n-week-tile" role="button" tabindex="0" title="This week's runs" data-anfra-block="n-week" data-anfra-label="This week" data-anfra-query="volume_now plan_now week_plan">
+      <div class="label">This week <span class="more">runs ›</span></div>
+      <div class="value"><span id="n-week"></span><span class="of" id="n-week-of"></span></div>
+      <div class="progress" id="n-week-bar"></div>
+      <div class="sub" id="n-week-sub"></div>
+      <div class="line" id="n-week-plan"></div>
+    </div>
+    <div class="tile go" id="n-month-tile" role="button" tabindex="0" title="This month's runs" data-anfra-block="n-month" data-anfra-label="This month" data-anfra-query="volume_now plan_now">
+      <div class="label"><span id="n-month-label">This month</span> <span class="more">runs ›</span></div>
+      <div class="value"><span id="n-month"></span><span class="of" id="n-month-of"></span></div>
+      <div class="progress" id="n-month-bar"></div>
+      <div class="sub" id="n-month-sub"></div>
+      <div class="line" id="n-month-plan"></div>
+    </div>
+    <div class="tile" data-anfra-block="n-ready" data-anfra-label="Ready to train" data-anfra-query="status">
+      <div class="label">Ready to train?</div>
+      <div class="value" id="n-ready"></div>
+      <div class="sub" id="n-ready-sub"></div>
+    </div>
+    <div class="tile" data-anfra-block="n-fresh" data-anfra-label="Fully recovered" data-anfra-query="status">
+      <div class="label">Fully recovered in</div>
+      <div class="value" id="n-fresh"></div>
+      <div class="sub" id="n-fresh-sub"></div>
+    </div>
+    <div class="tile wide" data-anfra-block="n-predictions" data-anfra-label="Race predictions" data-anfra-query="predictions pred_trend status fresh_param">
+      <div class="label">Race prediction <span class="muted" style="text-transform:none;letter-spacing:0">· fully recovered</span></div>
+      <div class="dists" id="n-dists" role="tablist" aria-label="Distance"></div>
+      <div class="pred-head" id="n-pred-head"></div>
+      <div class="line" id="n-pred-today"></div>
+      <div id="n-pred-chart"></div>
+      <div class="sub" id="n-preds-sub"></div>
+    </div>
+    <div class="tile wide" data-anfra-block="n-load" data-anfra-label="Training load" data-anfra-query="status recent volume_now">
+      <div class="label">Training load <span class="muted" style="text-transform:none;letter-spacing:0">· last 7 days vs what you’re used to</span></div>
+      <div class="value" id="n-load"></div>
+      <div class="scale" id="n-load-scale"></div>
+      <div class="sub" id="n-load-sub"></div>
+      <div class="vs" id="n-load-vs"></div>
+      <div class="line" id="n-flags"></div>
+    </div>
+  </section>
+  <div class="sec-foot">
+    <span class="note">Click a number for its history and how it is worked out.</span>
+    <button type="button" class="linklike more-link" id="nm-open" data-anfra-block="nm-open" data-anfra-label="All training numbers">All training numbers ›</button>
+  </div>
+
+  <div class="sec-head"><h2 class="sec-title">Your plan &amp; target</h2></div>
+  <section class="now plan-sec" data-anfra-container="plan" data-anfra-label="Your plan and target">
+    <div class="tile plan-tile" data-anfra-block="n-improve" data-anfra-label="Your plan this week, and what to improve" data-anfra-query="week_plan improve">
+      <div class="pt-week">
+        <div class="label" id="n-wp-label">This week's plan</div>
+        <div class="pt-status" id="n-wp-status"></div>
+        <div class="days" id="n-wp-days"></div>
+        <div class="line" id="n-wp-keys"></div>
+      </div>
+      <div class="pt-gain">
+        <div class="label" id="n-improve-label">Biggest gain</div>
+        <ol class="improve" id="n-improve"></ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- every current-form number, opened from "All training numbers": each opens its history -->
+  <div class="dm-backdrop" id="nm" hidden>
+  <div class="dm" role="dialog" aria-modal="true" aria-labelledby="nm-title">
+    <div class="dm-head">
+      <div><h2 id="nm-title">All training numbers</h2><div class="small muted">Fitness, fatigue, form, load balance, threshold, risk cautions and weight, as of today. Click one for its history.</div></div>
+      <button type="button" class="dm-close" id="nm-close" aria-label="Close">×</button>
+    </div>
+  <section class="banner" data-anfra-container="banner" data-anfra-label="Current form (Runalyze)">
+    <div class="tile" data-anfra-block="b-vo2" data-anfra-label="Effective VO2max" data-anfra-query="status">
+      <div class="label">Effective VO2max</div>
+      <div class="value" id="b-vo2"></div>
+      <div class="sub" id="b-vo2-sub" title="Runalyze method from pace vs heart rate of your runs (last 30 days), uncorrected: no race calibration. Garmin's own estimate for comparison."></div>
+    </div>
+    <div class="tile wide" data-anfra-block="b-shape" data-anfra-label="Marathon shape" data-anfra-query="status">
+      <div class="label">Marathon shape</div>
+      <div class="value" id="b-shape"></div>
+      <div class="shape-bar" id="b-shape-bar" title="Required shape = distance^1.23 %"></div>
+      <div class="sub" id="b-shape-sub"></div>
+    </div>
+    <div class="tile wide" data-anfra-block="b-predictions" data-anfra-label="Race predictions" data-anfra-query="predictions">
+      <div class="label">Race predictions (Ran)</div>
+      <div class="preds" id="b-preds"></div>
+      <div class="sub" id="b-preds-sub"></div>
+    </div>
+    <div class="tile" data-anfra-block="b-atl" data-anfra-label="Fatigue (ATL)" data-anfra-query="status">
+      <div class="label">Fatigue · ATL</div>
+      <div class="value" id="b-atl"></div>
+      <div class="meter" id="g-atl"></div>
+      <div class="sub" id="b-atl-sub">% of your max</div>
+    </div>
+    <div class="tile" data-anfra-block="b-ctl" data-anfra-label="Fitness (CTL)" data-anfra-query="status">
+      <div class="label">Fitness · CTL</div>
+      <div class="value" id="b-ctl"></div>
+      <div class="meter" id="g-ctl"></div>
+      <div class="sub" id="b-ctl-sub">% of your max</div>
+    </div>
+    <div class="tile" data-anfra-block="b-tsb" data-anfra-label="Form (TSB)" data-anfra-query="status">
+      <div class="label">Form · TSB</div>
+      <div class="value" id="b-tsb"></div>
+      <div class="meter" id="g-tsb"></div>
+      <div class="sub" id="b-tsb-sub"></div>
+    </div>
+    <div class="tile" data-anfra-block="b-easy" data-anfra-label="Easy load / rest days" data-anfra-query="status">
+      <div class="label" id="b-easy-label">Rest to form 0</div>
+      <div class="value" id="b-easy"></div>
+      <div class="sub" id="b-easy-sub"></div>
+    </div>
+    <div class="tile" data-anfra-block="b-acwr" data-anfra-label="Acute:chronic ratio" data-anfra-query="status">
+      <div class="label">A:C ratio</div>
+      <div class="value" id="b-acwr"></div>
+      <div class="meter" id="g-acwr"></div>
+      <div class="sub">ATL ÷ CTL · 0.8–1.3 safe</div>
+    </div>
+    <div class="tile" data-anfra-block="b-monotony" data-anfra-label="Monotony" data-anfra-query="status">
+      <div class="label">Monotony</div>
+      <div class="value" id="b-monotony"></div>
+      <div class="meter" id="g-monotony"></div>
+      <div class="sub">&lt;1.5 good · &gt;2.0 critical</div>
+    </div>
+    <div class="tile" data-anfra-block="b-strain" data-anfra-label="Training strain" data-anfra-query="status">
+      <div class="label">Training strain</div>
+      <div class="value" id="b-strain"></div>
+      <div class="sub">7-day load × monotony</div>
+    </div>
+    <div class="tile" data-anfra-block="b-week" data-anfra-label="Last 7 days load" data-anfra-query="status">
+      <div class="label">Load · 7 days</div>
+      <div class="value" id="b-week"></div>
+      <div class="sub">TRIMP from heart rate</div>
+    </div>
+    <div class="tile" data-anfra-block="b-km7" data-anfra-label="Run distance, last 7 days" data-anfra-query="recent">
+      <div class="label">Running · 7 days</div>
+      <div class="value" id="b-km7"></div>
+      <div class="sub" id="b-km7-sub"></div>
+    </div>
+    <div class="tile" data-anfra-block="b-rhr" data-anfra-label="Resting heart rate" data-anfra-query="recent">
+      <div class="label">Resting HR</div>
+      <div class="value" id="b-rhr"></div>
+      <div class="sub" id="b-rhr-sub">7-day average</div>
+    </div>
+    <div class="tile wide" data-anfra-block="b-threshold" data-anfra-label="Threshold (D2)" data-anfra-query="status">
+      <div class="label">Threshold pace</div>
+      <div class="value" id="b-lt"></div>
+      <div class="sub" id="b-lt-sub" title="Garmin's lactate-threshold estimate; your own = median pace at that HR in your runs over 42 days (not heat-adjusted). Fractional utilisation = threshold speed ÷ speed at VO2max."></div>
+    </div>
+    <div class="tile wide" data-anfra-block="b-flags" data-anfra-label="Risk flags (D10)" data-anfra-query="status">
+      <div class="label">Injury-risk cautions</div>
+      <div class="flags" id="b-flags"></div>
+      <div class="sub">Cautions where risk is known to rise, not predictions</div>
+    </div>
+    <div class="tile" data-anfra-block="b-weight" data-anfra-label="Weight (D9)" data-anfra-query="weights">
+      <div class="label">Weight</div>
+      <div class="value" id="b-weight"></div>
+      <div class="sub" id="b-weight-sub"></div>
+    </div>
+  </section>
+  <details class="note how" style="margin:-6px 2px 14px"><summary>How these are calculated</summary>
+    Click any number for its history and explanation.
+    Runalyze's calculations on Banister TRIMP, computed from your per-second heart rate (Garmin's load is kept only for comparison). ATL/CTL = 7/42-day exponentially weighted TRIMP,
+    TSB = CTL − ATL. Monotony = 7-day mean ÷ standard deviation of daily load. Marathon shape = ⅔ weekly-km score + ⅓ long-run (13 km+) score.
+  </details>
+  </div>
+  </div>
+
+  <div class="sec-head">
+    <h2 class="sec-title">Your running over time</h2>
+    <label class="small" data-anfra-block="period-picker" data-anfra-label="Period" data-anfra-control="period">
+      <select id="period-select">
+        <option value="27 days ago - today">Last 4 weeks</option>
+        <option value="89 days ago - today">Last 3 months</option>
+        <option value="364 days ago - today" selected>Last 12 months</option>
+        <option value="this year">This year</option>
+        <option value="last year">Last year</option>
+        <option value="">All time</option>
+      </select>
+    </label>
+  </div>
+  <section class="kpis" data-anfra-container="kpis" data-anfra-label="Run totals">
+    <div class="kpi" data-anfra-block="kpi-runs" data-anfra-query="kpis"><div class="label">Runs</div><div class="value" id="kpi-runs"></div></div>
+    <div class="kpi" data-anfra-block="kpi-distance" data-anfra-query="kpis"><div class="label">Distance</div><div class="value" id="kpi-km"></div></div>
+    <div class="kpi" data-anfra-block="kpi-time" data-anfra-query="kpis"><div class="label">Time</div><div class="value" id="kpi-time"></div></div>
+    <div class="kpi" data-anfra-block="kpi-pace" data-anfra-query="kpis"><div class="label">Avg pace</div><div class="value" id="kpi-pace"></div></div>
+    <div class="kpi" data-anfra-block="kpi-elev" data-anfra-query="kpis"><div class="label">Elevation gain</div><div class="value" id="kpi-elev"></div></div>
+    <div class="kpi" data-anfra-block="kpi-long" data-anfra-query="kpis"><div class="label">Longest run</div><div class="value" id="kpi-long"></div></div>
+  </section>
+
+  <section class="grid" data-anfra-container="charts" data-anfra-label="Trends">
+    <div class="panel" data-anfra-block="volume" data-anfra-label="Run volume">
+      <div class="panel-head">
+        <h2><button type="button" class="linklike" id="dm-open" title="Open: every week (or month, year) and its runs">Run distance ›</button></h2>
+        <span class="panel-tools">
+        <span class="seg" role="group" aria-label="Split the bars by" data-anfra-control="zone_kind">
+          <button type="button" data-split="total" aria-pressed="true">Total</button><button type="button" data-split="hr" aria-pressed="false" title="km in each heart-rate zone">Heart rate</button><button type="button" data-split="pace" aria-pressed="false" title="km in each pace zone, around your threshold pace">Pace</button>
+        </span>
+        <select id="grain-select" data-anfra-control="grain">
+          <option value="week" selected>Weekly</option>
+          <option value="month">Monthly</option>
+          <option value="year">Yearly</option>
+        </select>
+        </span>
+      </div>
+      <div id="volume-chart" class="chart" data-anfra-query="volume volume_zones"></div>
+      <div id="volume-status" class="status visible loading"></div>
+      <div class="note">Click a bar for its runs. Heart rate: km in each of Garmin's zones of that run. Pace: km in each pace zone around your threshold pace that day (grade-adjusted).</div>
+    </div>
+
+    <div class="panel" data-anfra-block="shape" data-anfra-label="VO2max and marathon shape">
+      <div class="panel-head"><h2>Race fitness &amp; endurance</h2></div>
+      <div id="shape-chart" class="chart" data-anfra-query="shape"></div>
+      <div id="shape-status" class="status visible loading"></div>
+      <div class="note">Race fitness (effective VO2max): how fast your pace is for your heart rate, over 30 days; up = faster at every distance. Endurance (marathon shape, right axis): your weekly km and long runs; the dotted lines are what a 10K and a half marathon need.</div>
+    </div>
+
+    <div class="panel full" data-anfra-block="best-efforts" data-anfra-label="Best efforts">
+      <div class="panel-head"><h2>Best efforts</h2></div>
+      <div class="table-wrap">
+        <table class="efforts">
+          <thead><tr>
+            <th class="l">Distance</th><th>Best in period</th><th>Pace</th><th class="l">Run</th><th>Date</th><th>WBGT</th>
+            <th>PBs in period</th><th>All-time best</th><th>Date</th>
+          </tr></thead>
+          <tbody id="efforts-body" data-anfra-query="efforts"></tbody>
+        </table>
+      </div>
+      <div id="efforts-status" class="status visible loading"></div>
+      <div class="note">Fastest stretch of each distance inside any run (timer time, GPS jumps removed), so a long run counts too. Outdoor runs only: treadmill distance isn't GPS-measured. PB = faster than every earlier effort. Validation points for the race predictions.</div>
+    </div>
+  </section>
+
+  <details class="fold" id="fold-charts">
+    <summary><b>More charts</b> <span class="muted">· predictions per race, fitness · fatigue · form, load balance, efficiency, threshold, durability, heart-rate zones</span></summary>
+  <section class="grid" data-anfra-container="charts-more" data-anfra-label="More trends">
+    <div class="panel full" data-anfra-block="ev-races" data-anfra-label="Predictions per race" data-anfra-query="ev_races">
+      <div class="panel-head"><h2>Predictions per race</h2><span class="small muted">each race predicted from data up to the day before</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead id="ev-races-head"></thead>
+          <tbody id="ev-races-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel" data-anfra-block="fitness" data-anfra-label="Fitness, fatigue, form">
+      <div class="panel-head"><h2>Fitness · Fatigue · Form</h2></div>
+      <div id="fitness-chart" class="chart" data-anfra-query="fitness"></div>
+      <div id="fitness-status" class="status visible loading"></div>
+      <div class="note">Bars: daily TRIMP (all sports). CTL reads low for the first ~6 weeks of history.</div>
+    </div>
+
+    <div class="panel" data-anfra-block="balance" data-anfra-label="Load balance">
+      <div class="panel-head"><h2>Load balance</h2></div>
+      <div id="balance-chart" class="chart" data-anfra-query="balance"></div>
+      <div id="balance-status" class="status visible loading"></div>
+      <div class="note">A:C ratio above 1.5 and monotony above 2.0 are the usual warning levels.</div>
+    </div>
+
+    <div class="panel" data-anfra-block="efficiency" data-anfra-label="Efficiency">
+      <div class="panel-head"><h2>Efficiency &amp; pace (monthly)</h2></div>
+      <div id="efficiency-chart" class="chart" data-anfra-query="efficiency"></div>
+      <div id="efficiency-status" class="status visible loading"></div>
+      <div class="note">Efficiency = metres run per heartbeat; higher = more speed for the same effort.</div>
+    </div>
+
+    <div class="panel" data-anfra-block="markers" data-anfra-label="Threshold and aerobic markers (D1-D3)">
+      <div class="panel-head"><h2>Threshold &amp; aerobic markers (weekly)</h2></div>
+      <div id="markers-chart" class="chart" data-anfra-query="markers"></div>
+      <div id="markers-status" class="status visible loading"></div>
+      <div class="note">Garmin threshold pace vs your own pace at threshold HR (42-day median) and at easy HR, 77 % HRmax (28-day median). Faster at the same HR = fitter. Not heat-adjusted yet.</div>
+    </div>
+
+    <div class="panel" data-anfra-block="durability" data-anfra-label="Durability and execution (D4, D8)">
+      <div class="panel-head"><h2>Durability &amp; execution</h2></div>
+      <div id="durability-chart" class="chart" data-anfra-query="durability"></div>
+      <div id="durability-status" class="status visible loading"></div>
+      <div class="note">Decoupling: efficiency lost from the first half to the second on steady runs of 60 min+ (under 5 % = durable). Rep fade: last third of a workout's main set vs the first third.</div>
+    </div>
+
+    <div class="panel" data-anfra-block="zones" data-anfra-label="Heart-rate zones">
+      <div class="panel-head"><h2>Time in heart-rate zones (monthly, runs)</h2></div>
+      <div id="zones-chart" class="chart" data-anfra-query="zones"></div>
+      <div id="zones-status" class="status visible loading"></div>
+    </div>
+  </section>
+  </details>
+
+  <details class="fold" id="evidence">
+    <summary><b>Model evidence</b> <span class="muted">· how well Ran's model fits your own data: heat, and which race-time method works for you · <span id="ev-fitted"></span></span></summary>
+  <section class="grid" data-anfra-container="evidence" data-anfra-label="Model evidence">
+    <div class="panel" data-anfra-block="ev-heat" data-anfra-label="Heat coefficient (D6)">
+      <div class="panel-head"><h2>Heat: how much slower per °C WBGT</h2></div>
+      <div class="ev-headline" id="ev-heat-head" data-anfra-query="ev_params">–</div>
+      <div id="ev-heat-chart" class="chart" data-anfra-query="ev_heat"></div>
+      <div id="ev-heat-status" class="status visible loading"></div>
+      <div class="note" id="ev-heat-note">Each dot: a steady outdoor run's pace at a fixed easy HR, after removing your fitness trend and run length. Line: the fitted heat effect.</div>
+    </div>
+
+    <div class="panel" data-anfra-block="ev-methods" data-anfra-label="Prediction methods" data-anfra-query="ev_methods">
+      <div class="panel-head"><h2>Race-time prediction: which method works for you</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th class="l">Method</th><th>Avg error</th><th>Bias</th><th>Races</th></tr></thead>
+          <tbody id="ev-methods-body"></tbody>
+        </table>
+      </div>
+      <div class="note">Each past race predicted from data up to the day before. Bias below zero = predicts too fast. “Calibrated” scales a method by your actual ÷ predicted ratio in earlier races only. Few races, so read the ranking loosely.</div>
+    </div>
+  </section>
+  </details>
+</main>
+
+<!-- Run distance, opened from its panel: the bars on top; a bar's runs below; a run opens its detail -->
+<div class="dm-backdrop" id="dm" hidden>
+  <div class="dm" role="dialog" aria-modal="true" aria-labelledby="dm-title" data-anfra-container="distance" data-anfra-label="Run distance detail">
+    <div class="dm-head">
+      <div><h2 id="dm-title">Run distance</h2><div class="small muted" id="dm-sub"></div></div>
+      <div class="dm-tools">
+        <div class="seg" role="group" aria-label="Split the bars by">
+          <button type="button" data-split="total" aria-pressed="true">Total</button><button type="button" data-split="hr" aria-pressed="false">Heart rate</button><button type="button" data-split="pace" aria-pressed="false">Pace</button>
+        </div>
+        <div class="seg" role="group" aria-label="Bars per">
+          <button type="button" data-dm-grain="week" aria-pressed="true">Weeks</button><button type="button" data-dm-grain="month" aria-pressed="false">Months</button><button type="button" data-dm-grain="year" aria-pressed="false">Years</button>
+        </div>
+        <button type="button" class="dm-close" id="dm-close" aria-label="Close">×</button>
+      </div>
+    </div>
+    <div data-anfra-block="dm-chart" data-anfra-label="Run distance" data-anfra-query="volume volume_zones" data-anfra-control="zone_kind">
+      <div id="dm-chart"></div>
+      <div class="note">Click a bar for its runs. The period picker on the page sets the range.</div>
+    </div>
+    <div class="dm-period" data-anfra-block="dm-runs" data-anfra-label="Runs in the period" data-anfra-query="period_runs">
+      <div class="dm-period-head"><h3 id="dm-period-title">Pick a bar</h3><div class="small" id="dm-period-sum"></div></div>
+      <div class="table-wrap">
+        <table class="dm-runs">
+          <thead><tr><th class="l">Date</th><th class="l">Run</th><th>Distance</th><th>Time</th><th>Pace</th><th>Avg HR</th><th>Effort</th><th class="l">Type</th></tr></thead>
+          <tbody id="dm-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const { num, fmt0, fmt1, fmt2, pace, duration, or, periodLabel, css, axisBase, renderStatus, dash } = Run;
+  const DS = 'running';
+  const app = Anfra.createApp({ title: 'Overview', timezone: Run.TZ });
+
+  // ---------- current form (as of today) ----------
+  const status = app.createQuery('status', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        date: day.calendar_date,
+        atl: day.atl, ctl: day.ctl, tsb: day.tsb, atl_pct: day.atl_pct, ctl_pct: day.ctl_pct,
+        acwr: day.acwr, monotony: day.monotony, strain: day.strain, load_7d: day.load_7d,
+        easy_load: day.easy_load, rest_days: day.rest_days, ready_days: day.ready_days, fresh_days: day.fresh_days,
+        vo2_effective: day.vo2_effective, vo2max_garmin: day.vo2max_garmin,
+        marathon_shape: day.marathon_shape, km_182d: day.km_182d,
+        lthr: day.lthr_bpm, lt_pace: day.lt_pace_s_per_km, lt_pace_own: day.lt_pace_own_s_per_km,
+        lt_fraction: day.lt_fraction, days_off: day.days_off_7d,
+        flag_ramp: day.flag_ramp, flag_monotony: day.flag_monotony, flag_no_rest: day.flag_no_rest,
+        flag_rhr: day.flag_resting_hr
+      }
+      filters { day.calendar_date matches @(today) }
+    }` });
+
+  const predictions = app.createQuery('predictions', { dataset: DS, pageSize: 1, aql: `
+    explore {
+      dimensions {
+        date: race_prediction_own.calendar_date,
+        t5k: race_prediction_own.time_5k_s, t10k: race_prediction_own.time_10k_s,
+        thalf: race_prediction_own.time_half_s, tmar: race_prediction_own.time_marathon_s,
+        band: race_prediction_own.band_pct, races: race_prediction_own.calibration_races
+      }
+      sorts { date desc }
+    }` });
+
+  // Last 7 days (including today): run volume and resting heart rate.
+  const recent = app.createQuery('recent', { dataset: DS, aql: `
+    explore {
+      measures {
+        km: run_distance_km,
+        runs: run_count,
+        rhr: day.avg_resting_hr
+      }
+      filters { day.calendar_date matches @(6 days ago - today) }
+    }` });
+
+  // This week and month so far, against the usual: the last 8 full weeks and 6 full months.
+  const volumeNow = app.createQuery('volume_now', { dataset: DS, aql: `
+    explore {
+      measures {
+        week_km: run_distance_km | where(activity.start_date matches @(this week)),
+        week_runs: run_count | where(activity.start_date matches @(this week)),
+        weeks8_km: run_distance_km | where(activity.start_date matches @(last 8 weeks)),
+        month_km: run_distance_km | where(activity.start_date matches @(this month)),
+        month_runs: run_count | where(activity.start_date matches @(this month)),
+        months6_km: run_distance_km | where(activity.start_date matches @(last 6 months))
+      }
+    }` });
+
+  // The saved plan's km this week and month, whole and up to today, per upcoming race: the goal
+  // race (priority A) first, as its plan is the one being followed.
+  const planNow = app.createQuery('plan_now', { dataset: DS, aql: `
+    explore {
+      dimensions { race: race.name, race_date: race.race_date, priority: race.priority }
+      measures {
+        week_km: plan_day.total_planned_km | where(plan_day.day matches @(this week)),
+        week_todate_km: plan_day.total_planned_km | where(plan_day.day matches @(this week) and plan_day.is_future is false),
+        month_km: plan_day.total_planned_km | where(plan_day.day matches @(this month)),
+        month_todate_km: plan_day.total_planned_km | where(plan_day.day matches @(this month) and plan_day.is_future is false),
+        week_future_km: plan_day.total_planned_km | where(plan_day.day matches @(this week) and plan_day.is_future is true),
+        month_future_km: plan_day.total_planned_km | where(plan_day.day matches @(this month) and plan_day.is_future is true),
+        today_planned_km: plan_day.total_planned_km | where(plan_day.day matches @(today)),
+        today_done_km: plan_day.total_done_km | where(plan_day.day matches @(today)),
+        week_done_km: plan_day.total_done_km | where(plan_day.day matches @(this week) and plan_day.is_future is false),
+        month_done_km: plan_day.total_done_km | where(plan_day.day matches @(this month) and plan_day.is_future is false)
+      }
+      filters { race.is_upcoming is true }
+      sorts { priority asc, race_date asc }
+    }` });
+
+  // This week of the saved plan, day by day, for each upcoming race: the goal race (A) first.
+  const weekPlan = app.createQuery('week_plan', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        race: race.name, race_date: race.race_date, priority: race.priority,
+        plan_date: plan_day.day, session: plan_day.session, km: plan_day.km_est, status: plan_day.status, done_km: plan_day.done_km
+      }
+      filters { race.is_upcoming is true, plan_day.day matches @(this week) }
+      sorts { priority asc, race_date asc, plan_date asc }
+    }` });
+
+  // Ran's race predictions over the past month, for each distance's trend.
+  const predTrend = app.createQuery('pred_trend', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        date: race_prediction_own.calendar_date,
+        t5k: race_prediction_own.time_5k_s, t10k: race_prediction_own.time_10k_s,
+        thalf: race_prediction_own.time_half_s, tmar: race_prediction_own.time_marathon_s
+      }
+      filters { race_prediction_own.calendar_date matches @(30 days ago - today) }
+      sorts { date asc }
+    }` });
+
+  // The planner's freshness rule (D5): racing with form under band_low x fitness costs taper_gain %.
+  const freshParam = app.createQuery('fresh_param', { dataset: DS, aql: `
+    explore {
+      dimensions { name: planner_param.name, value: planner_param.value }
+      filters { planner_param.name in ["taper_gain_pct", "tsb_band_low"] }
+    }` });
+
+  // What limits the goal race (or the next race): the causal model's determinants against what the race needs.
+  const improve = app.createQuery('improve', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        race_id: race.race_id, race: race.name, race_date: race.race_date, priority: race.priority, km: race.distance_km,
+        ord: race_limiter.priority, determinant: race_limiter.determinant, label: race_limiter.label,
+        limiting: race_limiter.limiting, cost: race_limiter.time_cost_s, advice: race_limiter.advice,
+        value: race_limiter.value, target: race_limiter.target, unit: race_limiter.unit,
+        weeks_lo: race_limiter.weeks_lo, weeks_hi: race_limiter.weeks_hi, closable: race_limiter.closable
+      }
+      filters { race.is_upcoming is true }
+      sorts { priority asc, race_date asc, ord asc }
+    }` });
+
+  // ---------- period ----------
+  const kpis = app.createQuery('kpis', { dataset: DS, aql: `
+    explore {
+      measures {
+        runs: run_count,
+        km: run_distance_km,
+        hours: activity.total_duration_h | where(activity.is_run),
+        pace: run_pace_s_per_km,
+        elev: activity.total_elevation_gain_m | where(activity.is_run),
+        longest: activity.longest_km | where(activity.is_run)
+      }
+    }` });
+
+  const volume = app.createQuery('volume', { dataset: DS, aql: `
+    explore {
+      dimensions { period: activity.start_date | week() }
+      measures { km: run_distance_km, runs: run_count }
+      sorts { period asc }
+    }` });
+
+  const fitness = app.createQuery('fitness', { dataset: DS, aql: `
+    explore {
+      dimensions { date: day.calendar_date }
+      measures { ctl: day.avg_ctl, atl: day.avg_atl, tsb: day.avg_tsb, load: day.day_training_load }
+      sorts { date asc }
+    }` });
+
+  const shape = app.createQuery('shape', { dataset: DS, aql: `
+    explore {
+      dimensions { date: day.calendar_date }
+      measures { vo2e: day.avg_vo2_effective, shape_pct: day.avg_marathon_shape }
+      sorts { date asc }
+    }` });
+
+  const balance = app.createQuery('balance', { dataset: DS, aql: `
+    explore {
+      dimensions { date: day.calendar_date }
+      measures { acwr: day.avg_acwr, monotony: day.avg_monotony }
+      sorts { date asc }
+    }` });
+
+  const efficiency = app.createQuery('efficiency', { dataset: DS, aql: `
+    explore {
+      dimensions { period: activity.start_date | month() }
+      measures {
+        eff: activity.metres_per_beat | where(activity.is_run and activity.avg_hr is not null),
+        pace: run_pace_s_per_km
+      }
+      sorts { period asc }
+    }` });
+
+  const weights = app.createQuery('weights', { dataset: DS, pageSize: 1, aql: `
+    explore {
+      dimensions {
+        date: body_composition.calendar_date, kg: body_composition.weight_kg,
+        source: body_composition.source_type, id: body_composition.weigh_in_id
+      }
+      sorts { date desc }
+    }` });
+
+  const markers = app.createQuery('markers', { dataset: DS, aql: `
+    explore {
+      dimensions { week: day.calendar_date | week() }
+      measures {
+        lt: day.avg_lt_pace, lt_own: day.avg_lt_pace_own, easy: day.avg_easy_hr_pace, frac: day.avg_lt_fraction
+      }
+      sorts { week asc }
+    }` });
+
+  const durability = app.createQuery('durability', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        id: activity.activity_id, date: activity.start_date, name: activity.activity_name, km: activity.distance_km,
+        decoupling: activity_marker.decoupling_pct, fade: activity_marker.rep_fade_pct, reps: activity_marker.rep_count
+      }
+      filters {
+        activity.is_run is true,
+        activity_marker.decoupling_pct is not null or activity_marker.rep_fade_pct is not null
+      }
+      sorts { date asc }
+    }` });
+
+  const zones = app.createQuery('zones', { dataset: DS, aql: `
+    explore {
+      dimensions { period: activity.start_date | month() }
+      measures {
+        z1: activity.hr_z1_h | where(activity.is_run),
+        z2: activity.hr_z2_h | where(activity.is_run),
+        z3: activity.hr_z3_h | where(activity.is_run),
+        z4: activity.hr_z4_h | where(activity.is_run),
+        z5: activity.hr_z5_h | where(activity.is_run)
+      }
+      sorts { period asc }
+    }` });
+
+  // Every outdoor effort in the period, fastest first; the render keeps the first per distance.
+  const efforts = app.createQuery('efforts', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        id: best_effort.effort_id, activity: best_effort.activity_id, km: best_effort.distance_km, label: best_effort.distance_label,
+        time: best_effort.time_s, pace: best_effort.pace_s_per_km, date: best_effort.start_date,
+        name: best_effort.activity_name, wbgt: best_effort.wbgt_c, pb: best_effort.is_pb
+      }
+      filters { best_effort.is_indoor is false }
+      sorts { time asc }
+    }` });
+  const effortsAll = app.createQuery('efforts_all', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        km: best_effort.distance_km, label: best_effort.distance_label, time: best_effort.time_s, date: best_effort.start_date,
+        activity: best_effort.activity_id
+      }
+      filters { best_effort.rank_all == 1 }
+      sorts { km asc }
+    }` });
+
+  const period = app.createFilter('period', {
+    dataset: DS, field: 'activity.start_date', label: 'Period',
+    default: { operator: 'matches', values: ['364 days ago - today'] },
+  });
+  for (const q of [kpis, volume, efficiency, zones, durability]) app.mapControl(period, q, { field: 'activity.start_date' });
+  for (const q of [fitness, shape, balance, markers]) app.mapControl(period, q, { field: 'day.calendar_date' });
+
+  app.mapControl(period, efforts, { field: 'best_effort.start_date' });
+
+  const grain = app.createDateDrill('grain', { default: 'week' });
+  app.mapControl(grain, volume, { field: 'activity.start_date' });
+
+  // Run distance split by zone (garmin.activity_zone): km per heart-rate zone or per pace zone, per bar
+  const volumeZones = app.createQuery('volume_zones', { dataset: DS, aql: `
+    explore {
+      dimensions { period: activity.start_date | week(), zone: activity_zone.zone }
+      measures { km: activity_zone.total_km }
+      sorts { period asc, zone asc }
+    }` });
+  const zoneKind = app.createFilter('zone_kind', { dataset: DS, field: 'activity_zone.kind', label: 'Split by',
+    default: { operator: 'is', values: ['hr'] } });
+  app.mapControl(zoneKind, volumeZones, { field: 'activity_zone.kind' });
+  app.mapControl(period, volumeZones, { field: 'activity.start_date' });
+  app.mapControl(grain, volumeZones, { field: 'activity.start_date' });
+
+  // ---------- render ----------
+  const changed = Run.changeTracker();
+  const logFirst = Run.logFirstResults();
+  const $ = (id) => document.getElementById(id);
+  const charts = Object.fromEntries(['volume', 'fitness', 'shape', 'balance', 'markers', 'durability', 'efficiency', 'zones']
+    .map((k) => [k, echarts.init($(`${k}-chart`))]));
+  const set = (id, v) => { $(id).textContent = v; };
+  const tone = (id, cls) => { $(id).classList.remove('good', 'warn', 'bad'); if (cls) $(id).classList.add(cls); };
+  const shortDate = (v) => new Date(v).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+  // Runalyze-style bar under a tile's number: a fill (from the middle when `center` is set) or, with
+  // zones, the zones and a tick at the value
+  function gauge (id, v, { min, max, zones = [], center = null, color = '--accent-2' }) {
+    const el = $(id);
+    if (v === null || v === undefined) { el.replaceChildren(); return; }
+    const pct = (x) => Math.max(0, Math.min(100, ((x - min) / (max - min)) * 100));
+    const zs = zones.map((z) => `<span class="zone" style="left:${pct(z.from)}%;width:${pct(z.to) - pct(z.from)}%;background:var(${z.color})"></span>`).join('');
+    let mark;
+    if (center !== null) {
+      const a = pct(center), b = pct(v);
+      mark = `<span class="mid"></span><span class="fill" style="left:${Math.min(a, b)}%;width:${Math.abs(b - a)}%;background:var(${color})"></span>`;
+    } else if (zones.length) {
+      mark = `<span class="tick" style="left:${pct(v)}%"></span>`;
+    } else {
+      mark = `<span class="fill" style="width:${pct(v)}%;background:var(${color})"></span>`;
+    }
+    el.innerHTML = zs + mark;
+  }
+  const RISK_ZONES = (good, warn, top) => [{ from: 0, to: good[1], color: '--good' }, { from: good[1], to: warn, color: '--warn' }, { from: warn, to: top, color: '--bad' }];
+
+  function renderBanner () {
+    if (status.state === 'error') { set('asof', `Couldn't load: ${status.error.message}`); return; }
+    const r = status.result?.rows[0];
+    if (!r) { if (status.state === 'success') set('asof', 'No data for today yet'); return; }
+    set('asof', `as of ${shortDate(r.date)}`);
+
+    set('b-vo2', or(r.vo2_effective, fmt1.format));
+    set('b-vo2-sub', `Garmin: ${or(r.vo2max_garmin, fmt0.format)} · 30-day estimate`);
+
+    const shapePct = num(r.marathon_shape);
+    set('b-shape', shapePct === null ? dash : `${fmt0.format(shapePct)} %`);
+    const marks = [['10K', 10], ['HM', 21.0975], ['M', 42.195]].map(([n, d]) => [n, Math.pow(d, 1.23)]);
+    const scale = Math.max(110, (shapePct ?? 0) + 10);
+    $('b-shape-bar').innerHTML = `<div class="fill" style="width:${Math.min(100, ((shapePct ?? 0) / scale) * 100)}%"></div>`
+      + marks.map(([n, req]) => `<div class="mark" style="left:${(req / scale) * 100}%"><span>${n} ${fmt0.format(req)}%</span></div>`).join('');
+    const ready = marks.filter(([, req]) => (shapePct ?? 0) >= req).map(([n]) => n);
+    set('b-shape-sub', `${ready.length ? `Enough for ${ready.at(-1)}` : 'Below the 10K requirement'} · ${or(r.km_182d, (v) => fmt0.format(v / 26))} km/week over 26 weeks`);
+
+    set('b-atl', num(r.atl_pct) === null ? dash : `${fmt0.format(num(r.atl_pct))} %`);
+    set('b-atl-sub', `${or(r.atl, fmt0.format)} · % of your max`);
+    tone('b-atl', num(r.atl_pct) >= 90 ? 'bad' : num(r.atl_pct) >= 75 ? 'warn' : null);
+    gauge('g-atl', num(r.atl_pct), { min: 0, max: 100, color: num(r.atl_pct) >= 90 ? '--bad' : num(r.atl_pct) >= 75 ? '--warn' : '--coral' });
+    gauge('g-ctl', num(r.ctl_pct), { min: 0, max: 100, color: '--accent-2' });
+    set('b-ctl', num(r.ctl_pct) === null ? dash : `${fmt0.format(num(r.ctl_pct))} %`);
+    set('b-ctl-sub', `${or(r.ctl, fmt0.format)} · % of your max`);
+
+    const tsb = num(r.tsb);
+    set('b-tsb', tsb === null ? dash : `${tsb > 0 ? '+' : ''}${fmt0.format(tsb)}`);
+    set('b-tsb-sub', tsb === null ? '' : tsb > 5 ? 'fresh: good before a race' : tsb < -30 ? 'very fatigued' : tsb < -10 ? 'training hard' : 'balanced');
+    tone('b-tsb', tsb === null ? null : tsb > 5 ? 'good' : tsb < -30 ? 'bad' : tsb < -10 ? 'warn' : null);
+    gauge('g-tsb', tsb, { min: -40, max: 40, center: 0, color: tsb > 5 ? '--good' : tsb < -30 ? '--bad' : tsb < -10 ? '--warn' : '--muted' });
+
+    if (num(r.rest_days)) {
+      // Days of no training until TSB is back to 0 (fatigue falls by 1/7 a day, fitness by 1/42): a
+      // measure of how deep the fatigue is, not advice; it shows whenever TSB is below 0
+      const deep = tsb !== null && tsb < -30;
+      set('b-easy-label', 'Rest to form 0');
+      set('b-easy', `${fmt0.format(num(r.rest_days))} rest day${num(r.rest_days) === 1 ? '' : 's'}`);
+      set('b-easy-sub', deep ? 'to TSB 0 · very fatigued: take them' : 'to TSB 0 with no training · normal while building');
+      tone('b-easy', deep ? 'warn' : null);
+    } else {
+      set('b-easy-label', 'Easy load tomorrow');
+      set('b-easy', or(r.easy_load, fmt0.format));
+      set('b-easy-sub', 'max load that keeps TSB at 0');
+      tone('b-easy', null);
+    }
+
+    const acwr = num(r.acwr);
+    set('b-acwr', or(acwr, fmt2.format));
+    gauge('g-acwr', acwr, { min: 0, max: 2, zones: [{ from: 0.8, to: 1.3, color: '--good' }, { from: 1.3, to: 1.5, color: '--warn' }, { from: 1.5, to: 2, color: '--bad' }] });
+    tone('b-acwr', acwr === null ? null : acwr > 1.5 ? 'bad' : acwr > 1.3 ? 'warn' : acwr >= 0.8 ? 'good' : null);
+    const mono = num(r.monotony);
+    set('b-monotony', or(mono, fmt2.format));
+    gauge('g-monotony', mono, { min: 0, max: 3, zones: RISK_ZONES([0, 1.5], 2, 3) });
+    tone('b-monotony', mono === null ? null : mono > 2 ? 'bad' : mono >= 1.5 ? 'warn' : 'good');
+    set('b-strain', or(r.strain, fmt0.format));
+    set('b-week', or(r.load_7d, fmt0.format));
+
+    set('b-lt', num(r.lt_pace) === null ? dash : `${pace(r.lt_pace)} /km`);
+    set('b-lt-sub', [
+      num(r.lthr) === null ? null : `Garmin @ ${fmt0.format(num(r.lthr))} bpm`,
+      num(r.lt_pace_own) === null ? null : `your runs ${pace(r.lt_pace_own)}`,
+      num(r.lt_fraction) === null ? null : `${fmt0.format(num(r.lt_fraction) * 100)} % of VO2max speed`,
+    ].filter(Boolean).join(' · ') || 'No threshold estimate yet');
+
+    const isTrue = (v) => v === true || v === 'true';
+    const flags = [
+      [r.flag_ramp, 'Load ramp: A:C above 1.5'],
+      [r.flag_monotony, 'Monotony above 2'],
+      [r.flag_no_rest, 'No day off in 7 days'],
+      [r.flag_rhr, 'Resting HR up'],
+    ].filter(([v]) => isTrue(v)).map(([, t]) => t);
+    $('b-flags').innerHTML = flags.length
+      ? flags.map((t) => `<span class="flag">⚠ ${t}</span>`).join('')
+      : `<span class="flag ok">✓ No cautions today</span>`;
+  }
+
+  // ---------- how your training is going: plain answers ----------
+  const todayDay = () => new Date().toLocaleDateString('en-CA', { timeZone: Run.TZ });
+  const mondayOf = (day) => { const t = new Date(`${day}T00:00:00Z`); t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7)); return t.toISOString().slice(0, 10); };
+  const plural = (n, w) => `${fmt0.format(n)} ${w}${Math.round(n) === 1 ? '' : 's'}`;
+
+  function renderNow () {
+    const r = status.result?.rows[0];
+    if (status.state === 'error') { set('n-load-sub', `Couldn't load: ${status.error.message}`); return; }
+    if (!r) return;
+
+    // Too much or too little: the last 7 days' load (fatigue, ATL) against what your body is used to
+    // (fitness, CTL), as the acute:chronic ratio; its zones are the injury-risk evidence's
+    const acwr = num(r.acwr);
+    const pctOff = acwr === null ? 0 : Math.round((acwr - 1) * 100);
+    const [word, cls, tip] = acwr === null ? [dash, null, 'Not enough history yet.']
+      : acwr > 1.5 ? ['Too much', 'bad', 'That is a sudden jump, and injury risk rises with it. Take 2–3 easy days or a rest day.']
+      : acwr > 1.3 ? ['A bit high', 'warn', 'Fine for a few days of a harder block. Keep the next days easy so it stays under +50 %.']
+      : acwr >= 0.8 ? ['Just right', 'good', 'Your body is used to this: a good place to build from.']
+      : ['Light', 'warn', 'Good for an easy or taper week; for weeks on end, fitness slowly drops.'];
+    set('n-load', word);
+    tone('n-load', cls);
+    set('n-load-sub', acwr === null ? tip : `Your last 7 days are ${Math.abs(pctOff)} % ${pctOff >= 0 ? 'above' : 'below'} what your body is used to. ${tip}`);
+    // the scale: 0.5 – 0.8 light, 0.8 – 1.3 just right, 1.3 – 1.5 high, 1.5 – 1.8 too much
+    const at = (v) => `${((Math.max(0.5, Math.min(1.8, v)) - 0.5) / 1.3) * 100}%`;
+    $('n-load-scale').innerHTML = `<i style="background:color-mix(in srgb, var(--accent-2) 45%, var(--track))"></i><i style="background:var(--good)"></i>
+      <i style="background:var(--warn)"></i><i style="background:var(--bad)"></i>
+      <span style="left:11.5%">Light</span><span style="left:42%">Just right</span><span style="left:69%">High</span><span style="left:88.5%">Too much</span>
+      ${acwr === null ? '' : `<b class="mark" style="left:${at(acwr)}" title="${fmt0.format(acwr * 100)} % of usual"></b>`}`;
+    // the numbers behind it: the last 7 days against your usual week, in km and in load (TRIMP)
+    const rc = recent.result?.rows[0], vn = volumeNow.result?.rows[0];
+    const usualWeek = vn ? (num(vn.weeks8_km) ?? 0) / 8 : null;
+    $('n-load-vs').innerHTML = !rc ? '' : `<div><small>Last 7 days</small><b>${fmt0.format(num(rc.km) ?? 0)} km</b><small>${plural(num(rc.runs) ?? 0, 'run')}</small></div>
+      <div><small>Usual week</small><b>${usualWeek === null ? dash : `${fmt0.format(usualWeek)} km`}</b><small>last 8 weeks</small></div>
+      <div><small>Training load</small><b>${acwr === null ? dash : `${fmt0.format(acwr * 100)} %`}</b><small>of usual, from heart rate</small></div>`;
+    const isTrue = (v) => v === true || v === 'true';
+    const flags = [[r.flag_ramp, 'big jump in load'], [r.flag_monotony, 'every day the same'], [r.flag_no_rest, 'no day off in 7 days'], [r.flag_rhr, 'resting heart rate up']]
+      .filter(([v]) => isTrue(v)).map(([, t]) => t);
+    $('n-flags').innerHTML = flags.length ? `<span class="warn">⚠ ${flags.join(' · ')}</span>` : '';
+
+    // Rest: days with no training until form (TSB) is back above −30 (ready) and reaches +5 (fully fresh)
+    const ready = num(r.ready_days), fresh = num(r.fresh_days);
+    set('n-ready', ready === null ? dash : ready === 0 ? 'Yes' : `In ${plural(ready, 'day')}`);
+    set('n-ready-sub', ready === null ? '' : ready === 0 ? 'You’re ready to train today.'
+      : `Rest ${plural(ready, 'more day')} first: your fatigue is high right now.`);
+    tone('n-ready', ready === null ? null : ready === 0 ? 'good' : 'warn');
+    set('n-fresh', fresh === null ? dash : fresh === 0 ? 'Now' : plural(fresh, 'day'));
+    set('n-fresh-sub', fresh === null ? '' : fresh === 0 ? 'You’re fully recovered: you could race at 100 % today.'
+      : ready === 0 ? `Don’t overdo it: with rest you’d be at 100 % in ${plural(fresh, 'day')}. Before a race, that’s what the taper is for.`
+      : `You need about ${plural(fresh, 'day')} of rest to be back at 100 %.`);
+    tone('n-fresh', fresh === 0 ? 'good' : null);
+  }
+
+  // The week if you follow the plan from here: km run on the days gone (extra runs included, missed
+  // sessions as 0), today's run if done else today's session, and the sessions still ahead.
+  function weekProjection () {
+    const all = weekPlan.result?.rows ?? [], race = all[0]?.race, today = todayDay();
+    const rows = all.filter((r) => r.race === race);
+    if (!rows.length) return null;
+    let done = 0, left = 0;
+    for (const r of rows) {
+      const day = String(r.plan_date).slice(0, 10), ran = num(r.done_km) ?? 0, planned = r.session === 'rest' ? 0 : num(r.km) ?? 0;
+      done += ran;
+      if (day > today || (day === today && !ran)) left += planned;
+    }
+    return { race, rows, done, left, total: done + left, planned: rows.reduce((s, r) => s + (r.session === 'rest' ? 0 : num(r.km) ?? 0), 0) };
+  }
+
+  // This week and month: km done against the target. With a saved plan in the period the target is
+  // the period on plan: the km you have run plus the sessions still ahead (today's too, if not run yet),
+  // and "by today" is what you ran before the plan started plus what the plan asked for since. With no
+  // plan, it is your usual (the mean of the last 8 full weeks / 6 full months), pro rata by today.
+  function progress (id, done, target, byToday) {
+    const w = (v) => `${Math.max(0, Math.min(100, (v / (target || 1)) * 100))}%`;
+    $(id).innerHTML = !target ? '' : `<div class="fill ${done > target ? 'over' : ''}" style="width:${w(done)}"></div>`
+      + (byToday !== null && byToday < target ? `<div class="tick" style="left:${w(byToday)}" title="Where you'd be by today: ${fmt0.format(byToday)} km"><span>today ${fmt0.format(byToday)}</span></div>` : '');
+  }
+  function renderVolumeNow () {
+    if (volumeNow.state === 'error') { set('n-week-sub', `Couldn't load: ${volumeNow.error.message}`); return; }
+    const v = volumeNow.result?.rows[0];
+    if (!v || !planNow.result) return;
+    const now = new Date(`${todayDay()}T00:00:00Z`);
+    const weekShare = (((now.getUTCDay() + 6) % 7) + 1) / 7;
+    const monthShare = now.getUTCDate() / new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate();
+    const plan = planNow.result.rows.find((r) => num(r.week_km) || num(r.month_km));
+    const P = (k) => num(plan?.[k]) ?? 0;
+    const todayLeft = P('today_done_km') > 0 ? 0 : P('today_planned_km');
+
+    for (const [key, done, runs, usual, share] of [
+      ['week', num(v.week_km) ?? 0, num(v.week_runs) ?? 0, (num(v.weeks8_km) ?? 0) / 8, weekShare],
+      ['month', num(v.month_km) ?? 0, num(v.month_runs) ?? 0, (num(v.months6_km) ?? 0) / 6, monthShare],
+    ]) {
+      const onPlan = P(`${key}_km`) > 0;
+      const target = onPlan ? done + P(`${key}_future_km`) + todayLeft : usual;
+      const byToday = onPlan ? done - P(`${key}_done_km`) + P(`${key}_todate_km`) : usual * share;
+      const left = target - done;
+      set(`n-${key}`, `${fmt0.format(done)} km`);
+      set(`n-${key}-of`, target ? `of ${fmt0.format(target)} km ${onPlan ? 'on plan' : 'usual'}` : '');
+      progress(`n-${key}-bar`, done, target, byToday);
+      set(`n-${key}-sub`, `${plural(runs, 'run')} · ${left > 0.5 ? `${fmt0.format(left)} km to go` : left < -0.5 ? `${fmt0.format(-left)} km more than usual` : 'target reached'}`);
+      const ahead = done - byToday, ref = onPlan ? 'the plan' : 'your usual';
+      $(`n-${key}-plan`).innerHTML = !target ? ''
+        : Math.abs(ahead) <= Math.max(2, target * 0.1) ? `<span class="chip2 good">✓ On track</span> <span class="muted">${fmt0.format(byToday)} km ${onPlan ? 'on plan' : 'usual'} by today</span>`
+        : `<span class="chip2 warn">${fmt0.format(Math.abs(ahead))} km ${ahead > 0 ? 'ahead' : 'behind'}</span> <span class="muted">${ref} by today (${fmt0.format(byToday)} km)</span>`;
+    }
+    set('n-month-label', now.toLocaleDateString(undefined, { month: 'long', timeZone: 'UTC' }));
+  }
+
+  // ---------- race predictions: each distance's time today, and its trend over the past month ----------
+  const DISTS = [['5K', 't5k', 5], ['10K', 't10k', 10], ['Half', 'thalf', 21.0975], ['Marathon', 'tmar', 42.195]];
+  let predPick = null;
+  const predChart = echarts.init($('n-pred-chart'));
+  function renderPredTrend () {
+    const p = predictions.result?.rows[0], rows = predTrend.result?.rows ?? [];
+    if (!p) return;
+    // start on the goal race's distance
+    if (predPick === null) {
+      const goal = improve.result?.rows[0];
+      predPick = goal ? DISTS.reduce((b, d) => (Math.abs(d[2] - num(goal.km)) < Math.abs(b[2] - num(goal.km)) ? d : b))[1] : 'thalf';
+    }
+    const first = rows[0];
+    const delta = (key) => (first && num(first[key]) && num(p[key]) ? num(p[key]) - num(first[key]) : null);
+    const deltaHtml = (d) => (d === null || Math.abs(d) < 1 ? '' : `<span class="delta ${d < 0 ? 'faster' : 'slower'}">${d < 0 ? '▼' : '▲'} ${duration(Math.abs(d)).replace(/^0:/, '')}</span>`);
+    const shortTime = (s) => duration(s).replace(/^0:/, '');
+    $('n-dists').innerHTML = DISTS.map(([n, k]) => `<button type="button" role="tab" data-dist="${k}" aria-selected="${k === predPick}">
+      <small>${n}</small><b>${duration(p[k])}</b>${deltaHtml(delta(k))}</button>`).join('');
+    const [name, key, km] = DISTS.find((d) => d[1] === predPick);
+    const d = delta(key);
+    $('n-pred-head').innerHTML = `<span class="badge">${km === 21.0975 ? '21.1' : km === 42.195 ? '42.2' : km}<small>KM</small></span>
+      <span><span class="t">${duration(p[key])}</span> <span class="p">${pace(num(p[key]) / km)} /km</span></span>
+      <span class="d">${deltaHtml(d) || '<span class="muted">no change</span>'}<br>${d === null ? '' : d < 0 ? 'faster' : 'slower'} over the past month</span>`;
+    predChart.setOption({
+      animation: false,
+      grid: { left: 8, right: 56, top: 8, bottom: 22 },
+      tooltip: { trigger: 'axis', formatter: (ps) => `${shortDate(rows[ps[0].dataIndex].date)}<br><b>${duration(ps[0].value)}</b> ${name}` },
+      xAxis: { type: 'category', boundaryGap: false, data: rows.map((r) => r.date), ...axisBase(),
+        axisLabel: { color: css('--muted'), fontSize: 10, formatter: (v) => shortDate(v).replace(/,? \d{4}$/, '') } },
+      yAxis: { type: 'value', inverse: true, scale: true, position: 'right', splitNumber: 2, ...axisBase(),
+        axisLabel: { color: css('--muted'), fontSize: 10, formatter: (v) => shortTime(v) } },
+      series: [{ type: 'line', smooth: true, data: rows.map((r) => num(r[key])), color: css('--accent-2'), lineStyle: { width: 2.5 },
+        symbolSize: (v, p) => (p.dataIndex === rows.length - 1 ? 10 : 5) }],
+    }, { replaceMerge: ['series', 'xAxis'] });
+    // the prediction is for a rested race (it is calibrated on your races, which you ran rested); racing
+    // today with form under the planner's band costs its freshness term, as on a race day without a taper
+    const st = status.result?.rows[0], P = Object.fromEntries((freshParam.result?.rows ?? []).map((r) => [r.name, num(r.value)]));
+    const tsb = num(st?.tsb), ctl = num(st?.ctl), fresh = num(st?.fresh_days);
+    const tired = tsb !== null && ctl > 0 && P.tsb_band_low !== undefined && tsb / ctl < P.tsb_band_low;
+    $('n-pred-today').innerHTML = !st ? '' : tired && P.taper_gain_pct
+      ? `<span class="muted">${fresh ? `You’ll be fully recovered in ${plural(fresh, 'day')}.` : ''} Racing today, with tired legs (form ${tsb > 0 ? '+' : '−'}${fmt0.format(Math.abs(tsb))}):
+         about <b>${duration(num(p[key]) * (1 + P.taper_gain_pct / 100))}</b> (+${fmt0.format(P.taper_gain_pct)} %).</span>`
+      : '<span class="good">You’re fresh: this is what you could run today.</span>';
+    set('n-preds-sub', `${shortDate(first?.date ?? p.date)} – today · from your race fitness and endurance, rested, in your usual training heat${num(p.band) ? ` · ±${fmt1.format(num(p.band))} %` : ''}`);
+  }
+  $('n-dists').addEventListener('click', (e) => { const b = e.target.closest('[data-dist]'); if (b) { predPick = b.dataset.dist; renderPredTrend(); } });
+
+  // ---------- your plan this week, and the biggest gain for the goal race ----------
+  // Plain names and one-line actions for the causal model's determinants (README, Layer 1).
+  const PLAIN = {
+    Volume: ['Endurance', 'Run more each week, and stretch the long run about 2 km a week.'],
+    D1: ['Speed', 'Add one interval session a week, e.g. 5 × 1 km hard.'],
+    D2: ['Threshold', 'Add a threshold run: 20–30 min comfortably hard.'],
+    D4: ['Holding pace late in long runs', 'One long steady run a week at easy effort.'],
+    D5: ['Fresh legs on race day', 'Taper: cut volume by about half over the last 2–3 weeks.'],
+    D6: ['Race-day heat', 'Start conservatively and drink to a plan.'],
+  };
+  const KEY = new Set(['long', 'threshold', 'intervals', 'race']);
+  function renderWeekPlan () {
+    if (weekPlan.state === 'error') { set('n-wp-status', `Couldn't load the plan: ${weekPlan.error.message}`); return; }
+    if (!weekPlan.result) return;
+    const all = weekPlan.result.rows, race = all[0]?.race;
+    const rows = all.filter((r) => r.race === race);
+    if (!rows.length) {
+      set('n-wp-label', 'This week');
+      $('n-wp-status').innerHTML = 'No saved plan. <span class="muted">Make one on the Race planner to see this week’s sessions here.</span>';
+      $('n-wp-days').innerHTML = ''; set('n-wp-keys', '');
+      return;
+    }
+    const today = todayDay();
+    set('n-wp-label', `This week · ${race} plan`);
+    const past = rows.filter((r) => String(r.plan_date).slice(0, 10) < today && r.session !== 'rest');
+    const missed = past.filter((r) => r.status === 'missed').length, done = past.filter((r) => ['done', 'partial'].includes(r.status)).length;
+    const pj = weekProjection();
+    const km = `${fmt0.format(pj.done)} km done · <b>${fmt0.format(pj.total)} km</b> by Sunday if you follow the plan`
+      + (Math.round(pj.total) !== Math.round(pj.planned) ? ` <span class="muted">(${fmt0.format(pj.planned)} planned)</span>` : '');
+    $('n-wp-status').innerHTML = (missed ? `<span class="warn">${plural(missed, 'session')} missed so far</span>`
+      : `<span class="good">✓ You’re on plan</span>${done ? ` · ${plural(done, 'session')} done` : ''}`) + `<div class="pt-km">${km}</div>`;
+    $('n-wp-days').innerHTML = rows.map((r) => {
+      const day = String(r.plan_date).slice(0, 10), isToday = day === today, isPast = day < today;
+      const mark = r.status === 'done' ? '<span class="ok">✓</span>' : r.status === 'partial' ? '<span class="ok">~</span>'
+        : r.status === 'missed' && isPast ? '<span class="miss">✗</span>' : r.status === 'extra' ? '<span class="ok">+</span>' : '';
+      const w = new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', timeZone: 'UTC' });
+      return `<div class="day ${r.session === 'rest' ? 'rest' : ''} ${KEY.has(r.session) ? 'key' : ''} ${isToday ? 'today' : ''}">
+        <div class="w">${isToday ? 'Today' : w} ${mark}</div><div class="s">${Run.esc(r.session)}</div>
+        <div class="k">${r.session === 'rest' ? '' : num(r.done_km) ? `${fmt1.format(num(r.done_km))} km` : num(r.km) ? `${fmt0.format(num(r.km))} km` : ''}</div></div>`;
+    }).join('');
+    const left = rows.filter((r) => String(r.plan_date).slice(0, 10) >= today && KEY.has(r.session) && r.status !== 'done');
+    $('n-wp-keys').innerHTML = left.length ? `<b>Key sessions left:</b> ${left.map((r) => `${new Date(`${String(r.plan_date).slice(0, 10)}T00:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', timeZone: 'UTC' })} ${Run.esc(r.session === 'long' ? 'long run' : r.session)} ${num(r.km) ? `${fmt0.format(num(r.km))} km` : ''}`).join(' · ')}` : '';
+  }
+
+  // "Why and how long" as bullets: where you are against what the race needs, how long it takes,
+  // and the advice a sentence a bullet, with its numbers in bold.
+  const boldNums = (t) => Run.esc(t).replace(/(\d[\d.,]*(?:\s?(?:to|–|-)\s?\d[\d.,]*)?\s?(?:%|km|weeks?|min|x|VDOT)?)(?![\d.]|st|nd|rd|th)/g, '<b>$1</b>');
+  function whyList (r, weeksLeft) {
+    const f = (v) => (r.unit === '%' ? fmt0 : fmt1).format(num(v));
+    const closable = r.closable === true || r.closable === 'true';
+    const advice = String(r.advice ?? '').split(/(?<=\.)\s+(?=[A-Z])/).filter(Boolean);
+    return `<ul class="why">
+      <li>${Run.esc(r.label.replace(/\s*\(.*\)$/, ''))}: <b>${f(r.value)} ${Run.esc(r.unit)}</b> now → <b>${f(r.target)} ${Run.esc(r.unit)}</b> needed</li>
+      <li>Takes about <b>${fmt0.format(num(r.weeks_lo))}–${fmt0.format(num(r.weeks_hi))} weeks</b> of the right training · you have <b>${fmt0.format(weeksLeft)}</b>
+        ${closable ? '<span class="good">✓ enough</span>' : '<span class="warn">: more than the time left</span>'}</li>
+      ${advice.map((t) => `<li>${boldNums(t)}</li>`).join('')}
+    </ul>`;
+  }
+
+  function renderImprove () {
+    if (improve.state === 'error') { $('n-improve').innerHTML = `<li class="bad">Couldn't load: ${Run.esc(improve.error.message)}</li>`; return; }
+    if (!improve.result) return;
+    const rows = improve.result.rows;
+    if (!rows.length) {
+      set('n-improve-label', 'Biggest gain');
+      $('n-improve').innerHTML = '<li class="muted">Add an upcoming race with a goal time on the Race planner to see what to work on.</li>';
+      return;
+    }
+    const race = rows[0];
+    const limiting = rows.filter((r) => r.race_id === race.race_id && (r.limiting === true || r.limiting === 'true'));
+    const weeks = Math.round((new Date(String(race.race_date).slice(0, 10)) - new Date(todayDay())) / 86400000 / 7);
+    set('n-improve-label', `Biggest gain for ${race.race} · ${weeks} weeks to go`);
+    $('n-improve').innerHTML = limiting.length
+      ? limiting.slice(0, 3).map((r, i) => {
+        const [name, action] = PLAIN[r.determinant] ?? [r.label, ''];
+        const mins = num(r.cost) ? Math.round(num(r.cost) / 60) : null;
+        return `<li>
+          <div class="what">${i === 0 ? '' : `${i + 1}. `}${Run.esc(name)}</div>
+          ${mins ? `<span class="gain" title="Closing this gap would take about ${mins} min off your predicted race time">≈ ${mins} min faster on race day</span>` : ''}
+          <div>${Run.esc(action)}</div>
+          <details><summary>Why and how long</summary>${whyList(r, weeks)}</details></li>`;
+      }).join('')
+      : '<li><span class="good">✓ Nothing is holding you back for this race:</span> keep training as you do.</li>';
+  }
+
+  function renderWeight () {
+    if (weights.state === 'error') { set('b-weight-sub', `Couldn't load: ${weights.error.message}`); return; }
+    const w = weights.result?.rows[0];
+    if (!w) { if (weights.state === 'success') set('b-weight-sub', 'No weigh-ins yet'); return; }
+    set('b-weight', `${fmt1.format(num(w.kg))} kg`);
+    set('b-weight-sub', `${shortDate(w.date)} · ${w.source === 'APP' ? 'entered here' : 'Garmin'}`);
+  }
+
+  function renderRecent () {
+    if (recent.state === 'error') { set('b-km7-sub', `Couldn't load: ${recent.error.message}`); return; }
+    const r = recent.result?.rows[0];
+    if (!r) return;
+    set('b-km7', `${fmt1.format(num(r.km) ?? 0)} km`);
+    set('b-km7-sub', `${fmt0.format(num(r.runs) ?? 0)} runs`);
+    set('b-rhr', num(r.rhr) === null ? dash : `${fmt0.format(num(r.rhr))} bpm`);
+  }
+
+  function renderPredictions () {
+    if (predictions.state === 'error') { set('b-preds-sub', `Couldn't load: ${predictions.error.message}`); return; }
+    const p = predictions.result?.rows[0];
+    if (!p) return;
+    const items = [['5K', p.t5k, 5], ['10K', p.t10k, 10], ['Half', p.thalf, 21.0975], ['Marathon', p.tmar, 42.195]];
+    $('b-preds').innerHTML = items.map(([n, t, d]) =>
+      `<div><span class="small muted">${n}</span><b>${duration(t)}</b><span class="small muted">${pace(num(t) / d)} /km</span></div>`).join('');
+    // Ran's causal model (the planner's), in the conditions you train in: Daniels on effective VO2max
+    // x marathon shape, calibrated to your races; ± its error on those races
+    const band = num(p.band);
+    set('b-preds-sub', `fully recovered: your fitness and endurance today, in your usual training heat · calibrated on ${or(p.races, fmt0.format)} races${band ? ` · ±${fmt1.format(band)} %` : ''} · Race Planner for a race's own heat`);
+  }
+
+  function renderKpis () {
+    if (kpis.state === 'error') { set('kpi-runs', '!'); console.error(kpis.error); return; }
+    const r = kpis.result?.rows[0];
+    if (!r) return;
+    set('kpi-runs', or(r.runs, fmt0.format));
+    set('kpi-km', `${fmt0.format(num(r.km) ?? 0)} km`);
+    set('kpi-time', `${fmt0.format(num(r.hours) ?? 0)} h`);
+    set('kpi-pace', num(r.pace) === null ? dash : `${pace(r.pace)} /km`);
+    set('kpi-elev', `${fmt0.format(num(r.elev) ?? 0)} m`);
+    set('kpi-long', num(r.longest) === null ? dash : `${fmt1.format(num(r.longest))} km`);
+  }
+
+  const legend = () => ({ top: 0, textStyle: { color: css('--muted') } });
+  const dateAxis = (rows, key, g) => ({ type: 'category', data: rows.map((r) => r[key]), ...axisBase(),
+    axisLabel: { color: css('--muted'), formatter: (v) => periodLabel(v, g) } });
+
+  // How the run-distance bars are split: total, or km per heart-rate zone or per pace zone (easiest at the bottom).
+  let split = 'total';
+  const ZONES = {
+    hr: [[1, 'Z1 warm-up', '--z1'], [2, 'Z2 easy', '--z2'], [3, 'Z3 aerobic', '--z3'], [4, 'Z4 threshold', '--z4'], [5, 'Z5 max', '--z5']],
+    pace: [[1, 'Recovery', '--z1'], [2, 'Endurance', '--z2'], [3, 'Tempo', '--z3'], [4, 'Threshold', '--z4'], [5, 'VO2max', '--z5'], [6, 'Anaerobic', '--plum']],
+  };
+  // The bars for the volume chart and the run-distance modal; `sel` dims every bar but that one.
+  function volumeOption (sel = -1, { top = 16 } = {}) {
+    const rows = volume.result?.rows ?? [], g = $('grain-select').value;
+    const dim = (i) => (sel >= 0 && i !== sel ? 0.35 : 1);
+    const base = {
+      animation: false,
+      grid: { left: 48, right: 12, top: split === 'total' ? top : top + 26, bottom: 28 },
+      xAxis: dateAxis(rows, 'period', g),
+      yAxis: { type: 'value', ...axisBase(), axisLabel: { color: css('--muted'), formatter: (v) => `${v} km` } },
+    };
+    const zr = volumeZones.result?.rows;
+    if (split === 'total' || !zr) {
+      return { ...base, legend: { show: false },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (ps) => { const r = rows[ps[0].dataIndex];
+          return `${periodLabel(r.period, g)}<br><b>${fmt1.format(num(r.km) ?? 0)} km</b> · ${num(r.runs) ?? 0} runs`; } },
+        series: [{ type: 'bar', name: 'Distance', data: rows.map((r, i) => ({ value: num(r.km) ?? 0,
+          itemStyle: { color: css('--accent'), opacity: dim(i), borderRadius: [3, 3, 0, 0] } })) }] };
+    }
+    // km per zone per bar; what the samples don't cover (no heart rate, no threshold, no samples) is "no data"
+    const at = new Map(rows.map((r, i) => [String(r.period), i]));
+    const zones = ZONES[split], km = zones.map(() => rows.map(() => 0)), covered = rows.map(() => 0);
+    for (const r of zr) {
+      const i = at.get(String(r.period)), z = zones.findIndex(([n]) => n === num(r.zone));
+      if (i === undefined) continue;
+      covered[i] += num(r.km) ?? 0;
+      if (z >= 0) km[z][i] += num(r.km) ?? 0;
+    }
+    const none = rows.map((r, i) => Math.max(0, (num(r.km) ?? 0) - covered[i]) + 0);
+    zr.filter((r) => num(r.zone) === 0).forEach((r) => { const i = at.get(String(r.period)); if (i !== undefined) none[i] += num(r.km) ?? 0; });
+    const series = zones.map(([, name, c], z) => ({ type: 'bar', stack: 'km', name, color: css(c),
+      data: km[z].map((v, i) => ({ value: +v.toFixed(2), itemStyle: { opacity: dim(i) } })) }))
+      .concat([{ type: 'bar', stack: 'km', name: 'No data', color: css('--track'),
+        data: none.map((v, i) => ({ value: +v.toFixed(2), itemStyle: { opacity: dim(i), borderRadius: [3, 3, 0, 0] } })) }]);
+    return { ...base,
+      legend: { show: true, top: 0, itemWidth: 10, itemHeight: 10, textStyle: { color: css('--muted'), fontSize: 11 } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (ps) => {
+        const i = ps[0].dataIndex, total = num(rows[i].km) ?? 0;
+        return `${periodLabel(rows[i].period, g)} · <b>${fmt1.format(total)} km</b><br>` + ps.slice().reverse().filter((p) => p.value > 0.05)
+          .map((p) => `${p.marker}${p.seriesName} ${fmt1.format(p.value)} km <span style="opacity:.7">${fmt0.format((p.value / (total || 1)) * 100)} %</span>`).join('<br>'); } },
+      series };
+  }
+  let volumeDrawn = null;
+  function renderVolume () {
+    renderStatus(volume, $('volume-status'), 'No runs in this period');
+    if (!volume.result) return;
+    // redraw on a new result of either query, or a new split
+    const now = { v: volume.result, z: volumeZones.result, split };
+    if (volumeDrawn && Object.keys(now).every((k) => now[k] === volumeDrawn[k])) return;
+    volumeDrawn = now;
+    charts.volume.setOption(volumeOption(), { replaceMerge: ['series', 'xAxis', 'legend'] });
+  }
+  function setSplit (next) {
+    split = next;
+    document.querySelectorAll('[data-split]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.split === split)));
+    if (split !== 'total') { zoneKind.setCondition({ operator: 'is', values: [split] }); app.execute(); }
+    volumeDrawn = null;
+    renderVolume();
+    drawDistanceModal();
+  }
+
+  function renderFitness () {
+    renderStatus(fitness, $('fitness-status'), 'No days in this period');
+    if (!changed(fitness)) return;
+    const rows = fitness.result.rows;
+    charts.fitness.setOption({
+      grid: { left: 40, right: 40, top: 36, bottom: 28 },
+      legend: legend(),
+      tooltip: { trigger: 'axis', valueFormatter: (v) => (v == null ? dash : fmt0.format(v)) },
+      xAxis: dateAxis(rows, 'date', 'day'),
+      yAxis: [
+        { type: 'value', ...axisBase() },
+        { type: 'value', ...axisBase(), splitLine: { show: false } },
+        { type: 'value', show: false, max: (e) => e.max * 3 },
+      ],
+      series: [
+        { name: 'Load', type: 'bar', yAxisIndex: 2, data: rows.map((r) => num(r.load)), itemStyle: { color: css('--muted'), opacity: 0.35 }, barMaxWidth: 4 },
+        { name: 'Fitness (CTL)', type: 'line', showSymbol: false, data: rows.map((r) => num(r.ctl)), lineStyle: { width: 2.5 }, color: css('--accent-2') },
+        { name: 'Fatigue (ATL)', type: 'line', showSymbol: false, data: rows.map((r) => num(r.atl)), lineStyle: { width: 1.5 }, color: css('--accent') },
+        { name: 'Form (TSB)', type: 'line', yAxisIndex: 1, showSymbol: false, data: rows.map((r) => num(r.tsb)),
+          lineStyle: { width: 1 }, color: css('--good'), areaStyle: { opacity: 0.12 } },
+      ],
+    }, { replaceMerge: ['series', 'xAxis'] });
+  }
+
+  function renderShape () {
+    renderStatus(shape, $('shape-status'), 'No days in this period');
+    if (!changed(shape)) return;
+    const rows = shape.result.rows;
+    charts.shape.setOption({
+      grid: { left: 40, right: 48, top: 36, bottom: 28 },
+      legend: legend(),
+      tooltip: { trigger: 'axis', valueFormatter: (v) => (v == null ? dash : fmt1.format(v)) },
+      xAxis: dateAxis(rows, 'date', 'day'),
+      yAxis: [
+        { type: 'value', scale: true, ...axisBase() },
+        { type: 'value', min: 0, ...axisBase(), splitLine: { show: false }, axisLabel: { color: css('--muted'), formatter: (v) => `${v}%` } },
+      ],
+      series: [
+        { name: 'Effective VO2max', type: 'line', showSymbol: false, data: rows.map((r) => num(r.vo2e)), color: css('--accent-2'), lineStyle: { width: 2 } },
+        { name: 'Marathon shape', type: 'line', yAxisIndex: 1, showSymbol: false, data: rows.map((r) => num(r.shape_pct)),
+          color: css('--accent'), areaStyle: { opacity: 0.1 }, lineStyle: { width: 1.5 },
+          markLine: { silent: true, symbol: 'none', lineStyle: { color: css('--muted'), type: 'dotted' },
+            label: { color: css('--muted'), formatter: '{b}', position: 'insideEndTop' },
+            data: [{ name: 'HM', yAxis: Math.pow(21.0975, 1.23) }, { name: '10K', yAxis: Math.pow(10, 1.23) }] } },
+      ],
+    }, { replaceMerge: ['series', 'xAxis'] });
+  }
+
+  function renderBalance () {
+    renderStatus(balance, $('balance-status'), 'No days in this period');
+    if (!changed(balance)) return;
+    const rows = balance.result.rows;
+    charts.balance.setOption({
+      grid: { left: 40, right: 16, top: 36, bottom: 28 },
+      legend: legend(),
+      tooltip: { trigger: 'axis', valueFormatter: (v) => (v == null ? dash : fmt2.format(v)) },
+      xAxis: dateAxis(rows, 'date', 'day'),
+      yAxis: { type: 'value', min: 0, ...axisBase() },
+      series: [
+        { name: 'A:C ratio', type: 'line', showSymbol: false, data: rows.map((r) => num(r.acwr)), lineStyle: { width: 1.5 }, color: css('--accent-2'),
+          markLine: { silent: true, symbol: 'none', lineStyle: { color: css('--bad'), type: 'dotted' }, label: { color: css('--bad'), formatter: 'A:C 1.5', position: 'insideEndTop' }, data: [{ yAxis: 1.5 }] } },
+        { name: 'Monotony', type: 'line', showSymbol: false, data: rows.map((r) => num(r.monotony)), color: css('--warn'), lineStyle: { width: 1 },
+          markLine: { silent: true, symbol: 'none', lineStyle: { color: css('--warn'), type: 'dotted' }, label: { color: css('--warn'), formatter: 'monotony 2', position: 'insideEndTop' }, data: [{ yAxis: 2 }] } },
+      ],
+    }, { replaceMerge: ['series', 'xAxis'] });
+  }
+
+  function renderMarkers () {
+    renderStatus(markers, $('markers-status'), 'No markers in this period');
+    if (!changed(markers)) return;
+    const rows = markers.result.rows;
+    charts.markers.setOption({
+      grid: { left: 44, right: 44, top: 36, bottom: 28 },
+      legend: legend(),
+      tooltip: { trigger: 'axis', formatter: (ps) => { const r = rows[ps[0].dataIndex];
+        return `Week of ${periodLabel(r.week, 'day')}<br>Garmin threshold ${pace(r.lt)} /km<br>Your pace at threshold HR ${pace(r.lt_own)} /km`
+          + `<br>Your pace at easy HR ${pace(r.easy)} /km<br>Fractional utilisation ${or(r.frac, (v) => `${fmt0.format(v * 100)} %`)}`; } },
+      xAxis: dateAxis(rows, 'week', 'day'),
+      yAxis: [
+        { type: 'value', scale: true, inverse: true, ...axisBase(), axisLabel: { color: css('--muted'), formatter: (v) => pace(v) } },
+        { type: 'value', min: 0.6, max: 1, ...axisBase(), splitLine: { show: false }, axisLabel: { color: css('--muted'), formatter: (v) => `${Math.round(v * 100)}%` } },
+      ],
+      series: [
+        { name: 'Garmin threshold', type: 'line', step: 'end', showSymbol: false, data: rows.map((r) => num(r.lt)), color: css('--accent') },
+        { name: 'At threshold HR', type: 'line', showSymbol: false, connectNulls: true, data: rows.map((r) => num(r.lt_own)), color: css('--accent-2') },
+        { name: 'At easy HR', type: 'line', showSymbol: false, connectNulls: true, data: rows.map((r) => num(r.easy)), color: css('--good') },
+        { name: 'Utilisation', type: 'line', yAxisIndex: 1, showSymbol: false, data: rows.map((r) => num(r.frac)), color: css('--muted'), lineStyle: { type: 'dotted', width: 1 } },
+      ],
+    }, { replaceMerge: ['series', 'xAxis'] });
+  }
+
+  function renderDurability () {
+    renderStatus(durability, $('durability-status'), 'No long steady runs or workouts in this period');
+    if (!changed(durability)) return;
+    const rows = durability.result.rows;
+    const point = (r, key) => (num(r[key]) === null ? null : { value: [r.date, num(r[key])], row: r });
+    charts.durability.setOption({
+      grid: { left: 40, right: 16, top: 36, bottom: 28 },
+      legend: legend(),
+      tooltip: { trigger: 'item', formatter: (p) => { const r = p.data.row;
+        return `${Run.esc(r.name)}<br>${shortDate(r.date)} · ${fmt1.format(num(r.km))} km<br>`
+          + (p.seriesName === 'Decoupling' ? `Decoupling ${fmt1.format(num(r.decoupling))} %` : `Rep fade ${fmt1.format(num(r.fade))} % over ${fmt0.format(num(r.reps))} reps`); } },
+      xAxis: { type: 'time', ...axisBase() },
+      yAxis: { type: 'value', ...axisBase(), axisLabel: { color: css('--muted'), formatter: (v) => `${v}%` } },
+      series: [
+        { name: 'Decoupling', type: 'scatter', symbolSize: (v, p) => 6 + Math.min(10, num(p.data.row.km) / 3),
+          data: rows.map((r) => point(r, 'decoupling')).filter(Boolean), color: css('--accent'),
+          markLine: { silent: true, symbol: 'none', lineStyle: { color: css('--warn'), type: 'dotted' }, label: { color: css('--warn'), formatter: '5 %', position: 'insideEndTop' }, data: [{ yAxis: 5 }] } },
+        { name: 'Rep fade', type: 'scatter', symbol: 'diamond', symbolSize: 9,
+          data: rows.map((r) => point(r, 'fade')).filter(Boolean), color: css('--accent-2') },
+      ],
+    }, { replaceMerge: ['series'] });
+  }
+
+  function renderEfficiency () {
+    renderStatus(efficiency, $('efficiency-status'), 'No runs in this period');
+    if (!changed(efficiency)) return;
+    const rows = efficiency.result.rows;
+    charts.efficiency.setOption({
+      grid: { left: 44, right: 44, top: 36, bottom: 28 },
+      legend: legend(),
+      tooltip: { trigger: 'axis', formatter: (ps) => { const r = rows[ps[0].dataIndex];
+        return `${periodLabel(r.period, 'month')}<br>Efficiency ${or(r.eff, fmt2.format)} m/beat<br>Pace ${pace(r.pace)} /km`; } },
+      xAxis: dateAxis(rows, 'period', 'month'),
+      yAxis: [
+        { type: 'value', scale: true, ...axisBase(), axisLabel: { color: css('--muted'), formatter: (v) => fmt2.format(v) } },
+        { type: 'value', scale: true, inverse: true, ...axisBase(), splitLine: { show: false }, axisLabel: { color: css('--muted'), formatter: (v) => pace(v) } },
+      ],
+      series: [
+        { name: 'Efficiency (m/beat)', type: 'line', data: rows.map((r) => num(r.eff)), connectNulls: true, color: css('--accent') },
+        { name: 'Pace', type: 'line', yAxisIndex: 1, data: rows.map((r) => num(r.pace)), connectNulls: true, color: css('--accent-2'), lineStyle: { type: 'dashed' } },
+      ],
+    }, { replaceMerge: ['series', 'xAxis'] });
+  }
+
+  function renderZones () {
+    renderStatus(zones, $('zones-status'), 'No runs in this period');
+    if (!changed(zones)) return;
+    const rows = zones.result.rows;
+    const names = ['Z1 warm-up', 'Z2 easy', 'Z3 aerobic', 'Z4 threshold', 'Z5 max'];
+    charts.zones.setOption({
+      grid: { left: 40, right: 12, top: 36, bottom: 28 },
+      legend: legend(),
+      tooltip: { trigger: 'axis', valueFormatter: (v) => (v == null ? dash : `${fmt1.format(v)} h`) },
+      xAxis: dateAxis(rows, 'period', 'month'),
+      yAxis: { type: 'value', ...axisBase(), axisLabel: { color: css('--muted'), formatter: (v) => `${v} h` } },
+      series: ['z1', 'z2', 'z3', 'z4', 'z5'].map((z, i) => ({
+        name: names[i], type: 'bar', stack: 'zones', data: rows.map((r) => num(r[z]) ?? 0), color: css(`--${z}`),
+      })),
+    }, { replaceMerge: ['series', 'xAxis'] });
+  }
+
+  function renderEfforts () {
+    renderStatus(efforts, $('efforts-status'), 'No outdoor runs long enough in this period');
+    if (!efforts.result || !effortsAll.result) return;
+    if (!changed(efforts) && !changed(effortsAll)) return;
+    const allTime = new Map(effortsAll.result.rows.map((r) => [num(r.km), r]));
+    const best = new Map(), pbs = new Map();
+    for (const r of efforts.result.rows) {
+      const km = num(r.km);
+      if (!best.has(km)) best.set(km, r);
+      if (r.pb === true || r.pb === 'true') pbs.set(km, (pbs.get(km) ?? 0) + 1);
+    }
+    const kms = [...allTime.keys()].sort((a, b) => a - b);
+    $('efforts-body').innerHTML = kms.map((km) => {
+      const r = best.get(km), a = allTime.get(km);
+      const isAllTime = r && a && num(r.time) === num(a.time);
+      return `<tr${r ? ` data-open="${Run.esc(r.activity)}" tabindex="0" title="Open this run"` : ''}>
+        <td>${Run.esc(a?.label ?? `${km} km`)}</td>
+        <td><b>${r ? duration(r.time) : dash}</b>${isAllTime ? '<span class="pb">all-time</span>' : ''}</td>
+        <td>${r ? `${pace(r.pace)} /km` : dash}</td>
+        <td class="l">${r ? Run.esc(r.name) : ''}</td>
+        <td>${r ? shortDate(r.date) : dash}</td>
+        <td>${r && num(r.wbgt) !== null ? `${fmt1.format(num(r.wbgt))} °C` : dash}</td>
+        <td>${fmt0.format(pbs.get(km) ?? 0)}</td>
+        <td class="alltime"${a ? ` data-open="${Run.esc(a.activity)}" title="Open the all-time best run"` : ''}>${a ? duration(a.time) : dash}</td>
+        <td class="alltime"${a ? ` data-open="${Run.esc(a.activity)}" title="Open the all-time best run"` : ''}>${a ? shortDate(a.date) : dash}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="9" class="muted">No best efforts yet</td></tr>';
+  }
+  app.subscribe(() => { logFirst(efforts, effortsAll); renderEfforts(); });
+  // a best effort opens its run's detail; the all-time columns open the all-time run (wired with the run tables below)
+
+  app.subscribe(() => {
+    logFirst(status, recent, predictions, weights, volumeNow, planNow, weekPlan, predTrend, freshParam, improve, kpis, volume, fitness, shape, balance, markers, durability, efficiency, zones);
+    renderNow();
+    renderVolumeNow();
+    renderWeekPlan();
+    renderImprove();
+    renderPredTrend();
+    renderBanner();
+    renderWeight();
+    renderPredictions();
+    renderRecent();
+    renderKpis();
+    renderVolume();
+    renderFitness();
+    renderShape();
+    renderBalance();
+    renderMarkers();
+    renderDurability();
+    renderEfficiency();
+    renderZones();
+  });
+
+  $('period-select').addEventListener('change', (e) => {
+    period.setCondition({ operator: 'matches', values: e.target.value ? [e.target.value] : [] });
+    app.execute();
+  });
+  $('grain-select').addEventListener('change', (e) => { grain.setGrain(e.target.value); app.execute(); });
+  window.addEventListener('resize', () => Object.values(charts).forEach((c) => c.resize()));
+  // charts in a closed fold were drawn at zero size: size them when it opens
+  for (const id of ['fold-charts', 'evidence']) {
+    $(id).addEventListener('toggle', (e) => { if (e.target.open) [...Object.values(charts), evChart].forEach((c) => c.resize()); });
+  }
+
+  // ---------- run distance: the bars in a modal; a bar's runs; a run's detail ----------
+  const barPeriod = app.createFilter('bar_period', { dataset: DS, field: 'activity.start_date', label: 'Bar',
+    default: { operator: 'between', values: ['1900-01-01', '1900-01-01'] } });
+  const periodRuns = app.createQuery('period_runs', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        id: activity.activity_id, started: activity.start_label, name: activity.activity_name,
+        km: activity.distance_km, secs: activity.duration_s, pace: activity.pace_s_per_km, hr: activity.avg_hr,
+        effort: activity_load.trimp, te: activity.te_label, is_race: activity.is_race, race_name: activity.race_name
+      }
+      filters { activity.is_run is true }
+      sorts { started asc }
+    }` });
+  app.mapControl(barPeriod, periodRuns, { field: 'activity.start_date' });
+  const dmChart = echarts.init($('dm-chart'));
+  let dmPeriod = null;   // the start of the bar whose runs are listed, as the volume query gives it
+  // the activity detail (activity-detail.js): ‹ › step through the list it was opened from
+  let detailRows = () => [];
+  const detailView = Run.activityDetail(app, { dataset: DS,
+    nav: { rows: () => detailRows(), hasMore: () => false, more: async () => {} },
+    onClose: () => { if (!$('dm').hidden) document.body.style.overflow = 'hidden'; } });
+
+  const day10 = (v) => new Date(v).toLocaleDateString('en-CA', { timeZone: Run.TZ });
+  function periodEnd (start, g) {
+    const d = new Date(`${start}T00:00:00Z`);
+    if (g === 'week') d.setUTCDate(d.getUTCDate() + 6);
+    else if (g === 'month') { d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(0); }
+    else { d.setUTCFullYear(d.getUTCFullYear() + 1); d.setUTCDate(0); }
+    return d.toISOString().slice(0, 10);
+  }
+  function pickBar (period) {
+    if (!period) return;
+    dmPeriod = period;
+    const g = $('grain-select').value, start = day10(period);
+    barPeriod.setCondition({ operator: 'between', values: [start, periodEnd(start, g)] });
+    set('dm-period-title', `${g === 'week' ? 'Week of ' : ''}${periodLabel(period, g)}`);
+    drawDistanceModal();
+    app.execute();
+  }
+  function openDistance (period) {
+    $('dm').hidden = false;
+    document.body.style.overflow = 'hidden';
+    drawDistanceModal();
+    pickBar(period ?? volume.result?.rows.at(-1)?.period);
+    $('dm-close').focus();
+  }
+  function closeDistance () {
+    $('dm').hidden = true;
+    document.body.style.overflow = '';
+    $('dm-open').focus();
+  }
+  function drawDistanceModal () {
+    if ($('dm').hidden || !volume.result) return;
+    const rows = volume.result.rows, g = $('grain-select').value;
+    document.querySelectorAll('[data-dm-grain]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.dmGrain === g)));
+    const total = rows.reduce((s, r) => s + (num(r.km) ?? 0), 0);
+    set('dm-sub', `${rows.length} ${g}s · ${fmt0.format(total)} km · ${fmt0.format(total / (rows.length || 1))} km a ${g} on average · ${$('period-select').selectedOptions[0].textContent.toLowerCase()}`);
+    dmChart.resize();
+    dmChart.setOption(volumeOption(dmPeriod ? rows.findIndex((r) => day10(r.period) === day10(dmPeriod)) : -1), { replaceMerge: ['series', 'xAxis', 'legend'] });
+  }
+  const isTrueV = (v) => v === true || v === 'true';
+  function renderPeriodRuns () {
+    if ($('dm').hidden || !dmPeriod) return;
+    if (periodRuns.state === 'error') { $('dm-list').innerHTML = `<tr><td colspan="8" class="bad">${Run.esc(periodRuns.error.message)}</td></tr>`; return; }
+    if (periodRuns.state === 'executing') { Run.skeletonRows($('dm-list'), 8, 4); return; }
+    if (!periodRuns.result) return;
+    const rows = periodRuns.result.rows;
+    const km = rows.reduce((s, r) => s + (num(r.km) ?? 0), 0), secs = rows.reduce((s, r) => s + (num(r.secs) ?? 0), 0);
+    const effort = rows.reduce((s, r) => s + (num(r.effort) ?? 0), 0);
+    $('dm-period-sum').innerHTML = rows.length ? `<b>${fmt1.format(km)} km</b> · ${rows.length} run${rows.length === 1 ? '' : 's'} · ${duration(secs)}${km ? ` · avg ${pace(secs / km)} /km` : ''} · effort ${fmt0.format(effort)}` : '';
+    $('dm-list').innerHTML = rows.map((r) => `<tr data-open="${Run.esc(r.id)}" tabindex="0" title="Open this run">
+      <td class="l">${Run.esc(Run.localWhen(r.started))}</td>
+      <td class="l n">${isTrueV(r.is_race) ? '🏁 ' : ''}${Run.esc(isTrueV(r.is_race) && r.race_name ? r.race_name : r.name)}</td>
+      <td>${fmt2.format(num(r.km) ?? 0)} km</td><td>${duration(r.secs)}</td><td>${pace(r.pace)} /km</td>
+      <td>${or(r.hr, fmt0.format)}</td><td>${or(r.effort, fmt0.format)}</td>
+      <td class="l small muted">${Run.esc((r.te ?? '').replaceAll('_', ' ').toLowerCase().replace('unknown', ''))}</td></tr>`).join('')
+      || '<tr><td colspan="8" class="muted">No runs in this period</td></tr>';
+  }
+  app.subscribe(() => { drawDistanceModal(); renderPeriodRuns(); detailView.refreshNav(); });
+
+  $('dm-open').addEventListener('click', () => openDistance());
+  // this week's / month's card: the modal at the current week or month, with its runs
+  function openDistanceAt (g) {
+    const today = todayDay();
+    if ($('grain-select').value !== g) { $('grain-select').value = g; grain.setGrain(g); dmPeriod = null; app.execute(); }
+    openDistance(g === 'week' ? mondayOf(today) : `${today.slice(0, 8)}01`);
+  }
+  for (const [tile, g] of [['n-week-tile', 'week'], ['n-month-tile', 'month']]) {
+    $(tile).addEventListener('click', () => openDistanceAt(g));
+    $(tile).addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDistanceAt(g); } });
+  }
+  // all training numbers: the current-form banner in a modal (its numbers open their history on top)
+  const openNumbers = () => { $('nm').hidden = false; document.body.style.overflow = 'hidden'; $('nm-close').focus(); };
+  const closeNumbers = () => { $('nm').hidden = true; document.body.style.overflow = ''; $('nm-open').focus(); };
+  $('nm-open').addEventListener('click', openNumbers);
+  $('nm-close').addEventListener('click', closeNumbers);
+  $('nm').addEventListener('click', (e) => { if (e.target === $('nm')) closeNumbers(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('nm').hidden && $('mm')?.hidden !== false) closeNumbers(); }, true);
+  document.querySelectorAll('[data-split]').forEach((b) => b.addEventListener('click', () => setSplit(b.dataset.split)));
+  charts.volume.on('click', (p) => openDistance(volume.result?.rows[p.dataIndex]?.period));
+  dmChart.on('click', (p) => pickBar(volume.result?.rows[p.dataIndex]?.period));
+  document.querySelectorAll('[data-dm-grain]').forEach((b) => b.addEventListener('click', () => {
+    $('grain-select').value = b.dataset.dmGrain;
+    grain.setGrain(b.dataset.dmGrain);
+    dmPeriod = null;
+    $('dm-list').innerHTML = '';
+    set('dm-period-sum', '');
+    set('dm-period-title', 'Pick a bar');
+    app.execute();
+  }));
+  // a table of runs opens one in the detail; ‹ › then step through that table's runs
+  function openFrom (tbody, id) {
+    detailRows = () => [...new Set([...$(tbody).querySelectorAll('tr[data-open]')].map((tr) => tr.dataset.open))].map((x) => ({ id: x }));
+    detailView.open(id);
+  }
+  for (const tbody of ['dm-list', 'efforts-body']) {
+    $(tbody).addEventListener('click', (e) => { const t = e.target.closest('[data-open]'); if (t) openFrom(tbody, t.dataset.open); });
+    $(tbody).addEventListener('keydown', (e) => {
+      const tr = e.target.closest('tr[data-open]');
+      if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openFrom(tbody, tr.dataset.open); }
+    });
+  }
+  $('dm-close').addEventListener('click', closeDistance);
+  $('dm').addEventListener('click', (e) => { if (e.target === $('dm')) closeDistance(); });
+  // Escape closes a run's detail first, then this modal (capture: runs before the detail's own handler)
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('dm').hidden && !detailView.isOpen()) closeDistance(); }, true);
+  window.addEventListener('resize', () => dmChart.resize());
+
+  // ---------- model evidence (garmin_sync/model.py: fitted after each sync, whole history) ----------
+  const evParams = app.createQuery('ev_params', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        param: model_param.name, value: model_param.value, lo: model_param.ci_low, hi: model_param.ci_high,
+        n: model_param.n, method: model_param.method, fitted_at: model_param.fitted_at
+      }
+    }` });
+  const evHeat = app.createQuery('ev_heat', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        id: heat_fit_point.activity_id, name: activity.activity_name, date: heat_fit_point.start_date,
+        wbgt: heat_fit_point.wbgt_c, adj: heat_fit_point.heat_adj_pct, fit: heat_fit_point.fitted_pct,
+        pace_easy: heat_fit_point.pace_s_per_km
+      }
+      filters { heat_fit_point.activity_id is not null }
+    }` });
+  const evMethods = app.createQuery('ev_methods', { dataset: DS, aql: `
+    explore {
+      dimensions { method: prediction_check.method, label: prediction_check.method_label }
+      measures { mape: prediction_check.mape, bias: prediction_check.bias_pct, races: prediction_check.check_count }
+      sorts { mape asc }
+    }` });
+  const evRaces = app.createQuery('ev_races', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        race_key: race.race_id, race_name: race.name, date: race.race_date, km: race.distance_km,
+        method: prediction_check.method, predicted: prediction_check.predicted_s,
+        actual: prediction_check.actual_s, err: prediction_check.error_pct
+      }
+      filters { prediction_check.method is not null }
+      sorts { date desc }
+    }` });
+  const evChart = echarts.init($('ev-heat-chart'));
+  window.addEventListener('resize', () => evChart.resize());
+  const signed = (v) => `${num(v) > 0 ? '+' : ''}${fmt1.format(num(v))} %`;
+  let evBestShown = null, evBestStarred = null;
+
+  function evParam () {
+    return Object.fromEntries((evParams.result?.rows ?? []).map((r) => [r.param, r]));
+  }
+
+  function renderEvidence () {
+    logFirst(evParams, evHeat, evMethods, evRaces);
+    const P = evParam();
+    const best = (P.best_prediction_mape_pct?.method ?? '').split(':')[0];
+
+    if (evParams.state === 'error') set('ev-heat-head', `Couldn't load: ${evParams.error.message}`);
+    else if (P.heat_pct_per_c) {
+      const h = P.heat_pct_per_c, lit = [P.lit_heat_pct_per_c_elite, P.lit_heat_pct_per_c_slower];
+      const crossesZero = num(h.lo) < 0 && num(h.hi) > 0;
+      $('ev-heat-head').innerHTML = `<b>${fmt2.format(num(h.value))} %</b> slower per °C
+        <span class="muted">(95 % CI ${fmt2.format(num(h.lo))} to ${fmt2.format(num(h.hi))} · ${fmt0.format(num(h.n))} runs)</span><br>
+        <span class="small muted">Ely 2007 (5–25 °C): ${fmt2.format(num(lit[0]?.value))} % elite to ${fmt2.format(num(lit[1]?.value))} % slower runners ·
+        your runs span ${fmt0.format(num(P.heat_wbgt_min_c?.value))}–${fmt0.format(num(P.heat_wbgt_max_c?.value))} °C
+        ${crossesZero ? '· interval includes 0: too little spread in WBGT to be sure' : ''}</span>`;
+      $('ev-heat-note').textContent = `Each dot: a steady outdoor run's pace at a fixed easy HR, after removing your fitness trend and run length; line: the fitted heat effect around ${fmt1.format(num(P.heat_ref_wbgt_c?.value))} °C. `
+        + `Checks: with CTL as fitness ${fmt2.format(num(P.heat_pct_per_c_ctl?.value))} %, efficiency on all steady runs ${fmt2.format(num(P.heat_pct_per_c_efficiency?.value))} %, `
+        + `no fitness control ${fmt2.format(num(P.heat_pct_per_c_naive?.value))} % (inflated: fitness and season move with heat).`;
+      const at = evParams.result.rows[0]?.fitted_at;
+      set('ev-fitted', at ? `fitted ${new Date(at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: Run.TZ })}` : '');
+    } else if (evParams.state === 'success') set('ev-heat-head', 'Not fitted yet: run `garmin-sync fit`');
+
+    renderStatus(evHeat, $('ev-heat-status'), 'No runs in the heat fit yet');
+    if (changed(evHeat)) {
+      const rows = evHeat.result.rows;
+      const line = rows.map((r) => [num(r.wbgt), num(r.fit)]).sort((a, b) => a[0] - b[0]);
+      evChart.setOption({
+        grid: { left: 44, right: 16, top: 16, bottom: 36 },
+        tooltip: { trigger: 'item', formatter: (p) => { const r = p.data.row; if (!r) return '';
+          return `${Run.esc(r.name)}<br>${shortDate(r.date)} · WBGT ${fmt1.format(num(r.wbgt))} °C<br>`
+            + `Pace at easy HR ${pace(r.pace_easy)} /km<br>${signed(r.adj)} vs expected`; } },
+        xAxis: { type: 'value', name: 'WBGT °C', nameLocation: 'middle', nameGap: 24, scale: true, ...axisBase() },
+        yAxis: { type: 'value', ...axisBase(), axisLabel: { color: css('--muted'), formatter: (v) => `${v}%` } },
+        series: [
+          { name: 'Runs', type: 'scatter', symbolSize: 6, color: css('--accent-2'),
+            data: rows.map((r) => ({ value: [num(r.wbgt), num(r.adj)], row: r })) },
+          { name: 'Fitted', type: 'line', showSymbol: false, color: css('--accent'), lineStyle: { width: 2 },
+            data: [line[0], line.at(-1)] },
+        ],
+      }, { replaceMerge: ['series'] });
+    }
+
+    if (evMethods.state === 'error') $('ev-methods-body').innerHTML = `<tr><td colspan="4" class="bad">${Run.esc(evMethods.error.message)}</td></tr>`;
+    else if (evMethods.result && (changed(evMethods) || best !== evBestStarred)) {
+      evBestStarred = best;
+      $('ev-methods-body').innerHTML = evMethods.result.rows.map((r) => `<tr class="${r.method === best ? 'best' : ''}">
+        <td class="l">${r.method === best ? '★ ' : ''}${Run.esc(r.label)}</td>
+        <td>${fmt1.format(num(r.mape))} %</td>
+        <td class="${Math.abs(num(r.bias)) > 5 ? 'warn' : ''}">${signed(r.bias)}</td>
+        <td>${fmt0.format(num(r.races))}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">No races with a result yet: mark races on the Activities page</td></tr>';
+    }
+
+    if (evRaces.state === 'error') $('ev-races-body').innerHTML = `<tr><td class="bad">${Run.esc(evRaces.error.message)}</td></tr>`;
+    else if (evRaces.result && (changed(evRaces) || best !== evBestShown)) {
+      evBestShown = best;
+      const cols = [[best, '★ Best method'], ['riegel_prev_race', 'Riegel (prev. race)'],
+        ['garmin_prediction', 'Garmin'], ['daniels_vo2_effective', 'Daniels (textbook)']]
+        .filter(([m], i, a) => m && a.findIndex(([x]) => x === m) === i);
+      const races = new Map();
+      for (const r of evRaces.result.rows) {
+        if (!races.has(r.race_key)) races.set(r.race_key, { ...r, by: {} });
+        races.get(r.race_key).by[r.method] = r;
+      }
+      $('ev-races-head').innerHTML = `<tr><th class="l">Race</th><th>Date</th><th>Distance</th><th>Result</th>${cols.map(([, l]) => `<th>${l}</th>`).join('')}</tr>`;
+      $('ev-races-body').innerHTML = [...races.values()].map((r) => `<tr>
+        <td class="l">${Run.esc(r.race_name)}</td><td>${shortDate(r.date)}</td><td>${fmt2.format(num(r.km))} km</td>
+        <td><b>${duration(r.actual)}</b></td>
+        ${cols.map(([m]) => { const c = r.by[m];
+          return `<td>${c ? `${duration(c.predicted)}<span class="err ${Math.abs(num(c.err)) > 5 ? 'warn' : 'muted'}">${signed(c.err)}</span>` : dash}</td>`; }).join('')}
+      </tr>`).join('') || `<tr><td class="muted">No races with a result yet</td></tr>`;
+    }
+  }
+  app.subscribe(renderEvidence);
+
+  // ---------- a banner number opens its history and explanation (metric-modal.js, definitions in metrics.js) ----------
+  Run.metricModal(app, { dataset: DS, tiles: {
+    'b-vo2': 'vo2', 'b-shape': 'shape', 'b-predictions': 'predictions', 'b-atl': 'atl', 'b-ctl': 'ctl',
+    'b-tsb': 'tsb', 'b-easy': 'tofresh', 'b-acwr': 'acwr', 'b-monotony': 'monotony', 'b-strain': 'strain',
+    'b-week': 'load7', 'b-km7': 'km7', 'b-rhr': 'rhr', 'b-threshold': 'threshold', 'b-flags': 'flags', 'b-weight': 'weight',
+    'n-load': 'acwr', 'n-ready': 'ready', 'n-fresh': 'fresh',
+  } });
+
+  Run.skeletonRows($('efforts-body'), 9, 5);
+  Run.skeletonRows($('ev-races-body'), 8, 5);
+  Run.skeletonRows($('ev-methods-body'), 4, 4);
+  app.execute();
+</script>
+</body>
+</html>

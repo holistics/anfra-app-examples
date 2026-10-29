@@ -1,0 +1,26 @@
+Model planner_param {
+  type: 'table'
+  label: 'Planner Constants'
+  description: 'Every constant the planner uses, with its source.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."planner_param"'
+
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    description: 'Parameter name'
+    primary_key: true
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension value {
+    label: 'Value'
+    type: 'number'
+    description: 'Default value from the literature, used until fitted values exist in model_param'
+    definition: @sql {{ #SOURCE.value }};;
+  }
+  dimension description {
+    label: 'Source'
+    type: 'text'
+    definition: @sql {{ #SOURCE.description }};;
+  }
+}

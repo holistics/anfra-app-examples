@@ -1,0 +1,14 @@
+# anfra: data source credentials
+.anfra/data_sources.yml
+# sync credentials
+.env
+# python
+.venv/
+__pycache__/
+*.pyc
+.claude/
+
+# deploy: the sample database dump (deploy/dump-db.sh)
+deploy/build/
+# OSM downloads for scripts/demo_routes.py
+.cache/

@@ -1,0 +1,39 @@
+Model session_profile {
+  type: 'table'
+  label: 'Session Profiles'
+  description: 'The runner’s typical pace and load per minute for each kind of session over the last year; planned load is estimated from these.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."session_profile"'
+
+  dimension kind {
+    label: 'Session'
+    type: 'text'
+    description: 'Session type: easy, long, threshold, intervals, strength, race, rest'
+    primary_key: true
+    definition: @sql {{ #SOURCE.kind }};;
+  }
+  dimension load_per_min {
+    label: 'Load per Minute'
+    type: 'number'
+    description: 'Median, from days with a single activity, in garmin.day training load units'
+    definition: @sql {{ #SOURCE.load_per_min }};;
+  }
+  dimension pace_s_per_km {
+    label: 'Typical Pace (s/km)'
+    type: 'number'
+    description: 'Total minutes x 60 / total km of that session type in the last year (3+ runs, else the fallback type)'
+    definition: @sql {{ #SOURCE.pace_s_per_km }};;
+  }
+  dimension n_load_days {
+    label: 'Days Behind Load'
+    type: 'number'
+    description: 'Single-activity days in the last year behind the median TRIMP per minute'
+    definition: @sql {{ #SOURCE.n_load_days }};;
+  }
+  dimension n_runs {
+    label: 'Runs Behind Pace'
+    type: 'number'
+    description: 'Runs in the last year behind the typical pace'
+    definition: @sql {{ #SOURCE.n_runs }};;
+  }
+}

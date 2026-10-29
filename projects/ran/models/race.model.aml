@@ -1,0 +1,95 @@
+Model race {
+  type: 'table'
+  label: 'Races'
+  description: 'Races entered by the user: past races linked to their activity, and upcoming goal races (no activity yet).'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."race"'
+
+  dimension race_id {
+    label: 'Race ID'
+    type: 'number'
+    description: 'Race ID (app.race)'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.race_id }};;
+  }
+  dimension activity_id {
+    label: 'Activity ID'
+    type: 'number'
+    description: 'Activity the race was run as; null for an upcoming race'
+    hidden: true
+    definition: @sql {{ #SOURCE.activity_id }};;
+  }
+  dimension race_date {
+    label: 'Race Date'
+    type: 'date'
+    description: 'Race date'
+    definition: @sql {{ #SOURCE.race_date }};;
+  }
+  dimension name {
+    label: 'Race'
+    type: 'text'
+    description: 'Race name'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension distance_km {
+    label: 'Distance (km)'
+    type: 'number'
+    description: 'Official race distance'
+    definition: @sql {{ #SOURCE.distance_km }};;
+  }
+  dimension priority {
+    label: 'Priority'
+    type: 'text'
+    description: 'A = goal race, B = important, C = training race'
+    definition: @sql {{ #SOURCE.priority }};;
+  }
+  dimension notes {
+    label: 'Notes'
+    type: 'text'
+    description: 'Notes'
+    definition: @sql {{ #SOURCE.notes }};;
+  }
+  dimension result_time_s {
+    label: 'Result (s)'
+    type: 'number'
+    description: 'Official chip time when entered, else the activity timer time. Empty for upcoming races'
+    definition: @sql {{ #SOURCE.result_time_s }};;
+  }
+  dimension result_pace_s_per_km {
+    label: 'Result Pace (s/km)'
+    type: 'number'
+    description: 'Result time / official distance'
+    definition: @sql {{ #SOURCE.result_pace_s_per_km }};;
+  }
+  dimension goal_time_s {
+    label: 'Goal Time (s)'
+    type: 'number'
+    description: 'The time the runner is aiming for, as entered'
+    definition: @sql {{ #SOURCE.goal_time_s }};;
+  }
+  dimension goal_pace_s_per_km {
+    label: 'Goal Pace (s/km)'
+    type: 'number'
+    description: 'Goal time divided by the official distance'
+    definition: @sql {{ #SOURCE.goal_pace_s_per_km }};;
+  }
+  dimension result_vs_goal_s {
+    label: 'Result vs Goal (s)'
+    type: 'number'
+    description: 'Result time minus goal time; negative = faster than the goal. Empty without both'
+    definition: @sql {{ #SOURCE.result_vs_goal_s }};;
+  }
+  dimension is_upcoming {
+    label: 'Upcoming'
+    type: 'truefalse'
+    description: 'Race date is after today'
+    definition: @sql {{ #SOURCE.is_upcoming }};;
+  }
+  measure race_count {
+    label: 'Races'
+    type: 'number'
+    description: 'Number of races'
+    definition: @aql count(race.race_id) ;;
+  }
+}

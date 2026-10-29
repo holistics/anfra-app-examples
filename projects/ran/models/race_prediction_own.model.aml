@@ -1,0 +1,69 @@
+Model race_prediction_own {
+  type: 'table'
+  label: 'Race Predictions (Ran)'
+  description: 'Ran\'s own race time predictions, one row per day: the causal model the Race Planner uses (garmin.race_forecast), for a race run that day in the conditions the runner trains in. time = Daniels(effective VO2max x shape factor, distance) x calibration to the runner\'s races. No heat or taper term. Times in seconds.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."race_prediction_own"'
+
+  dimension calendar_date {
+    label: 'Date'
+    type: 'date'
+    description: 'Day the prediction is for'
+    primary_key: true
+    definition: @sql {{ #SOURCE.calendar_date }};;
+  }
+  dimension vo2_effective {
+    label: 'Effective VO2max'
+    type: 'number'
+    description: 'Duration-weighted mean effective VO2max of the last 30 days (garmin.day): race fitness, D1'
+    definition: @sql {{ #SOURCE.vo2_effective }};;
+  }
+  dimension marathon_shape {
+    label: 'Marathon Shape (%)'
+    type: 'number'
+    description: 'Runalyze-style endurance that day (garmin.day). Below distance^1.23 % only part of VO2max is usable over the distance (shape factor)'
+    definition: @sql {{ #SOURCE.marathon_shape }};;
+  }
+  dimension calibration {
+    label: 'Calibration'
+    type: 'number'
+    description: 'Actual / predicted ratio on the runner\'s marked races (garmin.model_param calibration_daniels_shape_heat, fitted by garmin-sync fit); 1 before any race'
+    definition: @sql {{ #SOURCE.calibration }};;
+  }
+  dimension calibration_races {
+    label: 'Calibration Races'
+    type: 'number'
+    description: 'How many marked races the calibration is fitted on'
+    definition: @sql {{ #SOURCE.calibration_races }};;
+  }
+  dimension band_pct {
+    label: 'Uncertainty (± %)'
+    type: 'number'
+    description: 'Mean absolute error of this method on the runner\'s marked races, each predicted from earlier races only (mape_daniels_shape_heat_calibrated)'
+    definition: @sql {{ #SOURCE.band_pct }};;
+  }
+  dimension time_5k_s {
+    label: '5K (s)'
+    type: 'number'
+    description: 'Predicted 5K time, Ran\'s model'
+    definition: @sql {{ #SOURCE.time_5k_s }};;
+  }
+  dimension time_10k_s {
+    label: '10K (s)'
+    type: 'number'
+    description: 'Predicted 10K time, Ran\'s model'
+    definition: @sql {{ #SOURCE.time_10k_s }};;
+  }
+  dimension time_half_s {
+    label: 'Half Marathon (s)'
+    type: 'number'
+    description: 'Predicted half-marathon time, Ran\'s model'
+    definition: @sql {{ #SOURCE.time_half_s }};;
+  }
+  dimension time_marathon_s {
+    label: 'Marathon (s)'
+    type: 'number'
+    description: 'Predicted marathon time, Ran\'s model'
+    definition: @sql {{ #SOURCE.time_marathon_s }};;
+  }
+}

@@ -1,0 +1,151 @@
+Model activity_sample {
+  type: 'table'
+  label: 'Activity Samples'
+  description: 'Per-second recording of an activity (GPS, HR, speed, cadence, elevation, running dynamics). Large: always filter to one or a few activities.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."activity_sample"'
+
+  dimension sample_id {
+    label: 'Sample ID'
+    type: 'number'
+    description: 'Surrogate key: activity ID and sample number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.sample_id }};;
+  }
+
+  dimension activity_id {
+    label: 'Activity ID'
+    type: 'number'
+    description: 'Garmin activity ID'
+    hidden: true
+    definition: @sql {{ #SOURCE.activity_id }};;
+  }
+
+  dimension seq {
+    label: 'Sample #'
+    type: 'number'
+    description: 'Sample number within the activity (Garmin activity details, about 1 per second)'
+    definition: @sql {{ #SOURCE.seq }};;
+  }
+
+  dimension sample_time {
+    label: 'Sample Time (UTC)'
+    type: 'datetime'
+    description: 'Sample instant in UTC (Garmin activity details: directTimestamp)'
+    definition: @sql {{ #SOURCE.sample_time }};;
+  }
+
+  dimension elapsed_s {
+    label: 'Elapsed (s)'
+    type: 'number'
+    description: 'Timer seconds since start'
+    definition: @sql {{ #SOURCE.elapsed_s }};;
+  }
+
+  dimension distance_m {
+    label: 'Distance (m)'
+    type: 'number'
+    description: 'Cumulative distance at the sample (Garmin activity details)'
+    definition: @sql {{ #SOURCE.distance_m }};;
+  }
+
+  dimension heart_rate {
+    label: 'Heart Rate'
+    type: 'number'
+    description: 'Heart rate at the sample, bpm (Garmin activity details)'
+    definition: @sql {{ #SOURCE.heart_rate }};;
+  }
+
+  dimension speed_mps {
+    label: 'Speed (m/s)'
+    type: 'number'
+    description: 'Speed at the sample (Garmin activity details)'
+    definition: @sql {{ #SOURCE.speed_mps }};;
+  }
+
+  dimension grade_adj_speed_mps {
+    label: 'GAP Speed (m/s)'
+    type: 'number'
+    description: 'Grade-adjusted speed at the sample (Garmin activity details)'
+    definition: @sql {{ #SOURCE.grade_adj_speed_mps }};;
+  }
+
+  dimension cadence_spm {
+    label: 'Cadence (spm)'
+    type: 'number'
+    description: 'Cadence at the sample, steps per minute (Garmin activity details)'
+    definition: @sql {{ #SOURCE.cadence_spm }};;
+  }
+
+  dimension elevation_m {
+    label: 'Elevation (m)'
+    type: 'number'
+    description: 'Elevation at the sample (Garmin activity details)'
+    definition: @sql {{ #SOURCE.elevation_m }};;
+  }
+
+  dimension power_w {
+    label: 'Power (W)'
+    type: 'number'
+    description: 'Running power at the sample (Garmin activity details)'
+    definition: @sql {{ #SOURCE.power_w }};;
+  }
+
+  dimension latitude {
+    label: 'Latitude'
+    type: 'number'
+    description: 'GPS latitude (Garmin activity details); null indoors'
+    definition: @sql {{ #SOURCE.latitude }};;
+  }
+
+  dimension longitude {
+    label: 'Longitude'
+    type: 'number'
+    description: 'GPS longitude (Garmin activity details); null indoors'
+    definition: @sql {{ #SOURCE.longitude }};;
+  }
+
+  dimension stride_length_cm {
+    label: 'Stride (cm)'
+    type: 'number'
+    description: 'Stride length at the sample (Garmin activity details)'
+    definition: @sql {{ #SOURCE.stride_length_cm }};;
+  }
+
+  dimension vertical_osc_cm {
+    label: 'Vertical Oscillation (cm)'
+    type: 'number'
+    description: 'Vertical oscillation at the sample (Garmin activity details)'
+    definition: @sql {{ #SOURCE.vertical_osc_cm }};;
+  }
+
+  dimension ground_contact_ms {
+    label: 'Ground Contact (ms)'
+    type: 'number'
+    description: 'Ground contact time at the sample (Garmin activity details)'
+    definition: @sql {{ #SOURCE.ground_contact_ms }};;
+  }
+
+  dimension temperature_c {
+    label: 'Temperature (°C)'
+    type: 'number'
+    description: 'Watch temperature at the sample; skewed by body heat (Garmin activity details)'
+    definition: @sql {{ #SOURCE.temperature_c }};;
+  }
+
+  measure sample_count {
+    label: 'Samples'
+    type: 'number'
+    description: 'Number of samples'
+    definition: @aql count(activity_sample.sample_id) ;;
+  }
+
+  measure sample_avg_hr {
+    label: 'Avg HR'
+    type: 'number'
+    description: 'Mean heart rate over samples (time-weighted, since samples are about 1 s)'
+    format: '#,##0'
+    definition: @aql avg(activity_sample.heart_rate) ;;
+  }
+}

@@ -1,0 +1,107 @@
+Model plan_week {
+  type: 'table'
+  label: 'Plan Weeks'
+  description: 'One row per race and planned week: volume (race excluded), long run, quality sessions, ramp against the most of the previous 3 weeks, and cautions.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."plan_week"'
+
+  dimension plan_week_id {
+    label: 'Plan Week ID'
+    type: 'number'
+    description: 'Surrogate key: race and week'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.plan_week_id }};;
+  }
+  dimension race_id {
+    label: 'Race ID'
+    type: 'number'
+    description: 'Goal race'
+    hidden: true
+    definition: @sql {{ #SOURCE.race_id }};;
+  }
+  dimension week_start {
+    label: 'Week'
+    type: 'date'
+    description: 'Monday of the plan week'
+    definition: @sql {{ #SOURCE.week_start }};;
+  }
+  dimension planned_km {
+    label: 'Planned km'
+    type: 'number'
+    description: 'Running km planned that week, the race excluded'
+    definition: @sql {{ #SOURCE.planned_km }};;
+  }
+  dimension race_km {
+    label: 'Race km'
+    type: 'number'
+    description: 'Planned km of race sessions that week'
+    definition: @sql {{ #SOURCE.race_km }};;
+  }
+  dimension long_km {
+    label: 'Long Run km'
+    type: 'number'
+    description: 'Longest planned long run that week'
+    definition: @sql {{ #SOURCE.long_km }};;
+  }
+  dimension long_share {
+    label: 'Long Run Share'
+    type: 'number'
+    description: 'Long run / planned km of the week'
+    definition: @sql {{ #SOURCE.long_share }};;
+  }
+  dimension quality_sessions {
+    label: 'Quality Sessions'
+    type: 'number'
+    description: 'Threshold and interval sessions'
+    definition: @sql {{ #SOURCE.quality_sessions }};;
+  }
+  dimension sessions {
+    label: 'Sessions'
+    type: 'number'
+    description: 'Planned sessions that week, rest excluded'
+    definition: @sql {{ #SOURCE.sessions }};;
+  }
+  dimension est_load {
+    label: 'Estimated Load'
+    type: 'number'
+    description: 'Sum of estimated TRIMP for the week'
+    definition: @sql {{ #SOURCE.est_load }};;
+  }
+  dimension done_km {
+    label: 'km Done'
+    type: 'number'
+    description: 'Run km actually recorded that week'
+    definition: @sql {{ #SOURCE.done_km }};;
+  }
+  dimension ref_week_km {
+    label: 'Reference Week km'
+    type: 'number'
+    description: 'The most of the previous 3 weeks (planned, else run)'
+    definition: @sql {{ #SOURCE.ref_week_km }};;
+  }
+  dimension ramp_pct {
+    label: 'Ramp (%)'
+    type: 'number'
+    description: 'Planned km vs the reference week'
+    definition: @sql {{ #SOURCE.ramp_pct }};;
+  }
+  dimension flag_ramp {
+    label: 'Caution: Ramp'
+    type: 'truefalse'
+    description: 'Planned km more than 10 % over the most of the previous 3 weeks (a caution, weak evidence)'
+    definition: @sql {{ #SOURCE.flag_ramp }};;
+  }
+  dimension flag_long {
+    label: 'Caution: Long Run Share'
+    type: 'truefalse'
+    description: 'Long run above 45 % of the week'
+    definition: @sql {{ #SOURCE.flag_long }};;
+  }
+  dimension weeks_to_race {
+    label: 'Weeks to Race'
+    type: 'number'
+    description: '(race date - week start) / 7, whole weeks'
+    definition: @sql {{ #SOURCE.weeks_to_race }};;
+  }
+}

@@ -1,0 +1,123 @@
+/* The activity detail (activity-detail.js): the modal, the route map, Ran's take, the analysis tabs. */
+/* modal */
+.backdrop { position: fixed; inset: 0; background: rgb(0 0 0 / 0.45); display: none; z-index: 1000;
+            align-items: flex-start; justify-content: center; padding: 24px 16px; overflow-y: auto; }
+.backdrop.open { display: flex; }
+.modal { background: var(--panel); color: var(--text); border-radius: 12px; width: min(1180px, 100%);
+         box-shadow: 0 20px 60px rgb(0 0 0 / 0.3); position: relative; }
+.modal-head { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between;
+              padding: 14px 16px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--panel); border-radius: 12px 12px 0 0; z-index: 600; }
+.modal-head h2 { font-size: 17px; margin: 0; }
+.modal-nav { display: flex; gap: 6px; flex: none; }
+.modal-body { padding: 14px 16px 18px; position: relative; min-height: 200px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.run-efforts { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; margin: -4px 0 14px; font-size: 13px; }
+.run-efforts[hidden] { display: none; }
+.run-efforts b { font-variant-numeric: tabular-nums; }
+.run-efforts .pb { font-size: 10px; color: var(--good); border: 1px solid var(--good); border-radius: 999px; padding: 0 5px; }
+.stat .label { font-size: 11px; color: var(--muted); }
+.stat .value { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* map hero: full width, the route in Ran orange on a quiet grey base, start/finish/km markers */
+.hero { position: relative; margin: -14px -16px 14px; isolation: isolate; }   /* Leaflet's own z-indexes stay under the sticky header */
+.hero[hidden] { display: none; }
+#map { height: 440px; background: var(--track); }
+.map-tools { position: absolute; top: 12px; left: 12px; z-index: 500; display: flex; background: var(--panel);
+             border-radius: 999px; box-shadow: 0 2px 8px rgb(0 0 0 / .18); padding: 3px; }
+.map-tools button, .seg button { border: 0; background: transparent; border-radius: 999px; padding: 4px 12px; font-size: 12px; color: var(--muted); }
+.map-tools button[aria-pressed="true"] { background: var(--text); color: var(--panel); }
+.map-legend { position: absolute; left: 12px; bottom: 26px; z-index: 500; background: color-mix(in srgb, var(--panel) 92%, transparent);
+              border-radius: 8px; padding: 6px 10px; font-size: 11px; box-shadow: 0 2px 8px rgb(0 0 0 / .15); }
+.map-legend .ramp { width: 160px; height: 8px; border-radius: 4px; margin: 4px 0 2px; }
+.map-legend .ends { display: flex; justify-content: space-between; color: var(--muted); }
+.map-readout { position: absolute; right: 12px; bottom: 26px; z-index: 500; background: var(--ink); color: #fff; border-radius: 8px;
+               padding: 6px 10px; font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none; }
+.km-mark { background: var(--panel); color: var(--text); border: 2px solid var(--ink); border-radius: 50%; width: 20px !important; height: 20px !important;
+           margin: -10px 0 0 -10px !important; font: 600 10px/16px system-ui, sans-serif; text-align: center; box-shadow: 0 1px 3px rgb(0 0 0 / .3); }
+.pin { border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 4px rgb(0 0 0 / .4); width: 18px !important; height: 18px !important; margin: -9px 0 0 -9px !important; }
+.pin.start { background: #2f9e44; }
+.pin.finish { background: conic-gradient(#111 0 25%, #fff 0 50%, #111 0 75%, #fff 0) 0 0 / 8px 8px; }
+.leaflet-container { font: inherit; }
+#map .leaflet-tile-pane { filter: grayscale(1) brightness(1.05) contrast(.9); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #map .leaflet-tile-pane { filter: grayscale(1) invert(1) brightness(.9) contrast(.85); } }
+:root[data-theme="dark"] #map .leaflet-tile-pane { filter: grayscale(1) invert(1) brightness(.9) contrast(.85); }
+
+/* key numbers, Strava-style: big values, small labels */
+.headline { display: flex; flex-wrap: wrap; gap: 6px 28px; padding: 2px 0 14px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.headline .h .v { font-size: 28px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.15; letter-spacing: -.01em; }
+.headline .h .v small { font-size: 15px; font-weight: 500; color: var(--muted); margin-left: 2px; }
+.headline .h .l { font-size: 12px; color: var(--muted); }
+.headline .h.effect .v { font-size: 18px; padding-top: 8px; }
+
+/* Ran's take: a short written read of the run, with the facts behind it as chips */
+.take { border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin-bottom: 14px;
+        background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 7%, var(--panel)), var(--panel) 60%); }
+.take-head { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.take-icon { color: var(--accent); font-size: 16px; }
+.take p { font-size: 16px; line-height: 1.5; margin: 6px 0 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); }
+.chip b { font-weight: 600; }
+.chip.good { border-color: color-mix(in srgb, var(--good) 50%, var(--border)); }
+.chip.warn { border-color: color-mix(in srgb, var(--warn) 60%, var(--border)); }
+.chip.bad { border-color: color-mix(in srgb, var(--bad) 60%, var(--border)); }
+
+#samples-chart { height: 300px; }
+#bars-chart { height: 300px; }
+.streams[hidden], .analysis[hidden] { display: none; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 10px; overflow-x: auto; }
+.tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; padding: 8px 12px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+.seg-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.seg { display: inline-flex; background: var(--track); border-radius: 999px; padding: 3px; }
+.seg button[aria-pressed="true"] { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / .15); }
+/* zone tables (pace, heart rate): zone, name, range, time, share, bar */
+table.zt { border-collapse: separate; border-spacing: 0 4px; width: 100%; }
+table.zt td { border: 0; padding: 6px 10px; background: var(--stripe); font-variant-numeric: tabular-nums; }
+table.zt tbody tr:hover td { background: var(--stripe); }
+table.zt td.z { font-weight: 700; color: var(--muted); width: 32px; text-align: center; }
+table.zt td.n { text-align: left; }
+table.zt td.bar { background: transparent; width: 45%; padding: 0 0 0 6px; }
+table.zt td.bar i { display: block; height: 26px; border-radius: 3px; min-width: 2px; }
+/* lap types: a coloured tag per lap, a filter by type and the filtered laps' totals */
+.lap-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.lap-filter button { border-radius: 999px; padding: 3px 12px; font-size: 12px; }
+.lap-filter button[aria-pressed="true"] { background: var(--text); color: var(--panel); border-color: var(--text); }
+.lap-filter button i, .ltag i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+.lap-sum { font-size: 13px; margin: 0 2px 8px; min-height: 18px; font-variant-numeric: tabular-nums; }
+.ltag { font-size: 12px; font-weight: 600; white-space: nowrap; }
+table.laps tr.dim td { opacity: .35; }
+/* effort: this run's TRIMP, and the week's against its usual range (Strava's relative effort) */
+.effort { display: grid; grid-template-columns: 1fr 2fr; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.effort .t { font-size: 17px; font-weight: 650; }
+.effort .re { padding: 16px; border-right: 1px solid var(--border); }
+.effort .big { font-size: 64px; font-weight: 700; line-height: 1.1; color: var(--plum); font-variant-numeric: tabular-nums; margin: 6px 0; }
+.effort .re p { font-size: 15px; margin: 0; }
+.effort .we { min-width: 0; }
+.we-head { display: grid; grid-template-columns: auto auto 1fr; gap: 24px; align-items: center; padding: 16px; border-bottom: 1px solid var(--border); }
+.we-days { display: flex; gap: 5px; align-items: flex-end; height: 72px; }
+.we-days span { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; font-size: 10px; color: var(--muted); gap: 3px; }
+.we-days i { display: block; width: 12px; background: var(--muted); border-radius: 1px; min-height: 2px; }
+.we-days span.today i { background: var(--plum); }
+.big2 { font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.we-verdict { font-size: 15px; font-weight: 500; }
+#we-chart { height: 170px; }
+table.we-list td { padding: 8px 14px; white-space: nowrap; }
+table.we-list tr { cursor: pointer; }
+table.we-list tr.this td { font-weight: 650; }
+table.we-list td.n { text-align: left; color: var(--link); white-space: normal; }
+table.we-list td.e { font-weight: 700; color: color-mix(in srgb, var(--plum) 70%, var(--muted)); width: 60px; }
+@media (max-width: 800px) { .effort { grid-template-columns: 1fr; } .effort .re { border-right: 0; border-bottom: 1px solid var(--border); } .we-head { grid-template-columns: 1fr 1fr; } }
+details.fold > summary { cursor: pointer; list-style: none; font-size: 14px; padding: 8px 0; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before { content: '▸ '; color: var(--link); } details.fold[open] > summary::before { content: '▾ '; }
+details.fold > summary .muted { font-size: 12px; }
+@media (max-width: 700px) {
+  #map { height: 300px; }
+  .headline .h .v { font-size: 22px; }
+  table.zt td.bar { width: 30%; }
+}
+.modal .status { inset: 0; border-radius: 0 0 12px 12px; }
+.race-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; padding: 8px 10px;
+            border-radius: 8px; background: var(--row-hover); font-size: 13px; }
+.race-bar b { font-size: 14px; }
+.section { margin-top: 14px; }

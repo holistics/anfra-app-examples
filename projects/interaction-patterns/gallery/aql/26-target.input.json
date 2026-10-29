@@ -1,0 +1,1 @@
+{"filters": [{"field": "customers.country", "operator": "is", "values": ["Japan"]}], "conditions": [], "sorts": [], "dateDrills": []}

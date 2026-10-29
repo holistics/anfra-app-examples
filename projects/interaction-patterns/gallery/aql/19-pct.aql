@@ -1,0 +1,5 @@
+explore {
+  dimensions { country: customers.country }
+  measures { total_revenue: revenue, share: percent_of_total(revenue, 'grand_total') }
+  sorts { total_revenue desc }
+}

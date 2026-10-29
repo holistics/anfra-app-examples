@@ -1,0 +1,94 @@
+{
+ "index-100": {
+  "sql": "WITH m AS (\n  SELECT p.category,\n    DATE_TRUNC('month', o.ordered_at) AS month,\n    SUM(oi.quantity * p.price) AS revenue\n  FROM order_items oi\n  JOIN orders o ON o.id = oi.order_id\n  JOIN products p ON p.id = oi.product_id\n  GROUP BY 1, 2\n)\nSELECT category, month,\n  100 * revenue / FIRST_VALUE(revenue) OVER (\n    PARTITION BY category ORDER BY month\n  ) AS indexed\nFROM m\nORDER BY category, month;",
+  "focus": [
+   "FIRST_VALUE\\(revenue\\) OVER",
+   "PARTITION BY category ORDER BY month"
+  ]
+ },
+ "ranking": {
+  "sql": "WITH cr AS (\n  SELECT c.name, c.country,\n    SUM(oi.quantity * p.price) AS revenue\n  FROM customers c\n  JOIN orders o ON o.customer_id = c.id\n  JOIN order_items oi ON oi.order_id = o.id\n  JOIN products p ON p.id = oi.product_id\n  GROUP BY c.id, c.name, c.country\n)\nSELECT name, country, revenue,\n  RANK() OVER (ORDER BY revenue DESC) AS overall,\n  RANK() OVER (\n    PARTITION BY country ORDER BY revenue DESC\n  ) AS in_country\nFROM cr\nORDER BY overall;",
+  "focus": [
+   "RANK\\(\\) OVER",
+   "PARTITION BY country ORDER BY revenue"
+  ]
+ },
+ "bins": {
+  "sql": "WITH ov AS (\n  SELECT oi.order_id,\n    SUM(oi.quantity * p.price) AS v\n  FROM order_items oi\n  JOIN products p ON p.id = oi.product_id\n  GROUP BY 1\n)\nSELECT FLOOR(v / 250) * 250 AS bin,  -- 250 from the menu\n  COUNT(*) AS orders,\n  SUM(v) AS revenue\nFROM ov\nGROUP BY 1\nORDER BY 1;",
+  "focus": [
+   "FLOOR\\(v / 250\\) \\* 250",
+   "^  SELECT oi\\.order_id"
+  ]
+ },
+ "targets": {
+  "sql": "WITH rev AS (\n  SELECT DATE_TRUNC('month', o.ordered_at) AS month,\n    SUM(oi.quantity * p.price) AS revenue\n  FROM orders o\n  JOIN customers c ON c.id = o.customer_id\n  JOIN order_items oi ON oi.order_id = o.id\n  JOIN products p ON p.id = oi.product_id\n  WHERE c.country IN ('Japan')  -- from the Country filter\n    AND o.ordered_at >= DATE '2026-01-01'\n  GROUP BY 1\n), tgt AS (\n  SELECT SUM(monthly_target) AS target\n  FROM countries\n  WHERE name IN ('Japan')  -- the same filter, again\n)\nSELECT month, revenue, target,\n  revenue / target AS attainment\nFROM rev CROSS JOIN tgt\nORDER BY month;",
+  "focus": [
+   "IN \\('Japan'\\)",
+   "CROSS JOIN tgt"
+  ]
+ },
+ "what-if": {
+  "sql": "SELECT p.category,\n  SUM(oi.quantity * p.price) AS actual,\n  SUM(oi.quantity * p.price * CASE p.category\n    WHEN 'Software' THEN 1.10  -- spliced in from the preset\n    WHEN 'Services' THEN 1.05\n    ELSE 1 END) AS scenario\nFROM order_items oi\nJOIN products p ON p.id = oi.product_id\nGROUP BY 1\nORDER BY 1;",
+  "focus": [
+   "SUM\\(oi\\.quantity \\* p\\.price \\* CASE",
+   "THEN 1\\.\\d+"
+  ]
+ },
+ "cohort-from-rank": {
+  "sql": "WITH cr AS (\n  SELECT o.customer_id,\n    SUM(oi.quantity * p.price) AS revenue\n  FROM orders o\n  JOIN order_items oi ON oi.order_id = o.id\n  JOIN products p ON p.id = oi.product_id\n  GROUP BY 1\n), dec AS (\n  SELECT customer_id,\n    NTILE(10) OVER (ORDER BY revenue DESC) AS decile\n  FROM cr\n)\nSELECT p.category,\n  d.decile = 1 AS top_10pct,  -- 10% picked by the reader\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nJOIN dec d ON d.customer_id = o.customer_id\nGROUP BY 1, 2\nORDER BY 1, 2;",
+  "focus": [
+   "NTILE\\(10\\) OVER",
+   "JOIN dec d ON"
+  ]
+ },
+ "bookmarks": {
+  "sql": "-- rebuilt from {\"country\": \"Japan\", \"from\": \"2026-04-01\",\n--   \"grain\": \"week\", \"sort\": \"revenue\", \"utc_offset\": 9}\nSELECT DATE_TRUNC('week',\n    o.ordered_ts + INTERVAL '9 hours') AS week,\n  SUM(oi.quantity * p.price) AS revenue\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN order_items oi ON oi.order_id = o.id\nJOIN products p ON p.id = oi.product_id\nWHERE c.country = 'Japan'\n  AND o.ordered_at >= DATE '2026-04-01'\n  AND o.ordered_at < DATE '2026-07-01'\nGROUP BY 1\nORDER BY revenue DESC;",
+  "focus": [
+   "DATE_TRUNC\\('week',|INTERVAL '9 hours'|ORDER BY revenue",
+   "c\\.country = 'Japan'|o\\.ordered_at [<>]"
+  ]
+ },
+ "url-state": {
+  "sql": "-- decoded by hand from ?country=Japan&q=2026Q2&grain=week\nSELECT COUNT(*) = 1 AS country_ok\nFROM countries\nWHERE name = 'Japan';\n\nSELECT DATE_TRUNC('week', o.ordered_at) AS week,\n  SUM(oi.quantity * p.price) AS revenue\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN order_items oi ON oi.order_id = o.id\nJOIN products p ON p.id = oi.product_id\nWHERE c.country = 'Japan'\n  AND o.ordered_at >= DATE '2026-04-01'\n  AND o.ordered_at < DATE '2026-07-01'\nGROUP BY 1\nORDER BY 1;",
+  "focus": [
+   "COUNT\\(\\*\\) = 1 AS country_ok",
+   "c\\.country = 'Japan'|o\\.ordered_at [<>]|DATE_TRUNC\\('week'"
+  ]
+ },
+ "reset": {
+  "sql": "-- with Japan, Completed and Software applied\nSELECT DATE_TRUNC('month', o.ordered_at) AS month,\n  SUM(oi.quantity * p.price) AS revenue\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN order_items oi ON oi.order_id = o.id\nJOIN products p ON p.id = oi.product_id\nWHERE c.country = 'Japan' AND o.status = 'completed'\n  AND p.category = 'Software'\nGROUP BY 1\nORDER BY revenue DESC;\n\n-- Reset all: rebuilt with no WHERE and the default sort\nSELECT DATE_TRUNC('month', o.ordered_at) AS month,\n  SUM(oi.quantity * p.price) AS revenue\nFROM orders o\nJOIN order_items oi ON oi.order_id = o.id\nJOIN products p ON p.id = oi.product_id\nGROUP BY 1\nORDER BY 1;",
+  "focus": [
+   "^WHERE c\\.country|^  AND p\\.category",
+   "^ORDER BY (1|revenue)"
+  ]
+ },
+ "undo-redo": {
+  "sql": "-- Undo: pop step 3, rebuild step 2 (Japan, weekly)\nSELECT DATE_TRUNC('week', o.ordered_at) AS week,\n  SUM(oi.quantity * p.price) AS revenue\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN order_items oi ON oi.order_id = o.id\nJOIN products p ON p.id = oi.product_id\nWHERE c.country = 'Japan'\nGROUP BY 1\nORDER BY 1;\n\n-- Redo: push step 3 back, which adds the selection\nSELECT DATE_TRUNC('week', o.ordered_at) AS week,\n  SUM(oi.quantity * p.price) AS revenue\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN order_items oi ON oi.order_id = o.id\nJOIN products p ON p.id = oi.product_id\nWHERE c.country = 'Japan'\n  AND p.category = 'Software'\nGROUP BY 1\nORDER BY 1;",
+  "focus": [
+   "^  AND p\\.category = 'Software'",
+   "^WHERE c\\.country = 'Japan'"
+  ]
+ },
+ "saved-views": {
+  "sql": "CREATE TABLE saved_views (\n  id INTEGER PRIMARY KEY,\n  reader TEXT NOT NULL,\n  app TEXT NOT NULL,\n  name TEXT NOT NULL,\n  snapshot JSON NOT NULL,\n  saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  UNIQUE (reader, app, name)\n);\n\nINSERT INTO saved_views (id, reader, app, name, snapshot)\nVALUES (1, 'ana@acme.com', 'patterns/bookmarks',\n  'Monday: APAC weekly',\n  '{\"region\": \"APAC\", \"grain\": \"week\"}');\n\n-- the list, next week, on another device\nSELECT name, saved_at\nFROM saved_views\nWHERE reader = 'ana@acme.com'\n  AND app = 'patterns/bookmarks'\nORDER BY saved_at DESC;",
+  "focus": [
+   "^CREATE TABLE saved_views",
+   "^WHERE reader = "
+  ],
+  "norun": true
+ },
+ "refresh": {
+  "sql": "-- the freshness line\nSELECT MAX(ordered_at) AS data_as_of,\n  CAST(CURRENT_TIMESTAMP AS TIMESTAMP) AS ran_at,\n  MD5(COUNT(*) || ':' || MAX(id)) AS cache_key\nFROM orders;\n\n-- Refresh: a new nonce so no cache layer can match it\nSELECT DATE_TRUNC('month', o.ordered_at) AS month,\n  SUM(oi.quantity * p.price) AS revenue\nFROM orders o\nJOIN order_items oi ON oi.order_id = o.id\nJOIN products p ON p.id = oi.product_id\nWHERE 1760606400 > 0\nGROUP BY 1\nORDER BY 1;",
+  "focus": [
+   "MD5\\(COUNT|CURRENT_TIMESTAMP AS TIMESTAMP",
+   "^WHERE 1760606400"
+  ]
+ },
+ "trend-line": {
+  "sql": "WITH m AS (\n  SELECT DATE_TRUNC('month', o.ordered_at) AS month,\n    SUM(oi.quantity * p.price) AS revenue,\n    MAX(o.ordered_at) AS last_day\n  FROM orders o\n  JOIN order_items oi ON oi.order_id = o.id\n  JOIN products p ON p.id = oi.product_id\n  GROUP BY 1\n), idx AS (\n  SELECT *,\n    ROW_NUMBER() OVER (ORDER BY month) - 1 AS x,\n    last_day::DATE = LAST_DAY(month) AS is_full\n  FROM m\n)\nSELECT REGR_SLOPE(revenue, x) AS per_month,\n  REGR_INTERCEPT(revenue, x) AS start\nFROM idx\n-- leave out the latest month if it isn't over yet\nWHERE is_full OR month < (SELECT MAX(month) FROM idx);",
+  "focus": [
+   "REGR_SLOPE\\(",
+   "WHERE is_full OR"
+  ]
+ }
+}

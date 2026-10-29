@@ -1,0 +1,13 @@
+metric revenue_prev_month = revenue | relative_period(orders.ordered_at, interval(-1 month));
+metric revenue_prev_year = revenue | relative_period(orders.ordered_at, interval(-1 year));
+explore {
+  dimensions { period: orders.ordered_at | month() }
+  measures {
+    total_revenue: revenue,
+    prev_month: revenue_prev_month,
+    prev_year: revenue_prev_year,
+    mom_pct: (revenue - revenue_prev_month) * 100.0 / revenue_prev_month,
+  }
+  filters { orders.ordered_at matches @(2026-01-01 - 2026-09-30) }
+  sorts { period asc }
+}

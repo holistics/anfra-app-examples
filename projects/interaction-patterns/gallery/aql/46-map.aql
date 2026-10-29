@@ -1,0 +1,5 @@
+explore {
+  dimensions { country: markets.name, code: markets.code, latitude: markets.latitude, longitude: markets.longitude }
+  measures { total_revenue: revenue, num_customers: count(customers.id) }
+  sorts { total_revenue desc }
+}

@@ -1,0 +1,7 @@
+metric top_3_countries = top(3, customers.country, by: revenue);
+explore {
+  dimensions { period: orders.ordered_at | quarter(), country: customers.country }
+  measures { total_revenue: revenue }
+  filters { customers.country in top_3_countries }
+  sorts { period asc, total_revenue desc }
+}

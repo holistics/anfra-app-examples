@@ -1,0 +1,122 @@
+{
+ "date-drill": [
+  "Click <b>Quarter</b> next to <b>Grain</b>: the 16 month bars become 6 quarter bars",
+  "Click the <b>Q2 2026</b> column: the range narrows to April–June and the grain steps down to <b>Month</b>",
+  "Click <b>↑ All dates</b> to go back to every month"
+ ],
+ "fiscal-calendar": [
+  "Read the <b>Calendar</b> quarters: Jul–Sep 2026 is <b>Q3 2026</b> at $234k",
+  "Click <b>Fiscal (July start)</b>: the quarters relabel",
+  "Read the highlighted row: Jul–Sep 2026 is now <b>FY27 Q1</b> at $234k"
+ ],
+ "as-of-anchor": [
+  "Read the chart on <b>Today</b> with <b>Last 30 days</b>: some of the 30 days come after the newest order, so they are empty",
+  "Click <b>Newest order</b>: the anchor query finds 23 Sep 2026 and a chip shows <b>⚓ As of 23 Sep 2026</b>",
+  "Read the range next to the chips: 25 Aug – 23 Sep 2026, 30 days that all have data",
+  "Click <b>Last 7 days</b> or <b>Last 90 days</b>: each range still ends on 23 Sep"
+ ],
+ "partial-period": [
+  "Read the last bar, <b>Sep 2026</b>: it is hatched",
+  "Read the note under the chart: Sep 2026 has 23 of 30 days, data through 23 Sep",
+  "Click <b>Mark incomplete periods</b> to turn it off: the last bar now reads as a drop",
+  "Click <b>Quarter</b> next to <b>Grain</b>: the last quarter is marked the same way"
+ ],
+ "period-compare": [
+  "Click <b>vs previous month</b>: a dashed line for the month before appears over the bars",
+  "Click <b>vs same month last year</b>: a green line for last year appears",
+  "Read the numbers under the chart for <b>Sep 2026</b>: −26% vs Aug 2026 and −31% vs Sep 2025",
+  "Click another month to read its two changes"
+ ],
+ "custom-compare": [
+  "Pick <b>H2 2025</b> in the <b>A</b> menu",
+  "Pick <b>H1 2026</b> in the <b>B</b> menu: each country gets a grey A bar and a violet B bar",
+  "Read <b>Singapore</b>: it grew from $82k to $113k",
+  "Read <b>Australia</b>: it slipped from $119k to $113k",
+  "Type your own dates in the date boxes to compare any two ranges"
+ ],
+ "to-date": [
+  "Click <b>YTD</b>: a dashed line climbs through each year and resets in January",
+  "Click <b>Trailing 3 months</b>: a green line shows the rolling 3-month total",
+  "Click a month to read its revenue, YTD and trailing 3 months under the chart"
+ ],
+ "hierarchy-drill": [
+  "Click <b>APAC</b> in <b>Regions</b>",
+  "Click <b>Australia</b> in <b>Countries in APAC</b>",
+  "Click <b>Customer 184</b>: the table lists that customer's 13 orders",
+  "Read the breadcrumb, <b>All regions › APAC › Australia › Customer 184</b>, and the KPIs and trend on the right, which follow the path",
+  "Click <b>APAC</b> in the breadcrumb to climb back"
+ ],
+ "adhoc-breakdown": [
+  "Right-click the <b>Software</b> bar, or just click it",
+  "Pick <b>Status</b> in the <b>Break down Software by</b> menu",
+  "Read the new panel, <b>Software by status</b>: completed, shipped and cancelled",
+  "Click <b>Close breakdown</b> to clear it"
+ ],
+ "underlying-records": [
+  "Read the KPIs: <b>$1,283,053</b> from <b>1,500</b> orders, and revenue by month below",
+  "Click the <b>May 2026</b> column: the KPIs narrow to <b>$88,378</b>, and a drawer opens with that month's orders, newest first",
+  "Click <b>Load more</b>: the next 25 of its 101 orders load",
+  "Click <b>Close</b>: the KPIs go back to all months"
+ ],
+ "drillthrough": [
+  "Click <b>Japan</b> on the summary page",
+  "Pick <b>Open in Cohort Heatmap</b>",
+  "Read the Cohort Heatmap app: it opens with Country = Japan"
+ ],
+ "metric-switch": [
+  "Read the bars on <b>Revenue</b>: Services leads",
+  "Click <b>Units</b>: the bars reorder and Hardware leads with 2,775 units, with <b>Leave out cancelled</b> on",
+  "Read the hint: the count of queries run does not change, because switching the metric only redraws"
+ ],
+ "dimension-switch": [
+  "Read <b>Revenue by country</b> with <b>Group by</b> set to <b>Country</b>",
+  "Pick <b>Status</b> in <b>Group by</b>: the bars rebuild as completed, shipped and cancelled",
+  "Pick <b>Category</b> to see a third grouping"
+ ],
+ "sort": [
+  "Read the table: it is sorted by <b>Revenue</b>, the AQL default",
+  "Click the <b>Orders</b> header: the server re-sorts by orders, most first",
+  "Click <b>Load 25 more</b>: page 2 continues the new order",
+  "Click <b>Orders</b> again to flip the direction, or <b>AQL order</b> to go back"
+ ],
+ "top-n": [
+  "Click <b>All</b> to see all 6 countries",
+  "Click <b>Top 3</b>: Australia, Singapore and Germany stay",
+  "Read the <b>Other (3)</b> bar: it holds the remaining $509k",
+  "Read the hint under the bars: they still add up to $1.28M"
+ ],
+ "pivot": [
+  "Read the grid on <b>$</b>: countries down the side, categories across the top",
+  "Click <b>% of country</b>: each row now adds up to 100%",
+  "Read the <b>Australia</b> row: <b>Services</b> is 46% of Australia",
+  "Click <b>% of category</b> to make each column add up to 100% instead"
+ ],
+ "totals": [
+  "Read the <b>Share of category</b> column: <b>Gizmo</b> is 61% of Hardware",
+  "Read the <b>Hardware subtotal</b> row under the Hardware products",
+  "Read the <b>Grand total</b> row at the bottom: $1,283,053, or $1.28M",
+  "Pick a country in <b>Country</b>: the subtotals, shares and total all follow"
+ ],
+ "percent-of-total": [
+  "Read the share on each bar: <b>Australia</b> has 24.4% and <b>Japan</b> 9.2%",
+  "Click <b>Software</b> next to <b>Category</b>: the shares change, and still add up to 100%",
+  "Click <b>All</b> to go back"
+ ],
+ "cumulative-moving": [
+  "Click <b>Running total</b>: a line climbs over the bars, on its own scale at the right",
+  "Click <b>3-month average</b>: a dashed line smooths the monthly bars",
+  "Hover a month to read its revenue, 3-month average and running total under the chart"
+ ],
+ "drill-path": [
+  "Click <b>APAC</b> in <b>Regions</b>, then <b>Australia</b>: the drill path reads <b>All regions › ↓ APAC › ↓ Australia</b>",
+  "Click <b>↑ Up a level</b>: you're back in <b>Countries in APAC</b>, and the path adds <b>↑ APAC</b>",
+  "Click <b>Singapore</b>: the path keeps every step, <b>… › ↑ APAC › ↓ Singapore</b>",
+  "Click <b>↓ Australia</b> in the path: Australia's customers come back, with <b>Revenue here</b> at $313,397"
+ ],
+ "row-actions": [
+  "Read the table: each customer row ends with <b>Open in CRM ↗</b>, <b>Email</b> and <b>View orders →</b>",
+  "Hover <b>Open in CRM</b> on Customer 184: its URL is <code>https://crm.example.com/accounts/184</code>, built in the query",
+  "Click it: the app shows the URL, and says the sandbox won't let it open a tab",
+  "Click <b>View orders →</b> on Customer 184: their latest orders open below, starting with <b>#803</b> on 23 Aug 26 for $4,243"
+ ]
+}

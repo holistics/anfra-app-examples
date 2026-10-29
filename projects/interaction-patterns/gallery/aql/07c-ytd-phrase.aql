@@ -1,0 +1,5 @@
+explore {
+  dimensions { period: orders.ordered_at | month() }
+  measures { total_revenue: revenue, num_orders: order_count }
+  sorts { period asc }
+}

@@ -1,0 +1,683 @@
+{
+ "sources": {
+  "xf": {
+   "title": "Cross-filtering",
+   "url": "https://docs.holistics.io/docs/cross-filtering"
+  },
+  "xf_url": {
+   "title": "Save Cross-filters in URL (release note)",
+   "url": "https://docs.holistics.io/release-notes/cross-filters-save-in-dashboard-url"
+  },
+  "custom_interactive": {
+   "title": "Make a custom chart interactive",
+   "url": "https://docs.holistics.io/guides/create-interactive-custom-charts"
+  },
+  "filters": {
+   "title": "Filter Controls",
+   "url": "https://docs.holistics.io/docs/filters"
+  },
+  "field_filters": {
+   "title": "Field filters",
+   "url": "https://docs.holistics.io/docs/filters/field-filters"
+  },
+  "text_filters": {
+   "title": "Text Filter",
+   "url": "https://docs.holistics.io/docs/filters/text-filters"
+  },
+  "date_filters": {
+   "title": "Date Filter",
+   "url": "https://docs.holistics.io/docs/filters/date-filters"
+  },
+  "parent_child": {
+   "title": "Parent-Child Filter",
+   "url": "https://docs.holistics.io/docs/filters/parent-child"
+  },
+  "filter_data": {
+   "title": "Filter Data",
+   "url": "https://docs.holistics.io/docs/filter-data"
+  },
+  "quick_filtering": {
+   "title": "Quick Filtering in Canvas Dashboard (release note)",
+   "url": "https://docs.holistics.io/release-notes/2025-12-27-quick-filtering"
+  },
+  "condition_group": {
+   "title": "Condition Group (AND/OR Filters) (release note)",
+   "url": "https://docs.holistics.io/release-notes/2024-02-and-or-condition"
+  },
+  "metric_filter": {
+   "title": "Metric Support for Field Filters (release note)",
+   "url": "https://docs.holistics.io/release-notes/metric-support-for-field-filters"
+  },
+  "top_n": {
+   "title": "Top/Bottom N Filters",
+   "url": "https://docs.holistics.io/docs/top-bottom-n-filter"
+  },
+  "settings": {
+   "title": "Canvas Settings",
+   "url": "https://docs.holistics.io/docs/dashboards/settings"
+  },
+  "url_params": {
+   "title": "Passing Filter Parameters via URL",
+   "url": "https://docs.holistics.io/docs/url-parameters"
+  },
+  "undo": {
+   "title": "Undo/Redo Now Supports Filter Actions (release note)",
+   "url": "https://docs.holistics.io/release-notes/2025-10-undo-redo-for-filter"
+  },
+  "drill_down": {
+   "title": "Drill down & break down",
+   "url": "https://docs.holistics.io/docs/interactions/drill-down"
+  },
+  "vud": {
+   "title": "View underlying data",
+   "url": "https://docs.holistics.io/docs/interactions/view-underlying-data"
+  },
+  "drill_through": {
+   "title": "Drill-through",
+   "url": "https://docs.holistics.io/docs/interactions/drill-through"
+  },
+  "dt_anyvalue": {
+   "title": "Drill-through: 'Any Value' Filters Now Carry Through (release note)",
+   "url": "https://docs.holistics.io/release-notes/drill-through-any-value-filter-carry-through"
+  },
+  "date_drills": {
+   "title": "Date drills",
+   "url": "https://docs.holistics.io/docs/date-drills"
+  },
+  "pop": {
+   "title": "Period-over-Period Comparison",
+   "url": "https://docs.holistics.io/docs/period-comparison"
+  },
+  "relative_dates": {
+   "title": "Natural Time Expression",
+   "url": "https://docs.holistics.io/docs/datetimes/relative-dates"
+  },
+  "date_presets": {
+   "title": "Faster date range selection: presets and typed shorthands (release note)",
+   "url": "https://docs.holistics.io/release-notes/date-picker-presets-typed-shorthands"
+  },
+  "timezones": {
+   "title": "Timezone Settings",
+   "url": "https://docs.holistics.io/docs/datetimes/timezones"
+  },
+  "time_fns": {
+   "title": "AQL Time Intelligence Functions",
+   "url": "https://docs.holistics.io/reference/aql/time-intelligence-functions"
+  },
+  "ptd": {
+   "title": "AQL period_to_date",
+   "url": "https://docs.holistics.io/reference/aql/period_to_date"
+  },
+  "trailing": {
+   "title": "AQL trailing_period",
+   "url": "https://docs.holistics.io/reference/aql/trailing_period"
+  },
+  "param_fields": {
+   "title": "Parameter Fields",
+   "url": "https://docs.holistics.io/docs/modeling/param-fields"
+  },
+  "dyn_metric": {
+   "title": "Change Dimension/Metric via Dashboard Filter (release note)",
+   "url": "https://docs.holistics.io/release-notes/2024-12-change-dimensions-metrics-via-dashboard-filter"
+  },
+  "data_sort": {
+   "title": "Sorting Data in your Visualization",
+   "url": "https://docs.holistics.io/docs/charts/data-sort"
+  },
+  "table": {
+   "title": "Data Table",
+   "url": "https://docs.holistics.io/docs/charts/table"
+  },
+  "pivot": {
+   "title": "Pivot Table",
+   "url": "https://docs.holistics.io/docs/charts/pivot-table"
+  },
+  "pct_total": {
+   "title": "Percent of Total",
+   "url": "https://docs.holistics.io/docs/percent-of-total"
+  },
+  "running_total": {
+   "title": "Running Total",
+   "url": "https://docs.holistics.io/docs/running-total"
+  },
+  "window": {
+   "title": "AQL Window functions",
+   "url": "https://docs.holistics.io/reference/aql/window-function"
+  },
+  "rank": {
+   "title": "AQL rank",
+   "url": "https://docs.holistics.io/as-code/reference/rank"
+  },
+  "top": {
+   "title": "AQL top",
+   "url": "https://docs.holistics.io/reference/aql/top"
+  },
+  "line_chart": {
+   "title": "Line Chart",
+   "url": "https://docs.holistics.io/docs/charts/line-chart"
+  },
+  "histogram": {
+   "title": "Histogram (custom chart library)",
+   "url": "https://docs.holistics.io/docs/charts/custom-charts/library/histogram"
+  },
+  "ref_line": {
+   "title": "Reference Lines",
+   "url": "https://docs.holistics.io/docs/reference-line"
+  },
+  "visualizations": {
+   "title": "Visualizations",
+   "url": "https://docs.holistics.io/docs/visualizations"
+  },
+  "cohort_aql": {
+   "title": "Cohort Retention (AQL guide)",
+   "url": "https://docs.holistics.io/as-code/guides/aql-cohort-retention"
+  },
+  "funnel": {
+   "title": "Conversion Funnel",
+   "url": "https://docs.holistics.io/docs/charts/conversion-funnel"
+  },
+  "map": {
+   "title": "Geo Map Introduction",
+   "url": "https://docs.holistics.io/docs/charts/map"
+  },
+  "best_practices": {
+   "title": "Dashboard best practices",
+   "url": "https://docs.holistics.io/best-practices/dashboard"
+  },
+  "export": {
+   "title": "Export & Sharing Data",
+   "url": "https://docs.holistics.io/docs/delivery/export-data"
+  },
+  "caching": {
+   "title": "Caching mechanism (cache)",
+   "url": "https://docs.holistics.io/docs/data-caching"
+  },
+  "personal_ws": {
+   "title": "Create Canvas Dashboards in Personal Workspace (release note)",
+   "url": "https://docs.holistics.io/release-notes/2025-12-10-create-canvas-dashboards-in-personal-workspace"
+  },
+  "trend_line": {
+   "title": "Trend line",
+   "url": "https://docs.holistics.io/docs/trend-line"
+  },
+  "custom_chart_menu": {
+   "title": "Make a custom chart interactive",
+   "url": "https://docs.holistics.io/guides/create-interactive-custom-charts"
+  },
+  "number_filter": {
+   "title": "Number Filter",
+   "url": "https://docs.holistics.io/docs/filters/number-filters"
+  },
+  "actions": {
+   "title": "Actions",
+   "url": "https://docs.holistics.io/docs/actions"
+  }
+ },
+ "verdicts": {
+  "field-filter": {
+   "v": "yes",
+   "note": "Field Filters on model fields with multi-value 'is' input and value suggestions; auto-mapped to blocks from the same dataset.",
+   "src": [
+    "filters",
+    "field_filters"
+   ]
+  },
+  "exclude-mode": {
+   "v": "yes",
+   "note": "Text and Number filters support 'is not' / 'not equal' with multiple values; quick filtering also has right-click Exclude.",
+   "src": [
+    "filters",
+    "quick_filtering"
+   ]
+  },
+  "scope-vs-filter": {
+   "v": "yes",
+   "note": "A block (widget) filter is pre-applied and not overridden by dashboard filters; the two are combined with AND.",
+   "src": [
+    "filters"
+   ]
+  },
+  "compound-filter": {
+   "v": "partial",
+   "note": "Condition Group builds nested AND/OR, but only at report/exploration level; dashboard filters combine with AND only.",
+   "src": [
+    "condition_group",
+    "filter_data"
+   ]
+  },
+  "aggregate-filter": {
+   "v": "yes",
+   "note": "Right-click a metric value to add a greater/less-than condition; Field Filters can also be built from a metric.",
+   "src": [
+    "quick_filtering",
+    "metric_filter"
+   ]
+  },
+  "text-search": {
+   "v": "yes",
+   "note": "Text filters offer contains/starts with/ends with; docs state all operators are case-insensitive. Field filters suggest values.",
+   "src": [
+    "text_filters",
+    "field_filters"
+   ]
+  },
+  "one-control-many": {
+   "v": "yes",
+   "note": "Each filter is mapped to chosen visualization blocks; mappings can be removed per block and reviewed in the Controls & filters panel.",
+   "src": [
+    "filters",
+    "filter_data"
+   ]
+  },
+  "cascading-options": {
+   "v": "yes",
+   "note": "Parent-Child Filter: a parent Field filter limits a child filter's suggested values (one direction only).",
+   "src": [
+    "parent_child"
+   ]
+  },
+  "apply-button": {
+   "v": "yes",
+   "note": "Canvas dashboards wait for the viewer to click Apply by default; 'Auto-run on changes' turns instant re-run on.",
+   "src": [
+    "settings"
+   ]
+  },
+  "selection-to-filter": {
+   "v": "partial",
+   "note": "Cross-filter clicks appear as blue filters in the filter panel and quick filters add local conditions; neither sets a filter control.",
+   "src": [
+    "xf",
+    "quick_filtering"
+   ]
+  },
+  "zoom-pan": {
+   "v": "partial",
+   "note": "Date Drill changes the time grain ('zoom in/out'); no visual zoom/pan or zoom slider on charts is documented.",
+   "src": [
+    "date_drills",
+    "line_chart"
+   ]
+  },
+  "legend-toggle": {
+   "v": "yes",
+   "note": "Viewers can hide/unhide items on a chart by clicking legend entries, without filtering other widgets.",
+   "src": [
+    "best_practices"
+   ]
+  },
+  "single-select": {
+   "v": "yes",
+   "note": "Cross-filtering: click a data point to filter related widgets. Maps are not in its list of supported charts.",
+   "src": [
+    "map",
+    "xf"
+   ]
+  },
+  "multi-select": {
+   "v": "partial",
+   "note": "Built-in charts cross-filter on one clicked point only; Shift-click multi-select is documented only for custom (Vega-Lite) charts.",
+   "src": [
+    "xf",
+    "custom_interactive"
+   ]
+  },
+  "tuple-select": {
+   "v": "partial",
+   "note": "Clicking one pivot/table cell passes all its dimensions (e.g. country+month) as a filter; selecting several cells is not documented.",
+   "src": [
+    "xf"
+   ]
+  },
+  "range-brush": {
+   "v": "partial",
+   "note": "Only custom (Vega-Lite) charts can cross-filter with a dragged interval selection; built-in time charts have no brush.",
+   "src": [
+    "custom_interactive",
+    "xf"
+   ]
+  },
+  "numeric-brush": {
+   "v": "partial",
+   "note": "Interval (drag) selection cross-filter works only in custom charts, e.g. a custom Histogram; no built-in brush.",
+   "src": [
+    "custom_interactive",
+    "histogram"
+   ]
+  },
+  "cross-highlight": {
+   "v": "no",
+   "note": "Cross-filtering filters the target widgets; no highlight-share mode is described on the cross-filtering page.",
+   "src": [
+    "xf"
+   ]
+  },
+  "two-selections": {
+   "v": "unverified",
+   "note": "Docs say a new click replaces the previous cross-filter; whether clicks in two different charts stay ANDed is not stated.",
+   "src": [
+    "xf"
+   ]
+  },
+  "selection-cohort": {
+   "v": "no",
+   "note": "No feature to save a chart selection as a cohort and compare it with the rest; checked cross-filtering and drill docs.",
+   "src": [
+    "xf",
+    "drill_down"
+   ]
+  },
+  "fiscal-calendar": {
+   "v": "no",
+   "note": "No fiscal-year start setting in date filters, drills or AQL time functions (calendar quarters/years only); needs a custom dimension.",
+   "src": [
+    "time_fns",
+    "ptd",
+    "date_drills"
+   ]
+  },
+  "as-of-anchor": {
+   "v": "no",
+   "note": "Relative dates resolve against today/now; no option to anchor them to the latest data date is documented.",
+   "src": [
+    "date_filters",
+    "relative_dates"
+   ]
+  },
+  "partial-period": {
+   "v": "no",
+   "note": "No chart flag for incomplete periods; date filters only exclude the current incomplete period by default.",
+   "src": [
+    "date_filters",
+    "line_chart"
+   ]
+  },
+  "period-compare": {
+   "v": "yes",
+   "note": "Period Comparison (widget or dashboard control): previous period by any shift, e.g. 1 year for same period last year.",
+   "src": [
+    "pop"
+   ]
+  },
+  "custom-compare": {
+   "v": "yes",
+   "note": "Period Comparison 'Custom period' compares the filtered base range with a chosen absolute range, aligned by first point.",
+   "src": [
+    "pop",
+    "url_params"
+   ]
+  },
+  "to-date": {
+   "v": "yes",
+   "note": "AQL period_to_date (YTD/MTD/QTD) and trailing_period (trailing N months); date picker has ytd/mtd/wtd presets.",
+   "src": [
+    "ptd",
+    "trailing",
+    "date_presets"
+   ]
+  },
+  "hierarchy-drill": {
+   "v": "yes",
+   "note": "Drill Down follows a dimension group order (e.g. continent>country>city); View Underlying Data shows rows. Breadcrumbs not described.",
+   "src": [
+    "drill_down",
+    "vud"
+   ]
+  },
+  "adhoc-breakdown": {
+   "v": "yes",
+   "note": "Right-click a chart (or Analyze toolbar) to Break Down a metric by any dimension; zero configuration.",
+   "src": [
+    "drill_down"
+   ]
+  },
+  "underlying-records": {
+   "v": "yes",
+   "note": "View Underlying Data shows the detail rows behind a number; tables can be customized per metric.",
+   "src": [
+    "vud"
+   ]
+  },
+  "drillthrough": {
+   "v": "yes",
+   "note": "Drill-through: right-click a point to open a target dashboard with clicked values passed into its filters.",
+   "src": [
+    "drill_through",
+    "dt_anyvalue"
+   ]
+  },
+  "metric-switch": {
+   "v": "yes",
+   "note": "A dashboard filter bound to a parameter field switches the measure via AQL (dynamic measure selection).",
+   "src": [
+    "param_fields",
+    "dyn_metric"
+   ]
+  },
+  "dimension-switch": {
+   "v": "yes",
+   "note": "Parameter fields enable dynamic dimension selection from a dashboard filter; viewers can also use Break Down.",
+   "src": [
+    "param_fields",
+    "dyn_metric",
+    "drill_down"
+   ]
+  },
+  "sort": {
+   "v": "yes",
+   "note": "Viewers sort a table by any column via the column arrow, including multi-column sort order.",
+   "src": [
+    "data_sort"
+   ]
+  },
+  "top-n": {
+   "v": "yes",
+   "note": "Top/Bottom N filters; charts have 'Group small values into Others' with a configurable number of groups shown.",
+   "src": [
+    "top_n",
+    "line_chart"
+   ]
+  },
+  "pagination": {
+   "v": "yes",
+   "note": "Data Table and Pivot Table have a Pagination Size setting (rows per page).",
+   "src": [
+    "table",
+    "pivot"
+   ]
+  },
+  "pivot": {
+   "v": "yes",
+   "note": "Pivot Table plus point-and-click Percent of Total by row total, column total or grand total.",
+   "src": [
+    "pivot",
+    "pct_total"
+   ]
+  },
+  "totals": {
+   "v": "yes",
+   "note": "Pivot Table toggles for row/column grand totals and sub-totals (row/column subtotals can't be toggled separately).",
+   "src": [
+    "pivot"
+   ]
+  },
+  "percent-of-total": {
+   "v": "yes",
+   "note": "Percent of Total (grand/row/column/custom total) in tables, pivots, line family; AQL of_all() for custom cases.",
+   "src": [
+    "pct_total"
+   ]
+  },
+  "cumulative-moving": {
+   "v": "yes",
+   "note": "Running Total (Sum/Avg/Min/Max) in visualization settings; moving average via Moving Calculations or AQL window_avg.",
+   "src": [
+    "running_total",
+    "window"
+   ]
+  },
+  "index-100": {
+   "v": "yes",
+   "note": "Possible with an AQL metric dividing by first_value() over the time order; no one-click 'index to 100' option.",
+   "src": [
+    "window"
+   ]
+  },
+  "ranking": {
+   "v": "yes",
+   "note": "AQL rank()/dense_rank() with optional partition (e.g. within category or per pivot row).",
+   "src": [
+    "rank",
+    "window"
+   ]
+  },
+  "bins": {
+   "v": "partial",
+   "note": "Histogram custom chart bins a measure with a max_bins option set by the builder; viewer-adjustable width not documented.",
+   "src": [
+    "histogram",
+    "visualizations"
+   ]
+  },
+  "targets": {
+   "v": "yes",
+   "note": "Reference Lines add a constant goal or computed line to line/bar charts; Gauge chart shows progress toward a target.",
+   "src": [
+    "ref_line",
+    "visualizations"
+   ]
+  },
+  "what-if": {
+   "v": "yes",
+   "note": "Number-type parameter fields bound to a dashboard filter can feed a measure's AQL definition (analyst sets it up).",
+   "src": [
+    "param_fields"
+   ]
+  },
+  "cohort-from-rank": {
+   "v": "yes",
+   "note": "AQL top()/ntile with dimensionalize() can define a rule-based cohort dimension (e.g. top customers by revenue).",
+   "src": [
+    "top",
+    "window",
+    "cohort_aql"
+   ]
+  },
+  "cohort-retention": {
+   "v": "yes",
+   "note": "AQL Cohort Retention guide: cohort dimension + retention metric in a pivot heatmap; legacy Retention Heatmap chart too.",
+   "src": [
+    "cohort_aql"
+   ]
+  },
+  "funnel": {
+   "v": "partial",
+   "note": "Conversion Funnel chart shows step-to-step conversion from measures; no reader step controls or conversion window.",
+   "src": [
+    "funnel"
+   ]
+  },
+  "parameter-presets": {
+   "v": "no",
+   "note": "No named presets bundling several parameter/filter values for viewers; checked filters, parameter fields and URL params.",
+   "src": [
+    "filters",
+    "param_fields",
+    "url_params"
+   ]
+  },
+  "bookmarks": {
+   "v": "partial",
+   "note": "Filter and cross-filter state is kept in the URL (_fstate) and can be browser-bookmarked; no in-app named bookmarks.",
+   "src": [
+    "filters",
+    "xf_url"
+   ]
+  },
+  "url-state": {
+   "v": "yes",
+   "note": "Applied filters, controls and cross-filters are saved in the dashboard URL (_fstate); URL params can pre-fill controls.",
+   "src": [
+    "filters",
+    "xf_url",
+    "url_params"
+   ]
+  },
+  "reset": {
+   "v": "yes",
+   "note": "Controls & filters panel resets filters for the current tab, chosen tabs or whole dashboard; per-filter reset not described.",
+   "src": [
+    "filter_data"
+   ]
+  },
+  "undo-redo": {
+   "v": "yes",
+   "note": "Undo/Redo covers drill-downs, break-downs and filter actions, with a history list on right-click.",
+   "src": [
+    "undo"
+   ]
+  },
+  "saved-views": {
+   "v": "partial",
+   "note": "No per-user saved views of a shared dashboard; users can keep a bookmarked URL or build own dashboards in Personal Workspace.",
+   "src": [
+    "filters",
+    "personal_ws"
+   ]
+  },
+  "refresh": {
+   "v": "yes",
+   "note": "Refresh button shows when the cached result was last updated; Refresh Now re-runs the query; cache duration is configurable.",
+   "src": [
+    "caching",
+    "settings"
+   ]
+  },
+  "date-filter": {
+   "v": "yes",
+   "note": "Date Filter covers all three: 'between' and other exact ranges, 'last N' periods, and Natural Time Expression phrases like 'last quarter'.",
+   "src": [
+    "date_filters",
+    "date_presets",
+    "relative_dates"
+   ]
+  },
+  "date-drill": {
+   "v": "yes",
+   "note": "Date Drill switches the grain for mapped widgets; drilling into only the clicked period is not documented.",
+   "src": [
+    "date_drills",
+    "drill_down"
+   ]
+  },
+  "trend-line": {
+   "v": "yes",
+   "note": "One-click trend line on line, column, bar, area and combination charts: linear, logarithmic, power, exponential or moving average, with Break down by legend and Merge into one line options.",
+   "src": [
+    "trend_line"
+   ]
+  },
+  "custom-menu": {
+   "v": "partial",
+   "note": "Charts have a context menu (right-click since January 2026) with built-in actions such as Date-drill, Drill-through and View underlying data; custom charts choose which selections open it. Adding your own menu items is not documented.",
+   "src": [
+    "custom_chart_menu"
+   ]
+  },
+  "range-filter": {
+   "v": "partial",
+   "note": "Number filters have between, greater than and less than, typed into boxes. There is no slider; a drag-to-select range needs a custom chart with an interval cross-filter.",
+   "src": [
+    "number_filter",
+    "custom_chart_menu"
+   ]
+  },
+  "row-actions": {
+   "v": "yes",
+   "note": "Go To URL actions on Data Table rows, with fixed or dynamic URLs built in AQL or SQL (for example concat() with a field), defined in the model for reuse. Data Tables only; Go To URL is the only action type.",
+   "src": [
+    "actions"
+   ]
+  }
+ }
+}

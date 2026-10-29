@@ -1,0 +1,1 @@
+{"filters": [{"field": "orders.ordered_at", "operator": "between", "values": ["2026-01-01", "2026-12-31"]}], "conditions": [], "sorts": [], "dateDrills": [{"field": "orders.ordered_at", "grain": "quarter"}]}

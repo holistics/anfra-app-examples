@@ -1,0 +1,11 @@
+dimension orders.value_band = case(
+  when: orders.order_value < 100, then: '1. under $100',
+  when: orders.order_value < 500, then: '2. $100-499',
+  when: orders.order_value < 1000, then: '3. $500-999',
+  else: '4. $1,000+'
+);
+explore {
+  dimensions { band: orders.value_band }
+  measures { num_orders: order_count, total_revenue: revenue }
+  sorts { band asc }
+}

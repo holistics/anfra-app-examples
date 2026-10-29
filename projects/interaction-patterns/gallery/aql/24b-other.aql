@@ -1,0 +1,10 @@
+metric top_3_countries = top(3, customers.country, by: revenue);
+explore {
+  dimensions { country: customers.country }
+  measures {
+    total_revenue: revenue,
+    all_countries: revenue | exclude_grains(customers.country),
+  }
+  filters { customers.country in top_3_countries }
+  sorts { total_revenue desc }
+}

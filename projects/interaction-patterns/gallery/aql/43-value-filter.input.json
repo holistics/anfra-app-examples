@@ -1,0 +1,1 @@
+{"filters": [{"field": "orders.order_value", "operator": "between", "values": ["1000", "2000"]}], "conditions": [], "sorts": [], "dateDrills": []}

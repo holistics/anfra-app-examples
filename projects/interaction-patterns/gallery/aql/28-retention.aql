@@ -1,0 +1,14 @@
+dimension customers.first_order_at = orders | min(orders.ordered_at) | dimensionalize(customers.id);
+dimension orders.months_since_first = date_diff('month', customers.first_order_at, orders.ordered_at);
+metric active_customers = orders | count_distinct(orders.customer_id);
+explore {
+  dimensions {
+    cohort: customers.first_order_at | month(),
+    month_n: orders.months_since_first,
+  }
+  measures {
+    active: active_customers,
+    retention: active_customers * 1.0 / (active_customers | exclude_grains(orders.months_since_first)),
+  }
+  sorts { cohort asc, month_n asc }
+}

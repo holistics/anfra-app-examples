@@ -1,0 +1,136 @@
+{
+ "field-filter": {
+  "sql": "-- one options query per picker\nSELECT DISTINCT country FROM customers ORDER BY 1;\n\nSELECT DISTINCT status FROM orders ORDER BY 1;\n\nSELECT DATE_TRUNC('month', o.ordered_at) AS month,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN customers c ON c.id = o.customer_id\nJOIN products p ON p.id = oi.product_id\n-- built from the picks, minus any empty list\nWHERE c.country IN ('Vietnam', 'Singapore')\n  AND o.status IN ('completed')\nGROUP BY 1\nORDER BY 1",
+  "focus": [
+   "c\\.country IN \\(",
+   "^SELECT DISTINCT"
+  ]
+ },
+ "scope-vs-filter": {
+  "sql": "SELECT DATE_TRUNC('month', o.ordered_at) AS month,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN customers c ON c.id = o.customer_id\nJOIN products p ON p.id = oi.product_id\n-- fixed rule: Reset must never remove it\nWHERE o.status = 'completed'\n  -- from the reader's Country filter: Reset drops it\n  AND c.country = 'Germany'\nGROUP BY 1\nORDER BY 1",
+  "focus": [
+   "^WHERE o\\.status = 'completed'",
+   "AND c\\.country = 'Germany'"
+  ]
+ },
+ "compound-filter": {
+  "sql": "SELECT c.country, p.category, o.status,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN customers c ON c.id = o.customer_id\nJOIN products p ON p.id = oi.product_id\n-- two groups from the builder, every value bound\nWHERE (c.country = 'Vietnam' AND p.category = 'Software')\n   OR (o.status = 'cancelled')\nGROUP BY 1, 2, 3\nORDER BY 4 DESC",
+  "focus": [
+   "^WHERE \\(c\\.country",
+   "^\\s+OR \\(o\\.status"
+  ]
+ },
+ "aggregate-filter": {
+  "sql": "SELECT c.name,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN customers c ON c.id = o.customer_id\nJOIN products p ON p.id = oi.product_id\nGROUP BY c.id, c.name\n-- WHERE can't see a SUM. 12000 comes from the slider\nHAVING SUM(oi.quantity * p.price) > 12000\nORDER BY revenue DESC",
+  "focus": [
+   "^HAVING SUM"
+  ]
+ },
+ "text-search": {
+  "sql": "SELECT c.name, COUNT(*) AS orders\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nWHERE o.status = 'completed'\n  -- 'customer 1' was typed. Escape any % and _ in it first\n  AND c.name ILIKE '%customer 1%' ESCAPE '\\'\nGROUP BY c.id, c.name\nORDER BY orders DESC",
+  "focus": [
+   "ILIKE '%customer 1%'"
+  ]
+ },
+ "one-control-many": {
+  "sql": "-- KPI and trend get the Country filter\nSELECT SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN customers c ON c.id = o.customer_id\nJOIN products p ON p.id = oi.product_id\nWHERE c.country = 'Japan';\n\nSELECT DATE_TRUNC('month', o.ordered_at) AS month,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN customers c ON c.id = o.customer_id\nJOIN products p ON p.id = oi.product_id\nWHERE c.country = 'Japan'\nGROUP BY 1 ORDER BY 1;\n\n-- the benchmark must not get it\nSELECT DATE_TRUNC('month', o.ordered_at) AS month,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nGROUP BY 1 ORDER BY 1",
+  "focus": [
+   "^WHERE c\\.country = 'Japan'"
+  ]
+ },
+ "cascading-options": {
+  "sql": "-- the product picker's options repeat the parent's WHERE\nSELECT DISTINCT p.name\nFROM products p\nWHERE p.category IN ('Hardware')\nORDER BY 1;\n\nSELECT p.name, SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN products p ON p.id = oi.product_id\nWHERE p.category IN ('Hardware')\n  -- picks Hardware no longer allows (Sprocket) removed first\n  AND p.name IN ('Widget', 'Gizmo')\nGROUP BY 1\nORDER BY 2 DESC",
+  "focus": [
+   "p\\.category IN \\('Hardware'\\)"
+  ]
+ },
+ "apply-button": {
+  "sql": "-- runs once on Apply, from the applied copy of the state,\n-- not the pending one the reader is still editing\nSELECT DATE_TRUNC('month', o.ordered_at) AS month,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN customers c ON c.id = o.customer_id\nJOIN products p ON p.id = oi.product_id\nWHERE c.country = 'Japan'\n  AND o.status = 'completed'\n  AND o.ordered_at BETWEEN DATE '2026-01-01'\n    AND DATE '2026-06-30'\nGROUP BY 1\nORDER BY 1",
+  "focus": [
+   "^WHERE c\\.country = 'Japan'",
+   "^\\s+AND o\\.status"
+  ]
+ },
+ "selection-to-filter": {
+  "sql": "SELECT p.name, SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN customers c ON c.id = o.customer_id\nJOIN products p ON p.id = oi.product_id\n-- pinned chip, kept in the filter state\nWHERE c.country = 'Vietnam'\n  -- the new click, kept in the selection state\n  AND p.category = 'Software'\nGROUP BY 1\nORDER BY 2 DESC",
+  "focus": [
+   "^WHERE c\\.country = 'Vietnam'",
+   "AND p\\.category = 'Software'"
+  ]
+ },
+ "zoom-pan": {
+  "sql": "-- before: month grain over every month\nSELECT DATE_TRUNC('month', o.ordered_at) AS period,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nGROUP BY 1 ORDER BY 1;\n\n-- after the double-click: Sep 2026 by week\nSELECT DATE_TRUNC('week', o.ordered_at) AS period,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nWHERE o.ordered_at >= DATE '2026-09-01'\n  AND o.ordered_at < DATE '2026-10-01'\nGROUP BY 1 ORDER BY 1",
+  "focus": [
+   "DATE_TRUNC\\('week'",
+   "o\\.ordered_at [<>]=? DATE '2026"
+  ]
+ },
+ "legend-toggle": {
+  "sql": "-- hiding Services: no SQL. Alt-click on Parts: every\n-- panel's query needs the same new WHERE\nSELECT DATE_TRUNC('month', o.ordered_at) AS month,\n  p.category, SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nWHERE p.category = 'Parts'\nGROUP BY 1, 2\nORDER BY 1;\n\nSELECT SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN products p ON p.id = oi.product_id\nWHERE p.category = 'Parts'",
+  "focus": [
+   "^WHERE p\\.category = 'Parts'"
+  ]
+ },
+ "single-select": {
+  "sql": "SELECT DATE_TRUNC('month', o.ordered_at) AS month,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN customers c ON c.id = o.customer_id\nJOIN products p ON p.id = oi.product_id\n-- the app keeps the clicked list and rebuilds IN (...)\nWHERE c.country IN ('Germany', 'Japan')\nGROUP BY 1\nORDER BY 1;\n\n-- heatmap cells: one bracket per picked pair\nSELECT p.category, SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN customers c ON c.id = o.customer_id\nJOIN products p ON p.id = oi.product_id\nWHERE (c.country = 'Vietnam'\n    AND o.ordered_at >= DATE '2026-01-01'\n    AND o.ordered_at < DATE '2026-02-01')\n   OR (c.country = 'Japan'\n    AND o.ordered_at >= DATE '2026-03-01'\n    AND o.ordered_at < DATE '2026-04-01')\nGROUP BY 1\nORDER BY 2 DESC",
+  "focus": [
+   "^WHERE c\\.country IN",
+   "^WHERE \\(c\\.country",
+   "^\\s+OR \\(c\\.country"
+  ]
+ },
+ "range-brush": {
+  "sql": "-- brush pixels turned into dates, rounded to whole months\nSELECT SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nWHERE o.ordered_at BETWEEN DATE '2026-02-01'\n  AND DATE '2026-04-30';\n\nSELECT p.category, SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nWHERE o.ordered_at BETWEEN DATE '2026-02-01'\n  AND DATE '2026-04-30'\nGROUP BY 1\nORDER BY 2 DESC",
+  "focus": [
+   "BETWEEN DATE '2026-02-01'",
+   "AND DATE '2026-04-30'"
+  ]
+ },
+ "numeric-brush": {
+  "sql": "-- histogram: each order's value in $250 bins\nSELECT FLOOR(v.order_value / 250) * 250 AS bin,\n  COUNT(*) AS orders\nFROM (\n  SELECT oi.order_id, SUM(oi.quantity * p.price) AS order_value\n  FROM order_items oi\n  JOIN products p ON p.id = oi.product_id\n  GROUP BY 1\n) v\nGROUP BY 1 ORDER BY 1;\n\nSELECT p.category, SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN products p ON p.id = oi.product_id\nWHERE oi.order_id IN (\n  SELECT oi2.order_id\n  FROM order_items oi2\n  JOIN products p2 ON p2.id = oi2.product_id\n  GROUP BY 1\n  -- order value again. 1000 and 2000 come from the brush\n  HAVING SUM(oi2.quantity * p2.price) BETWEEN 1000 AND 2000\n)\nGROUP BY 1\nORDER BY 2 DESC",
+  "focus": [
+   "AS order_value$",
+   "HAVING SUM\\(oi2"
+  ]
+ },
+ "cross-highlight": {
+  "sql": "SELECT p.category,\n  SUM(oi.quantity * p.price) AS revenue,\n  -- 'Vietnam' is the selected country\n  SUM(CASE WHEN c.country = 'Vietnam'\n    THEN oi.quantity * p.price END) AS highlight\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN customers c ON c.id = o.customer_id\nJOIN products p ON p.id = oi.product_id\nGROUP BY 1\nORDER BY 2 DESC",
+  "focus": [
+   "CASE WHEN c\\.country = 'Vietnam'",
+   "THEN oi\\.quantity"
+  ]
+ },
+ "two-selections": {
+  "sql": "-- category chart: gets the country pick, not its own\nSELECT p.category, SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN customers c ON c.id = o.customer_id\nJOIN products p ON p.id = oi.product_id\nWHERE c.country = 'Germany'\nGROUP BY 1\nORDER BY 2 DESC;\n\n-- trend: both charts' picks, ANDed\nSELECT DATE_TRUNC('month', o.ordered_at) AS month,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN customers c ON c.id = o.customer_id\nJOIN products p ON p.id = oi.product_id\nWHERE c.country = 'Germany'\n  AND p.category = 'Software'\nGROUP BY 1\nORDER BY 1",
+  "focus": [
+   "^WHERE c\\.country = 'Germany'",
+   "AND p\\.category = 'Software'"
+  ]
+ },
+ "selection-cohort": {
+  "sql": "-- the cohort: ids from the lasso\nSELECT p.category, SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nWHERE o.customer_id IN (1, 2, 3, 4, 5)\nGROUP BY 1\nORDER BY 2 DESC;\n\n-- everyone else: the same query, the list again\nSELECT p.category, SUM(oi.quantity * p.price) AS revenue,\n  COUNT(DISTINCT o.customer_id) AS customers\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nWHERE o.customer_id NOT IN (1, 2, 3, 4, 5)\nGROUP BY 1\nORDER BY 2 DESC",
+  "focus": [
+   "customer_id (NOT )?IN \\(1, 2"
+  ]
+ },
+ "date-filter": {
+  "sql": "-- exact dates: is 30 Jun included?\nSELECT SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nWHERE o.ordered_at BETWEEN DATE '2026-01-01'\n  AND DATE '2026-06-30';\n\n-- \"last 3 months\": today in which time zone?\nSELECT SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nWHERE o.ordered_at >= DATE_TRUNC('month', CURRENT_DATE)\n    - INTERVAL '3 months'\n  AND o.ordered_at < DATE_TRUNC('month', CURRENT_DATE);\n\n-- \"last 30 days\": a different shape again\nSELECT SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nWHERE o.ordered_at > CURRENT_DATE - INTERVAL '30 days'",
+  "focus": [
+   "BETWEEN DATE '2026-01-01'",
+   "DATE_TRUNC\\('month', CURRENT_DATE\\)$"
+  ]
+ },
+ "custom-menu": {
+  "sql": "-- Keep only\nSELECT c.country, SUM(oi.quantity * p.price) AS revenue\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN order_items oi ON oi.order_id = o.id\nJOIN products p ON p.id = oi.product_id\nWHERE c.country = 'Germany'\nGROUP BY 1;\n\n-- Exclude: the app keeps the list of excluded values\nSELECT c.country, SUM(oi.quantity * p.price) AS revenue\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN order_items oi ON oi.order_id = o.id\nJOIN products p ON p.id = oi.product_id\nWHERE c.country NOT IN ('Germany')\nGROUP BY 1\nORDER BY revenue DESC;\n\n-- Drill to customers: a second query, filtered the same way\nSELECT c.name, COUNT(DISTINCT o.id) AS orders,\n  SUM(oi.quantity * p.price) AS revenue\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN order_items oi ON oi.order_id = o.id\nJOIN products p ON p.id = oi.product_id\nWHERE c.country = 'Germany'\nGROUP BY 1\nORDER BY revenue DESC\nLIMIT 5;",
+  "focus": [
+   "^WHERE c\\.country = 'Germany'$",
+   "^WHERE c\\.country NOT IN"
+  ]
+ },
+ "range-filter": {
+  "sql": "WITH ov AS (\n  SELECT o.id, SUM(oi.quantity * p.price) AS order_value\n  FROM orders o\n  JOIN order_items oi ON oi.order_id = o.id\n  JOIN products p ON p.id = oi.product_id\n  GROUP BY 1\n)\nSELECT p.category, SUM(oi.quantity * p.price) AS revenue\nFROM orders o\nJOIN ov ON ov.id = o.id\nJOIN order_items oi ON oi.order_id = o.id\nJOIN products p ON p.id = oi.product_id\n-- two handles (one handle: ov.order_value > 2000)\nWHERE ov.order_value BETWEEN 500 AND 2000\nGROUP BY 1\nORDER BY revenue DESC;",
+  "focus": [
+   "^WHERE ov\\.order_value BETWEEN"
+  ]
+ }
+}

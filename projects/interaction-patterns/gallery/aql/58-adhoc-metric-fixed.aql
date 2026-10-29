@@ -1,0 +1,7 @@
+metric aov2 = revenue / order_count;
+explore {
+  dimensions { country: customers.country }
+  measures { total_revenue: revenue, aov2: aov2 }
+  having { aov2 > 900 }
+  sorts { aov2 desc }
+}

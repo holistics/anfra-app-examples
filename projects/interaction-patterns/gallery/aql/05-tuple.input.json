@@ -1,0 +1,1 @@
+{"filters": [], "conditions": [{"expr": "or(and(customers.country is \"Vietnam\", orders.ordered_at matches @(2026-01-01 until 2026-02-01)), and(customers.country is \"Japan\", orders.ordered_at matches @(2026-03-01 until 2026-04-01)))"}], "sorts": [], "dateDrills": []}

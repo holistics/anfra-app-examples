@@ -1,0 +1,8 @@
+dimension products.price_factor = case(when: products.category == 'Hardware', then: 1.10, else: 1);
+dimension products.volume_factor = case(when: products.category == 'Hardware', then: 0.88, else: 1);
+metric scenario_revenue = order_items | sum(order_items.quantity * products.price * products.price_factor * products.volume_factor);
+explore {
+  dimensions { period: orders.ordered_at | month() }
+  measures { total_revenue: revenue, scenario: scenario_revenue }
+  sorts { period asc }
+}

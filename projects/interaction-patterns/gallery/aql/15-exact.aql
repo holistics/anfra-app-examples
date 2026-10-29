@@ -1,0 +1,8 @@
+explore {
+  dimensions { country: customers.country }
+  measures {
+    h1_2026: revenue | exact_period(orders.ordered_at, @(2026-01-01 - 2026-06-30)),
+    h2_2025: revenue | exact_period(orders.ordered_at, @(2025-07-01 - 2025-12-31)),
+  }
+  sorts { h1_2026 desc }
+}

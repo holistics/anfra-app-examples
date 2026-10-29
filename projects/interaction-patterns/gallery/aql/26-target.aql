@@ -1,0 +1,10 @@
+explore {
+  dimensions { period: orders.ordered_at | month() }
+  measures {
+    total_revenue: revenue,
+    target: monthly_target,
+    attainment: revenue * 1.0 / monthly_target,
+  }
+  filters { orders.ordered_at matches @(2026) }
+  sorts { period asc }
+}

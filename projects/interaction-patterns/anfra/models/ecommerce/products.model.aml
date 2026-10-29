@@ -1,0 +1,13 @@
+Model products {
+  type: 'table'
+  label: 'Products'
+  data_source_name: 'ecommerce_duckdb'
+  table_name: 'public.products'
+
+  dimension id { label: 'ID' type: 'number' primary_key: true }
+  dimension name { label: 'Name' type: 'text' }
+  dimension category { label: 'Category' type: 'text' }
+  dimension price { label: 'Price' type: 'number' }
+  dimension subcategory { label: 'Subcategory' type: 'text' description: 'The level between category and product: category › subcategory › product.' }
+  dimension brand { label: 'Brand' type: 'text' }
+}

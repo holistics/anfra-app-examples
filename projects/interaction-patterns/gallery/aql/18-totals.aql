@@ -1,0 +1,10 @@
+explore {
+  dimensions { category: products.category, product: products.name }
+  measures {
+    total_revenue: revenue,
+    category_total: revenue | exclude_grains(products.name),
+    grand_total: revenue | exclude_grains(products.category, products.name),
+    share_in_category: revenue * 100.0 / (revenue | exclude_grains(products.name)),
+  }
+  sorts { category asc, total_revenue desc }
+}

@@ -1,0 +1,9 @@
+explore {
+  dimensions { period: orders.ordered_at | month() }
+  measures {
+    total_revenue: revenue,
+    ytd: revenue | period_to_date('year', orders.ordered_at),
+    trailing_3m: revenue | trailing_period(orders.ordered_at, interval(3 months)),
+  }
+  sorts { period asc }
+}

@@ -1,0 +1,142 @@
+{
+ "field-filter": {
+  "try": "Show monthly revenue with Country and Order status pickers above it. The chart shows only the orders that match the picks, with the full total faint behind.",
+  "mine": "Add pickers above the main chart whose options come from the data, so readers can narrow the page to the values they pick.",
+  "how": "Picking values in a filter narrows every chart it feeds to the matching rows, with the full total faint behind.",
+  "good": "Each pick redraws the chart to match, the full total stays visible behind it, and clearing the picks restores it.",
+  "goodTry": "Pick Vietnam and Singapore, then Completed: the monthly bars drop from $1.28M to $281k, with all orders still grey behind them."
+ },
+ "scope-vs-filter": {
+  "try": "Show monthly revenue for completed orders only, marked with a locked badge, plus a Country filter the reader can change and reset.",
+  "mine": "Keep a fixed rule on a chart, shown as a locked badge, separate from the reader's filters so Reset never removes it.",
+  "how": "A fixed rule is built into the chart's query and shown as a locked badge; the reader's filters apply on top.",
+  "good": "The locked badge has no control, filters narrow the chart within its rule, and Reset clears the filters but keeps the badge.",
+  "goodTry": "Pick Germany: the chart reads Completed revenue · Germany at $127k. Reset filters clears Germany, and the Completed orders only lock stays."
+ },
+ "compound-filter": {
+  "try": "Show a revenue table with a filter builder: up to two groups of country, category and status picks, joined by OR, with the condition written out in words.",
+  "mine": "Let readers combine groups of conditions with AND and OR, and show the combined condition in plain words.",
+  "how": "Readers fill groups of conditions; all conditions in a group must hold, any one group can match, and the query rebuilds.",
+  "good": "The condition reads back in plain words, the table keeps only rows that match some group, and emptying a group drops it.",
+  "goodTry": "With Vietnam and Software in Group 1 and Cancelled in Group 2, the title reads (Country is Vietnam and Category is Software) or Status is cancelled."
+ },
+ "aggregate-filter": {
+  "try": "List customers by revenue with a \"Revenue over\" slider that hides customers below it, and show how many are left.",
+  "mine": "Add a slider that filters on a total, like revenue per customer, rather than on single rows, and show how many remain.",
+  "how": "Moving the slider sets a minimum total; the list keeps only items whose summed value clears it, and counts them.",
+  "good": "Raising the slider shortens the list, every item left is above the threshold, and the count shown matches the rows left.",
+  "goodTry": "The list starts at 200 of 200 customers; dragging Revenue over to $12k shrinks it to 16 of 200, each of whom spent more."
+ },
+ "text-search": {
+  "try": "Show a customer table with a search box. Typing part of a name keeps the matching customers, ignoring case, sorted by order count.",
+  "mine": "Add a search box that keeps rows whose name contains the typed text, ignoring case; clearing it shows everything again.",
+  "how": "Typing in the search box keeps rows whose name contains the text, ignoring case; clearing the box brings every row back.",
+  "good": "Matches update as you type, upper and lower case both match, and an empty box shows the full list again.",
+  "goodTry": "Type customer 1: the table keeps only names that contain it, sorted by orders; clearing the box returns the full list sorted by revenue."
+ },
+ "one-control-many": {
+  "try": "Show a revenue KPI, a monthly trend and an all-countries benchmark. The Country filter changes the KPI and trend but not the benchmark, which says so.",
+  "mine": "Choose which charts each filter changes, and label any chart that stays unfiltered, like a benchmark.",
+  "how": "Each chart is mapped to the filters that should change it; an unmapped chart ignores them and carries a label saying so.",
+  "good": "Changing the filter moves only the mapped charts, the unmapped one stays put with its label, and clearing restores them all.",
+  "goodTry": "Click Japan: the KPI and trend switch to Revenue · Japan, while Benchmark: all countries keeps its bars and still says ran 1 time."
+ },
+ "cascading-options": {
+  "try": "Add Category and Product pickers above a revenue chart. Picking a category limits the product list to its products and drops picks that no longer fit.",
+  "mine": "Make a child picker offer only the values that fit the parent pick, and drop child picks that no longer fit.",
+  "how": "Picking a parent value reloads the child picker with only the values under it, and drops child picks that no longer fit.",
+  "good": "The child list shrinks to values that fit, a stale pick is dropped with a note, and clearing restores the list.",
+  "goodTry": "Product starts with 8 options; pick Analytics Pro, then Hardware: the list shrinks to Gadget, Gizmo and Widget, and a note drops Analytics Pro."
+ },
+ "apply-button": {
+  "try": "Show monthly revenue with Country, Status and Date filters that only take effect when the reader presses Apply, which shows how many changes are pending.",
+  "mine": "Let readers change several filters, see how many changes are pending, and update every chart at once when they press Apply.",
+  "how": "Filter changes wait as drafts with a pending count; pressing Apply sends them all together, so every chart updates once.",
+  "good": "Charts stay put while you edit, the button counts pending changes, and one press updates every chart and clears the count.",
+  "goodTry": "Pick Japan, Completed and Jul–Sep 2026: the chart doesn't change. Press Apply (3): every query runs once and the button turns to Applied ✓."
+ },
+ "selection-to-filter": {
+  "try": "Show revenue by country, category and product. Clicking a bar selects it, and a Pin button turns the selection into a filter chip so the next click narrows further.",
+  "mine": "Add a Pin button that turns the current chart selection into a filter chip, so readers can narrow step by step.",
+  "how": "Clicking a bar selects it; pressing Pin turns that selection into a filter chip, so the next click selects within it.",
+  "good": "Pin makes a chip named for the pick, later clicks select inside it, and removing the chip widens the page again.",
+  "goodTry": "Click Vietnam, then Pin: a Country: Vietnam chip appears, and clicking Software starts a new selection inside Vietnam. Removing the chip lifts the filter."
+ },
+ "zoom-pan": {
+  "try": "Show monthly revenue where scrolling zooms the chart, and double-clicking a month shows that month week by week, with partial weeks marked.",
+  "mine": "Let scrolling zoom a time chart without reloading, and a double-click on a period reload it at a finer grain.",
+  "how": "Scrolling zooms the loaded chart in place without a new query; double-clicking a period reloads it at a finer grain.",
+  "good": "Zooming never adds a query, a double-click shows the finer grain with partial periods marked, and Back returns to the start.",
+  "goodTry": "Scroll to zoom: Queries run stays at 1. Double-click Sep 26: the title becomes Revenue by week · Sep 2026 and Queries run goes to 2."
+ },
+ "legend-toggle": {
+  "try": "Show monthly revenue by category as lines. Clicking a legend item hides its line; Alt-clicking it filters the whole page to that category.",
+  "mine": "Make a legend click hide or show a series, and an Alt-click filter the whole page to it, with a tooltip saying which.",
+  "how": "Clicking a legend item hides its series and rescales the chart in place; Alt-clicking it filters the whole page instead.",
+  "good": "A click hides one series with no new query, an Alt-click narrows every panel to it, and Show all brings everything back.",
+  "goodTry": "Click Services: its line hides and Queries run stays the same. Alt-click Parts: every panel re-queries and Total shows $13.7K."
+ },
+ "single-select": {
+  "try": "Show revenue by country next to a monthly trend, and a country by month heatmap next to revenue by category. Clicking bars or cells filters the other chart; clicking again removes a pick.",
+  "mine": "Let a click on a bar, map shape or grid cell filter the other charts to it, with more clicks adding picks and a second click removing one.",
+  "how": "Each click adds or removes a pick; the other charts filter to all picks together, and a grid cell keeps its exact row and column pair.",
+  "good": "The other charts show only the picks, a second click removes one, and two grid cells give only their own pairs, not every mix.",
+  "goodTry": "Click Germany, then Japan: the trend shows both combined. In the heatmap, Vietnam under Jan plus Japan under Mar give $21.1k by category, not four combinations."
+ },
+ "range-brush": {
+  "try": "Show monthly revenue with revenue KPIs and revenue by category. Dragging across months filters the KPIs and the category chart to that period.",
+  "mine": "Let readers drag across a time chart to pick a period, and filter the other charts to it.",
+  "how": "Dragging across a time chart marks a period; the KPIs and other charts then count only the rows inside it.",
+  "good": "The title names the brushed period, the KPIs and other charts match it, and clearing the brush restores the full totals.",
+  "goodTry": "Drag from Feb 26 to Apr 26: the title reads Feb 26 – Apr 26 brushed, and In range shows $225,090 from 263 orders."
+ },
+ "numeric-brush": {
+  "try": "Show orders by value in $250 bins next to revenue by category. Dragging across the bins filters the category chart to those orders.",
+  "mine": "Let readers drag across a histogram to pick a range of values, shown as a clearable chip, and filter the other charts to it.",
+  "how": "Dragging across the bins sets a value range; every other chart then counts only the rows inside it.",
+  "good": "The brushed range shows as a chip, the other charts' totals match that range, and clearing the chip restores everything.",
+  "goodTry": "Brush $1,000 to $2,000: the chip reads Order value: $1,000 – $2,000, In range shows 295 orders, and Software shows $218k, Services $166k."
+ },
+ "cross-highlight": {
+  "try": "Show revenue by country next to revenue by category. Hovering a country keeps the category totals in grey and highlights that country's share; a click keeps it.",
+  "mine": "Make hovering an item in one chart highlight its share in the other charts, keeping their full totals visible; a click keeps the highlight.",
+  "how": "Hovering an item overlays its share on the other charts, while their full totals stay visible underneath; a click pins it.",
+  "good": "The highlight follows the pointer, each bar keeps its full total with the share on top, and a pinned item stays after the pointer leaves.",
+  "goodTry": "Hover Vietnam: Revenue by category keeps the full totals in grey with Vietnam's part on top, and Services shows $91.5k of $578k."
+ },
+ "two-selections": {
+  "try": "Show revenue by country, by category and by month. A click filters the page, Ctrl+click on the other chart adds a second pick, and Clear all resets.",
+  "mine": "Let readers keep picks in two charts at once with Ctrl+click, so the page shows both together, while a plain click starts over.",
+  "how": "A plain click selects and starts over; a Ctrl or Cmd click on another chart keeps the first pick and adds one.",
+  "good": "Both picks show as labels, the totals match both picks together, and a plain click anywhere drops back to one pick.",
+  "goodTry": "Click Germany, then Ctrl+click Software: Revenue on this page shows $65,236, with Country: Germany (kept) and Selected: Software."
+ },
+ "selection-cohort": {
+  "try": "Show a customer table. Selected customers become a cohort, and two charts compare the cohort's revenue by category with everyone else's.",
+  "mine": "Let readers select records in a table, turn them into a cohort, and compare the cohort with everyone else side by side.",
+  "how": "Selecting rows in a table and pressing a button saves them as a cohort; the charts then compare it with everyone else.",
+  "good": "The cohort and the rest are labelled with their counts, together they make up everyone, and Reset clears the cohort.",
+  "goodTry": "Click customers 1 to 5, then Make cohort: Category share of revenue shows Cohort: 5 in violet against Rest: 195 in grey."
+ },
+ "date-filter": {
+  "try": "Add one date filter for every chart: exact dates, presets like last quarter, or a typed phrase. Show the dates it resolved to and warn when data ends early.",
+  "mine": "Add one date filter for the whole page with exact dates, presets and typed phrases, showing the dates each choice means.",
+  "how": "One date control takes exact dates, presets or a typed phrase, turns it into a date range, and every mapped chart redraws.",
+  "good": "Each choice shows the exact dates it means, every chart follows it, and a warning appears when the data ends early.",
+  "goodTry": "Last 30 days warns that data stops on 23 Sep 2026; typing last q and pressing Tab picks Last quarter: 272 orders, 1 Jul to 30 Sep 2026."
+ },
+ "custom-menu": {
+  "try": "Add a right-click menu on the country bars with Keep only, Exclude, Drill to customers and View orders. Add a strip where the author turns items on or off, and a custom Copy as AQL filter item.",
+  "mine": "Add a right-click menu to the data points in my chart, with Keep only, Exclude, a drill and View records, a list where I choose which items show, and room for my own items.",
+  "how": "Right-clicking a data point opens a small menu at the pointer instead of the browser's. Each item sets a filter on the clicked value, on the same chart or on a detail query; the author decides which items appear.",
+  "good": "Right-click opens the menu at the pointer (the Menu key or Shift+F10 opens it from the keyboard), it lists only the items the author turned on, and Escape or a click elsewhere closes it.",
+  "goodTry": "Excluding Germany leaves five countries; Drill to customers in Germany lists Customer 92 first, at $13,118."
+ },
+ "range-filter": {
+  "try": "Add an order-value range slider with two handles, or one handle for over or under, plus number inputs for exact values. It filters an orders KPI and revenue by category.",
+  "mine": "Add a range slider filter on a number field in my app, with two handles for a range or one handle for over or under, plus number inputs for exact values.",
+  "how": "Two handles keep values between them; one handle keeps values over or under it. The charts update a moment after the reader stops dragging.",
+  "good": "The handles can't cross, the typed values and the handles agree, and the label says whether each end is included.",
+  "goodTry": "$500 to $2,000 shows 589 orders and $622,557. Over $2,000 shows 195 orders, 10 fewer than $2,000 to the top, because between includes $2,000 and over does not."
+ }
+}

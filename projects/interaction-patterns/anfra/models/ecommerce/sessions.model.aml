@@ -1,0 +1,14 @@
+Model sessions {
+  type: 'table'
+  label: 'Sessions'
+  description: 'Website visits, one row per session. reached_step is the furthest step: 1 visit, 2 viewed a product, 3 added to cart, 4 started checkout, 5 ordered. Each order has exactly one session at step 5.'
+  data_source_name: 'ecommerce_duckdb'
+  table_name: 'public.sessions'
+
+  dimension id { label: 'ID' type: 'number' primary_key: true }
+  dimension started_at { label: 'Started At' type: 'datetime' description: 'UTC.' }
+  dimension country { label: 'Country' type: 'text' }
+  dimension channel { label: 'Channel' type: 'text' }
+  dimension reached_step { label: 'Reached Step' type: 'number' }
+  dimension order_id { label: 'Order ID' type: 'number' description: 'Set only for sessions that ended in an order. Not a relationship: sessions reach markets directly.' }
+}

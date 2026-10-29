@@ -1,0 +1,4 @@
+explore {
+  dimensions { key: markets.region }
+  measures { order_n: order_count, buyers: orders | count_distinct(orders.customer_id) }
+}

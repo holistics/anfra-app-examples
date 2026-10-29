@@ -1,0 +1,5 @@
+explore {
+  dimensions { customer: customers.name, country: customers.country }
+  measures { total_revenue: revenue, num_orders: order_count, avg_order_value: aov }
+  sorts { avg_order_value desc }
+}

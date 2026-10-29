@@ -1,0 +1,9 @@
+explore {
+  dimensions { customer: customers.name, country: customers.country }
+  measures {
+    total_revenue: revenue,
+    overall_rank: rank(order: revenue | desc(), partition: []),
+    rank_in_country: rank(order: revenue | desc(), partition: customers.country),
+  }
+  sorts { total_revenue desc }
+}

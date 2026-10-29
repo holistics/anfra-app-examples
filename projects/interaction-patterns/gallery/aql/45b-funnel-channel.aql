@@ -1,0 +1,9 @@
+explore {
+  dimensions { channel: sessions.channel }
+  measures {
+    visits: session_count,
+    ordered: session_count | where(sessions.reached_step > 4),
+    conversion: (session_count | where(sessions.reached_step > 4)) * 1.0 / session_count,
+  }
+  sorts { conversion desc }
+}

@@ -1,0 +1,4 @@
+sources:
+  - name: aml
+    type: aml
+    path: ..

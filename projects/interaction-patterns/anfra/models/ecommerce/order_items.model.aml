@@ -1,0 +1,11 @@
+Model order_items {
+  type: 'table'
+  label: 'Order Items'
+  data_source_name: 'ecommerce_duckdb'
+  table_name: 'public.order_items'
+
+  dimension id { label: 'ID' type: 'number' primary_key: true }
+  dimension order_id { label: 'Order ID' type: 'number' }
+  dimension product_id { label: 'Product ID' type: 'number' }
+  dimension quantity { label: 'Quantity' type: 'number' }
+}

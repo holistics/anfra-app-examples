@@ -1,0 +1,6 @@
+# Written by: sh db/duckdb_stamps.sh write ecommerce. Check: sh db/duckdb_stamps.sh
+duckdb v1.4.2
+93ae6cfeb382f7ecd3ef98cd8d42717267be481e5e56a4d9dbb7ab86277e24cf  db/build_ecommerce_duckdb.py
+3dcd88b0e34a1f5bf00d351f143d11887b2f78daa422ae719589fbeb24c7ceb0  db/seed.dump.sql
+5a93b0fc4d0f902c2be48989da09e46f294b93acf51bf117db083f73e77e94a0  db/seed.sql
+24c20ce74479f0cd95d744ce4e89fe2c83499e0420e92e7faea4dcdd500fca0f  db/duckdb/ecommerce.duckdb

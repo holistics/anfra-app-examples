@@ -1,0 +1,13 @@
+Model customers {
+  type: 'table'
+  label: 'Customers'
+  data_source_name: 'ecommerce_duckdb'
+  table_name: 'public.customers'
+
+  dimension id { label: 'ID' type: 'number' primary_key: true }
+  dimension name { label: 'Name' type: 'text' }
+  dimension email { label: 'Email' type: 'text' }
+  dimension country { label: 'Country' type: 'text' }
+  dimension country_code { label: 'Country Code' type: 'text' description: 'ISO 3166-1 alpha-2.' }
+  dimension created_at { label: 'Signed Up At' type: 'date' }
+}

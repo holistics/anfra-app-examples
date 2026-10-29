@@ -1,0 +1,12 @@
+dimension customers.order_n = orders | count(orders.id) | dimensionalize(customers.id);
+dimension customers.completed_n = orders | count(orders.id) | where(orders.status == 'completed') | dimensionalize(customers.id);
+explore {
+  dimensions { country: customers.country }
+  measures {
+    signed_up: customers | count(customers.id),
+    ordered: customers | count(customers.id) | where(customers.order_n > 0),
+    completed: customers | count(customers.id) | where(customers.completed_n > 0),
+    repeat_buyer: customers | count(customers.id) | where(customers.completed_n > 1),
+  }
+  sorts { signed_up desc }
+}

@@ -1,0 +1,1 @@
+{"filters": [{"field": "orders.ordered_at", "operator": "last", "values": [30], "modifier": "day"}], "conditions": [], "sorts": [], "dateDrills": []}

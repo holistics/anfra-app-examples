@@ -1,0 +1,79 @@
+{
+ "index-100": [
+  "Read the lines in <b>$</b>: Services earns tens of thousands a month, Parts only a few hundred",
+  "Click <b>Index (first month = 100)</b>",
+  "Read the lines: every category starts at 100 in Jun 25 and shares one scale",
+  "Read the line under the chart: Parts ends at 84 in Sep 26"
+ ],
+ "ranking": [
+  "Read the <b>Overall</b> and <b>In country</b> columns: Customer 184 is #1 in both",
+  "Click <b>Country leaders only</b> to keep just the #1 customer of each country",
+  "Pick a category in <b>Revenue from</b>, such as <b>Software</b>: both ranks change with it"
+ ],
+ "bins": [
+  "Read <b>Orders by value band</b>: 295 orders under $100, 421 at $100-499, 294 at $500-999 and 490 at $1,000+",
+  "Click <b>Revenue</b> next to <b>Bars show</b>: the $1,000+ band brings in most of the money",
+  "Click <b>$500</b> in <b>Bin width</b>: the histogram rebuilds with $500 bins",
+  "Click <b>$250</b> to go back to $250 bins"
+ ],
+ "targets": [
+  "Read the chart with <b>All countries</b>: the dashed line is the $84k monthly target of all six countries",
+  "Pick <b>Japan</b> in <b>Country</b>",
+  "Read the chart: the line moves to Japan's $8k, and only August beats it (160%)"
+ ],
+ "what-if": [
+  "Click <b>Optimistic</b> under <b>Preset</b>: Software +10%, Services +5%",
+  "Read the totals: <b>Scenario</b> $1,327,669 against <b>Actual</b> $1,283,053, a +3.5% change",
+  "Drag the <b>Hardware</b> slider up and watch its bar and the totals move",
+  "Click <b>Price war</b> and compare each category's scenario bar with actual"
+ ],
+ "cohort-from-rank": [
+  "Click <b>10%</b> next to <b>Top customers by revenue</b>",
+  "Read <b>Revenue by customer decile</b>: decile 1 holds the top 20 customers",
+  "Click <b>Save as cohort (20)</b>",
+  "Read <b>Cohort vs everyone else</b>: the chip <b>Cohort: Top 10% (20)</b> sits above a side-by-side of the cohort and the rest"
+ ],
+ "bookmarks": [
+  "Read <b>Bookmarks</b>: the first view, <b>All countries · all dates · monthly</b>, is already saved",
+  "Pick <b>Japan</b> and <b>Q2 2026</b>, then click <b>Week</b>",
+  "Click <b>★ Save view</b>: a new bookmark <b>Japan · Q2 2026 · weekly</b> appears",
+  "Click <b>By revenue</b> or pick another <b>Time zone</b> to change the view",
+  "Click a bookmark to bring back its filters, sort, grain and time zone and run the page again"
+ ],
+ "url-state": [
+  "Set the filters to <b>Japan</b>, Q2 and <b>week</b>",
+  "Press <b>Share</b>: the link gains a <code>?s=</code> part that holds the snapshot",
+  "Send the link to a colleague: it opens on Japan, Q2 and weekly"
+ ],
+ "reset": [
+  "Pick <b>Japan</b> in the country menu and <b>Completed</b> in the status menu",
+  "Click <b>Software</b> in <b>Revenue by category</b> to select it",
+  "Read the chips: <b>Japan ×</b>, <b>Completed ×</b> and <b>Selected: Software ×</b>",
+  "Click the × on one chip to reset just that filter",
+  "Click <b>Reset all</b>: every filter, the selection and the sort go back to their defaults"
+ ],
+ "undo-redo": [
+  "Pick <b>Japan</b> in the country menu, click <b>Week</b>, then click <b>Software</b> in <b>Revenue by category</b>",
+  "Read <b>History</b>: <b>1 · Country = Japan</b>, <b>2 · Grain = week</b>, <b>3 · Selected: Software</b>",
+  "Click <b>↶ Undo</b> or press <code>Ctrl+Z</code>: the page goes back to step 2, weekly Japan with no selection",
+  "Click <b>↷ Redo</b> or press <code>Ctrl+Shift+Z</code> to bring the Software selection back"
+ ],
+ "saved-views": [
+  "Save the current view under a name, such as <b>Monday: APAC weekly</b>",
+  "Open the app next week on another device",
+  "Click <b>Views</b>: the saved view is still in your list, next to <b>Finance: FY27 Q1</b>",
+  "Click the view to bring it back"
+ ],
+ "refresh": [
+  "Read the line at the top: <b>Data as of</b> the newest order date, when the query ran, and <b>fresh</b>",
+  "Click <b>Run again</b>: under <b>Runs</b>, nothing re-runs because the input did not change",
+  "Click <b>⟳ Refresh</b>: every query re-runs past the cache, and the run time updates"
+ ],
+ "trend-line": [
+  "Read the chart: the dashed <b>Linear</b> trend across all 16 months slopes down, <b>−$56 a month</b>",
+  "The last month is hatched: September 2026 has only 23 of 30 days. <b>Leave out Sep 26</b> is on, so the fit uses 15 full months and reads <b>+$342 a month</b>",
+  "Click <b>Leave out Sep 26</b> to turn it off: the line tips down again",
+  "Click <b>Moving average</b>, then <b>6 months</b>: the line now comes from <code>window_avg</code> in the query",
+  "Click <b>Linear</b>, then <b>Break down by category</b>: each category gets its own trend, Software <b>+$450 a month</b> and Services <b>−$202 a month</b>"
+ ]
+}

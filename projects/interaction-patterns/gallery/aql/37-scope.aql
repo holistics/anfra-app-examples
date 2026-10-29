@@ -1,0 +1,6 @@
+explore {
+  dimensions { period: orders.ordered_at | month() }
+  measures { total_revenue: revenue }
+  filters { orders.status == 'completed' }
+  sorts { period asc }
+}

@@ -1,0 +1,9 @@
+explore {
+  dimensions { period: orders.ordered_at | month() }
+  measures {
+    total_revenue: revenue,
+    cumulative: revenue | running_total(orders.ordered_at),
+    avg_3m: window_avg(revenue, -2..0, order: orders.ordered_at | month()),
+  }
+  sorts { period asc }
+}

@@ -1,0 +1,140 @@
+{
+ "date-drill": {
+  "sql": "-- 'quarter' comes from the grain switch\nSELECT DATE_TRUNC('quarter', o.ordered_at) AS period,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nGROUP BY DATE_TRUNC('quarter', o.ordered_at)\nORDER BY DATE_TRUNC('quarter', o.ordered_at);\n\n-- the reader clicked Q2 2026: new range, finer grain\nSELECT DATE_TRUNC('month', o.ordered_at) AS period,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nWHERE o.ordered_at >= DATE '2026-04-01'\n  AND o.ordered_at < DATE '2026-07-01'\nGROUP BY DATE_TRUNC('month', o.ordered_at)\nORDER BY DATE_TRUNC('month', o.ordered_at);",
+  "focus": [
+   "DATE_TRUNC\\('(quarter|month)'",
+   "o\\.ordered_at [<>]=? DATE"
+  ]
+ },
+ "fiscal-calendar": {
+  "sql": "-- July starts the fiscal year, pasted into every report\nSELECT EXTRACT(year FROM o.ordered_at)\n    + CASE WHEN EXTRACT(month FROM o.ordered_at) > 6\n      THEN 1 ELSE 0 END AS fiscal_year,\n  CASE WHEN EXTRACT(month FROM o.ordered_at) > 9 THEN 2\n    WHEN EXTRACT(month FROM o.ordered_at) > 6 THEN 1\n    WHEN EXTRACT(month FROM o.ordered_at) > 3 THEN 4\n    ELSE 3 END AS fiscal_quarter,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nGROUP BY 1, 2\nORDER BY 1, 2;",
+  "focus": [
+   "CASE WHEN EXTRACT\\(month",
+   "WHEN EXTRACT\\(month"
+  ]
+ },
+ "as-of-anchor": {
+  "sql": "-- \"last 30 days\" counts back from the newest order\nSELECT SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nWHERE o.ordered_at > (SELECT MAX(ordered_at) FROM orders)\n    - INTERVAL '30 days';\n\n-- and again in every other query on the page\nSELECT c.country, COUNT(*) AS orders\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nWHERE o.ordered_at > (SELECT MAX(ordered_at) FROM orders)\n    - INTERVAL '30 days'\nGROUP BY c.country;",
+  "focus": [
+   "\\(SELECT MAX\\(ordered_at\\) FROM orders\\)"
+  ]
+ },
+ "partial-period": {
+  "sql": "SELECT DATE_TRUNC('month', o.ordered_at) AS month,\n  SUM(oi.quantity * p.price) AS revenue,\n  MAX(o.ordered_at) AS last_order_day\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nGROUP BY 1\nORDER BY 1;\n-- the app checks last_order_day against the month's end",
+  "focus": [
+   "MAX\\(o\\.ordered_at\\) AS last_order_day"
+  ]
+ },
+ "period-compare": {
+  "sql": "WITH monthly AS (\n  SELECT DATE_TRUNC('month', o.ordered_at) AS month,\n    SUM(oi.quantity * p.price) AS revenue\n  FROM order_items oi\n  JOIN orders o ON o.id = oi.order_id\n  JOIN products p ON p.id = oi.product_id\n  GROUP BY 1\n), filled AS (\n  -- months with no orders still need a row\n  SELECT s.m AS month, COALESCE(r.revenue, 0) AS revenue\n  FROM generate_series(DATE '2025-06-01',\n    DATE '2026-09-01', INTERVAL '1 month') s(m)\n  LEFT JOIN monthly r ON r.month = s.m\n)\nSELECT month, revenue,\n  revenue / NULLIF(LAG(revenue, 1) OVER w, 0) - 1\n    AS vs_prev_month,\n  revenue / NULLIF(LAG(revenue, 12) OVER w, 0) - 1\n    AS vs_last_year\nFROM filled\nWINDOW w AS (ORDER BY month)\nORDER BY month;",
+  "focus": [
+   "LAG\\(revenue, (1|12)\\)",
+   "generate_series"
+  ]
+ },
+ "custom-compare": {
+  "sql": "-- both ranges come from the reader's date pickers\nSELECT c.country,\n  SUM(CASE WHEN o.ordered_at BETWEEN DATE '2025-07-01'\n      AND DATE '2025-12-31'\n    THEN oi.quantity * p.price END) AS h2_2025,\n  SUM(CASE WHEN o.ordered_at BETWEEN DATE '2026-01-01'\n      AND DATE '2026-06-30'\n    THEN oi.quantity * p.price END) AS h1_2026\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nJOIN customers c ON c.id = o.customer_id\nWHERE o.ordered_at BETWEEN DATE '2025-07-01'\n  AND DATE '2026-06-30'\nGROUP BY c.country\nORDER BY h1_2026 DESC;",
+  "focus": [
+   "SUM\\(CASE WHEN o\\.ordered_at BETWEEN"
+  ]
+ },
+ "to-date": {
+  "sql": "WITH monthly AS (\n  SELECT DATE_TRUNC('month', o.ordered_at) AS month,\n    SUM(oi.quantity * p.price) AS revenue\n  FROM order_items oi\n  JOIN orders o ON o.id = oi.order_id\n  JOIN products p ON p.id = oi.product_id\n  GROUP BY 1\n), filled AS (\n  -- months with no orders still need a row\n  SELECT s.m AS month, COALESCE(r.revenue, 0) AS revenue\n  FROM generate_series(DATE '2025-06-01',\n    DATE '2026-09-01', INTERVAL '1 month') s(m)\n  LEFT JOIN monthly r ON r.month = s.m\n)\nSELECT month, revenue,\n  SUM(revenue) OVER (PARTITION BY EXTRACT(year FROM month)\n    ORDER BY month) AS ytd,\n  SUM(revenue) OVER (ORDER BY month\n    ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS trailing_3m\nFROM filled\nORDER BY month;",
+  "focus": [
+   "OVER \\(PARTITION BY EXTRACT",
+   "ROWS BETWEEN 2 PRECEDING"
+  ]
+ },
+ "hierarchy-drill": {
+  "sql": "-- level 3: customers in APAC › Australia\nSELECT c.id, c.name, SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nJOIN customers c ON c.id = o.customer_id\nJOIN countries m ON m.name = c.country\nWHERE m.region = 'APAC' AND c.country = 'Australia'\nGROUP BY c.id, c.name;\n\n-- level 4: Customer 184's orders, the path comes along\nSELECT o.id, o.ordered_at, SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nJOIN customers c ON c.id = o.customer_id\nJOIN countries m ON m.name = c.country\nWHERE m.region = 'APAC' AND c.country = 'Australia'\n  AND c.id = 184\nGROUP BY o.id, o.ordered_at\nORDER BY o.ordered_at DESC;",
+  "focus": [
+   "WHERE m\\.region = 'APAC'",
+   "AND c\\.id = 184"
+  ]
+ },
+ "adhoc-breakdown": {
+  "sql": "-- o.status comes from the \"Break down by\" menu,\n-- 'Software' from the clicked bar\nSELECT o.status AS breakdown,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nJOIN customers c ON c.id = o.customer_id\nWHERE p.category = 'Software'\nGROUP BY o.status\nORDER BY revenue DESC;",
+  "focus": [
+   "^(SELECT|GROUP BY) o\\.status",
+   "WHERE p\\.category = 'Software'"
+  ]
+ },
+ "underlying-records": {
+  "sql": "-- the clicked cell is Japan × Software, page 2\nSELECT o.id, o.ordered_at, c.name, o.status,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nJOIN customers c ON c.id = o.customer_id\nWHERE c.country = 'Japan' AND p.category = 'Software'\nGROUP BY o.id, o.ordered_at, c.name, o.status\nORDER BY o.ordered_at DESC, o.id DESC\nLIMIT 25 OFFSET 25;",
+  "focus": [
+   "WHERE c\\.country = 'Japan' AND",
+   "LIMIT 25 OFFSET 25"
+  ]
+ },
+ "drillthrough": {
+  "sql": "-- opened as /apps/reports/cohort-heatmap?country=Japan,\n-- the app parses country= and pastes it back in\nWITH firsts AS (\n  SELECT o.customer_id,\n    DATE_TRUNC('month', MIN(o.ordered_at)) AS cohort\n  FROM orders o\n  JOIN customers c ON c.id = o.customer_id\n  WHERE c.country = 'Japan'\n  GROUP BY o.customer_id\n)\nSELECT f.cohort,\n  DATE_DIFF('month', f.cohort, o.ordered_at) AS month_n,\n  COUNT(DISTINCT o.customer_id) AS customers\nFROM firsts f\nJOIN orders o ON o.customer_id = f.customer_id\nGROUP BY 1, 2\nORDER BY 1, 2;",
+  "focus": [
+   "WHERE c\\.country = 'Japan'"
+  ]
+ },
+ "metric-switch": {
+  "sql": "-- 'units' comes from the switch, and each switch reruns it\nSELECT p.category,\n  CASE 'units'\n    WHEN 'revenue' THEN SUM(oi.quantity * p.price)\n    WHEN 'orders' THEN COUNT(DISTINCT o.id)\n    WHEN 'units' THEN SUM(oi.quantity)\n  END AS value\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nWHERE o.status <> 'cancelled'\nGROUP BY p.category\nORDER BY value DESC;",
+  "focus": [
+   "CASE 'units'"
+  ]
+ },
+ "dimension-switch": {
+  "sql": "-- o.status comes from the dropdown, mapped from an\n-- allow-list: country → c.country, category → p.category\nSELECT o.status AS grp,\n  SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nJOIN customers c ON c.id = o.customer_id\nGROUP BY o.status\nORDER BY revenue DESC;",
+  "focus": [
+   "^(SELECT|GROUP BY) o\\.status"
+  ]
+ },
+ "sort": {
+  "sql": "-- 'orders DESC' comes from the clicked header;\n-- page 2 must repeat it, with a tiebreaker\nSELECT c.name, c.country,\n  SUM(oi.quantity * p.price) AS revenue,\n  COUNT(DISTINCT o.id) AS orders\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nJOIN customers c ON c.id = o.customer_id\nGROUP BY c.id, c.name, c.country\nORDER BY orders DESC, c.id\nLIMIT 25 OFFSET 25;",
+  "focus": [
+   "ORDER BY orders DESC, c\\.id"
+  ]
+ },
+ "top-n": {
+  "sql": "WITH by_country AS (\n  SELECT c.country, SUM(oi.quantity * p.price) AS revenue\n  FROM order_items oi\n  JOIN orders o ON o.id = oi.order_id\n  JOIN products p ON p.id = oi.product_id\n  JOIN customers c ON c.id = o.customer_id\n  GROUP BY c.country\n), ranked AS (\n  SELECT *, RANK() OVER (ORDER BY revenue DESC) AS rnk\n  FROM by_country\n)\n-- 3 comes from the Top N menu\nSELECT CASE WHEN rnk <= 3 THEN country ELSE 'Other' END\n    AS country,\n  SUM(revenue) AS revenue\nFROM ranked\nGROUP BY 1\nORDER BY MAX(rnk);",
+  "focus": [
+   "RANK\\(\\) OVER",
+   "CASE WHEN rnk <= 3"
+  ]
+ },
+ "pivot": {
+  "sql": "WITH r AS (\n  SELECT c.country, p.category, oi.quantity * p.price AS rev\n  FROM order_items oi\n  JOIN orders o ON o.id = oi.order_id\n  JOIN products p ON p.id = oi.product_id\n  JOIN customers c ON c.id = o.customer_id\n)\n-- one column per category, typed by hand\nSELECT country,\n  SUM(CASE WHEN category = 'Services' THEN rev END) AS serv,\n  SUM(CASE WHEN category = 'Software' THEN rev END) AS soft,\n  SUM(CASE WHEN category = 'Hardware' THEN rev END) AS hard,\n  SUM(CASE WHEN category = 'Parts' THEN rev END) AS parts,\n  SUM(rev) AS total\nFROM r\nGROUP BY country\nORDER BY total DESC;",
+  "focus": [
+   "SUM\\(CASE WHEN category ="
+  ]
+ },
+ "totals": {
+  "sql": "WITH r AS (\n  SELECT p.category, p.name,\n    SUM(oi.quantity * p.price) AS revenue\n  FROM order_items oi\n  JOIN orders o ON o.id = oi.order_id\n  JOIN products p ON p.id = oi.product_id\n  GROUP BY p.category, p.name\n)\n-- the app still draws the subtotal rows itself\nSELECT category, name, revenue,\n  SUM(revenue) OVER (PARTITION BY category) AS cat_total,\n  revenue / SUM(revenue) OVER (PARTITION BY category)\n    AS share,\n  SUM(revenue) OVER () AS grand_total\nFROM r\nORDER BY category, revenue DESC;",
+  "focus": [
+   "OVER \\(PARTITION BY category\\)",
+   "OVER \\(\\) AS grand_total"
+  ]
+ },
+ "percent-of-total": {
+  "sql": "SELECT c.country,\n  SUM(oi.quantity * p.price) AS revenue,\n  SUM(oi.quantity * p.price)\n    / NULLIF(SUM(SUM(oi.quantity * p.price)) OVER (), 0)\n    AS share\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nJOIN customers c ON c.id = o.customer_id\n-- the reader's category filter\nWHERE p.category = 'Software'\nGROUP BY c.country\nORDER BY revenue DESC;",
+  "focus": [
+   "NULLIF\\(SUM\\(SUM"
+  ]
+ },
+ "cumulative-moving": {
+  "sql": "WITH monthly AS (\n  SELECT DATE_TRUNC('month', o.ordered_at) AS month,\n    SUM(oi.quantity * p.price) AS revenue\n  FROM order_items oi\n  JOIN orders o ON o.id = oi.order_id\n  JOIN products p ON p.id = oi.product_id\n  GROUP BY 1\n), filled AS (\n  -- months with no orders still need a row\n  SELECT s.m AS month, COALESCE(r.revenue, 0) AS revenue\n  FROM generate_series(DATE '2025-06-01',\n    DATE '2026-09-01', INTERVAL '1 month') s(m)\n  LEFT JOIN monthly r ON r.month = s.m\n)\nSELECT month, revenue,\n  SUM(revenue) OVER (ORDER BY month) AS running_total,\n  AVG(revenue) OVER (ORDER BY month\n    ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS avg_3m\nFROM filled\nORDER BY month;",
+  "focus": [
+   "OVER \\(ORDER BY month\\) AS running",
+   "ROWS BETWEEN 2 PRECEDING"
+  ]
+ },
+ "drill-path": {
+  "sql": "-- step 4, ↑ APAC: the app drops the country condition\nSELECT c.country, SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nJOIN customers c ON c.id = o.customer_id\nJOIN countries m ON m.name = c.country\nWHERE m.region = 'APAC'\nGROUP BY 1\nORDER BY 2 DESC;\n\n-- step 5, ↓ Singapore: and adds it back with the new value\nSELECT c.name, SUM(oi.quantity * p.price) AS revenue\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN products p ON p.id = oi.product_id\nJOIN customers c ON c.id = o.customer_id\nJOIN countries m ON m.name = c.country\nWHERE m.region = 'APAC' AND c.country = 'Singapore'\nGROUP BY 1\nORDER BY 2 DESC",
+  "focus": [
+   "^WHERE m\\.region = 'APAC'$",
+   "^WHERE m\\.region = 'APAC' AND"
+  ]
+ },
+ "row-actions": {
+  "sql": "SELECT c.name,\n  'https://crm.example.com/accounts/'\n    || CAST(c.id AS VARCHAR) AS crm_url,\n  'mailto:' || c.email\n    || '?subject=Your%20order%20history' AS email_url,\n  SUM(oi.quantity * p.price) AS revenue\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN order_items oi ON oi.order_id = o.id\nJOIN products p ON p.id = oi.product_id\nGROUP BY c.id, c.name, c.email\nORDER BY revenue DESC\nLIMIT 8;",
+  "focus": [
+   "CAST\\(c\\.id AS VARCHAR\\)",
+   "^  'mailto:'"
+  ]
+ }
+}

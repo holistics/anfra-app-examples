@@ -1,0 +1,86 @@
+// Commuter view — route flooding/delay for EVERY route x hour (today's modeled
+// conditions, no mayor stress). Powers the Forecast hourly profile and Stage 2
+// "leave now or wait?" route comparison.
+//
+// Grain: (route, timestamp). For each route's segments at each evening hour, rolls
+// up route-km, flooded-km (modeled depth >= threshold from flood_config), route
+// risk, avg/max depth, modeled delay, and a flooded-street count. Route/from/to
+// names are joined on for pickers and filtering. Physics mirrors
+// modeled_segment_readings; threshold read from flood_config.
+
+Model route_hour_conditions {
+  type: 'query'
+  label: 'Route-hour conditions'
+  description: "Per route per hour tonight: route-km, flooded-km/streets, flood risk, avg/max modeled depth, modeled commute delay, and route from/to names."
+  data_source_name: 'flood'
+  models: [routes, route_steps, road_segments, weather_hourly, tide_hourly, segment_readings, districts]
+
+  query: @sql
+    WITH rain3 AS (
+      SELECT district_id, ts,
+        SUM(rainfall_mm) OVER (
+          PARTITION BY district_id, CAST(ts AS DATE)
+          ORDER BY ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS rain_3h
+      FROM weather_hourly
+    ),
+    cfg AS (SELECT threshold_cm FROM flood_config LIMIT 1),
+    modeled AS (
+      SELECT sr.segment_id, sr.ts, s.length_km,
+        ( GREATEST(0.0, r.rain_3h - s.drainage_capacity_mm_per_hr * 1.5) * 0.40 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * s.elevation_m))
+          + r.rain_3h * 0.02 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * s.elevation_m))
+          + CASE WHEN s.near_river AND s.elevation_m < 3.0 THEN GREATEST(0.0, t.tide_level_m - 0.5) * 18.0 * ((3.0 - s.elevation_m) / 3.0) ELSE 0.0 END
+        ) AS depth
+      FROM segment_readings sr
+      JOIN road_segments s ON s.id = sr.segment_id
+      JOIN rain3 r ON r.district_id = s.district_id AND r.ts = sr.ts
+      LEFT JOIN tide_hourly t ON t.ts = sr.ts
+    ),
+    route_seg AS (
+      SELECT rs.route_id, m.ts, m.length_km, m.depth, cfg.threshold_cm
+      FROM route_steps rs
+      JOIN modeled m ON m.segment_id = rs.segment_id
+      CROSS JOIN cfg
+    ),
+    agg AS (
+      SELECT
+        route_id,
+        ts,
+        CAST(ts AS DATE)                                                       AS evening,
+        EXTRACT(hour FROM ts)                                                  AS hour,
+        SUM(length_km)                                                         AS route_km,
+        SUM(CASE WHEN depth >= threshold_cm THEN length_km ELSE 0 END)         AS flooded_km,
+        SUM(CASE WHEN depth >= threshold_cm THEN length_km ELSE 0 END) / SUM(length_km) AS route_risk,
+        AVG(depth)                                                             AS avg_depth_cm,
+        MAX(depth)                                                             AS max_depth_cm,
+        AVG(depth) * 1.0 + MAX(depth) * 0.5                                    AS delay_min,
+        COUNT(*)                                                               AS seg_count,
+        SUM(CASE WHEN depth >= threshold_cm THEN 1 ELSE 0 END)                 AS flooded_seg_count
+      FROM route_seg
+      GROUP BY route_id, ts, CAST(ts AS DATE), EXTRACT(hour FROM ts)
+    )
+    SELECT a.*, r.name AS route_name, df.name AS from_name, dt.name AS to_name
+    FROM agg a
+    JOIN routes r ON r.id = a.route_id
+    JOIN districts df ON df.id = r.from_district_id
+    JOIN districts dt ON dt.id = r.to_district_id
+  ;;
+
+  dimension row_uid { label: 'Row UID'; type: 'text'; primary_key: true;
+    definition: @sql {{ #SOURCE.route_id }} || '-' || {{ #SOURCE.ts }};; }
+  dimension route_id { label: 'Route ID'; type: 'number'; definition: @sql {{ #SOURCE.route_id }};; }
+  dimension route_name { label: 'Route'; type: 'text'; definition: @sql {{ #SOURCE.route_name }};; }
+  dimension from_name { label: 'From'; type: 'text'; definition: @sql {{ #SOURCE.from_name }};; }
+  dimension to_name { label: 'To'; type: 'text'; definition: @sql {{ #SOURCE.to_name }};; }
+  dimension ts { label: 'Timestamp'; type: 'datetime'; definition: @sql {{ #SOURCE.ts }};; }
+  dimension evening { label: 'Evening'; type: 'date'; definition: @sql {{ #SOURCE.evening }};; }
+  dimension hour { label: 'Hour'; type: 'number'; definition: @sql {{ #SOURCE.hour }};; }
+  dimension route_km { label: 'Route-km'; type: 'number'; definition: @sql {{ #SOURCE.route_km }};; }
+  dimension flooded_km { label: 'Flooded route-km'; type: 'number'; definition: @sql {{ #SOURCE.flooded_km }};; }
+  dimension route_risk { label: 'Route flood risk'; type: 'number'; definition: @sql {{ #SOURCE.route_risk }};; }
+  dimension avg_depth_cm { label: 'Avg route depth (cm)'; type: 'number'; definition: @sql {{ #SOURCE.avg_depth_cm }};; }
+  dimension max_depth_cm { label: 'Max route depth (cm)'; type: 'number'; definition: @sql {{ #SOURCE.max_depth_cm }};; }
+  dimension delay_min { label: 'Modeled delay (min)'; type: 'number'; definition: @sql {{ #SOURCE.delay_min }};; }
+  dimension seg_count { label: 'Streets on route'; type: 'number'; definition: @sql {{ #SOURCE.seg_count }};; }
+  dimension flooded_seg_count { label: 'Flooded streets'; type: 'number'; definition: @sql {{ #SOURCE.flooded_seg_count }};; }
+}

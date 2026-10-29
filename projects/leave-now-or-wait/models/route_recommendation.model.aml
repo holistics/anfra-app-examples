@@ -1,0 +1,98 @@
+// "Leave now or wait?" recommendation — the decision rule, defined ONCE here.
+//
+// For every (route, evening, depart hour) it compares leaving now with the calmest
+// later hour that same evening, and decides whether waiting is *meaningfully* better.
+// The rule and its two thresholds live only in this model (never in page JS):
+//   recommend waiting  <=>  (>= min_fewer_streets fewer flooded streets)
+//                            OR (>= min_faster_min minutes faster)
+// Otherwise the advice is "leave now" (and "roads are dry" when nothing floods now).
+// Savings are floored at 0 so the app never shows "0 fewer" or a contradiction.
+//
+// Grain: (route_id, evening, hour). Physics mirrors route_hour_conditions /
+// modeled_segment_readings (local anfra can't reference one QueryModel from another);
+// the flooded threshold is read from flood_config — the single source of truth.
+
+Model route_recommendation {
+  type: 'query'
+  label: 'Route recommendation'
+  description: 'Per route per depart-hour: leave-now vs wait advice, the calmest later hour, and the flooded-street / minute savings that justify it. The wait-is-worthwhile rule is defined once here.'
+  data_source_name: 'flood'
+  models: [routes, route_steps, road_segments, weather_hourly, tide_hourly, segment_readings, flood_config]
+
+  query: @sql
+    WITH rain3 AS (
+      SELECT district_id, ts,
+        SUM(rainfall_mm) OVER (
+          PARTITION BY district_id, CAST(ts AS DATE)
+          ORDER BY ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS rain_3h
+      FROM weather_hourly
+    ),
+    cfg AS (SELECT threshold_cm FROM flood_config LIMIT 1),
+    -- the single place the "meaningfully better" rule's thresholds are defined
+    params AS (SELECT 2 AS min_fewer_streets, 5.0 AS min_faster_min),
+    modeled AS (
+      SELECT sr.segment_id, sr.ts, s.length_km,
+        ( GREATEST(0.0, r.rain_3h - s.drainage_capacity_mm_per_hr * 1.5) * 0.40 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * s.elevation_m))
+          + r.rain_3h * 0.02 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * s.elevation_m))
+          + CASE WHEN s.near_river AND s.elevation_m < 3.0 THEN GREATEST(0.0, t.tide_level_m - 0.5) * 18.0 * ((3.0 - s.elevation_m) / 3.0) ELSE 0.0 END
+        ) AS depth
+      FROM segment_readings sr
+      JOIN road_segments s ON s.id = sr.segment_id
+      JOIN rain3 r ON r.district_id = s.district_id AND r.ts = sr.ts
+      LEFT JOIN tide_hourly t ON t.ts = sr.ts
+    ),
+    rh AS (
+      SELECT rs.route_id,
+             CAST(m.ts AS DATE)            AS evening,
+             EXTRACT(hour FROM m.ts)       AS hour,
+             SUM(CASE WHEN m.depth >= cfg.threshold_cm THEN 1 ELSE 0 END) AS flooded_streets,
+             AVG(m.depth) * 1.0 + MAX(m.depth) * 0.5                      AS delay_min
+      FROM route_steps rs
+      JOIN modeled m ON m.segment_id = rs.segment_id
+      CROSS JOIN cfg
+      GROUP BY rs.route_id, CAST(m.ts AS DATE), EXTRACT(hour FROM m.ts)
+    ),
+    -- the calmest later hour that same evening (soonest wins ties)
+    paired AS (
+      SELECT n.route_id, n.evening, n.hour,
+             n.flooded_streets AS streets_now, n.delay_min AS delay_now,
+             l.hour AS later_hour, l.flooded_streets AS streets_later, l.delay_min AS delay_later,
+             ROW_NUMBER() OVER (PARTITION BY n.route_id, n.evening, n.hour
+                                ORDER BY l.delay_min ASC, l.hour ASC) AS rn
+      FROM rh n
+      JOIN rh l ON l.route_id = n.route_id AND l.evening = n.evening AND l.hour > n.hour
+    )
+    SELECT
+      p.route_id, p.evening, p.hour,
+      p.streets_now, p.delay_now,
+      p.later_hour                                    AS best_hour,
+      p.streets_later, p.delay_later,
+      GREATEST(0, p.streets_now - p.streets_later)    AS streets_saved,
+      GREATEST(0.0, p.delay_now - p.delay_later)      AS minutes_saved,
+      (p.streets_now = 0)                             AS dry_now,
+      pr.min_fewer_streets, pr.min_faster_min,
+      ( (p.streets_now - p.streets_later) >= pr.min_fewer_streets
+        OR (p.delay_now - p.delay_later) >= pr.min_faster_min ) AS recommend_wait
+    FROM paired p
+    CROSS JOIN params pr
+    WHERE p.rn = 1
+  ;;
+
+  dimension row_uid { label: 'Row UID'; type: 'text'; primary_key: true;
+    definition: @sql {{ #SOURCE.route_id }} || '-' || {{ #SOURCE.evening }} || '-' || {{ #SOURCE.hour }};; }
+  dimension route_id { label: 'Route ID'; type: 'number'; definition: @sql {{ #SOURCE.route_id }};; }
+  dimension evening { label: 'Evening'; type: 'date'; definition: @sql {{ #SOURCE.evening }};; }
+  dimension hour { label: 'Depart hour'; type: 'number'; definition: @sql {{ #SOURCE.hour }};; }
+  dimension streets_now { label: 'Flooded streets now'; type: 'number'; definition: @sql {{ #SOURCE.streets_now }};; }
+  dimension delay_now { label: 'Delay now (min)'; type: 'number'; definition: @sql {{ #SOURCE.delay_now }};; }
+  dimension best_hour { label: 'Calmest later hour'; type: 'number'; definition: @sql {{ #SOURCE.best_hour }};; }
+  dimension streets_later { label: 'Flooded streets then'; type: 'number'; definition: @sql {{ #SOURCE.streets_later }};; }
+  dimension delay_later { label: 'Delay then (min)'; type: 'number'; definition: @sql {{ #SOURCE.delay_later }};; }
+  dimension streets_saved { label: 'Fewer flooded streets by waiting'; type: 'number'; definition: @sql {{ #SOURCE.streets_saved }};; }
+  dimension minutes_saved { label: 'Minutes saved by waiting'; type: 'number'; definition: @sql {{ #SOURCE.minutes_saved }};; }
+  dimension dry_now { label: 'Dry route now'; type: 'truefalse'; definition: @sql {{ #SOURCE.dry_now }};; }
+  dimension min_fewer_streets { label: 'Rule: min fewer streets'; type: 'number'; definition: @sql {{ #SOURCE.min_fewer_streets }};; }
+  dimension min_faster_min { label: 'Rule: min minutes faster'; type: 'number'; definition: @sql {{ #SOURCE.min_faster_min }};; }
+  dimension recommend_wait { label: 'Recommend waiting'; type: 'truefalse'; definition: @sql {{ #SOURCE.recommend_wait }};; }
+}

@@ -1,0 +1,45 @@
+Model activity_hr_zone {
+  type: 'table'
+  label: 'Activity HR Zones'
+  description: 'Heart-rate zones of each activity as Garmin counted them: the bpm range in force that day and the time spent in it. Rules in db/views.d/15_activity_hr_zone.sql.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."activity_hr_zone"'
+
+  dimension zone_id {
+    label: 'Zone ID'
+    type: 'number'
+    description: 'activity_id x 10 + zone'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.zone_id }};;
+  }
+  dimension activity_id {
+    label: 'Activity ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.activity_id }};;
+  }
+  dimension zone {
+    label: 'Zone'
+    type: 'number'
+    description: '1 (warm-up) to 5 (max), Garmin numbering'
+    definition: @sql {{ #SOURCE.zone }};;
+  }
+  dimension low_bpm {
+    label: 'From (bpm)'
+    type: 'number'
+    description: 'Lowest heart rate of the zone'
+    definition: @sql {{ #SOURCE.low_bpm }};;
+  }
+  dimension high_bpm {
+    label: 'To (bpm)'
+    type: 'number'
+    description: 'Highest heart rate of the zone; null for zone 5 (open-ended)'
+    definition: @sql {{ #SOURCE.high_bpm }};;
+  }
+  measure time_s {
+    label: 'Time in Zone (s)'
+    type: 'number'
+    definition: @sql sum({{ #SOURCE.secs }});;
+  }
+}

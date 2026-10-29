@@ -1,0 +1,1428 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Race Planner</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+  <script src="shared.js"></script>
+  <script src="metrics.js"></script>
+  <script src="metric-modal.js"></script>
+  <style>
+    .race-card { display: grid; grid-template-columns: minmax(440px, 1.1fr) minmax(0, 1.4fr); gap: 16px; align-items: center; }
+    .race-pick { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .race-pick select { min-width: 220px; max-width: 100%; font-weight: 600; }
+    .race-pick label { flex-basis: 100%; text-transform: uppercase; letter-spacing: .04em; font-size: 11px; }
+    .race-meta { margin-top: 6px; }
+    /* the three numbers a runner looks for first: the goal, the days left, and the gap today */
+    .race-hero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .hl { border-radius: 10px; padding: 10px 14px; background: var(--bg); border-left: 4px solid var(--border); min-width: 0; }
+    .hl .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .hl .value { font-size: 28px; font-weight: 750; font-variant-numeric: tabular-nums; line-height: 1.15; }
+    .hl .sub { font-size: 12px; color: var(--muted); }
+    .hl.goal { border-left-color: var(--accent); } .hl.goal .value { color: var(--accent); }
+    .hl.days { border-left-color: var(--accent-2); } .hl.days .value { color: var(--accent-2); }
+    .hl.gap { border-left-color: var(--muted); }
+    .hl.gap:has(.bad) { border-left-color: var(--bad); } .hl.gap:has(.good) { border-left-color: var(--good); } .hl.gap:has(.warn) { border-left-color: var(--warn); }
+    @media (max-width: 900px) { .race-card { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) { .race-hero { grid-template-columns: 1fr 1fr; } .hl.gap { grid-column: 1 / -1; } .hl .value { font-size: 22px; } }
+    .err { color: var(--bad); font-size: 12px; }
+
+    .tiles { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--panel);
+             border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin: 12px 0; }
+    .tile { background: var(--panel); padding: 10px 12px; min-width: 0; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 0 -1px -1px 0; }
+    .tile .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+    .tile .value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+    .tile .sub { font-size: 12px; color: var(--muted); }
+
+    .step { display: flex; align-items: baseline; gap: 10px; margin: 20px 2px 8px; }
+    .step h2 { font-size: 17px; margin: 0; }
+    .step .n { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+               background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; flex: none; align-self: center; }
+    .step .small { flex: 1; }
+    .answer { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 10px; }
+    .answer .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 4px; }
+    .answer .headline { font-size: 17px; margin: 0; }
+    details.step-fold > summary { cursor: pointer; list-style: none; color: var(--text); }
+    details.step-fold > summary::-webkit-details-marker { display: none; }
+    details.step-fold:not([open]) > summary h2::after { content: ' ▸'; color: var(--link); }
+    details.step-fold[open] > summary h2::after { content: ' ▾'; color: var(--link); }
+    .headline .sub-line { display: block; margin-top: 4px; font-size: 13px; color: var(--muted); }
+    .tlw .track { flex: 1; display: flex; align-items: flex-end; min-height: 0; }
+    .tlw .track .bar { flex: none; width: 100%; }
+    .tlw .flag { font-size: 10px; margin-left: 2px; }
+    .controls .legend { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
+    .controls .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; opacity: .8; }
+    .zends .readout { flex: 1; text-align: center; color: var(--text); font-size: 11px; }
+    details.hint > summary { cursor: pointer; color: var(--link); }
+    .result .box.time .apply-here { margin-top: 10px; width: 100%; }
+    @media (max-width: 560px) {
+      .step { flex-wrap: wrap; } .step .small { flex-basis: 100%; padding-left: 34px; }
+      details.saved > summary { flex-wrap: wrap; } details.saved > summary .small { flex-basis: 100%; }
+      .pd table.days thead { display: none; }
+      .pd table.days tr { display: grid; grid-template-columns: 1fr auto auto; gap: 0 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+      .pd table.days td { border: 0; padding: 0; text-align: left; }
+      .pd table.days td:nth-child(4) { display: none; }
+      .pd table.days td:last-child { grid-column: 1 / -1; white-space: normal; color: var(--muted); }
+      .tlw .lbl { font-size: 9px; }
+      #effort-table .etable th:nth-child(3), #effort-table .etable td:nth-child(3),
+      #effort-table .etable th:nth-child(5), #effort-table .etable td:nth-child(5) { display: none; }
+    }
+    .headline { font-size: 15px; margin: 0 0 12px; line-height: 1.45; }
+    .headline b { font-variant-numeric: tabular-nums; }
+    details.more { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+    details.more > summary, details.saved > summary { cursor: pointer; color: var(--link); font-size: 13px; font-weight: 600; list-style: none; }
+    details.more > summary::before, details.saved > summary::before { content: '▸ '; } details[open].more > summary::before, details[open].saved > summary::before { content: '▾ '; }
+    details.saved { margin: 20px 0 12px; } details.saved > summary { color: var(--text); font-size: 17px; display: flex; gap: 10px; align-items: baseline; }
+    details.saved > summary .n { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; align-self: center; }
+    details.saved[open] > summary { margin-bottom: 8px; }
+    .tag-a { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: var(--text); color: var(--panel); font-size: 12px; margin-right: 8px; }
+
+    /* the causal chain: training -> shape and fitness -> time */
+    .chain { display: grid; grid-template-columns: 1fr auto 1.3fr auto 1fr; gap: 10px; align-items: center; margin-bottom: 14px; }
+    .chain .box { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: 12px; min-width: 0; }
+    .chain .box .t { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+    .chain .box .v { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .chain .box.res { border: 2px solid var(--accent); }
+    .chain .stack { display: flex; flex-direction: column; gap: 6px; }
+    .chain .arrow { color: var(--muted); font-size: 18px; }
+    .gauges { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .gauge .t { font-size: 13px; font-weight: 600; margin-bottom: 18px; }
+    .gauge .track { position: relative; height: 10px; border-radius: 5px; background: var(--border); }
+    .gauge .fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 5px; background: color-mix(in srgb, var(--accent-2) 35%, transparent); }
+    .gauge .mk { position: absolute; top: -4px; bottom: -4px; width: 3px; border-radius: 2px; transform: translateX(-1px); }
+    .gauge .lbl { position: absolute; font-size: 11px; white-space: nowrap; transform: translateX(-50%); font-variant-numeric: tabular-nums; }
+    .gauge .lbl.up { top: -18px; } .gauge .lbl.down { top: 14px; }
+    .gauge .s { font-size: 12px; color: var(--muted); margin-top: 26px; }
+
+    /* A: the effort slider */
+    .effort { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px 8px; margin-bottom: 12px; }
+    .effort .h { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+    .effort .h b { font-size: 14px; }
+    .effort input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; margin: 18px 0 0; background: transparent; cursor: pointer; }
+    .effort input[type=range]::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: var(--grad); }
+    .effort input[type=range]::-moz-range-track { height: 8px; border-radius: 4px; background: var(--grad); }
+    .effort input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -6px; border-radius: 50%;
+      background: var(--panel); border: 4px solid var(--text); box-shadow: 0 1px 3px rgb(0 0 0 / .3); }
+    .effort input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--panel); border: 4px solid var(--text); }
+    .effort input[type=range]:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; border-radius: 4px; }
+    .effort .marks { position: relative; height: 18px; margin: 0 10px; font-size: 11px; }
+    .effort .marks span { position: absolute; transform: translateX(-50%); white-space: nowrap; color: var(--muted); }
+    .effort .marks span.tick::before { content: ''; position: absolute; left: 50%; top: -5px; width: 1px; height: 4px; background: var(--muted); }
+    .effort .marks span.rec { color: var(--accent); font-size: 14px; top: -40px; }
+    .effort .legend { margin: 2px 0 6px; }
+    .etable { width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+    .etable th, .etable td { padding: 3px 8px; text-align: right; white-space: nowrap; }
+    .etable th { font-weight: 600; color: var(--muted); font-size: 11px; }
+    .etable .l { text-align: left; }
+    .etable .sel { background: color-mix(in srgb, var(--accent) 10%, transparent); font-weight: 700; color: var(--text); }
+
+    /* A: controls */
+    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; align-items: start; }
+    .ctl { border: 1px solid var(--border); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+    .ctl.changed { border-color: var(--accent); }
+    .ctl .h { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+    .ctl .h b { font-size: 13px; } .ctl .life { font-size: 11px; color: var(--muted); }
+    /* a setting: its value (typeable), a slider whose track shows the zones, or a two-way switch */
+    .cval { display: flex; align-items: baseline; gap: 4px; }
+    .cval .val { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; width: calc(var(--n, 2) * 1ch + 10px); text-align: left; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text); padding: 0 4px; margin-left: -5px; -moz-appearance: textfield; }
+    .cval .val:hover, .cval .val:focus { border-color: var(--border); background: var(--panel); outline: none; }
+    .cval .val::-webkit-outer-spin-button, .cval .val::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .cval .unit { font-size: 14px; color: var(--muted); }
+    .cval .zone-name { margin-left: auto; font-size: 11px; font-weight: 600; }
+    .zslider { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; margin: 0; background: transparent; cursor: pointer; padding: 0; border: 0; }
+    .zslider::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: var(--track-bg); }
+    .zslider::-moz-range-track { height: 8px; border-radius: 4px; background: var(--track-bg); }
+    .zslider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -5px; border-radius: 50%; background: var(--panel); border: 3px solid var(--text); box-shadow: 0 1px 3px rgb(0 0 0 / .25); }
+    .zslider::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--panel); border: 3px solid var(--text); }
+    .zslider:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+    .zends { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: -4px; }
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; align-self: flex-start; }
+    .seg button { border: 0; border-radius: 0; padding: 5px 12px; font-size: 13px; background: var(--panel); }
+    .seg button + button { border-left: 1px solid var(--border); }
+    .seg button[aria-pressed="true"] { background: var(--accent-strong); color: var(--on-accent); font-weight: 600; }
+    .ctl .eff { color: var(--muted); } .ctl .eff b { color: var(--text); font-weight: 600; }
+    .ctl .risk { color: var(--warn); }
+
+    /* B: plan */
+    /* the plan: weeks at a glance → a phase → a week's days */
+    .tl { display: grid; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); gap: 3px; align-items: end; height: 92px; margin: 6px 0 3px; }
+    [data-anfra-block="plan-structure"] { position: relative; }
+    .tlw { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch;
+           gap: 2px; padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: 6px; }
+    .tlw .bar { height: var(--h); background: var(--c); border-radius: 4px 4px 2px 2px; transition: opacity .15s; }
+    .tlw.dim .bar { opacity: .3; } .tlw.rec .bar { background-image: repeating-linear-gradient(45deg, transparent 0 4px, rgb(255 255 255 / .35) 4px 8px); }
+    .tlw:hover .bar { opacity: .85; }
+    .tlw.sel .bar { outline: 2px solid var(--text); outline-offset: 1px; }
+    .tlw .km { font-size: 10px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+    .tlw .lbl { font-size: 10px; text-align: center; color: var(--text); font-weight: 600; }
+    .tlw.dim .lbl, .tlw.dim .km { color: var(--muted); }
+    .pband { display: grid; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); gap: 3px; margin: 0 0 10px; }
+    .pseg { border: 0; border-radius: 4px; padding: 4px 6px; font-size: 11px; font-weight: 600; color: var(--text); text-align: left; overflow: hidden;
+            white-space: nowrap; text-overflow: ellipsis; background: color-mix(in srgb, var(--c) 16%, var(--panel)); border-top: 3px solid var(--c); }
+    .pseg:hover, .pseg.sel { background: color-mix(in srgb, var(--c) 30%, var(--panel)); }
+    .pseg.sel { outline: 2px solid var(--c); outline-offset: 1px; }
+    .wk-tip { position: absolute; z-index: 50; width: 250px; padding: 8px 10px; border-radius: 10px; background: var(--panel); border: 1px solid var(--border);
+              box-shadow: 0 8px 24px rgb(0 0 0 / .15); font-size: 12px; pointer-events: none; }
+    .wk-tip[hidden] { display: none; }
+    .wk-tip table { margin: 4px 0; } .wk-tip td { padding: 1px 6px 1px 0; border: 0; background: none !important; }
+    .wk-tip td:last-child { text-align: right; }
+    .pd-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .pd-nav { display: flex; gap: 2px; align-items: center; flex: none; }
+    .pd-nav .link, .wchip { border: 1px solid var(--border); background: var(--panel); border-radius: 8px; padding: 2px 9px; font-size: 12px; }
+    .pd-nav .link[data-close] { border: 0; font-size: 18px; color: var(--muted); }
+    .pd-nav .link:disabled { opacity: .35; cursor: default; }
+    .wchips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .wchip { display: flex; flex-direction: column; align-items: flex-start; padding: 4px 10px; }
+    .wchip span { color: var(--muted); font-size: 11px; }
+    .wchip:hover { border-color: var(--c); }
+    .phase-list[hidden] { display: none; }
+    .pd { border: 1px solid var(--border); border-top: 3px solid var(--c); border-radius: 10px; padding: 12px 14px; font-size: 12px; }
+    .pd h3 { font-size: 15px; margin: 0; }
+    .pd-purpose { margin: 6px 0 10px; font-size: 13px; }
+    .pd-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 18px; }
+    .pd h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 4px; }
+    .pd ul { margin: 0; padding-left: 16px; } .pd li { margin: 2px 0; }
+    .pd details.expected { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 6px; }
+    .pd details.expected .etable { max-width: 620px; }
+    .pd table.days { margin-top: 8px; font-size: 12px; }
+    .sess { font-size: 11px; padding: 0 6px; border-radius: 999px; background: var(--bg); }
+    .sess.intervals, .sess.threshold { background: color-mix(in srgb, var(--accent) 15%, var(--panel)); }
+    .sess.long { background: color-mix(in srgb, var(--accent-2) 18%, var(--panel)); }
+    .sess.race { background: var(--accent); color: #fff; }
+    tr.pweek { cursor: pointer; } tr.pweek:hover td { background: var(--row-hover); } tr.pweek.open td { background: var(--row-hover); font-weight: 600; }
+    tr.pdays > td { background: var(--bg); text-align: left; white-space: normal; }
+
+    /* C: result */
+    .result { display: grid; grid-template-columns: 1fr 1fr auto 1.2fr; gap: 12px; align-items: start; }
+    .result .box { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+    .result .box .t { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+    .result .box .v { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .result .box.time { border: 2px solid var(--accent); }
+    .result .box.time .v { font-size: 34px; font-weight: 800; letter-spacing: -.02em; }
+    .result .arrow { align-self: center; color: var(--muted); font-size: 20px; }
+    .lever { margin: 10px 0 0; font-size: 13px; }
+    .checks { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+    .checks li::before { content: '● '; } .checks li.info { color: var(--muted); }
+    .pill { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; display: inline-block; margin: 4px 4px 0 0; }
+    .wfrow { display: grid; grid-template-columns: 1fr 120px 70px; gap: 8px; align-items: center; font-size: 12px; padding: 3px 0; }
+    .wfrow .bar { height: 8px; position: relative; }
+    .wfrow .bar i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 4px; }
+    .wfrow .v { text-align: right; font-variant-numeric: tabular-nums; }
+    tr.week { cursor: pointer; }
+    tr.week:hover td { background: var(--row-hover); }
+    tr.week.open td { background: var(--row-hover); font-weight: 600; }
+    .days { width: 100%; }
+    .days td, .days th { padding: 4px 6px; }
+    .status-done { color: var(--good); } .status-missed { color: var(--bad); } .status-partial, .status-extra { color: var(--warn); }
+
+    @media (max-width: 900px) { .tiles { grid-template-columns: 1fr; }
+                                .chain, .result { grid-template-columns: 1fr; } .chain .arrow, .result .arrow { transform: rotate(90deg); justify-self: center; }
+                                .gauges { grid-template-columns: 1fr; } .pd-grid { grid-template-columns: 1fr; } .tlw .km { display: none; } }
+
+    /* the new planner: one goal; how you'll train; what gets you faster; your weeks */
+    .race-bar .race-pick { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .race-bar .race-pick label { flex-basis: auto; margin-right: 4px; }
+    .race-bar .race-meta { margin: 0 0 0 6px; }
+    .goal-check { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 20px 22px; margin: 14px 0 0; display: flex; flex-direction: column; gap: 14px; }
+    .goal-check[hidden] { display: none; }
+    .gc-head { background: var(--ink); color: #f6f3ee; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; }
+    .gc-head .k { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #fcc419; }
+    .gc-head h2 { margin: 0; font-size: 22px; line-height: 1.25; }
+    .gc-head p { margin: 0; font-size: 14px; color: #cfc8bf; }
+    .gc-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; }
+    .gc-opt { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; border-radius: 14px; border: 2px solid var(--border); background: var(--panel); }
+    .gc-opt.rec { border-color: var(--good); }
+    .gc-opt.risk { border-color: color-mix(in srgb, var(--warn) 60%, var(--border)); }
+    .gc-opt .k { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+    .gc-opt .t { font-size: 32px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .gc-opt p { margin: 0; font-size: 13px; color: var(--muted); }
+    .gc-opt button { align-self: flex-start; margin-top: auto; }
+    .gc-opt label { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; }
+    .journey { background: var(--panel); border: 1px solid var(--border); border-radius: 20px; padding: 22px 26px; margin: 14px 0 6px;
+               display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px; align-items: center; }
+    .j-end { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .j-end.right { align-items: flex-end; text-align: right; }
+    .j-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .j-time { font-size: 44px; font-weight: 800; letter-spacing: -.02em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+    .accent { color: var(--accent-strong); }
+    .j-mid { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+    .j-diff { font-size: 30px; font-weight: 800; color: var(--accent-strong); font-variant-numeric: tabular-nums; }
+    .j-arrow { position: relative; width: 100%; height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--border), var(--accent)); }
+    .j-arrow::after { content: ''; position: absolute; right: -2px; top: -7px; border-top: 9px solid transparent; border-bottom: 9px solid transparent; border-left: 14px solid var(--accent); }
+    .journey .sub { font-size: 13px; color: var(--muted); }
+    .journey .sub button { padding: 0 2px; border: 0; background: none; color: var(--link); font-size: 13px; }
+    .sec-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 10px; margin: 26px 2px 10px; }
+    .sec-head h2 { font-size: 22px; font-weight: 800; letter-spacing: -.01em; margin: 0 0 2px; }
+    .sec-head p { margin: 0; font-size: 13px; }
+    .sec-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .settings { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); gap: 12px; }
+    .set { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 9px; }
+    .set.changed { border-color: var(--accent); }
+    .set .h { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; font-size: 14px; font-weight: 600; color: var(--muted); }
+    .set .imp { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--stripe); color: var(--muted); white-space: nowrap; }
+    .set .imp.big { background: color-mix(in srgb, var(--accent) 16%, var(--panel)); color: var(--accent-strong); }
+    .set .v { font-size: 28px; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+    .set .v small { font-size: 12px; font-weight: 600; color: var(--accent-strong); margin-left: 6px; }
+    .zg, .za, .zr { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 8px; vertical-align: -1px; }
+    .zg { background: color-mix(in srgb, var(--good) 45%, var(--panel)); } .za { background: color-mix(in srgb, var(--warn) 45%, var(--panel)); } .zr { background: color-mix(in srgb, var(--bad) 45%, var(--panel)); }
+    .steps { display: flex; gap: 6px; flex-wrap: wrap; }
+    .steps button { font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+    .steps button[aria-pressed="true"][class] { background: var(--text); border-color: var(--text); color: var(--panel); }
+    .steps button.green { color: var(--good-text); } .steps button.amber { color: var(--warn-text); border-color: color-mix(in srgb, var(--warn) 50%, var(--border)); } .steps button.red { color: var(--bad-text); border-color: color-mix(in srgb, var(--bad) 50%, var(--border)); }
+    .set .note { font-size: 12px; color: var(--muted); }
+    .set .zslider { margin: 4px 0 0; height: 26px; }
+    .set .zslider::-webkit-slider-runnable-track { height: 10px; border-radius: 5px; }
+    .set .zslider::-webkit-slider-thumb { width: 24px; height: 24px; margin-top: -7px; background: var(--text); border: 3px solid var(--panel); box-shadow: 0 1px 5px rgb(0 0 0 / .35); }
+    .set .zslider::-moz-range-thumb { width: 18px; height: 18px; background: var(--text); border: 3px solid var(--panel); }
+    .set .readout { font-size: 12px; color: var(--muted); min-height: 16px; font-variant-numeric: tabular-nums; }
+    .set .readout b { color: var(--text); }
+    .set .readout .green { color: var(--good-text); } .set .readout .amber { color: var(--warn-text); } .set .readout .red { color: var(--bad-text); }
+    /* after a re-plan: what moved flashes once, with a chip of how much it moved */
+    @keyframes flashbg {
+      0% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 60%, transparent); background-color: color-mix(in srgb, var(--accent) 16%, var(--panel)); }
+      100% { box-shadow: 0 0 0 0 transparent; }
+    }
+    .flash { animation: flashbg 1.5s ease-out; border-radius: 10px; }
+    .wkb .km.flash { animation: flashbg 1.5s ease-out; border-radius: 6px; padding: 0 3px; }
+    @keyframes chip { 0% { opacity: 0; transform: translateY(6px); } 12% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-4px); } }
+    .dchip { display: inline-block; margin-left: 8px; font-size: 12px; font-weight: 800; padding: 1px 8px; border-radius: 999px; animation: chip 2.6s ease-out forwards; vertical-align: middle; font-variant-numeric: tabular-nums; }
+    .dchip.faster { background: color-mix(in srgb, var(--good) 20%, var(--panel)); color: var(--good-text); }
+    .dchip.slower { background: color-mix(in srgb, var(--bad) 16%, var(--panel)); color: var(--bad-text); }
+    .wkb .stack i { transition: height .55s cubic-bezier(.2, .8, .2, 1); }
+    @media (prefers-reduced-motion: reduce) { .flash, .dchip { animation: none; } .wkb .stack i { transition: none; } }
+    /* while the plan rebuilds under a moving slider, what will change dims a little */
+    .replanning .builds, .replanning .weeks-panel, .replanning .build-notes { opacity: .55; transition: opacity .2s; }
+    .builds, .weeks-panel, .build-notes { transition: opacity .25s; }
+    .set .risk { font-size: 12px; color: var(--warn-text); }
+    .zone-note { margin: 8px 2px 0; }
+    .builds { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 12px; }
+    .build { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; }
+    .build:hover { background: var(--row-hover); }
+    .b-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .b-name { font-size: 17px; font-weight: 750; } .b-name .muted { font-size: 13px; font-weight: 500; }
+    .b-min { font-size: 22px; font-weight: 800; color: var(--good-text); font-variant-numeric: tabular-nums; white-space: nowrap; } .b-min.loss { color: var(--bad-text); }
+    .build .value { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .build .sub { font-size: 13px; color: var(--muted); }
+    .bbar { position: relative; height: 12px; border-radius: 6px; background: var(--track); }
+    .bbar i { position: absolute; left: 0; top: 0; height: 12px; border-radius: 6px; }
+    .bbar .full { position: absolute; top: -4px; width: 2px; height: 20px; background: var(--text); }
+    .build-notes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    .build-notes span { font-size: 13px; padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--accent-2) 14%, var(--panel)); }
+    .build-notes span.ok { background: color-mix(in srgb, var(--good) 14%, var(--panel)); }
+    .build-notes span.warn { background: color-mix(in srgb, var(--warn) 16%, var(--panel)); color: var(--text); }
+    .model-more { margin-top: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 12px 18px; font-size: 14px; }
+    .model-more[hidden] { display: none; }
+    .model-more ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+    .zlegend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); }
+    .zlegend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+    .weeks-panel { border-radius: 20px; padding: 20px; }
+    .wk-scroll { overflow-x: auto; }
+    .wk-bars, .wk-band { min-width: 760px; display: grid; grid-template-columns: repeat(var(--n, 13), minmax(0, 1fr)); gap: 6px; }
+    .wk-bars { align-items: end; }
+    .wk-band { margin-top: 6px; }
+    .wkb { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 250px; padding: 8px 3px 6px; border-radius: 12px; border: 1px solid transparent; background: transparent; cursor: pointer; }
+    .wkb:hover { background: var(--row-hover); }
+    .wkb[aria-pressed="true"] { border-color: var(--text); background: var(--bg); }
+    .wkb .km { font-size: 13px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .wkb[aria-pressed="true"] .km { color: var(--text); }
+    .wkb .stack { display: flex; flex-direction: column; width: 100%; max-width: 54px; border-radius: 6px 6px 3px 3px; overflow: hidden; outline: 3px solid var(--c); outline-offset: -1px; }
+    .wkb .stack i { display: block; }
+    .wkb.light .stack { opacity: .65; }
+    .wkb .km small { font-size: 10px; font-weight: 600; }
+    .wkb .lbl { font-size: 11px; font-weight: 700; color: var(--text); display: flex; flex-direction: column; align-items: center; line-height: 1.25; }
+    .wkb .lbl .dt { font-size: 10px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+    .wkb .flag { font-size: 10px; font-weight: 800; letter-spacing: .04em; color: var(--accent-strong); min-height: 12px; }
+    .wpb { border: 0; border-radius: 6px; padding: 8px 10px; font-size: 12px; font-weight: 800; text-align: left; color: var(--text); min-height: 34px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+           background: color-mix(in srgb, var(--c) 22%, var(--panel)); border-top: 4px solid var(--c); }
+    .wpb[aria-pressed="true"] { background: color-mix(in srgb, var(--c) 42%, var(--panel)); }
+    .wk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 14px; margin-top: 16px; }
+    .wk-detail, .ladder { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .wk-detail h3, .ladder h3 { margin: 0; font-size: 18px; font-weight: 800; }
+    .wd-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--track); }
+    .chip.ph { background: color-mix(in srgb, var(--c) 30%, var(--panel)); }
+    .zsplit { display: flex; height: 14px; border-radius: 4px; overflow: hidden; }
+    .wk-detail p { margin: 0; font-size: 14px; line-height: 1.5; }
+    .wk-detail p b { color: var(--accent-strong); }
+    .wk-detail table.days { font-size: 12px; background: var(--panel); border-radius: 10px; overflow: hidden; }
+    .wk-detail table.days td { white-space: normal; }
+    .wk-detail table.days td.nw { white-space: nowrap; }
+    .rung { display: flex; gap: 12px; align-items: center; width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid transparent; background: transparent; text-align: left; }
+    .rung[aria-pressed="true"] { border-color: var(--c); background: var(--panel); }
+    .rung .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; background: var(--c); }
+    .rung .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .rung .txt b { font-size: 14px; } .rung .txt span { font-size: 12px; color: var(--muted); }
+    .rung .t { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .rung.race .t { color: var(--accent-strong); }
+    @media (max-width: 760px) { .journey { grid-template-columns: 1fr; } .j-end.right { align-items: flex-start; text-align: left; } .j-time { font-size: 36px; } }
+  </style>
+</head>
+<body>
+<main data-anfra-container="page" data-anfra-label="Race planner">
+  <header data-anfra-container="header" data-anfra-label="Header">
+    <div>
+      <h1>Race planner</h1>
+      <div class="small muted">Plan toward a goal race from your own runs: where you stand, what it takes, and a plan to get there</div>
+    </div>
+  </header>
+
+  <section class="panel race-bar" data-anfra-block="goal-race" data-anfra-label="Goal race" data-anfra-query="races" data-anfra-control="race">
+    <div class="race-pick">
+      <label class="small muted" for="race-select">Goal race</label>
+      <select id="race-select"></select>
+      <span class="small muted race-meta" id="race-status"></span>
+    </div>
+    <div class="err" id="race-err"></div>
+  </section>
+
+  <!-- one goal: when it is out of safe reach, the runner picks a safe change, the safe target, or the risk -->
+  <section class="goal-check" id="goal-check" hidden data-anfra-block="goal-check" data-anfra-label="Check your goal"></section>
+
+  <section class="journey" data-anfra-block="journey" data-anfra-label="From now to your goal" data-anfra-query="forecast races scenario">
+    <div class="j-end">
+      <span class="j-label">You now</span>
+      <span class="j-time" id="j-now"></span>
+      <span class="sub" id="j-now-sub"></span>
+    </div>
+    <div class="j-mid">
+      <span class="j-diff" id="j-diff"></span>
+      <span class="j-arrow" aria-hidden="true"></span>
+      <span class="sub" id="j-mid-sub"></span>
+    </div>
+    <div class="j-end right">
+      <span class="j-label accent">Your goal</span>
+      <span class="j-time accent" id="j-goal"></span>
+      <span class="sub" id="j-goal-sub"></span>
+    </div>
+  </section>
+
+  <div class="sec-head">
+    <div><h2>How you'll train</h2><p class="small muted">The three that shape your weeks first, then the rest by how much they move your race time. Change one and the plan rebuilds.</p></div>
+    <div class="sec-tools"><span id="whatif-status" class="small muted"></span>
+      <button type="button" id="controls-reset">Back to the recommended plan</button>
+      <button type="button" id="settings-all" aria-expanded="false">Show all settings</button></div>
+  </div>
+  <section class="settings" id="settings" data-anfra-block="settings" data-anfra-label="How you'll train" data-anfra-query="sweep best" data-anfra-control="set_runs_per_week set_peak_km set_quality set_long_max_km set_ramp_pct set_taper_weeks set_front_loaded set_tune_up set_start_km" data-skeleton style="--sk-h:190px"></section>
+  <p class="small muted zone-note"><i class="zg"></i>safe <i class="za"></i>caution <i class="zr"></i>injury risk known to rise (ProjectRun21, Garmin-RUNSAFE) · drag a slider: the race time and the plan follow</p>
+
+  <div class="sec-head">
+    <div><h2>What gets you faster</h2><p class="small muted">The two things this training builds, and the minutes each one is worth on race day</p></div>
+    <div class="sec-tools"><button type="button" id="model-toggle" aria-expanded="false">How it works</button></div>
+  </div>
+  <section class="builds" data-anfra-container="builds" data-anfra-label="What gets you faster">
+    <div class="build" data-anfra-block="g-endure" data-anfra-label="Endurance" data-anfra-query="scenario">
+      <div class="b-head"><span class="b-name">Endurance <span class="muted">· your biggest lever</span></span><b class="b-min" id="g-endure-min"></b></div>
+      <div class="value" id="g-endure"></div>
+      <div class="bbar" id="g-endure-bar"></div>
+      <div class="sub" id="g-endure-sub"></div>
+    </div>
+    <div class="build" data-anfra-block="g-fit" data-anfra-label="Race fitness" data-anfra-query="scenario">
+      <div class="b-head"><span class="b-name">Race fitness</span><b class="b-min" id="g-fit-min"></b></div>
+      <div class="value" id="g-fit"></div>
+      <div class="bbar" id="g-fit-bar"></div>
+      <div class="sub" id="g-fit-sub"></div>
+    </div>
+  </section>
+  <div class="build-notes" id="build-notes" data-anfra-block="build-notes" data-anfra-label="Weather and fresh legs"></div>
+  <div class="model-more" id="model-more" hidden data-anfra-block="model-more" data-anfra-label="How it works"></div>
+
+  <div class="sec-head">
+    <div><h2 id="weeks-title">Your weeks</h2><p class="small muted">Bar height = km · click a week or a phase</p></div>
+    <div class="zlegend"><span><i style="background:var(--z2)"></i>Easy</span><span><i style="background:var(--z3)"></i>Goal pace</span><span><i style="background:var(--z4)"></i>Threshold</span><span><i style="background:var(--z5)"></i>VO2max</span><span><i style="background:var(--plum)"></i>Race</span><span><i style="background:var(--muted)"></i>Done</span></div>
+  </div>
+  <section class="panel weeks-panel" data-anfra-container="plan" data-anfra-label="Your plan">
+    <div class="wk-scroll" data-anfra-block="plan-chart" data-anfra-label="Weeks and phases" data-anfra-query="scenario_weeks scenario_days scenario_phases">
+      <div class="wk-bars" id="wk-bars" data-skeleton style="--sk-h:220px"></div>
+      <div class="wk-band" id="wk-band"></div>
+    </div>
+    <div class="wk-grid">
+      <div class="wk-detail" id="wk-detail" data-anfra-block="week-detail" data-anfra-label="The week" data-anfra-query="scenario_days"></div>
+      <div class="ladder" data-anfra-block="phase-ladder" data-anfra-label="Where each phase takes you" data-anfra-query="scenario_phases">
+        <h3>Where each phase takes you</h3>
+        <div id="ladder"></div>
+      </div>
+    </div>
+  </section>
+
+  <details class="saved" id="saved">
+    <summary><b>Your saved plan</b> <span class="small muted" id="saved-sub"></span></summary>
+  <section class="panel" data-anfra-block="projection" data-anfra-label="Projected fitness, fatigue, form" style="margin-bottom:12px">
+    <div class="panel-head"><h2>Fitness · fatigue · form to race day</h2>
+      <span class="small" data-anfra-query="forecast">Race-morning form <b id="f-form">–</b> <span class="muted" id="f-form-sub"></span></span></div>
+    <div id="projection-chart" class="chart" data-anfra-query="projection"></div>
+    <div id="projection-status" class="status visible loading"></div>
+    <div class="note">Solid: as run (last 8 weeks). Dashed: projected from the plan's estimated load (your own load per minute per kind of session); with no plan, it shows what happens if you stop training. Shaded: race-morning form target, TSB 10–30 % of fitness.</div>
+  </section>
+
+  <section class="panel" data-anfra-block="plan" data-anfra-label="Weekly plan" data-anfra-query="weeks" style="margin-bottom:12px">
+    <div class="panel-head">
+      <h2>Plan, week by week</h2>
+      <span class="small muted">As saved in your data</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th class="l">Week</th><th>To race</th><th>Planned km</th><th>Done km</th><th>Long run</th><th>Quality</th>
+          <th>Ramp</th><th>Est. load</th><th class="l">Cautions</th>
+        </tr></thead>
+        <tbody id="weeks-body"></tbody>
+      </table>
+    </div>
+    <div id="weeks-status" class="status"></div>
+    <div class="note">Ramp: planned km against the most of the previous 3 weeks (planned, else run). Cautions follow the README: over 10 % ramp, long run over 45 % of the week. They are cautions, not predictions.</div>
+  </section>
+
+  <section class="panel" data-anfra-block="done" data-anfra-label="Planned vs done" data-anfra-query="done">
+    <div class="panel-head"><h2>Planned vs done</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th class="l">Day</th><th class="l">Planned</th><th>km</th><th>Target</th><th class="l">Done</th><th>km</th><th>Pace</th><th>vs target</th><th class="l">Status</th>
+        </tr></thead>
+        <tbody id="done-body"></tbody>
+      </table>
+    </div>
+    <div id="done-status" class="status"></div>
+  </section>
+  </details>
+</main>
+
+<div class="backdrop" id="calc-backdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="calc-title" data-anfra-block="calc" data-anfra-label="How your race time today is calculated" data-anfra-query="forecast params">
+    <div class="modal-head">
+      <div><h2 id="calc-title">How your race time today is calculated</h2><div class="small muted" id="calc-sub"></div></div>
+      <button type="button" id="calc-close" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body" id="calc-body"></div>
+  </div>
+</div>
+
+<script>
+  const { num, fmt0, fmt1, fmt2, pace, duration, or, css, axisBase, renderStatus, dash, esc } = Run;
+  const DS = 'running';
+  const app = Anfra.createApp({ title: 'Race Planner', timezone: Run.TZ });
+  const isTrue = (v) => v === true || v === 'true';
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- declarations ----------
+  const races = app.createQuery('races', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        id: race.race_id, name: race.name, date: race.race_date, km: race.distance_km,
+        goal: race.goal_time_s, priority: race.priority
+      }
+      filters { race.is_upcoming is true }
+      sorts { date asc }
+    }` });
+
+  // The selected race drives every other query; -1 until the race list arrives.
+  const race = app.createFilter('race', { type: 'number', label: 'Goal race', default: { operator: 'is', values: ['-1'] } });
+
+  const forecast = app.createQuery('forecast', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        id: race_forecast.race_id, predicted: race_forecast.predicted_time_s, band: race_forecast.band_pct,
+        method: race_forecast.method, goal: race_forecast.goal_time_s, km: race_forecast.distance_km,
+        tanda: race_forecast.tanda_time_s, tanda_k: race_forecast.tanda_km_per_week, tanda_p: race_forecast.tanda_pace_s_per_km,
+        unplanned: race_forecast.unplanned_days, garmin: race_forecast.garmin_time_s,
+        garmin_cal: race_forecast.garmin_calibrated_time_s, heat_fitted: race_forecast.heat_fitted, band_fitted: race_forecast.band_fitted,
+        race_wbgt: race_forecast.race_wbgt_c, race_wbgt_n: race_forecast.race_wbgt_n, training_wbgt: race_forecast.training_wbgt_c,
+        heat: race_forecast.heat_adj_pct, tsb: race_forecast.race_morning_tsb, tsb_share: race_forecast.race_morning_tsb_share,
+        ctl: race_forecast.race_morning_ctl, in_band: race_forecast.race_morning_in_band,
+        has_plan: race_forecast.has_plan, vo2: race_forecast.vo2_effective, vo2_race: race_forecast.vo2_race,
+        vo2_change: race_forecast.vo2_change, shape_today: race_forecast.shape_today,
+        shape_race: race_forecast.shape_race, shape_needed: race_forecast.shape_needed, shape_factor: race_forecast.shape_factor,
+        daniels: race_forecast.daniels_time_s, daniels_shape: race_forecast.daniels_shape_time_s,
+        cal: race_forecast.calibration, cal_n: race_forecast.calibration_races, model_base: race_forecast.model_base_time_s,
+        taper: race_forecast.taper_adj_pct, if_shape: race_forecast.time_if_shape_met_s, band_no_heat: race_forecast.band_no_heat_pct,
+        today_time: race_forecast.today_time_s, today_daniels: race_forecast.today_daniels_time_s,
+        today_sf: race_forecast.today_shape_factor, today_daniels_shape: race_forecast.today_daniels_shape_time_s,
+        week_km: race_forecast.recent_week_km, longest_4w: race_forecast.longest_4w_km,
+        today_heat: race_forecast.today_heat_adj_pct, today_train_wbgt: race_forecast.today_training_wbgt_c
+      }
+    }` });
+
+  // Fitted constants behind the forecast (garmin-sync fit), shown in the calculation modal.
+  const params = app.createQuery('params', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        name: model_param.name, value: model_param.value, lo: model_param.ci_low, hi: model_param.ci_high,
+        n: model_param.n, method: model_param.method
+      }
+    }` });
+
+  // Each marked race, predicted from the day before by the causal model (uncalibrated) and by Garmin:
+  // the calibration in the forecast is the mean actual / predicted of the first.
+  const checks = app.createQuery('checks', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        race: race.name, d: race.race_date, km: race.distance_km, method: prediction_check.method,
+        pred: prediction_check.predicted_s, actual: prediction_check.actual_s
+      }
+      filters { prediction_check.method in ["daniels_shape_heat", "garmin_prediction"] }
+      sorts { d asc }
+    }` });
+
+  const projection = app.createQuery('projection', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        date: projection.calendar_date, projected: projection.is_projected, load: projection.load,
+        atl: projection.atl, ctl: projection.ctl, tsb: projection.tsb,
+        lo: projection.tsb_target_low, hi: projection.tsb_target_high
+      }
+      sorts { date asc }
+    }` });
+
+
+  const weeks = app.createQuery('weeks', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        week: plan_week.week_start, to_race: plan_week.weeks_to_race, km: plan_week.planned_km, race_km: plan_week.race_km,
+        done_km: plan_week.done_km, long: plan_week.long_km, long_share: plan_week.long_share,
+        quality: plan_week.quality_sessions, ramp: plan_week.ramp_pct, load: plan_week.est_load,
+        flag_ramp: plan_week.flag_ramp, flag_long: plan_week.flag_long
+      }
+      sorts { week asc }
+    }` });
+
+  const done = app.createQuery('done', { dataset: DS, pageSize: 60, aql: `
+    explore {
+      dimensions {
+        on: plan_day.day, session: plan_day.session, km_est: plan_day.km_est, target: plan_day.target_pace_s_per_km,
+        names: plan_day.done_names, done_km: plan_day.done_km, done_pace: plan_day.done_pace_s_per_km,
+        vs: plan_day.pace_vs_target_s, status: plan_day.status
+      }
+      filters { plan_day.is_future is false }
+      sorts { on desc }
+    }` });
+
+  // ---------- the plan from what you set: the Race Planner model in SQL (db/views.d/60_scenario.sql) ----------
+  // Every setting is a filter on the scenario models; a query computes only the one combination it
+  // is filtered to. -1 (no race, no value) until the race and its recommended plan are known.
+  const SET_KEYS = ['runs_per_week', 'peak_km', 'quality', 'long_max_km', 'ramp_pct', 'taper_weeks', 'front_loaded', 'tune_up', 'start_km'];
+  const SET = Object.fromEntries(SET_KEYS.map((k) => [k, app.createFilter(`set_${k}`, { type: 'number', label: k, default: { operator: 'is', values: ['-1'] } })]));
+  // the recommended settings per runs a week (computed once per refresh)
+  const best = app.createQuery('best', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        runs_per_week: scenario_best.runs_per_week, is_habit: scenario_best.is_habit, peak_km: scenario_best.peak_km,
+        quality: scenario_best.quality, long_max_km: scenario_best.long_max_km, ramp_pct: scenario_best.ramp_pct,
+        taper_weeks: scenario_best.taper_weeks, front_loaded: scenario_best.front_loaded, tune_up: scenario_best.tune_up,
+        start_km: scenario_best.start_km
+      }
+      sorts { runs_per_week asc }
+    }` });
+  const R_FIELDS = ['race_name', 'race_date', 'distance_km', 'goal_time_s', 'weeks_to_race', 'predicted_time_s', 'total_km', 'peak_week_km',
+    'long_run_km', 'tsb_in_band', 'k', 'calibration', 'heat_adj_pct', 'taper_adj_pct', 'vo2_today', 'vo2_race', 'vo2_per_ctl', 'ctl30_today',
+    'ctl30_race', 'shape_today', 'shape_race', 'shape_needed', 'shape_factor', 'tsb_share', 'race_wbgt_c', 'training_wbgt_c', 'band_pct',
+    'saved_plan_time_s', 'target_time_s', 'reachable', 'best_time_s', 'best_vo2', 'best_total_km', 'best_peak_km', 'goal_shape_at_best_vo2',
+    'goal_needs_more_than_full_shape', 'saved_faster_than_safe', 'saved_has_plan', ...SET_KEYS.map((k) => `rec_${k}`)];
+  const sResult = app.createQuery('scenario', { dataset: DS, aql: `
+    explore { dimensions { ${R_FIELDS.map((f) => `${f}: scenario_result.${f}`).join(', ')} } }` });
+  const sWeeks = app.createQuery('scenario_weeks', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        week: scenario_week.week, week_start: scenario_week.week_start, phase: scenario_week.phase, km: scenario_week.km,
+        done_km: scenario_week.done_km, long_km: scenario_week.long_km, runs: scenario_week.runs, quality: scenario_week.week_quality,
+        race_km: scenario_week.race_km
+      }
+      sorts { week asc }
+    }` });
+  const sDays = app.createQuery('scenario_days', { dataset: DS, pageSize: 500, aql: `
+    explore {
+      dimensions {
+        plan_date: scenario_day.day, week: scenario_day.week, phase: scenario_day.phase, session: scenario_day.session,
+        km_est: scenario_day.km_est, planned_min: scenario_day.planned_min, notes: scenario_day.notes
+      }
+      sorts { plan_date asc }
+    }` });
+  const sPhases = app.createQuery('scenario_phases', { dataset: DS, aql: `
+    explore {
+      dimensions {
+        phase: scenario_phase.phase, title: scenario_phase.title, purpose: scenario_phase.purpose,
+        from_week: scenario_phase.from_week, to_week: scenario_phase.to_week, shape: scenario_phase.exp_shape,
+        vo2: scenario_phase.exp_vo2, threshold: scenario_phase.exp_threshold_pace, form_share: scenario_phase.exp_form_share,
+        race_time: scenario_phase.exp_race_time_s
+      }
+      sorts { from_week asc }
+    }` });
+  // each setting's race time at each of its values, the others held: the sliders' zones and readouts
+  const sSweep = app.createQuery('sweep', { dataset: DS, pageSize: 500, aql: `
+    explore {
+      dimensions {
+        setting: scenario_sweep.setting, ord: scenario_sweep.setting_order, label: scenario_sweep.setting_label,
+        unit: scenario_sweep.unit, life: scenario_sweep.life, risk_note: scenario_sweep.risk_note,
+        current: scenario_sweep.current_value, value: scenario_sweep.value, time_s: scenario_sweep.time_s,
+        zone: scenario_sweep.zone, fresh: scenario_sweep.fresh, reaches: scenario_sweep.reaches
+      }
+      sorts { ord asc, value asc }
+    }` });
+  const SCENARIO = [[sResult, 'scenario_result'], [sWeeks, 'scenario_week'], [sDays, 'scenario_day'], [sPhases, 'scenario_phase'], [sSweep, 'scenario_sweep']];
+  app.mapControl(race, best, { field: 'scenario_best.race_id' });
+  for (const [q, model] of SCENARIO) {
+    app.mapControl(race, q, { field: `${model}.race_id` });
+    for (const k of SET_KEYS) app.mapControl(SET[k], q, { field: `${model}.${k}` });
+  }
+
+  app.mapControl(race, forecast, { field: 'race_forecast.race_id' });
+  app.mapControl(race, projection, { field: 'projection.race_id' });
+  app.mapControl(race, weeks, { field: 'plan_week.race_id' });
+  app.mapControl(race, done, { field: 'plan_day.race_id' });
+
+  // ---------- render ----------
+  const changed = Run.changeTracker();
+  const logFirst = Run.logFirstResults();
+  const chart = echarts.init($('projection-chart'));
+  const set = (id, v) => { $(id).textContent = v; };
+  const tone = (id, cls) => { $(id).classList.remove('good', 'warn', 'bad'); if (cls) $(id).classList.add(cls); };
+  const shortDate = (v) => new Date(`${String(v).slice(0, 10)}T00:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const dayLabel = (v) => new Date(`${String(v).slice(0, 10)}T00:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const distLabel = (km) => ({ 5: '5K', 10: '10K', 21.0975: 'Half marathon', 42.195: 'Marathon' }[num(km)] ?? `${fmt1.format(num(km))} km`);
+  let selected = null;        // the selected race row
+  let scenario = null, ctlVals = null, previewSeq = 0, previewTimer = null, openPreviewWeek = null; // step 3
+  let raceValue = '-1';       // the race filter's current value
+  async function setRace (id) {
+    if (id === raceValue) return;
+    raceValue = id;
+    race.setCondition({ operator: 'is', values: [id] });
+    ctlVals = null;
+    scenario = null;
+    lastSnap = null;
+    await app.execute();      // the race's recommended settings arrive with it (best)
+    if (id !== '-1' && id === raceValue) requestPreview(true);
+  }
+
+  function renderRaces () {
+    const st = $('race-status');
+    if (races.state === 'error') { st.textContent = `Couldn't load races: ${races.error.message}`; return; }
+    if (!races.result) { st.textContent = 'Loading…'; return; }
+    const rows = races.result.rows;
+    if (!changed(races)) return;
+    const keep = selected && rows.find((r) => r.id === selected.id);
+    selected = keep || rows.find((r) => r.priority === 'A') || rows[0] || null;
+    $('race-select').innerHTML = rows.map((r) =>
+      `<option value="${esc(r.id)}"${selected && r.id === selected.id ? ' selected' : ''}>${esc(r.name)} · ${shortDate(r.date)}</option>`).join('')
+      || '<option value="">No upcoming race</option>';
+    renderRacesStatusOnly();
+    renderTimeToRace();
+    setRace(selected ? String(selected.id) : '-1');
+  }
+
+  // days left and the race's facts, on the race line
+  function renderTimeToRace () { renderRacesStatusOnly(); }
+
+  function renderForecast () {
+    if (forecast.state === 'error') { set('j-now-sub', `Couldn't load the forecast: ${forecast.error.message}`); return; }
+    const f = forecast.result?.rows[0];
+    if (!f) return;
+    const tsb = num(f.tsb);
+    set('f-form', tsb === null ? dash : `${tsb > 0 ? '+' : ''}${fmt0.format(tsb)}`);
+    set('f-form-sub', tsb === null ? '' : `${fmt0.format(num(f.tsb_share) * 100)} % of fitness ${fmt0.format(num(f.ctl))} · target 10–30 %`);
+    tone('f-form', tsb === null ? null : isTrue(f.in_band) ? 'good' : 'warn');
+    if (changed(forecast)) { renderJourney(); if (scenario) renderBuilds(); }
+  }
+
+  function renderProjection () {
+    renderStatus(projection, $('projection-status'), 'No projection: pick an upcoming race');
+    if (!changed(projection)) return;
+    const rows = projection.result.rows;
+    const firstProjected = rows.findIndex((r) => isTrue(r.projected));
+    const split = (key, projected) => rows.map((r, i) => {
+      const p = isTrue(r.projected);
+      // overlap one point so the solid and dashed lines join
+      return (projected ? (p || i === firstProjected - 1) : !p) ? num(r[key]) : null;
+    });
+    const last = rows.at(-1);
+    const raceMorning = rows.at(-2) ?? last;
+    chart.setOption({
+      grid: { left: 40, right: 40, top: 36, bottom: 28 },
+      legend: { top: 0, textStyle: { color: css('--muted') }, data: ['Fitness (CTL)', 'Fatigue (ATL)', 'Form (TSB)', 'Load'] },
+      tooltip: { trigger: 'axis', formatter: (ps) => { const r = rows[ps[0].dataIndex];
+        return `${dayLabel(r.date)}${isTrue(r.projected) ? ' · projected' : ''}<br>Fitness ${or(r.ctl, fmt0.format)} · Fatigue ${or(r.atl, fmt0.format)} · Form ${or(r.tsb, fmt0.format)}<br>Load ${or(r.load, fmt0.format)}`; } },
+      xAxis: { type: 'category', data: rows.map((r) => r.date), ...axisBase(), axisLabel: { color: css('--muted'), formatter: (v) => shortDate(v).replace(/,? \d{4}$/, '') } },
+      yAxis: [
+        { type: 'value', ...axisBase() },
+        { type: 'value', ...axisBase(), splitLine: { show: false } },
+        { type: 'value', show: false, max: (v) => v.max * 3 },
+      ],
+      series: [
+        { name: 'Load', type: 'bar', yAxisIndex: 2, data: rows.map((r) => num(r.load)), color: css('--border'), barMaxWidth: 4 },
+        { name: 'Fitness (CTL)', type: 'line', showSymbol: false, data: split('ctl', false), color: css('--accent-2') },
+        { name: 'Fitness (CTL)', type: 'line', showSymbol: false, data: split('ctl', true), color: css('--accent-2'), lineStyle: { type: 'dashed' } },
+        { name: 'Fatigue (ATL)', type: 'line', showSymbol: false, data: split('atl', false), color: css('--accent'), lineStyle: { width: 1 } },
+        { name: 'Fatigue (ATL)', type: 'line', showSymbol: false, data: split('atl', true), color: css('--accent'), lineStyle: { width: 1, type: 'dashed' } },
+        { name: 'Form (TSB)', type: 'line', yAxisIndex: 1, showSymbol: false, data: split('tsb', false), color: css('--good') },
+        { name: 'Form (TSB)', type: 'line', yAxisIndex: 1, showSymbol: false, data: split('tsb', true), color: css('--good'), lineStyle: { type: 'dashed' },
+          markArea: raceMorning ? { silent: true, itemStyle: { color: css('--good'), opacity: 0.12 },
+            data: [[{ xAxis: rows[Math.max(0, rows.length - 15)].date, yAxis: num(raceMorning.lo) }, { xAxis: last.date, yAxis: num(raceMorning.hi) }]] } : undefined,
+          markLine: firstProjected > 0 ? { silent: true, symbol: 'none', lineStyle: { color: css('--muted'), type: 'dotted' },
+            label: { color: css('--muted'), formatter: 'today' }, data: [{ xAxis: rows[firstProjected - 1].date }] } : undefined },
+      ],
+    }, { replaceMerge: ['series', 'xAxis'] });
+  }
+
+  function renderWeeks () {
+    renderStatus(weeks, $('weeks-status'), 'No saved plan for this race');
+    if (!weeks.result) return;
+    if (!changed(weeks)) return;
+    $('weeks-body').innerHTML = weeks.result.rows.map((w) => {
+      const k = String(w.week).slice(0, 10);
+      const cautions = [isTrue(w.flag_ramp) && `⚠ ramp +${fmt0.format(num(w.ramp))} %`, isTrue(w.flag_long) && `⚠ long run ${fmt0.format(num(w.long_share) * 100)} % of the week`].filter(Boolean);
+      return `<tr data-week="${k}">
+        <td>${shortDate(k)}</td>
+        <td>${num(w.to_race) === 0 ? 'race week' : `${fmt0.format(num(w.to_race))} wk`}</td>
+        <td>${or(w.km, fmt1.format)}${num(w.race_km) ? ` + race ${fmt1.format(num(w.race_km))}` : ''}</td>
+        <td>${num(w.done_km) ? fmt1.format(num(w.done_km)) : dash}</td>
+        <td>${or(w.long, fmt1.format)}</td>
+        <td>${or(w.quality, fmt0.format)}</td>
+        <td>${num(w.ramp) === null ? dash : `${num(w.ramp) > 0 ? '+' : ''}${fmt0.format(num(w.ramp))} %`}</td>
+        <td>${or(w.load, fmt0.format)}</td>
+        <td class="l small warn">${cautions.join(' · ')}</td></tr>`;
+    }).join('');
+  }
+
+  function renderDone () {
+    renderStatus(done, $('done-status'), 'No planned day has come yet');
+    if (!changed(done)) return;
+    $('done-body').innerHTML = done.result.rows.map((r) => `<tr>
+      <td>${dayLabel(r.on)}</td>
+      <td class="l">${esc(r.session)}</td>
+      <td>${or(r.km_est, fmt1.format)}</td>
+      <td>${num(r.target) ? pace(r.target) : dash}</td>
+      <td class="l small">${esc(r.names ?? '')}</td>
+      <td>${or(r.done_km, fmt1.format)}</td>
+      <td>${num(r.done_pace) ? pace(r.done_pace) : dash}</td>
+      <td>${num(r.vs) === null ? dash : `${num(r.vs) > 0 ? '+' : '−'}${fmt0.format(Math.abs(num(r.vs)))} s`}</td>
+      <td class="l status-${esc(r.status)}">${esc(r.status)}</td></tr>`).join('');
+  }
+
+  // ---------- the plan from what you set (sync server: /plan/preview) ----------
+  const sfJS = (shape, km) => Math.min(1, 0.6 + 0.4 * Math.max(0, 1 - (Math.pow(km, 1.23) - shape) / 100));
+  const minsTxt = (s) => (Math.abs(s) >= 3600 ? duration(Math.abs(s)) : `${fmt0.format(Math.abs(s) / 60)} min`);
+  const signed = (s) => `${s > 30 ? '+' : s < -30 ? '−' : '±'}${minsTxt(s)}`;
+  const ms = (s) => { const a = Math.round(Math.abs(s)); return `${Math.floor(a / 60)}:${String(a % 60).padStart(2, '0')}`; };
+  const signedMs = (s) => `${s < 0 ? '−' : '+'}${ms(s)}`;
+  // phases in the photo's palette, so they don't read as status (red = risk, green = safe)
+  const PHASE_COLOR = { sharpen: '--coral', base: '--accent-2', build: '--accent', peak: '--plum', recovery: '--muted', taper: '--peach', 'race week': '--text' };
+  const CONTROL_KEYS = ['start_km', 'ramp_pct', 'peak_km', 'long_max_km', 'runs_per_week', 'quality', 'taper_weeks', 'front_loaded', 'tune_up'];
+  const TOGGLES = { tune_up: ['off', 'on'], front_loaded: ['gradual', 'front-loaded'] };
+  const fmtVal = (c, v) => (TOGGLES[c.key] ? TOGGLES[c.key][Number(v) ? 1 : 0] : `${fmt0.format(Number(v))}${c.unit}`);
+  // the settings that shape the weeks come first; the rest by how much one step moves the race time
+  const FIRST = ['ramp_pct', 'long_max_km', 'peak_km'];
+  const LABEL = { start_km: 'This week', quality: 'Quality sessions', taper_weeks: 'Taper', front_loaded: 'Build-up', tune_up: 'Tune-up race' };
+  let goalChoice = {};        // race id -> 'risk' once the runner keeps an out-of-reach goal
+  let allSettings = false, selWeek = null;
+
+  // the recommended settings for the runs a week you usually run (or for `runs`)
+  function recommended (runs) {
+    const rows = best.result?.rows ?? [];
+    const r = rows.find((x) => (runs === undefined ? isTrue(x.is_habit) : num(x.runs_per_week) === runs)) ?? rows[0];
+    return r ? Object.fromEntries(SET_KEYS.map((k) => [k, num(r[k])])) : null;
+  }
+  // a setting's value as the grid holds it: whole numbers, this week's km in tenths
+  const filterValue = (k, v) => (k === 'start_km' ? Number(v).toFixed(1) : String(Math.round(Number(v))));
+  // One plan for the settings on screen: every setting becomes its filter, the five scenario queries
+  // run, and their rows are put together in the shape the page draws from.
+  async function requestPreview (reset = false) {
+    if (!selected) return;
+    if (reset || !ctlVals) ctlVals = recommended();
+    if (!ctlVals) { $('whatif-status').textContent = 'No plan for this race: it may be less than a week away'; return; }
+    const seq = ++previewSeq;
+    $('whatif-status').textContent = 'Building the plan…';
+    for (const k of SET_KEYS) SET[k].setCondition({ operator: 'is', values: [filterValue(k, ctlVals[k])] });
+    await app.execute();
+    if (seq !== previewSeq) return;
+    const failed = SCENARIO.map(([q]) => q).find((q) => q.state === 'error');
+    if (failed) { $('whatif-status').textContent = `Couldn't build the plan: ${failed.error.message}`; return; }
+    const next = assemble();
+    if (!next) { $('whatif-status').textContent = 'No plan for these settings'; return; }
+    $('whatif-status').textContent = '';
+    scenario = next;
+    console.log('[plan]', scenario.target, scenario.result, ctlVals);
+    renderScenario();
+  }
+  function assemble () {
+    const r = sResult.result?.rows[0];
+    if (!r || !sWeeks.result?.rows.length) return null;
+    const N = (v) => num(v), B = (v) => (v === null || v === undefined ? null : isTrue(v)), D = (v) => String(v ?? '').slice(0, 10);
+    const controls = [];
+    for (const p of sSweep.result?.rows ?? []) {
+      let c = controls.at(-1);
+      if (!c || c.key !== p.setting) {
+        c = { key: p.setting, label: p.label, unit: p.unit ?? '', life: B(p.life), risk_note: p.risk_note, value: N(p.current), points: [] };
+        controls.push(c);
+      }
+      c.points.push({ value: N(p.value), time_s: N(p.time_s), zone: p.zone, fresh: B(p.fresh), reaches: B(p.reaches) });
+    }
+    return {
+      race: { race_date: D(r.race_date), distance_km: N(r.distance_km), goal_time_s: N(r.goal_time_s) },
+      weeks_to_race: N(r.weeks_to_race), total_km: N(r.total_km),
+      result: Object.fromEntries(['predicted_time_s', 'k', 'calibration', 'heat_adj_pct', 'taper_adj_pct', 'vo2_today', 'vo2_race', 'vo2_per_ctl',
+        'ctl30_today', 'ctl30_race', 'shape_today', 'shape_race', 'shape_needed', 'shape_factor', 'tsb_share', 'race_wbgt_c', 'training_wbgt_c', 'band_pct']
+        .map((k) => [k, N(r[k])])),
+      target: {
+        goal_time_s: N(r.goal_time_s), target_time_s: N(r.target_time_s), reachable: B(r.reachable), best_time_s: N(r.best_time_s),
+        best_vo2: N(r.best_vo2), best_total_km: N(r.best_total_km), best_peak_km: N(r.best_peak_km), now_time_s: N(r.saved_plan_time_s),
+        goal_shape_at_best_vo2: N(r.goal_shape_at_best_vo2), goal_needs_more_than_full_shape: B(r.goal_needs_more_than_full_shape),
+        saved_faster_than_safe: B(r.saved_faster_than_safe),
+        best_options: Object.fromEntries(SET_KEYS.map((k) => [k, N(r[`rec_${k}`])])),
+      },
+      weeks: sWeeks.result.rows.map((w) => ({ week: N(w.week), week_start: D(w.week_start), phase: w.phase, km: N(w.km), done_km: N(w.done_km),
+        long_km: N(w.long_km), runs: N(w.runs), quality: N(w.quality), race_km: N(w.race_km) })),
+      days: (sDays.result?.rows ?? []).map((d) => ({ day: D(d.plan_date), week: N(d.week), phase: d.phase, session: d.session, km_est: N(d.km_est),
+        planned_min: N(d.planned_min), notes: d.notes })),
+      phases: (sPhases.result?.rows ?? []).map((p) => ({ phase: p.phase, title: p.title, purpose: p.purpose, from_week: N(p.from_week), to_week: N(p.to_week),
+        expected: { shape: N(p.shape), vo2: N(p.vo2), threshold_pace_s_per_km: N(p.threshold), form_share: N(p.form_share), race_time_s: N(p.race_time) } })),
+      controls,
+    };
+  }
+  function setControl (key, v) {
+    if (!ctlVals) return;
+    ctlVals[key] = Number(v);
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => requestPreview(), 150);
+  }
+  function renderScenario () {
+    if (!scenario) return;
+    const before = lastSnap;
+    renderGoalCheck();
+    renderJourney();
+    renderSettings();
+    renderBuilds();
+    renderWeeksChart();
+    lastSnap = snapshot();
+    if (before && before.race === lastSnap.race) showChanges(before, lastSnap);
+  }
+
+  // ---------- what changed: after a re-plan the numbers that moved light up, and the race time counts ----------
+  const REDUCED = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let lastSnap = null;
+  function snapshot () {
+    const R = scenario.result;
+    return {
+      race: String(selected?.id), pred: num(R.predicted_time_s),
+      endure: $('g-endure-min').textContent + $('g-endure').textContent, fit: $('g-fit-min').textContent + $('g-fit').textContent,
+      endureS: secsOf($('g-endure-min').textContent), fitS: secsOf($('g-fit-min').textContent),
+      weeks: Object.fromEntries([...document.querySelectorAll('.wkb')].map((b) => [b.dataset.week, b.querySelector('.km').textContent])),
+      rungs: Object.fromEntries(scenario.phases.map((p) => [p.phase, num(p.expected?.race_time_s)])),
+    };
+  }
+  // "37:44 faster" → −2264 s
+  function secsOf (t) { const m = String(t).match(/(\d+):(\d\d)/); return m ? (Number(m[1]) * 60 + Number(m[2])) * (/slower/.test(t) ? 1 : -1) : 0; }
+  function flash (el) {
+    if (!el || REDUCED()) return;
+    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  }
+  function deltaChip (el, secs) {
+    if (!el || Math.abs(secs) < 1) return;
+    const c = document.createElement('span');
+    c.className = `dchip ${secs < 0 ? 'faster' : 'slower'}`;
+    c.textContent = `${secs < 0 ? '−' : '+'}${ms(secs)}`;
+    el.appendChild(c);
+    setTimeout(() => c.remove(), 2600);
+  }
+  // a time counting from its old value to the new one (~0.7 s)
+  function countTo (el, from, to) {
+    if (!el || from === null || to === null || REDUCED() || Math.abs(to - from) < 1) return;
+    const t0 = performance.now(), dur = 700;
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = duration(from + (to - from) * e);
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  function showChanges (a, b) {
+    if (Math.abs(b.pred - a.pred) >= 1) {
+      const el = document.querySelector('.journey .j-pred');
+      countTo(el, a.pred, b.pred);
+      flash(document.querySelector('.j-mid'));
+      deltaChip($('j-mid-sub'), b.pred - a.pred);
+    }
+    if (a.endure !== b.endure) { flash(document.querySelector('[data-anfra-block="g-endure"]')); deltaChip(document.querySelector('[data-anfra-block="g-endure"] .b-head'), b.endureS - a.endureS); }
+    if (a.fit !== b.fit) { flash(document.querySelector('[data-anfra-block="g-fit"]')); deltaChip(document.querySelector('[data-anfra-block="g-fit"] .b-head'), b.fitS - a.fitS); }
+    for (const [w, km] of Object.entries(b.weeks)) if (a.weeks[w] !== km) flash(document.querySelector(`.wkb[data-week="${w}"] .km`));
+    for (const r of document.querySelectorAll('.rung')) {
+      const ph = scenario.phases.find((p) => String(p.from_week) === r.dataset.week)?.phase;
+      if (ph && a.rungs[ph] !== null && b.rungs[ph] !== null && Math.abs(b.rungs[ph] - a.rungs[ph]) >= 1) { flash(r); deltaChip(r.querySelector('.txt b'), b.rungs[ph] - a.rungs[ph]); }
+    }
+  }
+
+  // ---------- one goal: is it within safe reach? ----------
+  // the planner's sweep point for a value: exact, else the nearest (a slider can stop between points)
+  const nearestPoint = (c, v) => c.points.reduce((a, b) => (Math.abs(Number(b.value) - v) < Math.abs(Number(a.value) - v) ? b : a));
+  const pointAt = (c) => nearestPoint(c, Number(ctlVals?.[c.key] ?? c.value));
+  // the smallest change to one setting that reaches the goal (fewest steps from where it is, then
+  // the faster), among safe steps or among caution and risk steps
+  function reachingStep (zones) {
+    let best = null;
+    for (const c of scenario.controls) {
+      const cur = pointAt(c), at = c.points.indexOf(cur);
+      c.points.forEach((p, i) => {
+        if (!zones.includes(p.zone) || !p.reaches || p === cur || at < 0) return;
+        const cand = { c, p, steps: Math.abs(i - at) };
+        if (!best || cand.steps < best.steps || (cand.steps === best.steps && num(p.time_s) < num(best.p.time_s))) best = cand;
+      });
+    }
+    return best;
+  }
+  function renderGoalCheck () {
+    const T = scenario.target, R = scenario.result, el = $('goal-check');
+    const goal = num(T.goal_time_s), best = num(T.best_time_s), pred = num(R.predicted_time_s);
+    const id = String(selected?.id);
+    const show = goal && !T.reachable && pred > goal + 30 && goalChoice[id] !== 'risk';
+    el.hidden = !show;
+    if (!show) return;
+    const safe = reachingStep(['green']), risky = reachingStep(['amber', 'red']);
+    const sNeed = num(T.goal_shape_at_best_vo2);
+    const savedRisk = isTrue(T.saved_faster_than_safe);
+    el.innerHTML = `<div class="gc-head"><span class="k">${savedRisk ? `Your saved plan reaches ${duration(num(T.now_time_s))}, but past the safe limits` : `Your goal is ${minsTxt(best - goal)} out of safe reach`}</span>
+        <h2>${duration(goal)} needs more than a safe plan can build in ${fmt0.format(scenario.weeks_to_race)} weeks with these settings.</h2>
+        <p>${sNeed && !T.goal_needs_more_than_full_shape ? `At the race fitness you can reach (VO2max ${fmt1.format(num(T.best_vo2))}), ${duration(goal)} needs marathon shape ${fmt0.format(sNeed)} %. ` : ''}The fastest plan inside every injury limit gets you to ${duration(best)}.</p></div>
+      <div class="gc-opts">
+        ${safe ? `<div class="gc-opt rec"><span class="k good">Recommended · still injury-free</span><span class="t">${duration(num(safe.p.time_s))}</span>
+          <p>Keep ${duration(goal)}: <b>${esc(LABEL[safe.c.key] ?? safe.c.label)} ${esc(fmtVal(safe.c, safe.p.value))}</b> instead of ${esc(fmtVal(safe.c, pointAt(safe.c)?.value ?? safe.c.value))} reaches it with every week in the safe zone.</p>
+          <button type="button" class="primary" data-gc="safe-step">Make this change</button></div>` : ''}
+        <div class="gc-opt ${safe ? '' : 'rec'}"><span class="k ${safe ? '' : 'good'}">${safe ? 'Or aim for the safe time' : 'Recommended · injury-free'}</span><span class="t">${duration(best)}</span>
+          <p>The plan below already aims there: ${fmt0.format(num(T.best_total_km))} km, up to ${fmt0.format(num(T.best_peak_km))} km a week.</p>
+          <button type="button" class="${safe ? '' : 'primary'}" data-gc="reset">Use the safe plan</button></div>
+        <div class="gc-opt risk"><span class="k warn">Keep my goal · higher injury risk</span><span class="t">${duration(goal)}</span>
+          <p>${risky ? `Needs <b>${esc(LABEL[risky.c.key] ?? risky.c.label)} ${esc(fmtVal(risky.c, risky.p.value))}</b>, past the safe limit${risky.c.risk_note ? `: ${esc(risky.c.risk_note)}` : ''}.` : 'No single step reaches it, even past the safe limits: you would race with the gap.'}</p>
+          <label><input type="checkbox" id="gc-accept"> I understand: this goes past the limits where injury risk is known to rise.</label>
+          <button type="button" data-gc="risk" id="gc-risk" disabled>Keep ${duration(goal)}</button></div>
+      </div>`;
+    el.dataset.safeKey = safe ? safe.c.key : ''; el.dataset.safeValue = safe ? safe.p.value : '';
+    el.dataset.riskKey = risky ? risky.c.key : ''; el.dataset.riskValue = risky ? risky.p.value : '';
+  }
+  $('goal-check').addEventListener('change', (e) => { if (e.target.id === 'gc-accept') $('gc-risk').disabled = !e.target.checked; });
+  $('goal-check').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-gc]'), el = $('goal-check');
+    if (!b || b.disabled || !scenario) return;
+    if (b.dataset.gc === 'safe-step') setControl(el.dataset.safeKey, el.dataset.safeValue);
+    else if (b.dataset.gc === 'risk') {
+      goalChoice[String(selected.id)] = 'risk';
+      if (el.dataset.riskKey) setControl(el.dataset.riskKey, el.dataset.riskValue); else renderScenario();
+    } else if (b.dataset.gc === 'reset') requestPreview(true);
+  });
+
+  // ---------- now → difference → goal ----------
+  function renderJourney () {
+    const f = forecast.result?.rows[0], goal = num(selected?.goal);
+    const now = num(f?.today_time) ?? num(f?.predicted);
+    set('j-now', or(now, duration));
+    $('j-now-sub').innerHTML = now ? 'if you raced today, rested · <button type="button" id="now-calc">how?</button>' : '';
+    set('j-goal', goal ? duration(goal) : 'No goal yet');
+    set('j-goal-sub', goal ? `${pace(goal / num(selected.km))} /km` : 'Set a goal time on the race to see the gap');
+    if (!scenario) { set('j-diff', goal && now ? `${now > goal ? '−' : '+'}${duration(Math.abs(now - goal))}` : ''); set('j-mid-sub', ''); return; }
+    const pred = num(scenario.result.predicted_time_s), wk = fmt0.format(scenario.weeks_to_race), km = fmt0.format(num(scenario.total_km));
+    set('j-diff', goal && now ? `${now > goal ? '−' : '+'}${duration(Math.abs(now - goal))}` : '');
+    // a warning only for the plan on screen: a setting past its safe zone
+    const anyRisk = scenario.controls.some((c) => { const p = pointAt(c); return p && p.zone !== 'green'; });
+    $('j-mid-sub').innerHTML = `${wk} weeks · ${km} km · `
+      + (!goal ? `the plan gets you to <b class="j-pred">${duration(pred)}</b>`
+        : pred <= goal + 30 ? `<b class="good">✓ the plan gets you there</b> (<b class="j-pred">${duration(pred)}</b>)`
+        : `the plan gets you to <b class="j-pred">${duration(pred)}</b>, <b class="warn">${minsTxt(pred - goal)} short</b>`)
+      + (anyRisk ? ' · <span class="warn">⚠ past the safe limits</span>' : '');
+  }
+  document.querySelector('[data-anfra-block="journey"]').addEventListener('click', (e) => {
+    if (e.target.closest('#now-calc')) explain();
+  });
+
+  // ---------- how you'll train ----------
+  // a setting's slider: its track shows the zones; dragging shows the value, its zone and what it does
+  // to the race time at once (from the planner's sweep), and rebuilds the plan as it goes
+  const STEP = { start_km: 0.5 };
+  function slider (c) {
+    const pts = c.points, lo = Number(pts[0].value), hi = Number(pts.at(-1).value), at = (x) => (hi === lo ? 0 : ((Number(x) - lo) / (hi - lo)) * 100);
+    const col = { green: '--good', amber: '--warn', red: '--bad' };
+    const stops = pts.map((p, n) => {
+      const a = n ? (at(pts[n - 1].value) + at(p.value)) / 2 : 0, b = n < pts.length - 1 ? (at(p.value) + at(pts[n + 1].value)) / 2 : 100;
+      return `color-mix(in srgb, var(${col[p.zone]}) 45%, var(--panel)) ${a.toFixed(1)}% ${b.toFixed(1)}%`;
+    }).join(', ');
+    const v = Number(ctlVals?.[c.key] ?? c.value);
+    return `<input type="range" class="zslider" data-key="${c.key}" min="${lo}" max="${hi}" step="${STEP[c.key] ?? 1}" value="${v}"
+        style="--track-bg:linear-gradient(90deg, ${stops})" aria-label="${esc(LABEL[c.key] ?? c.label)}" aria-valuetext="${esc(fmtVal(c, v))}">
+      <div class="readout" data-readout="${c.key}">${readoutText(c, v, false)}</div>`;
+  }
+  const ZWORD = { green: 'safe', amber: 'caution', red: 'injury risk' };
+  function readoutText (c, v, live) {
+    const cur = pointAt(c), p = nearestPoint(c, v), pts = c.points, i = pts.indexOf(cur);
+    if (!live) {
+      const near = [pts[i - 1], pts[i + 1]].filter(Boolean).map((q) => `<span class="${q.zone}">${esc(fmtVal(c, q.value))} ${signedMs(num(q.time_s) - num(cur.time_s))}</span>`);
+      return `<span class="${cur?.zone ?? 'green'}">${ZWORD[cur?.zone ?? 'green']}</span>${near.length ? ` · ${near.join(' · ')}` : ''}`;
+    }
+    const base = nearestPoint(c, Number(c.value));   // the value the plan on screen was built with
+    const d = num(p.time_s) - num(base.time_s);
+    return `<b>${esc(fmtVal(c, v))}</b> · <span class="${p.zone}">${ZWORD[p.zone]}</span> · race ${Math.abs(d) < 1 ? 'unchanged' : signedMs(d)}`;
+  }
+  // while a slider moves: the estimate from the sweep at once; the plan rebuilt for the latest value
+  let dragging = null, inflight = false, again = false;
+  async function livePreview () {
+    if (inflight) { again = true; return; }
+    inflight = true;
+    document.body.classList.add('replanning');
+    try { await requestPreview(); } finally {
+      inflight = false;
+      if (again) { again = false; livePreview(); } else document.body.classList.remove('replanning');
+    }
+  }
+  function onSlide (el, final) {
+    const c = scenario?.controls.find((x) => x.key === el.dataset.key);
+    if (!c || !ctlVals) return;
+    const v = Number(el.value), card = el.closest('.set');
+    card.querySelector('.v').firstChild.textContent = fmtVal(c, v);
+    el.setAttribute('aria-valuetext', fmtVal(c, v));
+    card.querySelector('[data-readout]').innerHTML = readoutText(c, v, true);
+    const est = num(scenario.result.predicted_time_s) + num(nearestPoint(c, v).time_s) - num(nearestPoint(c, Number(c.value)).time_s);
+    showEstimate(est);
+    if (Number(ctlVals[c.key]) === v && !final) return;
+    ctlVals[c.key] = v;
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(livePreview, final ? 0 : 120);
+  }
+  function showEstimate (est) {
+    const goal = num(selected?.goal);
+    $('j-mid-sub').innerHTML = `${fmt0.format(scenario.weeks_to_race)} weeks · updating… · race day ≈ <b>${duration(est)}</b>`
+      + (goal ? (est <= goal + 30 ? ' <b class="good">✓ reaches your goal</b>' : ` <b class="warn">${minsTxt(est - goal)} short</b>`) : '');
+  }
+  $('settings').addEventListener('input', (e) => { const el = e.target.closest('.zslider'); if (el) onSlide(el, false); });
+  $('settings').addEventListener('change', (e) => { const el = e.target.closest('.zslider'); if (el) { dragging = null; onSlide(el, true); } });
+  $('settings').addEventListener('pointerdown', (e) => { const el = e.target.closest('.zslider'); if (el) dragging = el.dataset.key; });
+  window.addEventListener('pointerup', () => { if (dragging) { dragging = null; if (scenario && !inflight) renderSettings(); } });
+
+  function renderSettings () {
+    // a slider being dragged keeps its element (re-rendering would drop the drag); it re-renders when let go
+    if (dragging) return;
+    const focused = document.activeElement?.closest?.('.zslider')?.dataset.key;
+    const T = scenario.target;
+    // impact: the largest change one neighbouring step makes
+    const stepImpact = (c) => { const pts = c.points, i = pts.indexOf(pointAt(c)); return Math.max(0, ...[pts[i - 1], pts[i + 1]].filter(Boolean).map((p) => Math.abs(num(p.time_s) - num(pts[i].time_s)))); };
+    const list = [...scenario.controls].sort((a, b) => {
+      const fa = FIRST.indexOf(a.key), fb = FIRST.indexOf(b.key);
+      if (fa >= 0 || fb >= 0) return (fa < 0 ? 99 : fa) - (fb < 0 ? 99 : fb);
+      return stepImpact(b) - stepImpact(a);
+    });
+    const shown = allSettings ? list : list.slice(0, 4);
+    $('settings-all').textContent = allSettings ? 'Show the top 4' : `Show all ${list.length} settings`;
+    $('settings-all').setAttribute('aria-expanded', String(allSettings));
+    $('settings').innerHTML = shown.map((c) => {
+      const pts = c.points, cur = pointAt(c), i = pts.indexOf(cur), imp = stepImpact(c);
+      const changed = Number(ctlVals?.[c.key] ?? c.value) !== Number(T.best_options?.[c.key]);
+      const delta = (p) => num(p.time_s) - num(cur.time_s);
+      const btn = (p) => `<button type="button" class="${p.zone}" data-key="${c.key}" data-value="${p.value}" aria-pressed="${p === cur}"
+          title="${esc(fmtVal(c, p.value))}: ${p.zone === 'green' ? 'safe' : p.zone === 'amber' ? 'caution' : 'injury risk'}">${p === cur ? '✓ ' : ''}${esc(fmtVal(c, p.value))}${p === cur ? '' : ` ${signedMs(delta(p))}`}</button>`;
+      const opts = TOGGLES[c.key] ? pts : [pts[i - 1], cur, pts[i + 1]].filter(Boolean);
+      return `<div class="set${changed ? ' changed' : ''}">
+        <div class="h"><span>${esc(LABEL[c.key] ?? c.label)}</span>${imp >= 30 ? `<span class="imp${imp >= 180 ? ' big' : ''}">up to ${ms(imp)}</span>` : ''}</div>
+        <div class="v">${esc(fmtVal(c, ctlVals?.[c.key] ?? c.value))}${changed ? '<small>changed</small>' : ''}</div>
+        ${TOGGLES[c.key] ? `<div class="steps">${opts.map(btn).join('')}</div>` : slider(c)}
+        ${c.key === 'front_loaded' ? '<div class="note">Front-loaded: your biggest weeks come early, so endurance has longer to grow. Both stay inside the injury limits.</div>' : ''}
+        ${c.key === 'tune_up' ? '<div class="note">A race on the way that checks your fitness and recalibrates the forecast.</div>' : ''}
+        ${cur && cur.zone !== 'green' ? `<div class="risk">⚠ ${cur.fresh ? esc(c.risk_note) : 'Leaves race morning outside the 10–30 % freshness band.'}</div>` : ''}
+      </div>`;
+    }).join('');
+    if (focused) $('settings').querySelector(`.zslider[data-key="${focused}"]`)?.focus();   // keyboard users keep their place
+  }
+  $('settings').addEventListener('click', (e) => {
+    if (e.target.closest('.zslider')) return;
+    const b = e.target.closest('button[data-key]');
+    if (b && b.getAttribute('aria-pressed') !== 'true') setControl(b.dataset.key, b.dataset.value);
+  });
+  $('settings-all').addEventListener('click', () => { allSettings = !allSettings; if (scenario) renderSettings(); });
+  $('controls-reset').addEventListener('click', () => requestPreview(true));
+
+  // ---------- what gets you faster: the model's terms, today → race day ----------
+  // Daniels & Gilbert: the time for a distance at a VDOT (bisection on minutes)
+  function danielsTime (vdot, km) {
+    const d = km * 1000;
+    const need = (t) => { const v = d / t; return (-4.6 + 0.182258 * v + 0.000104 * v * v) / (0.8 + 0.1894393 * Math.exp(-0.012778 * t) + 0.2989558 * Math.exp(-0.1932605 * t)); };
+    let lo = d / 600, hi = d / 40;
+    for (let n = 0; n < 60; n++) { const mid = (lo + hi) / 2; if (need(mid) > vdot) lo = mid; else hi = mid; }
+    return ((lo + hi) / 2) * 60;
+  }
+  function renderBuilds () {
+    const R = scenario.result, km = num(scenario.race.distance_km), k = num(R.k);
+    const T = (vo2, shape) => danielsTime(vo2 * sfJS(shape, km), km) * k;
+    const t0 = T(num(R.vo2_today), num(R.shape_today)), t1 = T(num(R.vo2_today), num(R.shape_race)), t2 = T(num(R.vo2_race), num(R.shape_race));
+    // scaled so the two add up to the journey's gap: "today" there uses your last 8 weeks' heat
+    const today = num(forecast.result?.rows[0]?.today_time), pred0 = num(R.predicted_time_s);
+    const scale = today && t0 !== t2 ? (pred0 - today) / (t2 - t0) : 1;
+    const endure = (t1 - t0) * scale, fit = (t2 - t1) * scale, need = num(R.shape_needed);
+    // a gain reads as time saved, in green; a loss (rare: a plan that runs less) as time lost
+    const gain = (id, secs) => { $(id).textContent = `${ms(secs)} ${secs <= 0 ? 'faster' : 'slower'}`; $(id).classList.toggle('loss', secs > 0); };
+    gain('g-endure-min', endure);
+    set('g-endure', `${fmt0.format(num(R.shape_today))} % → ${fmt0.format(num(R.shape_race))} %`);
+    $('g-endure-bar').innerHTML = `<i style="width:${Math.min(100, (num(R.shape_race) / need) * 100)}%;background:var(--peach)"></i>
+      <i style="width:${Math.min(100, (num(R.shape_today) / need) * 100)}%;background:var(--accent)"></i><span class="full" style="right:0"></span>`;
+    set('g-endure-sub', `Marathon shape, built by weekly km and long runs. ${fmt0.format(need)} % is full shape for this distance; at ${fmt0.format(num(R.shape_race))} % you use ${fmt0.format(num(R.shape_factor) * 100)} % of your race fitness.`);
+    gain('g-fit-min', fit);
+    set('g-fit', `${fmt1.format(num(R.vo2_today))} → ${fmt1.format(num(R.vo2_race))}`);
+    const top = num(R.vo2_race) * 1.12;
+    $('g-fit-bar').innerHTML = `<i style="width:${(num(R.vo2_race) / top) * 100}%;background:color-mix(in srgb, var(--plum) 35%, var(--panel))"></i>
+      <i style="width:${(num(R.vo2_today) / top) * 100}%;background:var(--plum)"></i>`;
+    set('g-fit-sub', `VO2max from your pace against heart rate. It rises as your training load grows (fitness ${fmt0.format(num(R.ctl30_today))} → ${fmt0.format(num(R.ctl30_race))}).`);
+    // weather and fresh legs: notes, not levers
+    const heat = num(R.heat_adj_pct) ?? 0, rw = num(R.race_wbgt_c), tw = num(R.training_wbgt_c), pred = num(R.predicted_time_s);
+    const heatSecs = pred - pred / (1 + heat / 100);
+    const month = new Date(`${String(scenario.race.race_date).slice(0, 10)}T00:00:00Z`).toLocaleDateString(undefined, { month: 'long', timeZone: 'UTC' });
+    const taper = num(R.taper_adj_pct) ?? 0;
+    $('build-notes').innerHTML = (rw === null ? '' : `<span><b>Race-day weather:</b> ${esc(month)} is usually about ${fmt0.format(rw)} °C WBGT, ${rw < tw ? 'cooler' : 'hotter'} than the ${fmt0.format(tw)} °C you train in, worth about ${fmt0.format(Math.abs(heatSecs) / 60)} min ${heatSecs < 0 ? 'faster' : 'slower'}. Ran checks the forecast in race week.</span>`)
+      + (taper > 0 ? `<span class="warn"><b>Fresh legs:</b> this plan leaves you tired on race morning, about ${minsTxt(pred * taper / (100 + taper))} slower. A longer or earlier taper fixes it.</span>`
+        : '<span class="ok"><b>Fresh legs:</b> the taper takes care of it ✓ nothing to do now</span>');
+    const P = Object.fromEntries((params.result?.rows ?? []).map((p) => [p.name, num(p.value)]));
+    const f = forecast.result?.rows[0];
+    $('model-more').innerHTML = `<ul>
+      <li><b>Endurance</b> counts your weekly km and long runs over 26 weeks. Below full shape you can use only part of your race fitness over the distance: at <b>${fmt0.format(num(R.shape_race))} %</b> you use <b>${fmt0.format(num(R.shape_factor) * 100)} %</b>.</li>
+      <li><b>Race fitness</b> rises with training load, <b>+${fmt1.format(num(R.vo2_per_ctl) * 10)}</b> per 10 points of fitness, fitted on your own history.</li>
+      <li><b>Race time</b> = Daniels' time for race fitness × endurance, × your calibration (<b>× ${num(R.calibration).toFixed(3)}</b>${f?.cal_n ? ` from ${fmt0.format(num(f.cal_n))} races` : ''}), × race-day heat (<b>${P.heat_pct_per_c ? `${fmt2.format(P.heat_pct_per_c)} %` : '?'} per °C</b>), × freshness (<b>+${fmt0.format(P.taper_gain_pct ?? 2)} %</b> if you arrive tired).</li>
+      <li><button type="button" class="link" id="model-calc">See today's calculation step by step</button></li></ul>`;
+  }
+  $('model-toggle').addEventListener('click', () => {
+    const open = $('model-more').hidden;
+    $('model-more').hidden = !open;
+    $('model-toggle').setAttribute('aria-expanded', String(open));
+    $('model-toggle').textContent = open ? 'Hide how it works' : 'How it works';
+  });
+  $('model-more').addEventListener('click', (e) => { if (e.target.closest('#model-calc')) explain(); });
+
+  // ---------- your weeks: km by zone, the phases, a week's days, where each phase takes you ----------
+  const phaseOfWeek = (w) => scenario.phases.findIndex((p) => w >= p.from_week && w <= p.to_week);
+  const shortD = (v) => shortDate(v).replace(/,? \d{4}$/, '');
+  const phaseName = (p) => (p.phase === 'race week' ? 'Race' : p.phase[0].toUpperCase() + p.phase.slice(1));
+  const daysOf = (week) => scenario.days.filter((d) => d.week === week);
+  const sessLabel = (d) => (d.session === 'threshold' && /^(Goal pace|Race pace|Sharpener)/.test(d.notes ?? '') ? 'goal pace' : d.session);
+  const dayKm = (d) => (num(d.km_est) ? `${fmt1.format(num(d.km_est))} km` : num(d.planned_min) ? `${fmt0.format(num(d.planned_min))} min` : '');
+  const plainPurpose = (t) => String(t ?? '').replace(/\s*\(([^)]*\bD\d+[^)]*)\)/g, '').replace(/\s*\bD\d+\b/g, '');
+  // a session's km by zone, from its main set ("5 x 1 km at 4:32/km", "3 x 10 min at threshold 4:40/km",
+  // "last 6 km at goal pace", "Goal pace: 7 km at ..."); the rest of the run is easy
+  function dayZones (d) {
+    const z = { easy: 0, mp: 0, thr: 0, vo2: 0, race: 0 }, km = num(d.km_est) ?? 0, n = d.notes ?? '';
+    const p = (() => { const m = n.match(/(\d+):(\d\d)\/km/); return m ? Number(m[1]) * 60 + Number(m[2]) : null; })();
+    if (d.session === 'race') { z.race = km; return z; }
+    if (d.session === 'easy' || d.session === 'rest' || d.session === 'strength') { z.easy = km; return z; }
+    let hard = 0, key = d.session === 'intervals' ? 'vo2' : 'thr';
+    let m;
+    if ((m = n.match(/last (\d+(?:\.\d+)?) km at goal pace/))) { hard = Number(m[1]); key = 'mp'; }
+    else if ((m = n.match(/(\d+) x (\d+(?:\.\d+)?) km/))) hard = Number(m[1]) * Number(m[2]);
+    else if ((m = n.match(/(\d+) x (\d+) min/)) && p) hard = (Number(m[1]) * Number(m[2]) * 60) / p;
+    else if ((m = n.match(/(\d+) min at threshold/)) && p) hard = (Number(m[1]) * 60) / p;
+    else if ((m = n.match(/^(?:Goal pace|Race pace): (\d+(?:\.\d+)?) km/))) hard = Number(m[1]);
+    if (/goal pace|race pace/i.test(n)) key = 'mp';
+    hard = Math.min(hard, km);
+    z[key] = hard; z.easy = km - hard;
+    return z;
+  }
+  function weekZones (w) {
+    const z = { easy: 0, mp: 0, thr: 0, vo2: 0, race: 0, done: num(w.done_km) ?? 0 };
+    for (const d of daysOf(w.week)) { const x = dayZones(d); for (const k in x) z[k] += x[k]; }
+    return z;
+  }
+  const ZCOL = { race: '--plum', vo2: '--z5', thr: '--z4', mp: '--z3', easy: '--z2', done: '--muted' };
+  const ZNAME = { easy: 'easy', mp: 'at goal pace', thr: 'threshold', vo2: 'VO2max', race: 'race', done: 'done' };
+  function renderWeeksChart () {
+    const W = scenario.weeks, n = W.length;
+    if (selWeek === null || !W.some((w) => w.week === selWeek)) selWeek = W[0]?.week ?? null;
+    set('weeks-title', `Your ${n} weeks · ${fmt0.format(num(scenario.total_km))} km`);
+    const zs = new Map(W.map((w) => [w.week, weekZones(w)]));
+    const tot = (z) => Object.values(z).reduce((a, b) => a + b, 0);
+    const max = Math.max(...[...zs.values()].map(tot), 1), H = 150;
+    for (const id of ['wk-bars', 'wk-band']) $(id).style.setProperty('--n', n);
+    const oldH = new Map([...$('wk-bars').querySelectorAll('i[data-k]')].map((el) => [el.dataset.k, el.style.height]));
+    $('wk-bars').innerHTML = W.map((w, i) => {
+      const z = zs.get(w.week), p = scenario.phases[phaseOfWeek(w.week)], last = i === n - 1;
+      const flag = num(w.race_km) ? (last ? 'RACE' : 'TUNE-UP') : '';
+      const segs = ['race', 'vo2', 'thr', 'mp', 'easy', 'done'].filter((k) => z[k] > 0.05)
+        .map((k) => `<i data-k="${w.week}:${k}" data-h="${((z[k] / max) * H).toFixed(1)}" style="height:${((z[k] / max) * H).toFixed(1)}px;background:var(${ZCOL[k]})" title="${fmt0.format(z[k])} km ${ZNAME[k]}"></i>`).join('');
+      return `<button type="button" class="wkb${w.phase === 'recovery' ? ' light' : ''}" data-week="${w.week}" aria-pressed="${w.week === selWeek}"
+          aria-label="Week ${w.week}, ${p ? phaseName(p) : ''}, ${fmt0.format(tot(z))} km" style="--c:var(${PHASE_COLOR[p?.phase] ?? '--muted'})">
+        <span class="km">${fmt0.format(tot(z))}<small> km</small></span><span class="stack">${segs}</span>
+        <span class="lbl">${i === 0 ? 'Now' : `W${w.week}`}<span class="dt">${shortD(w.week_start)}</span></span><span class="flag">${flag}</span></button>`;
+    }).join('');
+    const cur = phaseOfWeek(selWeek), first = W[0]?.week ?? 1;
+    $('wk-band').innerHTML = scenario.phases.map((p, i) => `<button type="button" class="wpb" data-week="${Math.max(p.from_week, first)}" aria-pressed="${i === cur}"
+        style="grid-column:${Math.max(p.from_week, first) - first + 1} / ${p.to_week - first + 2};--c:var(${PHASE_COLOR[p.phase] ?? '--muted'})" title="${esc(p.title)}">${esc(phaseName(p))}</button>`).join('');
+    // after a re-plan the bars grow or shrink to their new km instead of jumping
+    if (oldH.size && !REDUCED()) {
+      const segs = [...$('wk-bars').querySelectorAll('i[data-k]')];
+      for (const el of segs) el.style.height = oldH.get(el.dataset.k) ?? '0px';
+      requestAnimationFrame(() => requestAnimationFrame(() => { for (const el of segs) el.style.height = `${el.dataset.h}px`; }));
+    }
+    renderWeekDetail(zs);
+    renderLadder();
+  }
+  function renderWeekDetail (zs) {
+    const w = scenario.weeks.find((x) => x.week === selWeek);
+    if (!w) { $('wk-detail').innerHTML = ''; return; }
+    const z = zs.get(w.week), p = scenario.phases[phaseOfWeek(w.week)], total = Object.values(z).reduce((a, b) => a + b, 0) || 1;
+    const isNow = w.week === scenario.weeks[0].week, last = w.week === scenario.weeks.at(-1).week;
+    const split = ['easy', 'mp', 'thr', 'vo2', 'race', 'done'].filter((k) => z[k] > 0.05);
+    const why = num(w.race_km) && !last ? `A tune-up race checks your fitness and rehearses race morning. ${plainPurpose(p?.purpose)}`
+      : last ? 'Arrive fresh, run your predicted pace evenly from the start, and fuel.' : plainPurpose(p?.purpose);
+    $('wk-detail').innerHTML = `<div class="wd-head"><h3>${isNow ? 'This week' : `Week ${w.week}`}</h3><span class="small muted">${shortD(w.week_start)} – ${shortD(new Date(new Date(`${w.week_start}T00:00:00Z`).getTime() + 6 * 86400000).toISOString())}</span></div>
+      <div class="chips">${p ? `<span class="chip ph" style="--c:var(${PHASE_COLOR[p.phase] ?? '--muted'})">${esc(phaseName(p))}</span>` : ''}<span class="chip">${fmt0.format(total)} km</span>
+        ${w.phase === 'recovery' ? '<span class="chip">lighter week: absorb the work</span>' : ''}${num(w.long_km) ? `<span class="chip">long run ${fmt0.format(num(w.long_km))} km</span>` : ''}</div>
+      <div class="zsplit">${split.map((k) => `<i style="width:${(z[k] / total) * 100}%;background:var(${ZCOL[k]})"></i>`).join('')}</div>
+      <span class="small muted">${split.map((k) => `${fmt0.format(z[k])} km ${ZNAME[k]}`).join(' · ')}</span>
+      <p><b>Why: </b>${esc(why)}</p>
+      <table class="days"><tbody>${daysOf(w.week).map((d) => `<tr><td class="l">${dayLabel(d.day).split(',')[0]}</td><td class="l"><span class="sess ${esc(d.session)}">${esc(sessLabel(d))}</span></td>
+        <td class="nw">${dayKm(d) || dash}</td><td class="l small muted">${esc(plainPurpose(d.notes).replace(/\s*\((?:Z\d|VO2max)\)/g, ''))}</td></tr>`).join('')}</tbody></table>
+      ${isNow && num(w.done_km) ? `<span class="small muted">${fmt1.format(num(w.done_km))} km already run this week</span>` : ''}`;
+  }
+  function renderLadder () {
+    const cur = phaseOfWeek(selWeek), n = scenario.phases.length;
+    const form = (s) => (num(s) === null ? '' : s < -0.25 ? 'tired: normal while building' : s < -0.1 ? 'a bit tired' : s < 0.1 ? 'almost fresh' : 'fresh');
+    $('ladder').innerHTML = scenario.phases.map((p, i) => {
+      const e = p.expected ?? {}, race = i === n - 1;
+      return `<button type="button" class="rung${race ? ' race' : ''}" data-week="${p.from_week}" aria-pressed="${i === cur}" style="--c:var(${PHASE_COLOR[p.phase] ?? '--muted'})">
+        <span class="dot"></span><span class="txt"><b>After ${esc(phaseName(p))} <span class="muted">· ${p.from_week === p.to_week ? `W${p.from_week}` : `W${p.from_week}–${p.to_week}`}</span></b>
+        <span>endurance ${or(e.shape, (v) => `${fmt0.format(v)} %`)} · fitness ${or(e.vo2, fmt1.format)} · threshold ${num(e.threshold_pace_s_per_km) ? pace(e.threshold_pace_s_per_km) : dash} /km · ${race ? 'race day' : form(e.form_share)}</span></span>
+        <span class="t">${or(e.race_time_s, duration)}</span></button>`;
+    }).join('');
+  }
+  for (const id of ['wk-bars', 'wk-band', 'ladder']) {
+    $(id).addEventListener('click', (e) => {
+      const b = e.target.closest('[data-week]');
+      if (!b || !scenario) return;
+      selWeek = Number(b.dataset.week);
+      renderWeeksChart();
+    });
+  }
+
+  // Step 4 summary line.
+  function renderSavedSummary () {
+    const f = forecast.result?.rows[0], n = weeks.result?.rows.length ?? 0;
+    $('saved-sub').textContent = n ? `${n} weeks saved · forecast ${or(f?.predicted, duration)} · open to see it` : 'no plan saved for this race';
+  }
+
+  // ---------- how the predicted time is calculated ----------
+  function checksTable () {
+    const rows = checks.result?.rows ?? [];
+    const byRace = new Map();
+    for (const r of rows) {
+      const k = `${r.d}|${r.race}`;
+      if (!byRace.has(k)) byRace.set(k, { race: r.race, d: r.d, km: num(r.km), actual: num(r.actual) });
+      byRace.get(k)[r.method] = num(r.pred);
+    }
+    const list = [...byRace.values()];
+    if (!list.length) return '';
+    const ratio = (a, p) => (p ? `${a / p >= 1 ? '+' : '−'}${fmt1.format(Math.abs(a / p - 1) * 100)} %` : dash);
+    const mean = (key) => { const xs = list.filter((x) => x[key]).map((x) => x.actual / x[key]); return xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null; };
+    const m1 = mean('daniels_shape_heat'), m2 = mean('garmin_prediction');
+    return `<table class="compare"><thead><tr><th class="l">Your race</th><th>Actual</th><th>Our model</th><th>You vs model</th><th>Garmin</th><th>You vs Garmin</th></tr></thead><tbody>
+      ${list.map((x) => `<tr><td class="l">${esc(x.race)} · ${shortDate(x.d)} · ${distLabel(x.km)}</td><td>${duration(x.actual)}</td>
+        <td>${or(x.daniels_shape_heat, duration)}</td><td>${ratio(x.actual, x.daniels_shape_heat)}</td>
+        <td>${or(x.garmin_prediction, duration)}</td><td>${ratio(x.actual, x.garmin_prediction)}</td></tr>`).join('')}
+      <tr><td class="l"><b>Average</b> (the calibration)</td><td></td><td></td><td><b>${m1 ? `× ${m1.toFixed(3)}` : dash}</b></td><td></td><td><b>${m2 ? `× ${m2.toFixed(3)}` : dash}</b></td></tr>
+      </tbody></table><div class="small muted">Each prediction uses only data up to the day before the race. Our model's spread around its average is narrower than Garmin's, which is why it is the base of the forecast.</div>`;
+  }
+
+  function explain () {
+    const raw = forecast.result?.rows[0];
+    if (!raw || !num(raw.today_time ?? raw.predicted)) return;
+    // Step 1 is "if the race were today": today's VO2max and marathon shape, no plan, no taper.
+    const f = num(raw.today_time) === null ? raw : {
+      ...raw, predicted: raw.today_time, vo2_race: raw.vo2, vo2_change: 0, shape_race: raw.shape_today,
+      shape_factor: raw.today_sf, daniels: raw.today_daniels, daniels_shape: raw.today_daniels_shape,
+      model_base: num(raw.today_daniels_shape) * num(raw.cal), taper: 0, tanda: null, today: true,
+      heat: raw.today_heat ?? raw.heat, training_wbgt: raw.today_train_wbgt ?? raw.training_wbgt,
+    };
+    const P = Object.fromEntries((params.result?.rows ?? []).map((p) => [p.name, p]));
+    const km = num(f.km), dist = distLabel(km), pred = num(f.predicted), band = num(f.band);
+    const tanda = num(f.tanda), garmin = num(f.garmin), gcal = num(f.garmin_cal);
+    const heat = num(f.heat) ?? 0, rw = num(f.race_wbgt), tw = num(f.training_wbgt), taper = num(f.taper) ?? 0;
+    const coef = rw !== null && tw !== null && rw !== tw ? heat / (rw - tw) : num(P.heat_pct_per_c?.value);
+    const model = num(f.daniels_shape) !== null;
+    const sgn = (x) => (x > 0 ? '+' : x < 0 ? '−' : '±');
+    const mins = (s) => `${fmt0.format(Math.abs(s) / 60)} min`;
+    const steps = [];
+
+    if (model) {
+      const sf = num(f.shape_factor), vo2 = num(f.vo2_race) ?? num(f.vo2), cal = num(f.cal), dv = num(f.vo2_change) ?? 0;
+      const fitPer = num(P.vo2_per_ctl?.value);
+      steps.push([f.today ? 'Race fitness today' : 'Race fitness on race day', duration(f.daniels),
+        `Effective VO2max <b>${fmt1.format(num(f.vo2))}</b> today, from your runs of the last 30 days: the speed you hold at each share of your max HR (Daniels & Gilbert). Running economy is inside this number. `
+        + (Math.abs(dv) >= 0.05 ? `Your saved plan's training moves it <b>${dv > 0 ? '+' : '−'}${fmt1.format(Math.abs(dv))}</b> to ${fmt1.format(vo2)} by race day (${fitPer !== null ? `${fitPer.toFixed(3)} per point of 30-day fitness, ` : ''}fitted on your history). ` : f.today ? 'This is today\'s value: no training ahead is counted. ' : 'Without a saved plan it stays where it is. ')
+        + `At full endurance that gives ${duration(f.daniels)} for the ${dist}.`]);
+      steps.push(['Endurance volume (marathon shape)', duration(f.daniels_shape),
+        `Marathon shape <b>${fmt0.format(num(f.shape_race))} %</b>${f.today ? ' today, from your runs of the last 26 weeks' : isTrue(f.has_plan) ? ' on race eve, from your runs so far plus the plan' : ' today (no plan saved yet)'}, of ${fmt0.format(num(f.shape_needed))} % this distance needs (distance<sup>1.23</sup>). `
+        + `Usable VO2max <code>${fmt1.format(vo2)} × ${sf.toFixed(3)} = ${fmt1.format(vo2 * sf)}</code>, with <code>0.6 + 0.4 × (1 − missing points / 100)</code> (Runalyze). `
+        + (sf < 1 ? `The volume gap costs <b>${mins(num(f.daniels_shape) - num(f.daniels))}</b> here.` : 'Shape met: no cost.')]);
+      steps.push(['Calibrated to your own races', duration(f.model_base),
+        `<code>× ${cal.toFixed(3)}</code>: on your ${or(f.cal_n, fmt0.format)} marked races${km >= 40 ? ', your marathon included,' : ''} you ran on average ${fmt1.format((cal - 1) * 100)} % slower than this same model predicted (steps 1, 2 and heat, each race run from the day before's data)${num(P.calibration_daniels_shape_heat?.lo) ? `, from ${fmt0.format((num(P.calibration_daniels_shape_heat.lo) - 1) * 100)} to ${fmt0.format((num(P.calibration_daniels_shape_heat.hi) - 1) * 100)} %` : ''}. Not Garmin's: Garmin is compared in the table below. That is what stays constant about you: economy and pacing beyond what the formulas assume.${checksTable()}`]);
+    } else {
+      steps.push([`Garmin's race predictor for the ${dist}`, or(garmin, duration), 'No effective VO2max yet, so the forecast starts from Garmin\'s prediction.']);
+      if (gcal) steps.push(['Calibrated to your own races', duration(gcal), `<code>× ${(gcal / garmin).toFixed(3)}</code>, the mean of actual / predicted on your marked races.`]);
+    }
+    if (rw !== null) {
+      const h = P.heat_pct_per_c;
+      steps.push(['Race-day heat', `${sgn(heat)}${fmt1.format(Math.abs(heat))} %`,
+        `<code>${coef !== null ? coef.toFixed(2) : '?'} %/°C × (${fmt1.format(rw)} − ${fmt1.format(tw)} °C)</code>. Race day: ${fmt1.format(rw)} °C WBGT, the average of your ${fmt0.format(num(f.race_wbgt_n))} early-morning runs (3–9 am) in that month; training: ${fmt1.format(tw)} °C ${f.today ? 'on average over your outdoor runs of the last 8 weeks' : 'over the 8 weeks before'}. `
+        + (isTrue(f.heat_fitted) ? `${coef !== null ? coef.toFixed(2) : ''} %/°C is fitted on your ${or(h?.n, fmt0.format)} runs${num(h?.lo) !== null ? ` (95 % interval ${fmt1.format(num(h.lo))} to ${fmt1.format(num(h.hi))})` : ''}. ` : 'Literature value (Ely 2007) until your fit has run. ')
+        + (num(f.band_no_heat) !== null ? `On your past races this step did not improve accuracy (error ${fmt1.format(band)} % with it, ${fmt1.format(num(f.band_no_heat))} % without): your VO2max is measured in the heat already. It stays because the causal model says race-day heat matters${Math.abs(rw - tw) > 4 ? ', and this race differs from your training more than any past one' : ''}.` : '')]);
+    }
+    steps.push(['Race-morning freshness', `${sgn(taper)}${fmt1.format(Math.abs(taper))} %`,
+      f.today ? 'Assumes you race rested, as you usually do: the calibration already reflects that.'
+        : !isTrue(f.has_plan) ? 'No plan yet: assumes your usual taper, which the calibration already reflects.'
+        : taper > 0 ? `The plan leaves form at ${fmt0.format(num(f.tsb_share) * 100)} % of fitness on race morning, below the 10–30 % band: a good taper is worth about ${fmt1.format(taper)} % (Bosquet 2007; Mujika & Padilla 2003 report ~3 %). Fix the last 2–3 weeks of the plan to win it back.`
+        : `The plan lands race-morning form at ${fmt0.format(num(f.tsb_share) * 100)} % of fitness, inside the 10–30 % band: no change, the calibration already reflects a normal taper.`]);
+    const base = model ? num(f.model_base) : (gcal ?? garmin);
+    steps.push(['Predicted time', duration(pred),
+      `<code>${duration(base)} × (1 ${heat < 0 ? '−' : '+'} ${fmt1.format(Math.abs(heat))} %) × (1 + ${fmt1.format(taper)} %)</code> = ${duration(pred)}, ${pace(pred / km)} /km.`, 'total']);
+    steps.push(['Uncertainty', `${duration(pred * (1 - band / 100))} – ${duration(pred * (1 + band / 100))}`,
+      isTrue(f.band_fitted) ? `± ${fmt1.format(band)} %: this method's average error on your marked races, each predicted only from races before it.`
+                            : `± ${fmt1.format(band)} %: a default until the method is checked against your marked races.`]);
+
+    const others = [
+      ['Daniels at full VO2max, no volume adjustment, calibrated', model ? num(f.daniels) * num(f.cal) : null],
+      ['Garmin, as it is', garmin], ['Garmin, calibrated to your races', gcal], ['Tanda, from the plan (marathon)', tanda],
+    ].filter(([, v]) => v);
+    $('calc-sub').textContent = `${selected?.name ?? ''} · ${dist} · ${f.today ? 'if the race were today: your current fitness and endurance, no plan' : f.method}`;
+    $('calc-body').innerHTML = `<ol class="calc">${steps.map(([label, res, why, cls]) =>
+      `<li class="${cls ?? ''}"><b>${label}</b><span class="res">${res}</span><div class="why">${why}</div></li>`).join('')}</ol>
+      ${others.length ? `<table class="compare"><thead><tr><th class="l">Other estimates, before heat</th><th>Time</th><th>Pace</th></tr></thead><tbody>
+        ${others.map(([l, v]) => `<tr><td class="l">${l}</td><td>${duration(v)}</td><td>${pace(v / km)} /km</td></tr>`).join('')}</tbody></table>` : ''}
+      <p class="note">Threshold and durability are not separate steps: Daniels' formula assumes a typical threshold, and durability shows up in the marathon shape and the calibration. They appear in “What you're missing” as diagnostics. Full method: README, causal model.</p>`;
+    $('calc-backdrop').classList.add('open');
+    $('calc-backdrop').setAttribute('aria-hidden', 'false');
+    $('calc-close').focus();
+  }
+  function closeExplain () { $('calc-backdrop').classList.remove('open'); $('calc-backdrop').setAttribute('aria-hidden', 'true'); }
+  $('calc-close').addEventListener('click', closeExplain);
+  $('calc-backdrop').addEventListener('click', (e) => { if (e.target.id === 'calc-backdrop') closeExplain(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeExplain(); });
+
+  app.subscribe(() => {
+    logFirst(races, forecast, params, checks, projection, weeks, done, best, sResult, sWeeks, sDays, sPhases, sSweep);
+    renderRaces();
+    renderForecast();
+    renderProjection();
+    renderSavedSummary();
+    renderWeeks();
+    renderDone();
+  });
+
+  // ---------- interactions: everything here only reads ----------
+  $('race-select').addEventListener('change', (e) => {
+    selected = races.result?.rows.find((r) => r.id === e.target.value) ?? null;
+    renderRacesStatusOnly();
+    renderTimeToRace();
+    setRace(selected ? String(selected.id) : '-1');
+  });
+  function renderRacesStatusOnly () {
+    if (!selected) { $('race-status').textContent = 'No upcoming race in your data.'; renderJourney(); return; }
+    const raceDay = new Date(`${String(selected.date).slice(0, 10)}T00:00:00Z`);
+    const days = Math.round((raceDay - new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z')) / 86400000);
+    $('race-status').textContent = `${distLabel(selected.km)} · ${raceDay.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })} · ${fmt0.format(days)} days to go · priority ${selected.priority}`;
+    renderJourney();
+  }
+
+  // VO2max and marathon shape open their history and explanation, as on the Overview
+  Run.metricModal(app, { dataset: DS, tiles: { 'g-fit': 'vo2', 'g-endure': 'shape' } });
+
+  app.execute();
+</script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+Model plan_day {
+  type: 'table'
+  label: 'Plan Days'
+  description: 'One planned session per day toward a race (app.plan_day), with its estimated load and, once the day has come, what was done (D8). Rules in db/views.d/30_plan.sql.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."plan_day"'
+
+  dimension plan_day_id {
+    label: 'Plan Day ID'
+    type: 'number'
+    description: 'Plan row ID (app.plan_day)'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.plan_day_id }};;
+  }
+  dimension race_id {
+    label: 'Race ID'
+    type: 'number'
+    description: 'Goal race the plan belongs to'
+    hidden: true
+    definition: @sql {{ #SOURCE.race_id }};;
+  }
+  dimension day {
+    label: 'Day'
+    type: 'date'
+    description: 'Planned date'
+    definition: @sql {{ #SOURCE.day }};;
+  }
+  dimension week_start {
+    label: 'Week'
+    type: 'date'
+    description: 'Monday of the planned week'
+    definition: @sql {{ #SOURCE.week_start }};;
+  }
+  dimension weekday {
+    label: 'Weekday'
+    type: 'number'
+    description: '1 = Monday ... 7 = Sunday'
+    definition: @sql {{ #SOURCE.weekday }};;
+  }
+  dimension session {
+    label: 'Session'
+    type: 'text'
+    description: 'rest, easy, long, threshold, intervals, strength or race'
+    definition: @sql {{ #SOURCE.session }};;
+  }
+  dimension planned_km {
+    label: 'Planned km (entered)'
+    type: 'number'
+    description: 'Distance typed in the planner; null means estimated from minutes and session pace'
+    definition: @sql {{ #SOURCE.planned_km }};;
+  }
+  dimension planned_min {
+    label: 'Planned Minutes (entered)'
+    type: 'number'
+    description: 'Minutes typed in the planner; null means estimated from km and session pace'
+    definition: @sql {{ #SOURCE.planned_min }};;
+  }
+  dimension km_est {
+    label: 'Planned km'
+    type: 'number'
+    description: 'Entered km, else entered minutes at the runner’s typical pace for that kind of session'
+    definition: @sql {{ #SOURCE.km_est }};;
+  }
+  dimension min_est {
+    label: 'Planned Minutes'
+    type: 'number'
+    description: 'Entered minutes, else entered km at the runner’s typical pace for that kind of session'
+    definition: @sql {{ #SOURCE.min_est }};;
+  }
+  dimension target_pace_s_per_km {
+    label: 'Target Pace (s/km)'
+    type: 'number'
+    description: 'Target pace for the session, entered or from the starter plan'
+    definition: @sql {{ #SOURCE.target_pace_s_per_km }};;
+  }
+  dimension target_hr {
+    label: 'Target HR (bpm)'
+    type: 'number'
+    description: 'Target HR for the session, entered or from the starter plan'
+    definition: @sql {{ #SOURCE.target_hr }};;
+  }
+  dimension notes {
+    label: 'Notes'
+    type: 'text'
+    description: 'Session notes'
+    definition: @sql {{ #SOURCE.notes }};;
+  }
+  dimension est_load {
+    label: 'Estimated Load'
+    type: 'number'
+    description: 'Planned minutes x the runner’s median load per minute for that kind of session over the last year, in the units of garmin.day training load'
+    definition: @sql {{ #SOURCE.est_load }};;
+  }
+  dimension is_future {
+    label: 'Future'
+    type: 'truefalse'
+    description: 'Day is after today (only future days feed the projection)'
+    definition: @sql {{ #SOURCE.is_future }};;
+  }
+  dimension done_runs {
+    label: 'Runs Done'
+    type: 'number'
+    description: 'Runs recorded on that date (Garmin activities)'
+    definition: @sql {{ #SOURCE.done_runs }};;
+  }
+  dimension done_km {
+    label: 'km Done'
+    type: 'number'
+    description: 'Run km recorded on that date'
+    definition: @sql {{ #SOURCE.done_km }};;
+  }
+  dimension done_run_min {
+    label: 'Minutes Run'
+    type: 'number'
+    description: 'Run minutes recorded on that date'
+    definition: @sql {{ #SOURCE.done_run_min }};;
+  }
+  dimension done_pace_s_per_km {
+    label: 'Pace Done (s/km)'
+    type: 'number'
+    description: 'Run minutes x 60 / run km on that date'
+    definition: @sql {{ #SOURCE.done_pace_s_per_km }};;
+  }
+  dimension done_names {
+    label: 'Activities Done'
+    type: 'text'
+    description: 'Names of the activities on that date, in order'
+    definition: @sql {{ #SOURCE.done_names }};;
+  }
+  dimension done_activity_id {
+    label: 'First Run ID'
+    type: 'number'
+    description: 'First run of the day, to open it'
+    hidden: true
+    definition: @sql {{ #SOURCE.done_activity_id }};;
+  }
+  dimension status {
+    label: 'Status'
+    type: 'text'
+    description: 'planned, today, done (80 %+ of the planned km or minutes), partial, missed, rested, extra (ran on a rest day)'
+    definition: @sql {{ #SOURCE.status }};;
+  }
+  dimension pace_vs_target_s {
+    label: 'Pace vs Target (s/km)'
+    type: 'number'
+    description: 'Whole-run pace minus target for easy, long and race sessions; positive = slower'
+    definition: @sql {{ #SOURCE.pace_vs_target_s }};;
+  }
+
+  measure planned_days {
+    label: 'Planned Days'
+    type: 'number'
+    description: 'Number of plan days'
+    definition: @aql count(plan_day.plan_day_id) ;;
+  }
+  measure total_planned_km {
+    label: 'Planned km'
+    type: 'number'
+    description: 'Sum of planned km (entered, else estimated)'
+    format: '#,##0.0'
+    definition: @aql sum(plan_day.km_est) ;;
+  }
+  measure total_done_km {
+    label: 'km Done'
+    type: 'number'
+    description: 'Sum of km actually run on plan days'
+    format: '#,##0.0'
+    definition: @aql sum(plan_day.done_km) ;;
+  }
+  measure total_est_load {
+    label: 'Estimated Load'
+    type: 'number'
+    description: 'Sum of estimated TRIMP: minutes x typical TRIMP per minute for the session type (session_profile)'
+    format: '#,##0'
+    definition: @aql sum(plan_day.est_load) ;;
+  }
+}

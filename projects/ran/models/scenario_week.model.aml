@@ -1,0 +1,143 @@
+Model scenario_week {
+  type: 'query'
+  label: 'Planner: Weeks'
+  description: '''One row per set of settings and plan week, from the current week to race week: km (what was already run this week included), long run, runs, quality sessions, phase.
+
+Every setting is a dimension: filter each to one value (race_id, runs_per_week, peak_km, quality, long_max_km, ramp_pct, taper_weeks, front_loaded, tune_up, start_km), or the model computes every combination of the ones left open.'''
+  data_source_name: 'garmin'
+  query: @sql
+    select g.race_id, g.runs_per_week, g.peak_km, g.quality, g.long_max_km, g.ramp_pct, g.taper_weeks, g.front_loaded, g.tune_up, g.start_km,
+           w.week, w.week_start, w.phase, w.km, w.done_km, w.long_km, w.runs, w.quality as week_quality, w.race_km, w.load, w.ramp_pct as week_ramp_pct
+    from garmin.scenario_grid g
+    cross join lateral (select garmin.scn_scenario(g.race_id, g.runs_per_week, g.peak_km, g.quality, g.long_max_km, g.ramp_pct, g.taper_weeks, g.front_loaded, g.tune_up, g.start_km) as j) x
+    cross join lateral jsonb_to_recordset(x.j->'weeks') w(week int, week_start date, phase text, km float8, done_km float8, long_km float8, runs int, quality int, race_km float8, load float8, ramp_pct float8)
+  ;;
+
+  dimension race_id {
+    label: 'Race ID'
+    type: 'number'
+    description: 'Goal race (an upcoming race)'
+    hidden: true
+    definition: @sql {{ #SOURCE.race_id }};;
+  }
+  dimension runs_per_week {
+    label: 'Runs per week'
+    type: 'number'
+    description: 'Setting: runs a week, the long run and quality sessions included (3 to 7)'
+    definition: @sql {{ #SOURCE.runs_per_week }};;
+  }
+  dimension peak_km {
+    label: 'Biggest week (km)'
+    type: 'number'
+    description: 'Setting: the biggest week the plan may reach (15 to 160 km)'
+    definition: @sql {{ #SOURCE.peak_km }};;
+  }
+  dimension quality {
+    label: 'Quality sessions'
+    type: 'number'
+    description: 'Setting: quality sessions a week (0 to 2; at most runs per week minus 1)'
+    definition: @sql {{ #SOURCE.quality }};;
+  }
+  dimension long_max_km {
+    label: 'Longest long run (km)'
+    type: 'number'
+    description: 'Setting: the longest long run (8 to 42 km)'
+    definition: @sql {{ #SOURCE.long_max_km }};;
+  }
+  dimension ramp_pct {
+    label: 'Weekly increase (%)'
+    type: 'number'
+    description: 'Setting: how much a build week may rise over the one before (0 to 30 %)'
+    definition: @sql {{ #SOURCE.ramp_pct }};;
+  }
+  dimension taper_weeks {
+    label: 'Taper (weeks)'
+    type: 'number'
+    description: 'Setting: taper length, race week included (1 to 3)'
+    definition: @sql {{ #SOURCE.taper_weeks }};;
+  }
+  dimension front_loaded {
+    label: 'Front-loaded'
+    type: 'number'
+    description: 'Setting: build-up, 0 gradual (biggest week at the peak), 1 front-loaded (biggest week as early as the weekly increase allows)'
+    definition: @sql {{ #SOURCE.front_loaded }};;
+  }
+  dimension tune_up {
+    label: 'Tune-up race'
+    type: 'number'
+    description: 'Setting: 1 for a tune-up race 6 weeks before race week (half marathon or longer, 12+ weeks to go)'
+    definition: @sql {{ #SOURCE.tune_up }};;
+  }
+  dimension start_km {
+    label: 'This week (km)'
+    type: 'number'
+    description: 'Setting: this week’s km, the plan’s starting load (10 to 160, in steps of 0.1)'
+    definition: @sql {{ #SOURCE.start_km }};;
+  }
+  dimension week {
+    label: 'Week'
+    type: 'number'
+    description: 'Week of the plan week'
+    definition: @sql {{ #SOURCE.week }};;
+  }
+  dimension week_start {
+    label: 'Week start'
+    type: 'date'
+    description: 'Week start of the plan week'
+    definition: @sql {{ #SOURCE.week_start }};;
+  }
+  dimension phase {
+    label: 'Phase'
+    type: 'text'
+    description: 'Phase of the plan week'
+    definition: @sql {{ #SOURCE.phase }};;
+  }
+  dimension km {
+    label: 'Km'
+    type: 'number'
+    description: 'Km of the plan week'
+    definition: @sql {{ #SOURCE.km }};;
+  }
+  dimension done_km {
+    label: 'Done km'
+    type: 'number'
+    description: 'Done km of the plan week'
+    definition: @sql {{ #SOURCE.done_km }};;
+  }
+  dimension long_km {
+    label: 'Long run (km)'
+    type: 'number'
+    description: 'Long run (km) of the plan week'
+    definition: @sql {{ #SOURCE.long_km }};;
+  }
+  dimension runs {
+    label: 'Runs'
+    type: 'number'
+    description: 'Runs of the plan week'
+    definition: @sql {{ #SOURCE.runs }};;
+  }
+  dimension week_quality {
+    label: 'Quality sessions'
+    type: 'number'
+    description: 'Quality sessions of the plan week'
+    definition: @sql {{ #SOURCE.week_quality }};;
+  }
+  dimension race_km {
+    label: 'Race km'
+    type: 'number'
+    description: 'Race km of the plan week'
+    definition: @sql {{ #SOURCE.race_km }};;
+  }
+  dimension load {
+    label: 'Estimated load'
+    type: 'number'
+    description: 'Estimated load of the plan week'
+    definition: @sql {{ #SOURCE.load }};;
+  }
+  dimension week_ramp_pct {
+    label: 'Ramp (%)'
+    type: 'number'
+    description: 'Ramp (%) of the plan week'
+    definition: @sql {{ #SOURCE.week_ramp_pct }};;
+  }
+}

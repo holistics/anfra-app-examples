@@ -1,0 +1,80 @@
+Model prediction_check {
+  type: 'table'
+  label: 'Prediction Checks'
+  description: 'For each past race with a result and each prediction method: the time the method would have predicted from data up to the day before, against the result. Calibrated methods use only earlier races. Written by garmin_sync/model.py.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."prediction_check"'
+
+  dimension check_id {
+    label: 'Check ID'
+    type: 'text'
+    description: 'Surrogate key: race and method'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.check_id }};;
+  }
+  dimension race_id {
+    label: 'Race ID'
+    type: 'number'
+    description: 'Marked race that was predicted'
+    hidden: true
+    definition: @sql {{ #SOURCE.race_id }};;
+  }
+  dimension method {
+    label: 'Method Key'
+    type: 'text'
+    description: 'Prediction method key (garmin_sync/model.py)'
+    definition: @sql {{ #SOURCE.method }};;
+  }
+  dimension method_label {
+    label: 'Method'
+    type: 'text'
+    description: 'Daniels/VDOT from effective or Garmin VO2max; Garmin race prediction; Riegel (1.06) from the previous race; Tanda (marathons). "+ heat" = adjusted with the fitted heat coefficient; "calibrated" = scaled by the runner past actual / predicted ratio'
+    definition: @sql {{ #SOURCE.method_label }};;
+  }
+  dimension predicted_s {
+    label: 'Predicted (s)'
+    type: 'number'
+    description: 'What the method predicted using only data from before the race'
+    definition: @sql {{ #SOURCE.predicted_s }};;
+  }
+  dimension actual_s {
+    label: 'Actual (s)'
+    type: 'number'
+    description: 'Actual race time'
+    definition: @sql {{ #SOURCE.actual_s }};;
+  }
+  dimension error_pct {
+    label: 'Error (%)'
+    type: 'number'
+    description: '(predicted - actual) / actual. Negative = predicted too fast'
+    definition: @sql {{ #SOURCE.error_pct }};;
+  }
+  dimension abs_error_pct {
+    label: 'Absolute Error (%)'
+    type: 'number'
+    description: '|predicted - actual| / actual x 100'
+    definition: @sql {{ #SOURCE.abs_error_pct }};;
+  }
+
+  measure check_count {
+    label: 'Races Predicted'
+    type: 'number'
+    description: 'Number of race predictions checked'
+    definition: @aql count(prediction_check.check_id) ;;
+  }
+  measure mape {
+    label: 'Mean Absolute Error (%)'
+    type: 'number'
+    format: '#,##0.0'
+    description: 'Average size of the error, whatever its direction'
+    definition: @aql avg(prediction_check.abs_error_pct) ;;
+  }
+  measure bias_pct {
+    label: 'Bias (%)'
+    type: 'number'
+    format: '#,##0.0'
+    description: 'Average signed error: negative = the method predicts too fast'
+    definition: @aql avg(prediction_check.error_pct) ;;
+  }
+}

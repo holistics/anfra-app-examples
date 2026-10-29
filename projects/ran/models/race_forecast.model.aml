@@ -1,0 +1,298 @@
+Model race_forecast {
+  type: 'table'
+  label: 'Race Forecast'
+  description: 'Interim race-time forecast per upcoming race. Marathon: Tanda 2011 from the plan (8 weeks ending a week before the race; validated for 2:47 to 3:36). Other distances: Garmin prediction carried by Riegel. Heat-adjusted for race vs training WBGT. To be replaced by the best method in garmin.prediction_check.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."race_forecast"'
+
+  dimension race_id {
+    label: 'Race ID'
+    type: 'number'
+    description: 'Upcoming race'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.race_id }};;
+  }
+  dimension name {
+    label: 'Race'
+    type: 'text'
+    description: 'Race name'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension race_date {
+    label: 'Race Date'
+    type: 'date'
+    description: 'Race date'
+    definition: @sql {{ #SOURCE.race_date }};;
+  }
+  dimension distance_km {
+    label: 'Distance (km)'
+    type: 'number'
+    description: 'Race distance'
+    definition: @sql {{ #SOURCE.distance_km }};;
+  }
+  dimension goal_time_s {
+    label: 'Goal Time (s)'
+    type: 'number'
+    description: 'Goal time set on the race'
+    definition: @sql {{ #SOURCE.goal_time_s }};;
+  }
+  dimension has_plan {
+    label: 'Has a Plan'
+    type: 'truefalse'
+    description: 'The race has planned days after today; the forecast then uses the marathon shape on race eve from the plan'
+    definition: @sql {{ #SOURCE.has_plan }};;
+  }
+  dimension vo2_effective {
+    label: 'Effective VO2max'
+    type: 'number'
+    description: 'D1 (economy D3 inside it): today, from garmin.day: Daniels VO2 of runs from speed and HR share of HRmax, 30-day duration-weighted'
+    definition: @sql {{ #SOURCE.vo2_effective }};;
+  }
+  dimension vo2_change {
+    label: 'Race Fitness Change'
+    type: 'number'
+    description: 'With a plan: vo2_per_ctl (garmin-sync fit, the runner\'s own history) x (30-day mean CTL before race eve, projected - 30-day mean CTL today). Without a plan: 0'
+    definition: @sql {{ #SOURCE.vo2_change }};;
+  }
+  dimension vo2_race {
+    label: 'Effective VO2max on Race Day'
+    type: 'number'
+    description: 'Effective VO2max today + race fitness change: the VO2max the forecast uses'
+    definition: @sql {{ #SOURCE.vo2_race }};;
+  }
+  dimension today_time_s {
+    label: 'If the Race Were Today (s)'
+    type: 'number'
+    description: 'Today\'s effective VO2max x today\'s marathon shape through Daniels, x calibration x race-day heat against the heat of the last 8 weeks of training; no plan, no taper'
+    definition: @sql {{ #SOURCE.today_time_s }};;
+  }
+  dimension today_training_wbgt_c {
+    label: 'Training Heat, Last 8 Weeks (WBGT °C)'
+    type: 'number'
+    description: 'Mean WBGT of the outdoor runs of the last 56 days: the heat the runner actually trains in now'
+    definition: @sql {{ #SOURCE.today_training_wbgt_c }};;
+  }
+  dimension today_heat_adj_pct {
+    label: 'Heat Adjustment Today (%)'
+    type: 'number'
+    description: 'heat % per °C x (race-day WBGT - training WBGT of the last 8 weeks): the heat term of the race time if the race were today'
+    definition: @sql {{ #SOURCE.today_heat_adj_pct }};;
+  }
+  dimension today_daniels_time_s {
+    label: 'Daniels Time Today (s)'
+    type: 'number'
+    description: 'Daniels & Gilbert time at today\'s effective VO2max (shape met)'
+    definition: @sql {{ #SOURCE.today_daniels_time_s }};;
+  }
+  dimension today_shape_factor {
+    label: 'Shape Factor Today'
+    type: 'number'
+    description: 'Runalyze factor for today\'s marathon shape at this distance'
+    definition: @sql {{ #SOURCE.today_shape_factor }};;
+  }
+  dimension today_daniels_shape_time_s {
+    label: 'Daniels Time at Today\'s Shape (s)'
+    type: 'number'
+    description: 'Daniels & Gilbert time at today\'s VO2max x today\'s shape factor'
+    definition: @sql {{ #SOURCE.today_daniels_shape_time_s }};;
+  }
+  dimension recent_week_km {
+    label: 'Recent Weekly Volume (km)'
+    type: 'number'
+    description: 'Average run km of the last 2 complete weeks (the current load, as the planner starts from)'
+    definition: @sql {{ #SOURCE.recent_week_km }};;
+  }
+  dimension longest_4w_km {
+    label: 'Longest Run, 4 Weeks (km)'
+    type: 'number'
+    description: 'Longest run of the last 4 weeks'
+    definition: @sql {{ #SOURCE.longest_4w_km }};;
+  }
+  dimension shape_today {
+    label: 'Marathon Shape Today (%)'
+    type: 'number'
+    description: 'Runalyze marathon shape today (garmin.day)'
+    definition: @sql {{ #SOURCE.shape_today }};;
+  }
+  dimension shape_race {
+    label: 'Marathon Shape on Race Eve (%)'
+    type: 'number'
+    description: 'With a plan: the garmin.day formula on race eve over runs so far plus planned runs. Without: today'
+    definition: @sql {{ #SOURCE.shape_race }};;
+  }
+  dimension shape_needed {
+    label: 'Marathon Shape Needed (%)'
+    type: 'number'
+    description: 'distance^1.23 (Runalyze)'
+    definition: @sql {{ #SOURCE.shape_needed }};;
+  }
+  dimension shape_factor {
+    label: 'Shape Factor'
+    type: 'number'
+    description: 'Share of effective VO2max usable over the distance: min(1, 0.6 + 0.4 x max(0, 1 - (needed - shape) / 100)) (Runalyze Prognosis/VO2max.php)'
+    definition: @sql {{ #SOURCE.shape_factor }};;
+  }
+  dimension daniels_time_s {
+    label: 'Daniels Time (s)'
+    type: 'number'
+    description: 'Daniels & Gilbert race time at the race-day effective VO2max (shape met)'
+    definition: @sql {{ #SOURCE.daniels_time_s }};;
+  }
+  dimension daniels_shape_time_s {
+    label: 'Daniels Time at Shape (s)'
+    type: 'number'
+    description: 'Daniels & Gilbert race time at race-day effective VO2max x shape factor'
+    definition: @sql {{ #SOURCE.daniels_shape_time_s }};;
+  }
+  dimension calibration {
+    label: 'Calibration'
+    type: 'number'
+    description: 'Mean actual / predicted of the causal-model method over the marked races (garmin-sync fit: calibration_daniels_shape_heat)'
+    definition: @sql {{ #SOURCE.calibration }};;
+  }
+  dimension calibration_races {
+    label: 'Calibration Races'
+    type: 'number'
+    description: 'Marked races behind the calibration'
+    definition: @sql {{ #SOURCE.calibration_races }};;
+  }
+  dimension model_base_time_s {
+    label: 'Model Time Before Heat and Taper (s)'
+    type: 'number'
+    description: 'Daniels time at shape x calibration'
+    definition: @sql {{ #SOURCE.model_base_time_s }};;
+  }
+  dimension taper_adj_pct {
+    label: 'Taper Adjustment (%)'
+    type: 'number'
+    description: 'D5: + taper_gain_pct (planner_param, 2 %) when the plan projects race-morning form below the band; else 0'
+    definition: @sql {{ #SOURCE.taper_adj_pct }};;
+  }
+  dimension time_if_shape_met_s {
+    label: 'Predicted Time with Shape Met (s)'
+    type: 'number'
+    description: 'The forecast with the marathon shape the distance needs; predicted - this = what the volume gap costs'
+    definition: @sql {{ #SOURCE.time_if_shape_met_s }};;
+  }
+  dimension band_no_heat_pct {
+    label: 'Error Without Heat (± %)'
+    type: 'number'
+    description: 'The same method without the heat step: its error on marked races, for comparison'
+    definition: @sql {{ #SOURCE.band_no_heat_pct }};;
+  }
+  dimension tanda_km_per_week {
+    label: 'Tanda: km per Week'
+    type: 'number'
+    description: 'Mean km/week over the 8 weeks ending a week before the race: run up to today, planned after'
+    definition: @sql {{ #SOURCE.tanda_km_per_week }};;
+  }
+  dimension tanda_pace_s_per_km {
+    label: 'Tanda: Training Pace (s/km)'
+    type: 'number'
+    description: 'Mean pace of that running, time over distance'
+    definition: @sql {{ #SOURCE.tanda_pace_s_per_km }};;
+  }
+  dimension unplanned_days {
+    label: 'Unplanned Days in Window'
+    type: 'number'
+    description: 'Future days of the Tanda window with no plan (counted as rest)'
+    definition: @sql {{ #SOURCE.unplanned_days }};;
+  }
+  dimension tanda_time_s {
+    label: 'Tanda Time (s)'
+    type: 'number'
+    description: 'Pm = 17.1 + 140 exp(-0.0053 K) + 0.55 P (s/km), times distance; marathons only'
+    definition: @sql {{ #SOURCE.tanda_time_s }};;
+  }
+  dimension garmin_time_s {
+    label: 'Garmin Prediction (s)'
+    type: 'number'
+    description: 'Garmin latest prediction for the nearest distance, carried by Riegel (exponent 1.06)'
+    definition: @sql {{ #SOURCE.garmin_time_s }};;
+  }
+  dimension garmin_calibrated_time_s {
+    label: 'Garmin Prediction, Calibrated (s)'
+    type: 'number'
+    description: 'Garmin prediction × the runner mean actual/predicted ratio on marked races (garmin.model_param calibration_garmin_prediction). Calibrated on 10K and half marathons'
+    definition: @sql {{ #SOURCE.garmin_calibrated_time_s }};;
+  }
+  dimension heat_fitted {
+    label: 'Heat Coefficient Fitted'
+    type: 'truefalse'
+    description: 'True when the heat adjustment uses the personal coefficient from the model fit, false for the literature stand-in'
+    definition: @sql {{ #SOURCE.heat_fitted }};;
+  }
+  dimension band_fitted {
+    label: 'Band Validated'
+    type: 'truefalse'
+    description: 'True when the uncertainty band is the best method mean absolute error on marked races, false for the interim value'
+    definition: @sql {{ #SOURCE.band_fitted }};;
+  }
+  dimension race_wbgt_c {
+    label: 'Race WBGT (°C)'
+    type: 'number'
+    description: 'Mean WBGT of past outdoor runs in the race month starting 03:00 to 08:59'
+    definition: @sql {{ #SOURCE.race_wbgt_c }};;
+  }
+  dimension race_wbgt_n {
+    label: 'Race WBGT Runs'
+    type: 'number'
+    description: 'Early-morning (03:00 to 08:59) outdoor runs in the race month behind the race-day WBGT'
+    definition: @sql {{ #SOURCE.race_wbgt_n }};;
+  }
+  dimension training_wbgt_c {
+    label: 'Training WBGT (°C)'
+    type: 'number'
+    description: 'Monthly mean WBGT of outdoor runs over the Tanda window'
+    definition: @sql {{ #SOURCE.training_wbgt_c }};;
+  }
+  dimension heat_adj_pct {
+    label: 'Heat Adjustment (%)'
+    type: 'number'
+    description: '0.5 % per °C of race minus training WBGT (interim, Ely 2007); negative = faster'
+    definition: @sql {{ #SOURCE.heat_adj_pct }};;
+  }
+  dimension method {
+    label: 'Method'
+    type: 'text'
+    description: 'Which forecast: the causal model (effective VO2max x marathon shape, calibrated, heat, taper), or Garmin calibrated when there is no effective VO2max'
+    definition: @sql {{ #SOURCE.method }};;
+  }
+  dimension predicted_time_s {
+    label: 'Predicted Time (s)'
+    type: 'number'
+    description: 'Daniels(effective VO2max x shape factor) x calibration x (1 + heat %) x (1 + taper %). See db/views.d/30_plan.sql'
+    definition: @sql {{ #SOURCE.predicted_time_s }};;
+  }
+  dimension band_pct {
+    label: 'Uncertainty (± %)'
+    type: 'number'
+    description: '± %: mean absolute error of this method on marked races, each predicted from earlier races only (mape_daniels_shape_heat_calibrated), else the planner default'
+    definition: @sql {{ #SOURCE.band_pct }};;
+  }
+  dimension race_morning_tsb {
+    label: 'Race-Morning Form (TSB)'
+    type: 'number'
+    description: 'Projected TSB at the end of the day before the race'
+    definition: @sql {{ #SOURCE.race_morning_tsb }};;
+  }
+  dimension race_morning_tsb_share {
+    label: 'Race-Morning Form / Fitness'
+    type: 'number'
+    description: 'Projected race-morning TSB / CTL. Taper target band in planner_param'
+    definition: @sql {{ #SOURCE.race_morning_tsb_share }};;
+  }
+  dimension race_morning_ctl {
+    label: 'Race-Morning Fitness (CTL)'
+    type: 'number'
+    description: 'Projected race-morning fitness (CTL)'
+    definition: @sql {{ #SOURCE.race_morning_ctl }};;
+  }
+  dimension race_morning_in_band {
+    label: 'Race-Morning Form in Target'
+    type: 'truefalse'
+    description: 'TSB between 10 % and 30 % of CTL'
+    definition: @sql {{ #SOURCE.race_morning_in_band }};;
+  }
+}

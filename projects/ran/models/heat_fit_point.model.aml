@@ -1,0 +1,53 @@
+Model heat_fit_point {
+  type: 'table'
+  label: 'Heat Fit Points'
+  description: 'The runs behind the heat coefficient: pace at a fixed easy HR on steady outdoor runs, with the fitted fitness trend and duration effect removed. Written by garmin_sync/model.py.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."heat_fit_point"'
+
+  dimension activity_id {
+    label: 'Activity ID'
+    type: 'number'
+    description: 'Run used in the heat fit'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.activity_id }};;
+  }
+  dimension start_date {
+    label: 'Date'
+    type: 'date'
+    description: 'Run date'
+    definition: @sql {{ #SOURCE.start_date }};;
+  }
+  dimension wbgt_c {
+    label: 'WBGT (°C)'
+    type: 'number'
+    description: 'WBGT estimate during the run (BoM formula from Open-Meteo temperature and humidity)'
+    definition: @sql {{ #SOURCE.wbgt_c }};;
+  }
+  dimension pace_s_per_km {
+    label: 'Pace at Easy HR (s/km)'
+    type: 'number'
+    description: 'Pace at easy HR on that run, the outcome the heat effect is fitted to (garmin_sync/model.py)'
+    definition: @sql {{ #SOURCE.pace_s_per_km }};;
+  }
+  dimension heat_adj_pct {
+    label: 'Slower Than Expected (%)'
+    type: 'number'
+    description: 'How much slower than the fitted pace for its date and duration at the reference WBGT, in %: the heat effect plus noise'
+    definition: @sql {{ #SOURCE.heat_adj_pct }};;
+  }
+  dimension fitted_pct {
+    label: 'Fitted Heat Effect (%)'
+    type: 'number'
+    description: 'The fitted heat line at this WBGT: heat_pct_per_c x (WBGT - reference)'
+    definition: @sql {{ #SOURCE.fitted_pct }};;
+  }
+
+  measure point_count {
+    label: 'Runs in Heat Fit'
+    type: 'number'
+    description: 'Runs in the heat regression'
+    definition: @aql count(heat_fit_point.activity_id) ;;
+  }
+}

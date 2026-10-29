@@ -1,0 +1,141 @@
+Model activity_marker {
+  type: 'table'
+  label: 'Run Markers'
+  description: 'Per-run performance markers from the per-second samples (runs with samples only). Exact rules in db/views.sql.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."activity_marker"'
+
+  dimension activity_id {
+    label: 'Activity ID'
+    type: 'number'
+    description: 'Garmin activity ID'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.activity_id }};;
+  }
+  dimension easy_hr_ref {
+    label: 'Easy HR Reference (bpm)'
+    type: 'number'
+    description: '77 % of HRmax: the HR the easy marker is read at'
+    definition: @sql {{ #SOURCE.easy_hr_ref }};;
+  }
+  dimension lthr_ref {
+    label: 'Threshold HR Reference (bpm)'
+    type: 'number'
+    description: 'Garmin lactate-threshold HR in force on the run date (else 90 % HRmax)'
+    definition: @sql {{ #SOURCE.lthr_ref }};;
+  }
+  dimension speed_at_easy_hr_mps {
+    label: 'Speed at Easy HR (m/s)'
+    type: 'number'
+    description: 'D1+D3 marker: median grade-adjusted speed at the easy HR ± 5 bpm, after 10 min. Steady non-workout runs with 5+ min in the band'
+    definition: @sql {{ #SOURCE.speed_at_easy_hr_mps }};;
+  }
+  dimension easy_hr_pace_s_per_km {
+    label: 'Pace at Easy HR (s/km)'
+    type: 'number'
+    description: 'Speed at easy HR as pace'
+    definition: @sql {{ #SOURCE.easy_hr_pace_s_per_km }};;
+  }
+  dimension easy_band_min {
+    label: 'Minutes at Easy HR'
+    type: 'number'
+    description: 'Minutes (after the first 10) spent within easy HR ± 5 bpm; at least 5 needed for the marker'
+    definition: @sql {{ #SOURCE.easy_band_min }};;
+  }
+  dimension speed_at_lthr_mps {
+    label: 'Speed at Threshold HR (m/s)'
+    type: 'number'
+    description: 'D2 marker: median grade-adjusted speed at the threshold HR ± 3 bpm, after 10 min; 3+ min in the band'
+    definition: @sql {{ #SOURCE.speed_at_lthr_mps }};;
+  }
+  dimension lthr_pace_s_per_km {
+    label: 'Pace at Threshold HR (s/km)'
+    type: 'number'
+    description: 'Speed at threshold HR as pace'
+    definition: @sql {{ #SOURCE.lthr_pace_s_per_km }};;
+  }
+  dimension lt_band_min {
+    label: 'Minutes at Threshold HR'
+    type: 'number'
+    description: 'Minutes (after the first 10) spent within threshold HR ± 3 bpm; at least 3 needed for the marker'
+    definition: @sql {{ #SOURCE.lt_band_min }};;
+  }
+  dimension decoupling_pct {
+    label: 'Aerobic Decoupling (%)'
+    type: 'number'
+    description: 'D4 durability: efficiency (speed / HR) of the first half minus the second, as % of the first. Steady runs of 60 min+, no workouts. Under 5 % = durable'
+    definition: @sql {{ #SOURCE.decoupling_pct }};;
+  }
+  dimension second_half_pct {
+    label: 'Second Half vs First (%)'
+    type: 'number'
+    description: 'D8 pacing: time for the second half of the distance vs the first. Positive = slowed down, negative = negative split'
+    definition: @sql {{ #SOURCE.second_half_pct }};;
+  }
+  dimension rep_count {
+    label: 'Workout Reps'
+    type: 'number'
+    description: 'Workout runs: active steps of 30 s / 100 m or more'
+    definition: @sql {{ #SOURCE.rep_count }};;
+  }
+  dimension rep_pace_cv_pct {
+    label: 'Rep Pace Spread (%)'
+    type: 'number'
+    description: 'D8 execution: coefficient of variation of the rep paces. Lower = more even'
+    definition: @sql {{ #SOURCE.rep_pace_cv_pct }};;
+  }
+  dimension rep_fade_pct {
+    label: 'Rep Fade (%)'
+    type: 'number'
+    description: 'D8 execution: mean pace of the last third of reps vs the first third. Positive = slowed down'
+    definition: @sql {{ #SOURCE.rep_fade_pct }};;
+  }
+
+  measure marker_runs {
+    label: 'Runs with Markers'
+    type: 'number'
+    description: 'Runs with per-second samples and a marker row'
+    definition: @aql count(activity_marker.activity_id) ;;
+  }
+  measure avg_easy_hr_pace {
+    label: 'Avg Pace at Easy HR (s/km)'
+    type: 'number'
+    description: 'Mean pace at easy HR across runs (D1+D3 aerobic marker; lower is fitter)'
+    definition: @aql avg(activity_marker.easy_hr_pace_s_per_km) ;;
+  }
+  measure avg_lthr_pace {
+    label: 'Avg Pace at Threshold HR (s/km)'
+    type: 'number'
+    description: 'Mean pace at threshold HR across runs (D2 marker; lower is fitter)'
+    definition: @aql avg(activity_marker.lthr_pace_s_per_km) ;;
+  }
+  measure avg_decoupling_pct {
+    label: 'Avg Decoupling (%)'
+    type: 'number'
+    description: 'Mean HR:pace decoupling across steady 60+ min runs (D4 durability; under 5 % is durable)'
+    format: '#,##0.0'
+    definition: @aql avg(activity_marker.decoupling_pct) ;;
+  }
+  measure avg_second_half_pct {
+    label: 'Avg Second Half vs First (%)'
+    type: 'number'
+    description: 'Mean second-half vs first-half speed change (positive = negative split)'
+    format: '#,##0.0'
+    definition: @aql avg(activity_marker.second_half_pct) ;;
+  }
+  measure avg_rep_pace_cv_pct {
+    label: 'Avg Rep Pace Spread (%)'
+    type: 'number'
+    description: 'Mean main-set rep pace spread (coefficient of variation) in workouts (D8 execution)'
+    format: '#,##0.0'
+    definition: @aql avg(activity_marker.rep_pace_cv_pct) ;;
+  }
+  measure avg_rep_fade_pct {
+    label: 'Avg Rep Fade (%)'
+    type: 'number'
+    description: 'Mean main-set fade: last rep vs first rep pace, % slower (D8 execution)'
+    format: '#,##0.0'
+    definition: @aql avg(activity_marker.rep_fade_pct) ;;
+  }
+}

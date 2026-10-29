@@ -1,0 +1,364 @@
+Model scenario_result {
+  type: 'query'
+  label: 'Planner: Scenario'
+  description: '''One row per set of settings: the plan’s race-day forecast and its terms (race fitness, marathon shape, calibration, heat, freshness), and the target from the recommended plan.
+
+Every setting is a dimension: filter each to one value (race_id, runs_per_week, peak_km, quality, long_max_km, ramp_pct, taper_weeks, front_loaded, tune_up, start_km), or the model computes every combination of the ones left open.'''
+  data_source_name: 'garmin'
+  query: @sql
+    select g.race_id, g.runs_per_week, g.peak_km, g.quality, g.long_max_km, g.ramp_pct, g.taper_weeks, g.front_loaded, g.tune_up, g.start_km,
+           x.j->'race'->>'name' as race_name, (x.j->'race'->>'race_date')::date as race_date, (x.j->'race'->>'distance_km')::float8 as distance_km, (x.j->'race'->>'goal_time_s')::float8 as goal_time_s, (x.j->>'weeks_to_race')::float8 as weeks_to_race, (x.j->>'today')::date as as_of, (x.j->>'predicted_time_s')::float8 as predicted_time_s, (x.j->>'total_km')::float8 as total_km, (x.j->>'peak_week_km')::float8 as peak_week_km, (x.j->>'long_run_km')::float8 as long_run_km, (x.j->>'tsb_in_band')::bool as tsb_in_band, (x.j->'result'->>'k')::float8 as k, (x.j->'result'->>'calibration')::float8 as calibration, (x.j->'result'->>'heat_adj_pct')::float8 as heat_adj_pct, (x.j->'result'->>'taper_adj_pct')::float8 as taper_adj_pct, (x.j->'result'->>'vo2_today')::float8 as vo2_today, (x.j->'result'->>'vo2_race')::float8 as vo2_race, (x.j->'result'->>'vo2_per_ctl')::float8 as vo2_per_ctl, (x.j->'result'->>'ctl30_today')::float8 as ctl30_today, (x.j->'result'->>'ctl30_race')::float8 as ctl30_race, (x.j->'result'->>'shape_today')::float8 as shape_today, (x.j->'result'->>'shape_race')::float8 as shape_race, (x.j->'result'->>'shape_needed')::float8 as shape_needed, (x.j->'result'->>'shape_factor')::float8 as shape_factor, (x.j->'result'->>'tsb_share')::float8 as tsb_share, (x.j->'result'->>'race_wbgt_c')::float8 as race_wbgt_c, (x.j->'result'->>'training_wbgt_c')::float8 as training_wbgt_c, (x.j->'result'->>'band_pct')::float8 as band_pct, (x.j->'result'->>'now_time_s')::float8 as saved_plan_time_s, (x.j->'target'->>'target_time_s')::float8 as target_time_s, (x.j->'target'->>'reachable')::bool as reachable, (x.j->'target'->>'best_time_s')::float8 as best_time_s, (x.j->'target'->>'best_vo2')::float8 as best_vo2, (x.j->'target'->>'best_total_km')::float8 as best_total_km, (x.j->'target'->>'best_peak_km')::float8 as best_peak_km, (x.j->'target'->>'goal_shape_at_best_vo2')::float8 as goal_shape_at_best_vo2, (x.j->'target'->>'goal_needs_more_than_full_shape')::bool as goal_needs_more_than_full_shape, (x.j->'target'->>'saved_faster_than_safe')::bool as saved_faster_than_safe, (x.j->'target'->>'now_has_plan')::bool as saved_has_plan, (x.j->'target'->'best_options'->>'runs_per_week')::float8 as rec_runs_per_week, (x.j->'target'->'best_options'->>'peak_km')::float8 as rec_peak_km, (x.j->'target'->'best_options'->>'quality')::float8 as rec_quality, (x.j->'target'->'best_options'->>'long_max_km')::float8 as rec_long_max_km, (x.j->'target'->'best_options'->>'ramp_pct')::float8 as rec_ramp_pct, (x.j->'target'->'best_options'->>'taper_weeks')::float8 as rec_taper_weeks, (x.j->'target'->'best_options'->>'front_loaded')::bool::int as rec_front_loaded, (x.j->'target'->'best_options'->>'tune_up')::bool::int as rec_tune_up, (x.j->'target'->'best_options'->>'start_km')::float8 as rec_start_km
+    from garmin.scenario_grid g
+    cross join lateral (select garmin.scn_scenario(g.race_id, g.runs_per_week, g.peak_km, g.quality, g.long_max_km, g.ramp_pct, g.taper_weeks, g.front_loaded, g.tune_up, g.start_km) as j) x
+  ;;
+
+  dimension race_id {
+    label: 'Race ID'
+    type: 'number'
+    description: 'Goal race (an upcoming race)'
+    hidden: true
+    definition: @sql {{ #SOURCE.race_id }};;
+  }
+  dimension runs_per_week {
+    label: 'Runs per week'
+    type: 'number'
+    description: 'Setting: runs a week, the long run and quality sessions included (3 to 7)'
+    definition: @sql {{ #SOURCE.runs_per_week }};;
+  }
+  dimension peak_km {
+    label: 'Biggest week (km)'
+    type: 'number'
+    description: 'Setting: the biggest week the plan may reach (15 to 160 km)'
+    definition: @sql {{ #SOURCE.peak_km }};;
+  }
+  dimension quality {
+    label: 'Quality sessions'
+    type: 'number'
+    description: 'Setting: quality sessions a week (0 to 2; at most runs per week minus 1)'
+    definition: @sql {{ #SOURCE.quality }};;
+  }
+  dimension long_max_km {
+    label: 'Longest long run (km)'
+    type: 'number'
+    description: 'Setting: the longest long run (8 to 42 km)'
+    definition: @sql {{ #SOURCE.long_max_km }};;
+  }
+  dimension ramp_pct {
+    label: 'Weekly increase (%)'
+    type: 'number'
+    description: 'Setting: how much a build week may rise over the one before (0 to 30 %)'
+    definition: @sql {{ #SOURCE.ramp_pct }};;
+  }
+  dimension taper_weeks {
+    label: 'Taper (weeks)'
+    type: 'number'
+    description: 'Setting: taper length, race week included (1 to 3)'
+    definition: @sql {{ #SOURCE.taper_weeks }};;
+  }
+  dimension front_loaded {
+    label: 'Front-loaded'
+    type: 'number'
+    description: 'Setting: build-up, 0 gradual (biggest week at the peak), 1 front-loaded (biggest week as early as the weekly increase allows)'
+    definition: @sql {{ #SOURCE.front_loaded }};;
+  }
+  dimension tune_up {
+    label: 'Tune-up race'
+    type: 'number'
+    description: 'Setting: 1 for a tune-up race 6 weeks before race week (half marathon or longer, 12+ weeks to go)'
+    definition: @sql {{ #SOURCE.tune_up }};;
+  }
+  dimension start_km {
+    label: 'This week (km)'
+    type: 'number'
+    description: 'Setting: this week’s km, the plan’s starting load (10 to 160, in steps of 0.1)'
+    definition: @sql {{ #SOURCE.start_km }};;
+  }
+  dimension race_name {
+    label: 'Race'
+    type: 'text'
+    description: 'Race: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.race_name }};;
+  }
+  dimension race_date {
+    label: 'Race date'
+    type: 'date'
+    description: 'Race date: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.race_date }};;
+  }
+  dimension distance_km {
+    label: 'Distance (km)'
+    type: 'number'
+    description: 'Distance (km): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.distance_km }};;
+  }
+  dimension goal_time_s {
+    label: 'Goal time (s)'
+    type: 'number'
+    description: 'Goal time (s): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.goal_time_s }};;
+  }
+  dimension weeks_to_race {
+    label: 'Weeks to race'
+    type: 'number'
+    description: 'Weeks to race: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.weeks_to_race }};;
+  }
+  dimension as_of {
+    label: 'As of'
+    type: 'date'
+    description: 'As of: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.as_of }};;
+  }
+  dimension predicted_time_s {
+    label: 'Race-day forecast (s)'
+    type: 'number'
+    description: 'Race-day forecast (s): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.predicted_time_s }};;
+  }
+  dimension total_km {
+    label: 'Total km'
+    type: 'number'
+    description: 'Total km: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.total_km }};;
+  }
+  dimension peak_week_km {
+    label: 'Biggest week (km)'
+    type: 'number'
+    description: 'Biggest week (km): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.peak_week_km }};;
+  }
+  dimension long_run_km {
+    label: 'Longest long run planned (km)'
+    type: 'number'
+    description: 'Longest long run planned (km): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.long_run_km }};;
+  }
+  dimension tsb_in_band {
+    label: 'Race morning fresh'
+    type: 'truefalse'
+    description: 'Race morning fresh: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.tsb_in_band }};;
+  }
+  dimension k {
+    label: 'Time multiplier'
+    type: 'number'
+    description: 'Time multiplier: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.k }};;
+  }
+  dimension calibration {
+    label: 'Calibration'
+    type: 'number'
+    description: 'Calibration: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.calibration }};;
+  }
+  dimension heat_adj_pct {
+    label: 'Race-day heat (%)'
+    type: 'number'
+    description: 'Race-day heat (%): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.heat_adj_pct }};;
+  }
+  dimension taper_adj_pct {
+    label: 'Freshness cost (%)'
+    type: 'number'
+    description: 'Freshness cost (%): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.taper_adj_pct }};;
+  }
+  dimension vo2_today {
+    label: 'Race fitness today'
+    type: 'number'
+    description: 'Race fitness today: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.vo2_today }};;
+  }
+  dimension vo2_race {
+    label: 'Race fitness on race day'
+    type: 'number'
+    description: 'Race fitness on race day: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.vo2_race }};;
+  }
+  dimension vo2_per_ctl {
+    label: 'VO2max per CTL point'
+    type: 'number'
+    description: 'VO2max per CTL point: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.vo2_per_ctl }};;
+  }
+  dimension ctl30_today {
+    label: '30-day fitness today'
+    type: 'number'
+    description: '30-day fitness today: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.ctl30_today }};;
+  }
+  dimension ctl30_race {
+    label: '30-day fitness on race eve'
+    type: 'number'
+    description: '30-day fitness on race eve: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.ctl30_race }};;
+  }
+  dimension shape_today {
+    label: 'Marathon shape today (%)'
+    type: 'number'
+    description: 'Marathon shape today (%): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.shape_today }};;
+  }
+  dimension shape_race {
+    label: 'Marathon shape on race day (%)'
+    type: 'number'
+    description: 'Marathon shape on race day (%): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.shape_race }};;
+  }
+  dimension shape_needed {
+    label: 'Shape the distance needs (%)'
+    type: 'number'
+    description: 'Shape the distance needs (%): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.shape_needed }};;
+  }
+  dimension shape_factor {
+    label: 'Shape factor'
+    type: 'number'
+    description: 'Shape factor: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.shape_factor }};;
+  }
+  dimension tsb_share {
+    label: 'Race-morning form share'
+    type: 'number'
+    description: 'Race-morning form share: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.tsb_share }};;
+  }
+  dimension race_wbgt_c {
+    label: 'Race-day WBGT (°C)'
+    type: 'number'
+    description: 'Race-day WBGT (°C): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.race_wbgt_c }};;
+  }
+  dimension training_wbgt_c {
+    label: 'Training WBGT (°C)'
+    type: 'number'
+    description: 'Training WBGT (°C): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.training_wbgt_c }};;
+  }
+  dimension band_pct {
+    label: 'Uncertainty (± %)'
+    type: 'number'
+    description: 'Uncertainty (± %): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.band_pct }};;
+  }
+  dimension saved_plan_time_s {
+    label: 'Saved plan forecast (s)'
+    type: 'number'
+    description: 'Saved plan forecast (s): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.saved_plan_time_s }};;
+  }
+  dimension target_time_s {
+    label: 'Working target (s)'
+    type: 'number'
+    description: 'Working target (s): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.target_time_s }};;
+  }
+  dimension reachable {
+    label: 'Goal in safe reach'
+    type: 'truefalse'
+    description: 'Goal in safe reach: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.reachable }};;
+  }
+  dimension best_time_s {
+    label: 'Recommended plan time (s)'
+    type: 'number'
+    description: 'Recommended plan time (s): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.best_time_s }};;
+  }
+  dimension best_vo2 {
+    label: 'Recommended plan race fitness'
+    type: 'number'
+    description: 'Recommended plan race fitness: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.best_vo2 }};;
+  }
+  dimension best_total_km {
+    label: 'Recommended plan km'
+    type: 'number'
+    description: 'Recommended plan km: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.best_total_km }};;
+  }
+  dimension best_peak_km {
+    label: 'Recommended biggest week (km)'
+    type: 'number'
+    description: 'Recommended biggest week (km): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.best_peak_km }};;
+  }
+  dimension goal_shape_at_best_vo2 {
+    label: 'Shape the goal needs (%)'
+    type: 'number'
+    description: 'Shape the goal needs (%): from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.goal_shape_at_best_vo2 }};;
+  }
+  dimension goal_needs_more_than_full_shape {
+    label: 'Goal needs more than full shape'
+    type: 'truefalse'
+    description: 'Goal needs more than full shape: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.goal_needs_more_than_full_shape }};;
+  }
+  dimension saved_faster_than_safe {
+    label: 'Saved plan past the safe limits'
+    type: 'truefalse'
+    description: 'Saved plan past the safe limits: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.saved_faster_than_safe }};;
+  }
+  dimension saved_has_plan {
+    label: 'Has a saved plan'
+    type: 'truefalse'
+    description: 'Has a saved plan: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.saved_has_plan }};;
+  }
+  dimension rec_runs_per_week {
+    label: 'Recommended: runs per week'
+    type: 'number'
+    description: 'Recommended: runs per week: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.rec_runs_per_week }};;
+  }
+  dimension rec_peak_km {
+    label: 'Recommended: peak km'
+    type: 'number'
+    description: 'Recommended: peak km: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.rec_peak_km }};;
+  }
+  dimension rec_quality {
+    label: 'Recommended: quality'
+    type: 'number'
+    description: 'Recommended: quality: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.rec_quality }};;
+  }
+  dimension rec_long_max_km {
+    label: 'Recommended: long max km'
+    type: 'number'
+    description: 'Recommended: long max km: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.rec_long_max_km }};;
+  }
+  dimension rec_ramp_pct {
+    label: 'Recommended: ramp pct'
+    type: 'number'
+    description: 'Recommended: ramp pct: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.rec_ramp_pct }};;
+  }
+  dimension rec_taper_weeks {
+    label: 'Recommended: taper weeks'
+    type: 'number'
+    description: 'Recommended: taper weeks: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.rec_taper_weeks }};;
+  }
+  dimension rec_front_loaded {
+    label: 'Recommended: front loaded'
+    type: 'number'
+    description: 'Recommended: front loaded: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.rec_front_loaded }};;
+  }
+  dimension rec_tune_up {
+    label: 'Recommended: tune up'
+    type: 'number'
+    description: 'Recommended: tune up: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.rec_tune_up }};;
+  }
+  dimension rec_start_km {
+    label: 'Recommended: start km'
+    type: 'number'
+    description: 'Recommended: start km: from the Race Planner model (db/views.d/60_scenario.sql)'
+    definition: @sql {{ #SOURCE.rec_start_km }};;
+  }
+}

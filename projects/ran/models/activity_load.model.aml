@@ -1,0 +1,67 @@
+Model activity_load {
+  type: 'table'
+  label: 'Activity Load (TRIMP)'
+  description: 'Training load per activity: Banister TRIMP (Banister 1991; Morton, Fitz-Clarke and Banister 1990): sum over samples of minutes x HRr x a x e^(b x HRr), HRr = (HR - HRrest) / (HRmax - HRrest), a, b = 0.64, 1.92 (male) or 0.86, 1.67 (female) from the Garmin profile. Per-second HR, gaps capped at 10 s; HRrest = that days resting HR (else the 30-day median); HRmax = Garmin configured value. Exact rules in db/views.sql.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."activity_load"'
+
+  dimension activity_id {
+    label: 'Activity ID'
+    type: 'number'
+    description: 'Garmin activity ID'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.activity_id }};;
+  }
+  dimension trimp {
+    label: 'TRIMP'
+    type: 'number'
+    description: 'Banister TRIMP (Banister 1991; Morton, Fitz-Clarke and Banister 1990): sum over samples of minutes x HRr x a x e^(b x HRr), HRr = (HR - HRrest) / (HRmax - HRrest), a, b = 0.64, 1.92 (male) or 0.86, 1.67 (female) from the Garmin profile'
+    definition: @sql {{ #SOURCE.trimp }};;
+  }
+  dimension load_source {
+    label: 'TRIMP Source'
+    type: 'text'
+    description: 'samples = per-second HR; avg_hr = average HR over the duration (no usable samples, reads a little low); garmin_scaled = no HR, Garmin load x the median TRIMP/Garmin ratio; none = no data (0)'
+    definition: @sql {{ #SOURCE.load_source }};;
+  }
+  dimension hr_rest_used {
+    label: 'Resting HR Used (bpm)'
+    type: 'number'
+    description: 'Resting HR used in TRIMP: Garmin daily resting HR on the day, else the median of the 30 days before, else the all-time median'
+    definition: @sql {{ #SOURCE.hr_rest_used }};;
+  }
+  dimension hr_max_used {
+    label: 'Max HR Used (bpm)'
+    type: 'number'
+    description: 'Max HR used in TRIMP: Garmin HR-zone setting (maxHeartRateUsed), else the highest HR ever recorded'
+    definition: @sql {{ #SOURCE.hr_max_used }};;
+  }
+  dimension sex_used {
+    label: 'Sex Used for TRIMP'
+    type: 'text'
+    description: 'From the Garmin profile; sets the weighting constants'
+    definition: @sql {{ #SOURCE.sex_used }};;
+  }
+  dimension training_load_garmin {
+    label: 'Garmin Training Load'
+    type: 'number'
+    description: 'Garmin EPOC-based load of the same activity, for comparison'
+    definition: @sql {{ #SOURCE.training_load_garmin }};;
+  }
+
+  measure total_trimp {
+    label: 'TRIMP'
+    type: 'number'
+    format: '#,##0'
+    description: 'Sum of Banister TRIMP'
+    definition: @aql sum(activity_load.trimp) ;;
+  }
+  measure avg_trimp {
+    label: 'Avg TRIMP'
+    type: 'number'
+    description: 'Mean Banister TRIMP per activity'
+    format: '#,##0'
+    definition: @aql avg(activity_load.trimp) ;;
+  }
+}

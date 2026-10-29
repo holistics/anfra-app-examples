@@ -1,0 +1,22 @@
+# How Ran's Data Apps are shown in the host (host/): names, icons, order. See host/README.md.
+folders:
+  running/:
+    name: Running
+    description: Garmin history, form, and the race planner built on the causal model.
+    icon: activity
+    order: 1
+apps:
+  running/overview.html:
+    name: Overview
+    icon: gauge
+    tags: [form, vo2max, load]
+    order: 1
+  running/activities.html:
+    icon: table
+    tags: [runs, races]
+    order: 2
+  running/planner.html:
+    icon: rocket
+    tags: [plan, forecast, race]
+    endorsed: true
+    order: 3

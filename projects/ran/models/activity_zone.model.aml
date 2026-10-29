@@ -1,0 +1,44 @@
+Model activity_zone {
+  type: 'table'
+  label: 'Run Zones'
+  description: 'Distance and time of each run per zone: kind hr = Garmin heart-rate zones of that run (1-5), kind pace = grade-adjusted pace against the threshold pace of that day (1 recovery .. 6 anaerobic); zone 0 = no data. Filter to one kind: each kind covers the whole run. Rules in db/views.d/50_activity_zone.sql.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."activity_zone"'
+
+  dimension zone_id {
+    label: 'Zone ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.zone_id }};;
+  }
+  dimension activity_id {
+    label: 'Activity ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.activity_id }};;
+  }
+  dimension kind {
+    label: 'Zone Kind'
+    type: 'text'
+    description: 'hr (heart-rate zones) or pace (pace zones)'
+    definition: @sql {{ #SOURCE.kind }};;
+  }
+  dimension zone {
+    label: 'Zone'
+    type: 'number'
+    description: 'hr: 1 warm-up, 2 easy, 3 aerobic, 4 threshold, 5 max. pace: 1 recovery, 2 endurance, 3 tempo, 4 threshold, 5 VO2max, 6 anaerobic. 0: no data'
+    definition: @sql {{ #SOURCE.zone }};;
+  }
+  measure total_km {
+    label: 'Distance in Zone (km)'
+    type: 'number'
+    definition: @sql sum({{ #SOURCE.km }});;
+    format: '#,##0.0'
+  }
+  measure total_h {
+    label: 'Time in Zone (h)'
+    type: 'number'
+    definition: @sql sum({{ #SOURCE.secs }}) / 3600.0;;
+  }
+}

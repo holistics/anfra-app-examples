@@ -1,0 +1,120 @@
+Model best_effort {
+  type: 'table'
+  label: 'Best Efforts'
+  description: 'The fastest 1K, 5K, 10K, half and full marathon inside each run, from the per-second samples (garmin_sync/markers.py). Timer time, interpolated at the window end; GPS jumps removed. Race-like validation points for the causal model.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."best_effort_run"'
+
+  dimension effort_id {
+    label: 'Effort ID'
+    type: 'number'
+    description: 'Surrogate key: activity ID and distance'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.effort_id }};;
+  }
+  dimension activity_id {
+    label: 'Activity ID'
+    type: 'number'
+    description: 'Run the effort came from'
+    hidden: true
+    definition: @sql {{ #SOURCE.activity_id }};;
+  }
+  dimension distance_km {
+    label: 'Effort Distance (km)'
+    type: 'number'
+    description: '1, 5, 10, 21.0975 or 42.195'
+    definition: @sql {{ #SOURCE.distance_km }};;
+  }
+  dimension distance_label {
+    label: 'Effort'
+    type: 'text'
+    description: '1K, 5K, 10K, Half marathon, Marathon'
+    definition: @sql {{ #SOURCE.distance_label }};;
+  }
+  dimension time_s {
+    label: 'Effort Time (s)'
+    type: 'number'
+    description: 'Fastest timer time over the distance within the run'
+    definition: @sql {{ #SOURCE.time_s }};;
+  }
+  dimension pace_s_per_km {
+    label: 'Effort Pace (s/km)'
+    type: 'number'
+    description: 'Effort time / effort distance'
+    definition: @sql {{ #SOURCE.pace_s_per_km }};;
+  }
+  dimension start_s {
+    label: 'Starts at (s)'
+    type: 'number'
+    description: 'Timer seconds into the run where the effort starts'
+    definition: @sql {{ #SOURCE.start_s }};;
+  }
+  dimension start_m {
+    label: 'Starts at (m)'
+    type: 'number'
+    description: 'Metres into the run where the effort starts'
+    definition: @sql {{ #SOURCE.start_m }};;
+  }
+  dimension avg_hr {
+    label: 'Effort Avg HR'
+    type: 'number'
+    description: 'Mean HR over the fastest window (per-second samples)'
+    definition: @sql {{ #SOURCE.avg_hr }};;
+  }
+  dimension start_date {
+    label: 'Effort Date'
+    type: 'date'
+    description: 'Local date of the run'
+    definition: @sql {{ #SOURCE.start_date }};;
+  }
+  dimension activity_name {
+    label: 'Run'
+    type: 'text'
+    description: 'Name of the run the effort came from'
+    definition: @sql {{ #SOURCE.activity_name }};;
+  }
+  dimension wbgt_c {
+    label: 'Effort WBGT (°C)'
+    type: 'number'
+    description: 'Estimated WBGT during the run (empty indoors)'
+    definition: @sql {{ #SOURCE.wbgt_c }};;
+  }
+  dimension is_indoor {
+    label: 'Indoor Effort'
+    type: 'truefalse'
+    description: 'Treadmill or other run without GPS: distance from a foot pod or the belt, so never ranked'
+    definition: @sql {{ #SOURCE.is_indoor }};;
+  }
+  dimension is_pb {
+    label: 'Personal Best'
+    type: 'truefalse'
+    description: 'No faster outdoor effort at this distance before this run. Empty for indoor efforts'
+    definition: @sql {{ #SOURCE.is_pb }};;
+  }
+  dimension rank_all {
+    label: 'All-time Rank'
+    type: 'number'
+    description: 'Rank among outdoor efforts at this distance; 1 = all-time best. Empty for indoor efforts'
+    definition: @sql {{ #SOURCE.rank_all }};;
+  }
+
+  measure effort_count {
+    label: 'Efforts'
+    type: 'number'
+    description: 'Number of best-effort windows'
+    definition: @aql count(best_effort.effort_id) ;;
+  }
+  measure best_time_s {
+    label: 'Best Time (s)'
+    type: 'number'
+    description: 'Fastest effort time; filter to one distance (and outdoor) for a meaningful best'
+    definition: @aql min(best_effort.time_s) ;;
+  }
+  measure pb_count {
+    label: 'Personal Bests'
+    type: 'number'
+    description: 'Efforts that were the fastest ever at their distance when run'
+    definition: @aql count(best_effort.effort_id) | where(best_effort.is_pb) ;;
+  }
+}

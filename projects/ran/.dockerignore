@@ -1,0 +1,10 @@
+# deploy/Dockerfile's build context: only what the image copies
+*
+!apps/
+!models/
+!datasets/
+!host/
+!deploy/
+host/node_modules/
+host/dist/
+**/.DS_Store

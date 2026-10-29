@@ -1,0 +1,58 @@
+Model model_param {
+  type: 'table'
+  label: 'Model Parameters'
+  description: 'Parameters fitted to the runner by garmin_sync/model.py after each sync (heat coefficient, prediction calibration), plus literature reference values. One row per parameter.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."model_param"'
+
+  dimension name {
+    label: 'Parameter'
+    type: 'text'
+    primary_key: true
+    description: 'heat_pct_per_c = % slower per degree C of WBGT at the same HR (fitted); heat_pct_per_c_* = checks; lit_* = literature (Ely 2007); calibration_* = actual / predicted ratio; best_prediction_mape_pct = error of the best method (named in method)'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension value {
+    label: 'Value'
+    type: 'number'
+    description: 'Fitted value (unit in the parameter name)'
+    definition: @sql {{ #SOURCE.value }};;
+  }
+  dimension ci_low {
+    label: 'Low (95 %)'
+    type: 'number'
+    description: 'Lower end of the 95 % bootstrap interval, or the range minimum where the method says so'
+    definition: @sql {{ #SOURCE.ci_low }};;
+  }
+  dimension ci_high {
+    label: 'High (95 %)'
+    type: 'number'
+    description: 'Upper end of the 95 % bootstrap interval, or the range maximum where the method says so'
+    definition: @sql {{ #SOURCE.ci_high }};;
+  }
+  dimension n {
+    label: 'Observations'
+    type: 'number'
+    description: 'Observations behind the fit (runs or races)'
+    definition: @sql {{ #SOURCE.n }};;
+  }
+  dimension method {
+    label: 'Method'
+    type: 'text'
+    description: 'How it was fitted (see garmin_sync/model.py)'
+    definition: @sql {{ #SOURCE.method }};;
+  }
+  dimension fitted_at {
+    label: 'Fitted At'
+    type: 'datetime'
+    description: 'When garmin-sync fit last ran'
+    definition: @sql {{ #SOURCE.fitted_at }};;
+  }
+
+  measure param_value {
+    label: 'Value (single parameter)'
+    type: 'number'
+    description: 'The value, for one parameter at a time: filter on name'
+    definition: @aql max(model_param.value) ;;
+  }
+}

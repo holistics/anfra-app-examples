@@ -1,0 +1,150 @@
+Model race_limiter {
+  type: 'table'
+  label: 'Race Limiters'
+  description: 'Per upcoming race, each determinant of the causal model (README) today against its target; limiting = needs work before the race.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."race_limiter"'
+
+  dimension limiter_id {
+    label: 'Limiter ID'
+    type: 'number'
+    description: 'race_id x 100 + order'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.limiter_id }};;
+  }
+  dimension race_id {
+    label: 'Race ID'
+    type: 'number'
+    description: 'Upcoming race'
+    hidden: true
+    definition: @sql {{ #SOURCE.race_id }};;
+  }
+  dimension ord {
+    label: 'Order'
+    type: 'number'
+    description: 'Display order'
+    hidden: true
+    definition: @sql {{ #SOURCE.ord }};;
+  }
+  dimension determinant {
+    label: 'Determinant'
+    type: 'text'
+    description: 'Determinant in the README causal model (D1, D2, D4, D5, D6, Volume)'
+    definition: @sql {{ #SOURCE.determinant }};;
+  }
+  dimension label {
+    label: 'Measure'
+    type: 'text'
+    description: 'What is measured'
+    definition: @sql {{ #SOURCE.label }};;
+  }
+  dimension value {
+    label: 'Value'
+    type: 'number'
+    description: 'Value today (or projected to race morning for TSB and heat)'
+    definition: @sql {{ #SOURCE.value }};;
+  }
+  dimension target {
+    label: 'Target'
+    type: 'number'
+    description: 'Target: D1 the effective VO2max the goal needs with the shape met (goal time without calibration, heat and taper, through Daniels & Gilbert), shape distance^1.23 %, decoupling 5 %, utilisation 80 %, form band low end, heat: the WBGT you train in (at least 25 °C)'
+    definition: @sql {{ #SOURCE.target }};;
+  }
+  dimension limiting {
+    label: 'Limiting'
+    type: 'truefalse'
+    description: 'Value is on the wrong side of its target'
+    definition: @sql {{ #SOURCE.limiting }};;
+  }
+  dimension kind {
+    label: 'Kind'
+    type: 'text'
+    description: 'fitness (trained over weeks), plan (set by the plan, e.g. the taper) or condition (race day, not trained)'
+    definition: @sql {{ #SOURCE.kind }};;
+  }
+  dimension direction {
+    label: 'Direction'
+    type: 'text'
+    description: 'max: higher is better; min: lower is better; band: between target and target_high'
+    definition: @sql {{ #SOURCE.direction }};;
+  }
+  dimension unit {
+    label: 'Unit'
+    type: 'text'
+    description: 'Unit of value and target'
+    definition: @sql {{ #SOURCE.unit }};;
+  }
+  dimension target_high {
+    label: 'Target High'
+    type: 'number'
+    description: 'Upper end of the target for a band (form)'
+    definition: @sql {{ #SOURCE.target_high }};;
+  }
+  dimension pct_missing {
+    label: 'Missing (%)'
+    type: 'number'
+    description: 'How far from the target: (target - value) / target for max, (value - target) / value for min, distance outside the band for band. 0 = met'
+    definition: @sql {{ #SOURCE.pct_missing }};;
+  }
+  dimension importance {
+    label: 'Importance'
+    type: 'number'
+    description: 'For this race distance: 3 high, 2 medium, 1 low (README Layer 1: volume and durability matter most for a marathon, threshold for shorter races)'
+    definition: @sql {{ #SOURCE.importance }};;
+  }
+  dimension weeks_lo {
+    label: 'Weeks to Improve (low)'
+    type: 'number'
+    description: 'Typical weeks of the right training to close the gap, low end. D1: 4 per VDOT point; volume: 13 x share missing (min 4); D4 6; D2 4; taper 1; heat 1'
+    definition: @sql {{ #SOURCE.weeks_lo }};;
+  }
+  dimension weeks_hi {
+    label: 'Weeks to Improve (high)'
+    type: 'number'
+    description: 'High end. D1: 6 per VDOT point; volume: 26 x share missing (min 8); D4 12; D2 8; taper 3; heat 2'
+    definition: @sql {{ #SOURCE.weeks_hi }};;
+  }
+  dimension weeks_to_race {
+    label: 'Weeks to Race'
+    type: 'number'
+    description: '(race date - today) / 7'
+    definition: @sql {{ #SOURCE.weeks_to_race }};;
+  }
+  dimension closable {
+    label: 'Closable Before Race'
+    type: 'truefalse'
+    description: 'The low end of weeks to improve fits before race day'
+    definition: @sql {{ #SOURCE.closable }};;
+  }
+  dimension start_by {
+    label: 'Start By'
+    type: 'date'
+    description: 'Race date - weeks to improve (high end), not before today: start the work by then'
+    definition: @sql {{ #SOURCE.start_by }};;
+  }
+  dimension priority {
+    label: 'Priority'
+    type: 'number'
+    description: '1 = work on first. Limiting first, then importance x gap (gap capped at 50 %), then longest to move'
+    definition: @sql {{ #SOURCE.priority }};;
+  }
+  dimension time_cost_s {
+    label: 'Time Cost (s)'
+    type: 'number'
+    description: 'What the gap costs on the forecast. Volume: predicted - time with shape met; D1: time with shape met - goal; D5: the taper adjustment; D6: the heat adjustment when positive. Null for D2 and D4, which are diagnostics, not terms of the forecast'
+    definition: @sql {{ #SOURCE.time_cost_s }};;
+  }
+  dimension advice {
+    label: 'What Trains It'
+    type: 'text'
+    description: 'What kind of training moves this determinant'
+    definition: @sql {{ #SOURCE.advice }};;
+  }
+  dimension n {
+    label: 'Runs Behind It'
+    type: 'number'
+    description: 'Runs behind the value, where it is an average'
+    definition: @sql {{ #SOURCE.n }};;
+  }
+}

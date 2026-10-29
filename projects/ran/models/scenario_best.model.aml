@@ -1,0 +1,107 @@
+Model scenario_best {
+  type: 'table'
+  label: 'Planner: Recommended plan'
+  description: 'One row per upcoming race and runs a week (3 to 7): the recommended settings (the least running that reaches the goal; when no safe plan reaches it, the fastest safe plan), computed once per refresh (garmin-sync fit). The Race Planner starts from the row where is_habit is true.'
+  data_source_name: 'garmin'
+  table_name: '"garmin"."scenario_best"'
+
+  dimension best_id {
+    label: 'Best ID'
+    type: 'number'
+    description: 'Race and runs a week'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.race_id }} * 10 + {{ #SOURCE.runs_per_week }};;
+  }
+  dimension race_id {
+    label: 'Race ID'
+    type: 'number'
+    description: 'Goal race'
+    hidden: true
+    definition: @sql {{ #SOURCE.race_id }};;
+  }
+  dimension runs_per_week {
+    label: 'Runs per week'
+    type: 'number'
+    description: 'Runs a week the recommendation is for'
+    definition: @sql {{ #SOURCE.runs_per_week }};;
+  }
+  dimension is_habit {
+    label: 'Your usual runs a week'
+    type: 'truefalse'
+    description: 'True for the runs a week you ran over the last 2 weeks: where the planner starts'
+    definition: @sql {{ #SOURCE.is_habit }};;
+  }
+  dimension peak_km {
+    label: 'Biggest week (km)'
+    type: 'number'
+    description: 'Recommended biggest week'
+    definition: @sql {{ #SOURCE.peak_km }};;
+  }
+  dimension quality {
+    label: 'Quality sessions'
+    type: 'number'
+    description: 'Recommended quality sessions a week'
+    definition: @sql {{ #SOURCE.quality }};;
+  }
+  dimension long_max_km {
+    label: 'Longest long run (km)'
+    type: 'number'
+    description: 'Recommended longest long run'
+    definition: @sql {{ #SOURCE.long_max_km }};;
+  }
+  dimension ramp_pct {
+    label: 'Weekly increase (%)'
+    type: 'number'
+    description: 'Recommended weekly increase'
+    definition: @sql {{ #SOURCE.ramp_pct }};;
+  }
+  dimension taper_weeks {
+    label: 'Taper (weeks)'
+    type: 'number'
+    description: 'Recommended taper'
+    definition: @sql {{ #SOURCE.taper_weeks }};;
+  }
+  dimension front_loaded {
+    label: 'Front-loaded'
+    type: 'number'
+    description: 'Recommended build-up: 1 front-loaded'
+    definition: @sql {{ #SOURCE.front_loaded }};;
+  }
+  dimension tune_up {
+    label: 'Tune-up race'
+    type: 'number'
+    description: 'Recommended: 1 with a tune-up race'
+    definition: @sql {{ #SOURCE.tune_up }};;
+  }
+  dimension start_km {
+    label: 'This week (km)'
+    type: 'number'
+    description: 'This week’s km the plan starts from'
+    definition: @sql {{ #SOURCE.start_km }};;
+  }
+  dimension target_time_s {
+    label: 'Working target (s)'
+    type: 'number'
+    description: 'The goal when the recommended plan reaches it, else its time'
+    definition: @sql {{ #SOURCE.target_time_s }};;
+  }
+  dimension best_time_s {
+    label: 'Recommended plan time (s)'
+    type: 'number'
+    description: 'Race-day forecast of the recommended plan'
+    definition: @sql {{ #SOURCE.best_time_s }};;
+  }
+  dimension fastest_time_s {
+    label: 'Fastest safe plan time (s)'
+    type: 'number'
+    description: 'The fastest plan inside every safe limit'
+    definition: @sql {{ #SOURCE.fastest_time_s }};;
+  }
+  dimension reachable {
+    label: 'Goal in safe reach'
+    type: 'truefalse'
+    description: 'True when a safe plan reaches the goal'
+    definition: @sql {{ #SOURCE.reachable }};;
+  }
+}

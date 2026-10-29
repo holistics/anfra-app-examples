@@ -1,0 +1,30 @@
+Model demo_dim_countries {
+  type: 'table'
+  label: 'Countries'
+  data_source_name: 'galaxy_demo'
+  table_name: 'dim_countries'
+
+  dimension country_key {
+    label: 'Country Key'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.country_key }};;
+  }
+  dimension country_code {
+    label: 'Country Code'
+    type: 'text'
+    description: 'ISO 3166-1 alpha-2'
+    definition: @sql {{ #SOURCE.country_code }};;
+  }
+  dimension country_name {
+    label: 'Country'
+    type: 'text'
+    definition: @sql {{ #SOURCE.country_name }};;
+  }
+  dimension region {
+    label: 'Region'
+    type: 'text'
+    definition: @sql {{ #SOURCE.region }};;
+  }
+}

@@ -1,0 +1,1205 @@
+{
+  "dim_apps": {
+    "columns": [
+      "app_key",
+      "app_id",
+      "name",
+      "platform",
+      "bundle_id",
+      "category",
+      "squad_key"
+    ],
+    "rows": [
+      [
+        1,
+        "app_001",
+        "Puzzle Quest Pro",
+        "ios",
+        "com.studio.puzzlequestpro",
+        "Games",
+        1
+      ],
+      [
+        2,
+        "app_002",
+        "Fitness Tracker Plus",
+        "android",
+        "com.studio.fitnesstrackerplus",
+        "Health & Fitness",
+        2
+      ],
+      [
+        3,
+        "app_003",
+        "Daily Recipes",
+        "ios",
+        "com.studio.dailyrecipes",
+        "Food & Drink",
+        3
+      ],
+      [
+        4,
+        "app_004",
+        "Language Master",
+        "android",
+        "com.studio.languagemaster",
+        "Education",
+        4
+      ],
+      [
+        5,
+        "app_005",
+        "Budget Buddy",
+        "ios",
+        "com.studio.budgetbuddy",
+        "Finance",
+        4
+      ],
+      [
+        6,
+        "app_006",
+        "Sleep Sounds",
+        "android",
+        "com.studio.sleepsounds",
+        "Health & Fitness",
+        2
+      ],
+      [
+        7,
+        "app_007",
+        "Photo Editor Pro",
+        "ios",
+        "com.studio.photoeditorpro",
+        "Photo & Video",
+        1
+      ],
+      [
+        8,
+        "app_008",
+        "Word Champion",
+        "android",
+        "com.studio.wordchampion",
+        "Games",
+        1
+      ],
+      [
+        9,
+        "app_009",
+        "Meditation Now",
+        "ios",
+        "com.studio.meditationnow",
+        "Health & Fitness",
+        2
+      ],
+      [
+        10,
+        "app_010",
+        "Task Planner",
+        "android",
+        "com.studio.taskplanner",
+        "Productivity",
+        3
+      ]
+    ]
+  },
+  "dim_campaigns": {
+    "columns": [
+      "campaign_key",
+      "campaign_id",
+      "app_key",
+      "name",
+      "channel",
+      "view_type",
+      "budget",
+      "start_date",
+      "end_date",
+      "status",
+      "thumbnail_url"
+    ],
+    "rows": [
+      [
+        1,
+        "camp_001",
+        1,
+        "US Summer Push",
+        "Facebook Ads",
+        "ua",
+        "50000.000",
+        "2024-01-25",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_001/200/200"
+      ],
+      [
+        2,
+        "camp_002",
+        8,
+        "EU Lookalike Gamers",
+        "Facebook Ads",
+        "ua",
+        "35000.000",
+        "2024-02-08",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_002/200/200"
+      ],
+      [
+        3,
+        "camp_003",
+        2,
+        "Health Awareness",
+        "Facebook Ads",
+        "ua",
+        "40000.000",
+        "2024-02-25",
+        "2024-07-13",
+        "completed",
+        "https://picsum.photos/seed/camp_003/200/200"
+      ],
+      [
+        4,
+        "camp_004",
+        3,
+        "Recipe Discovery",
+        "Facebook Ads",
+        "ua",
+        "28000.000",
+        "2024-01-08",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_004/200/200"
+      ],
+      [
+        5,
+        "camp_005",
+        5,
+        "Finance Broad US",
+        "Facebook Ads",
+        "ua",
+        "45000.000",
+        "2024-06-29",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_005/200/200"
+      ],
+      [
+        6,
+        "camp_006",
+        6,
+        "Sleep Awareness",
+        "Facebook Ads",
+        "ua",
+        "22000.000",
+        "2024-09-18",
+        "2025-02-07",
+        "paused",
+        "https://picsum.photos/seed/camp_006/200/200"
+      ],
+      [
+        7,
+        "camp_007",
+        1,
+        "EU Retargeting Q2",
+        "Facebook Ads",
+        "retargeting",
+        "18000.000",
+        "2024-06-21",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_007/200/200"
+      ],
+      [
+        8,
+        "camp_008",
+        2,
+        "Lapsed Fitness",
+        "Facebook Ads",
+        "retargeting",
+        "12000.000",
+        "2024-05-13",
+        "2024-08-29",
+        "paused",
+        "https://picsum.photos/seed/camp_008/200/200"
+      ],
+      [
+        9,
+        "camp_009",
+        3,
+        "Win-back Cooks",
+        "Facebook Ads",
+        "retargeting",
+        "10000.000",
+        "2025-06-24",
+        "2025-12-02",
+        "completed",
+        "https://picsum.photos/seed/camp_009/200/200"
+      ],
+      [
+        10,
+        "camp_010",
+        5,
+        "Re-engage Finance",
+        "Facebook Ads",
+        "retargeting",
+        "8000.000",
+        "2025-06-14",
+        "2025-10-14",
+        "paused",
+        "https://picsum.photos/seed/camp_010/200/200"
+      ],
+      [
+        11,
+        "camp_011",
+        2,
+        "Global UAC Broad",
+        "Google Ads",
+        "ua",
+        "75000.000",
+        "2025-06-11",
+        "2025-08-28",
+        "paused",
+        "https://picsum.photos/seed/camp_011/200/200"
+      ],
+      [
+        12,
+        "camp_012",
+        5,
+        "Search Brand KW",
+        "Google Ads",
+        "ua",
+        "60000.000",
+        "2024-02-06",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_012/200/200"
+      ],
+      [
+        13,
+        "camp_013",
+        4,
+        "App Campaign AC",
+        "Google Ads",
+        "ua",
+        "55000.000",
+        "2024-04-04",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_013/200/200"
+      ],
+      [
+        14,
+        "camp_014",
+        7,
+        "YouTube Discovery",
+        "Google Ads",
+        "ua",
+        "35000.000",
+        "2024-10-17",
+        "2024-12-21",
+        "paused",
+        "https://picsum.photos/seed/camp_014/200/200"
+      ],
+      [
+        15,
+        "camp_015",
+        9,
+        "Search Meditation",
+        "Google Ads",
+        "ua",
+        "40000.000",
+        "2024-04-19",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_015/200/200"
+      ],
+      [
+        16,
+        "camp_016",
+        10,
+        "UAC Task Mgmt",
+        "Google Ads",
+        "ua",
+        "30000.000",
+        "2025-04-09",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_016/200/200"
+      ],
+      [
+        17,
+        "camp_017",
+        7,
+        "YouTube Pre-roll RT",
+        "Google Ads",
+        "retargeting",
+        "20000.000",
+        "2025-05-24",
+        "2025-08-03",
+        "completed",
+        "https://picsum.photos/seed/camp_017/200/200"
+      ],
+      [
+        18,
+        "camp_018",
+        4,
+        "Win-back Lapsed",
+        "Google Ads",
+        "retargeting",
+        "15000.000",
+        "2025-04-29",
+        "2025-10-07",
+        "paused",
+        "https://picsum.photos/seed/camp_018/200/200"
+      ],
+      [
+        19,
+        "camp_019",
+        9,
+        "Search Retarget",
+        "Google Ads",
+        "retargeting",
+        "12000.000",
+        "2024-03-11",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_019/200/200"
+      ],
+      [
+        20,
+        "camp_020",
+        10,
+        "Display Remarket",
+        "Google Ads",
+        "retargeting",
+        "10000.000",
+        "2024-09-14",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_020/200/200"
+      ],
+      [
+        21,
+        "camp_021",
+        3,
+        "Influencer Collab",
+        "TikTok",
+        "ua",
+        "30000.000",
+        "2024-09-10",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_021/200/200"
+      ],
+      [
+        22,
+        "camp_022",
+        6,
+        "Spark Ads Broad",
+        "TikTok",
+        "ua",
+        "45000.000",
+        "2024-02-29",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_022/200/200"
+      ],
+      [
+        23,
+        "camp_023",
+        1,
+        "Puzzle Viral",
+        "TikTok",
+        "ua",
+        "38000.000",
+        "2024-10-03",
+        "2025-01-05",
+        "paused",
+        "https://picsum.photos/seed/camp_023/200/200"
+      ],
+      [
+        24,
+        "camp_024",
+        2,
+        "Fitness Challenge",
+        "TikTok",
+        "ua",
+        "32000.000",
+        "2025-09-18",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_024/200/200"
+      ],
+      [
+        25,
+        "camp_025",
+        7,
+        "Photo Trends",
+        "TikTok",
+        "ua",
+        "25000.000",
+        "2024-01-13",
+        "2024-06-16",
+        "paused",
+        "https://picsum.photos/seed/camp_025/200/200"
+      ],
+      [
+        26,
+        "camp_026",
+        8,
+        "Word Game Shorts",
+        "TikTok",
+        "ua",
+        "20000.000",
+        "2024-03-01",
+        "2024-05-11",
+        "paused",
+        "https://picsum.photos/seed/camp_026/200/200"
+      ],
+      [
+        27,
+        "camp_027",
+        3,
+        "Recipe Shorts RT",
+        "TikTok",
+        "retargeting",
+        "15000.000",
+        "2025-01-10",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_027/200/200"
+      ],
+      [
+        28,
+        "camp_028",
+        6,
+        "Sleep Retarget",
+        "TikTok",
+        "retargeting",
+        "10000.000",
+        "2024-02-13",
+        "2024-05-05",
+        "paused",
+        "https://picsum.photos/seed/camp_028/200/200"
+      ],
+      [
+        29,
+        "camp_029",
+        1,
+        "Puzzle Re-engage",
+        "TikTok",
+        "retargeting",
+        "12000.000",
+        "2024-01-29",
+        "2024-05-17",
+        "paused",
+        "https://picsum.photos/seed/camp_029/200/200"
+      ],
+      [
+        30,
+        "camp_030",
+        2,
+        "Fitness Comeback",
+        "TikTok",
+        "retargeting",
+        "8000.000",
+        "2024-09-29",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_030/200/200"
+      ],
+      [
+        31,
+        "camp_031",
+        1,
+        "Rewarded Video",
+        "Unity Ads",
+        "ua",
+        "40000.000",
+        "2024-07-18",
+        "2024-09-28",
+        "completed",
+        "https://picsum.photos/seed/camp_031/200/200"
+      ],
+      [
+        32,
+        "camp_032",
+        8,
+        "Interstitial RPG",
+        "Unity Ads",
+        "ua",
+        "30000.000",
+        "2024-11-17",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_032/200/200"
+      ],
+      [
+        33,
+        "camp_033",
+        1,
+        "Playable Puzzle",
+        "Unity Ads",
+        "ua",
+        "25000.000",
+        "2024-10-24",
+        "2025-02-04",
+        "completed",
+        "https://picsum.photos/seed/camp_033/200/200"
+      ],
+      [
+        34,
+        "camp_034",
+        2,
+        "Rewarded Fitness",
+        "Unity Ads",
+        "ua",
+        "20000.000",
+        "2024-07-11",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_034/200/200"
+      ],
+      [
+        35,
+        "camp_035",
+        8,
+        "Interstitial Words",
+        "Unity Ads",
+        "ua",
+        "18000.000",
+        "2024-10-23",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_035/200/200"
+      ],
+      [
+        36,
+        "camp_036",
+        6,
+        "Banner Sleep",
+        "Unity Ads",
+        "ua",
+        "15000.000",
+        "2024-09-05",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_036/200/200"
+      ],
+      [
+        37,
+        "camp_037",
+        8,
+        "Re-engage Gamers",
+        "Unity Ads",
+        "retargeting",
+        "12000.000",
+        "2025-09-23",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_037/200/200"
+      ],
+      [
+        38,
+        "camp_038",
+        1,
+        "Puzzle Win-back",
+        "Unity Ads",
+        "retargeting",
+        "10000.000",
+        "2024-08-19",
+        "2025-01-14",
+        "paused",
+        "https://picsum.photos/seed/camp_038/200/200"
+      ],
+      [
+        39,
+        "camp_039",
+        2,
+        "Fitness Lapsed",
+        "Unity Ads",
+        "retargeting",
+        "8000.000",
+        "2024-08-13",
+        "2024-12-17",
+        "completed",
+        "https://picsum.photos/seed/camp_039/200/200"
+      ],
+      [
+        40,
+        "camp_040",
+        6,
+        "Sleep Re-engage",
+        "Unity Ads",
+        "retargeting",
+        "8000.000",
+        "2024-06-29",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_040/200/200"
+      ],
+      [
+        41,
+        "camp_041",
+        9,
+        "MAX Mediation",
+        "AppLovin",
+        "ua",
+        "50000.000",
+        "2024-03-29",
+        "2024-06-21",
+        "paused",
+        "https://picsum.photos/seed/camp_041/200/200"
+      ],
+      [
+        42,
+        "camp_042",
+        10,
+        "AXON Discovery",
+        "AppLovin",
+        "ua",
+        "35000.000",
+        "2025-04-14",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_042/200/200"
+      ],
+      [
+        43,
+        "camp_043",
+        4,
+        "Language Boost",
+        "AppLovin",
+        "ua",
+        "28000.000",
+        "2024-09-03",
+        "2025-01-11",
+        "completed",
+        "https://picsum.photos/seed/camp_043/200/200"
+      ],
+      [
+        44,
+        "camp_044",
+        7,
+        "Photo MAX",
+        "AppLovin",
+        "ua",
+        "22000.000",
+        "2025-06-23",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_044/200/200"
+      ],
+      [
+        45,
+        "camp_045",
+        5,
+        "Budget App Broad",
+        "AppLovin",
+        "ua",
+        "20000.000",
+        "2024-10-30",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_045/200/200"
+      ],
+      [
+        46,
+        "camp_046",
+        9,
+        "Meditation Calm",
+        "AppLovin",
+        "ua",
+        "18000.000",
+        "2024-11-20",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_046/200/200"
+      ],
+      [
+        47,
+        "camp_047",
+        10,
+        "AXON Retarget",
+        "AppLovin",
+        "retargeting",
+        "15000.000",
+        "2025-03-07",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_047/200/200"
+      ],
+      [
+        48,
+        "camp_048",
+        9,
+        "Lapsed Users Push",
+        "AppLovin",
+        "retargeting",
+        "10000.000",
+        "2025-05-04",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_048/200/200"
+      ],
+      [
+        49,
+        "camp_049",
+        4,
+        "Language Win-back",
+        "AppLovin",
+        "retargeting",
+        "8000.000",
+        "2024-01-01",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_049/200/200"
+      ],
+      [
+        50,
+        "camp_050",
+        7,
+        "Photo Re-engage",
+        "AppLovin",
+        "retargeting",
+        "8000.000",
+        "2024-03-02",
+        null,
+        "active",
+        "https://picsum.photos/seed/camp_050/200/200"
+      ],
+      [
+        51,
+        "camp_org_app_001",
+        1,
+        "Organic - Puzzle Quest Pro",
+        "Organic",
+        "ua",
+        "0.000",
+        "2024-11-19",
+        null,
+        "active",
+        null
+      ],
+      [
+        52,
+        "camp_org_app_002",
+        2,
+        "Organic - Fitness Tracker Plus",
+        "Organic",
+        "ua",
+        "0.000",
+        "2024-09-18",
+        null,
+        "active",
+        null
+      ],
+      [
+        53,
+        "camp_org_app_003",
+        3,
+        "Organic - Daily Recipes",
+        "Organic",
+        "ua",
+        "0.000",
+        "2025-01-31",
+        null,
+        "active",
+        null
+      ],
+      [
+        54,
+        "camp_org_app_004",
+        4,
+        "Organic - Language Master",
+        "Organic",
+        "ua",
+        "0.000",
+        "2024-04-13",
+        null,
+        "active",
+        null
+      ],
+      [
+        55,
+        "camp_org_app_005",
+        5,
+        "Organic - Budget Buddy",
+        "Organic",
+        "ua",
+        "0.000",
+        "2024-12-01",
+        null,
+        "active",
+        null
+      ],
+      [
+        56,
+        "camp_org_app_006",
+        6,
+        "Organic - Sleep Sounds",
+        "Organic",
+        "ua",
+        "0.000",
+        "2024-01-23",
+        null,
+        "active",
+        null
+      ],
+      [
+        57,
+        "camp_org_app_007",
+        7,
+        "Organic - Photo Editor Pro",
+        "Organic",
+        "ua",
+        "0.000",
+        "2024-03-02",
+        null,
+        "active",
+        null
+      ],
+      [
+        58,
+        "camp_org_app_008",
+        8,
+        "Organic - Word Champion",
+        "Organic",
+        "ua",
+        "0.000",
+        "2024-05-25",
+        null,
+        "active",
+        null
+      ],
+      [
+        59,
+        "camp_org_app_009",
+        9,
+        "Organic - Meditation Now",
+        "Organic",
+        "ua",
+        "0.000",
+        "2025-02-24",
+        null,
+        "active",
+        null
+      ],
+      [
+        60,
+        "camp_org_app_010",
+        10,
+        "Organic - Task Planner",
+        "Organic",
+        "ua",
+        "0.000",
+        "2024-09-01",
+        null,
+        "active",
+        null
+      ]
+    ]
+  },
+  "dim_squads": {
+    "columns": [
+      "squad_key",
+      "squad_name",
+      "focus",
+      "colour"
+    ],
+    "rows": [
+      [
+        1,
+        "Orion",
+        "Games and creative apps",
+        "#7C5CFF"
+      ],
+      [
+        2,
+        "Lyra",
+        "Health and wellbeing apps",
+        "#22C55E"
+      ],
+      [
+        3,
+        "Vega",
+        "Everyday utility apps",
+        "#F59E0B"
+      ],
+      [
+        4,
+        "Draco",
+        "Learning and money apps",
+        "#0EA5E9"
+      ]
+    ]
+  },
+  "dim_members": {
+    "columns": [
+      "member_key",
+      "squad_key",
+      "member_name",
+      "role"
+    ],
+    "rows": [
+      [
+        1,
+        1,
+        "Mai Tran",
+        "Squad lead"
+      ],
+      [
+        2,
+        1,
+        "Leo Fischer",
+        "Engineer"
+      ],
+      [
+        3,
+        1,
+        "Ana Souza",
+        "Designer"
+      ],
+      [
+        4,
+        1,
+        "Kenji Mori",
+        "Growth marketer"
+      ],
+      [
+        5,
+        1,
+        "Priya Nair",
+        "Data analyst"
+      ],
+      [
+        6,
+        2,
+        "Sofia Rossi",
+        "Squad lead"
+      ],
+      [
+        7,
+        2,
+        "Daniel Okafor",
+        "Engineer"
+      ],
+      [
+        8,
+        2,
+        "Hana Kim",
+        "Product manager"
+      ],
+      [
+        9,
+        2,
+        "Lucas Martin",
+        "Growth marketer"
+      ],
+      [
+        10,
+        3,
+        "Minh Le",
+        "Squad lead"
+      ],
+      [
+        11,
+        3,
+        "Emma Clarke",
+        "Engineer"
+      ],
+      [
+        12,
+        3,
+        "Omar Haddad",
+        "Designer"
+      ],
+      [
+        13,
+        4,
+        "Isabel Weber",
+        "Squad lead"
+      ],
+      [
+        14,
+        4,
+        "Arjun Mehta",
+        "Engineer"
+      ],
+      [
+        15,
+        4,
+        "Chloe Dubois",
+        "Product manager"
+      ],
+      [
+        16,
+        4,
+        "Tom Becker",
+        "Data analyst"
+      ]
+    ]
+  },
+  "dim_countries": {
+    "columns": [
+      "country_key",
+      "country_code",
+      "country_name",
+      "region"
+    ],
+    "rows": [
+      [
+        1,
+        "US",
+        "United States",
+        "North America"
+      ],
+      [
+        2,
+        "DE",
+        "Germany",
+        "Europe"
+      ],
+      [
+        3,
+        "GB",
+        "United Kingdom",
+        "Europe"
+      ],
+      [
+        4,
+        "IN",
+        "India",
+        "Asia"
+      ],
+      [
+        5,
+        "RU",
+        "Russia",
+        "Europe"
+      ],
+      [
+        6,
+        "JP",
+        "Japan",
+        "Asia"
+      ],
+      [
+        7,
+        "CA",
+        "Canada",
+        "North America"
+      ],
+      [
+        8,
+        "BR",
+        "Brazil",
+        "South America"
+      ],
+      [
+        9,
+        "FR",
+        "France",
+        "Europe"
+      ],
+      [
+        10,
+        "KR",
+        "South Korea",
+        "Asia"
+      ]
+    ]
+  },
+  "dim_channels": {
+    "columns": [
+      "channel_key",
+      "channel_name",
+      "channel_type"
+    ],
+    "rows": [
+      [
+        1,
+        "Facebook Ads",
+        "paid"
+      ],
+      [
+        2,
+        "Google Ads",
+        "paid"
+      ],
+      [
+        3,
+        "TikTok",
+        "paid"
+      ],
+      [
+        4,
+        "Unity Ads",
+        "paid"
+      ],
+      [
+        5,
+        "AppLovin",
+        "paid"
+      ],
+      [
+        6,
+        "Organic",
+        "organic"
+      ]
+    ]
+  },
+  "dim_events": {
+    "columns": [
+      "event_key",
+      "event_name",
+      "event_category"
+    ],
+    "rows": [
+      [
+        1,
+        "content_viewed",
+        "engagement"
+      ],
+      [
+        2,
+        "register",
+        "engagement"
+      ],
+      [
+        3,
+        "tutorial_completed",
+        "engagement"
+      ],
+      [
+        4,
+        "purchase",
+        "monetization"
+      ],
+      [
+        5,
+        "ad_revenue",
+        "monetization"
+      ],
+      [
+        6,
+        "subscription_started",
+        "monetization"
+      ],
+      [
+        7,
+        "subscription_renewed",
+        "monetization"
+      ],
+      [
+        8,
+        "trial_started",
+        "retention"
+      ],
+      [
+        9,
+        "trial_converted",
+        "retention"
+      ]
+    ]
+  }
+}

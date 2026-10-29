@@ -1,0 +1,5 @@
+# DuckDB write-ahead log, if the file is ever opened for writing
+data/*.duckdb.wal
+# Written by scripts/seed-galaxy-demo.py when the data is regenerated
+scripts/demo-seed-checks.json
+scripts/demo-app-profiles.json

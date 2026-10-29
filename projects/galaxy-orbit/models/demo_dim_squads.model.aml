@@ -1,0 +1,32 @@
+Model demo_dim_squads {
+  type: 'table'
+  label: 'Squads'
+  description: 'Synthetic. Four product squads; each owns 2-3 apps.'
+  data_source_name: 'galaxy_demo'
+  table_name: 'dim_squads'
+
+  dimension squad_key {
+    label: 'Squad Key'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.squad_key }};;
+  }
+  dimension squad_name {
+    label: 'Squad'
+    type: 'text'
+    definition: @sql {{ #SOURCE.squad_name }};;
+  }
+  dimension focus {
+    label: 'Focus'
+    type: 'text'
+    description: 'What kind of apps the squad owns'
+    definition: @sql {{ #SOURCE.focus }};;
+  }
+  dimension colour {
+    label: 'Colour'
+    type: 'text'
+    description: 'Hex colour for charts'
+    definition: @sql {{ #SOURCE.colour }};;
+  }
+}

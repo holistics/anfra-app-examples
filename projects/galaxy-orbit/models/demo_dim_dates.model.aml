@@ -1,0 +1,64 @@
+Model demo_dim_dates {
+  type: 'table'
+  label: 'Dates'
+  description: 'Calendar, 1 Jan 2023 to 20 Oct 2026. Synthetic facts end 20 Oct 2026. All facts join here; cohort facts join on install date.'
+  data_source_name: 'galaxy_demo'
+  table_name: 'dim_dates'
+
+  dimension date_key {
+    label: 'Date Key'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    description: 'YYYYMMDD'
+    definition: @sql {{ #SOURCE.date_key }};;
+  }
+  dimension date {
+    label: 'Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.date }};;
+  }
+  dimension year {
+    label: 'Year'
+    type: 'number'
+    definition: @sql {{ #SOURCE.year }};;
+  }
+  dimension quarter {
+    label: 'Quarter'
+    type: 'number'
+    definition: @sql {{ #SOURCE.quarter }};;
+  }
+  dimension month {
+    label: 'Month Number'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.month }};;
+  }
+  dimension month_name {
+    label: 'Month Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.month_name }};;
+  }
+  dimension week {
+    label: 'ISO Week'
+    type: 'number'
+    definition: @sql {{ #SOURCE.week }};;
+  }
+  dimension day_of_week {
+    label: 'Day of Week'
+    type: 'number'
+    hidden: true
+    description: '1 = Monday'
+    definition: @sql {{ #SOURCE.day_of_week }};;
+  }
+  dimension day_name {
+    label: 'Day Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.day_name }};;
+  }
+  dimension is_weekend {
+    label: 'Is Weekend'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_weekend }};;
+  }
+}

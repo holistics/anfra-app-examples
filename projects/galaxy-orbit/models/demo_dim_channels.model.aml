@@ -1,0 +1,26 @@
+Model demo_dim_channels {
+  type: 'table'
+  label: 'Channels'
+  description: 'Ad networks plus Organic.'
+  data_source_name: 'galaxy_demo'
+  table_name: 'dim_channels'
+
+  dimension channel_key {
+    label: 'Channel Key'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.channel_key }};;
+  }
+  dimension channel_name {
+    label: 'Channel'
+    type: 'text'
+    definition: @sql {{ #SOURCE.channel_name }};;
+  }
+  dimension channel_type {
+    label: 'Channel Type'
+    type: 'text'
+    description: 'paid or organic'
+    definition: @sql {{ #SOURCE.channel_type }};;
+  }
+}

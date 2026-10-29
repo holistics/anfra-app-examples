@@ -1,0 +1,52 @@
+Model demo_dim_apps {
+  type: 'table'
+  label: 'Apps'
+  description: 'One row per app in the publisher portfolio. squad_key is the owning squad.'
+  data_source_name: 'galaxy_demo'
+  table_name: 'dim_apps'
+
+  dimension app_key {
+    label: 'App Key'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.app_key }};;
+  }
+  dimension app_id {
+    label: 'App ID'
+    type: 'text'
+    description: 'Natural key, e.g. app_001'
+    definition: @sql {{ #SOURCE.app_id }};;
+  }
+  dimension name {
+    label: 'App'
+    type: 'text'
+    description: 'Display name'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension platform {
+    label: 'Platform'
+    type: 'text'
+    description: 'ios or android'
+    definition: @sql {{ #SOURCE.platform }};;
+  }
+  dimension bundle_id {
+    label: 'Bundle ID'
+    type: 'text'
+    hidden: true
+    definition: @sql {{ #SOURCE.bundle_id }};;
+  }
+  dimension category {
+    label: 'Category'
+    type: 'text'
+    description: 'App store category'
+    definition: @sql {{ #SOURCE.category }};;
+  }
+  dimension squad_key {
+    label: 'Squad Key'
+    type: 'number'
+    hidden: true
+    description: 'Owning squad'
+    definition: @sql {{ #SOURCE.squad_key }};;
+  }
+}

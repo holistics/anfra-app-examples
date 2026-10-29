@@ -1,0 +1,73 @@
+Model demo_dim_campaigns {
+  type: 'table'
+  label: 'Campaigns'
+  description: 'One row per campaign. 50 paid plus 10 synthetic Organic campaigns, one per app.'
+  data_source_name: 'galaxy_demo'
+  table_name: 'dim_campaigns'
+
+  dimension campaign_key {
+    label: 'Campaign Key'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.campaign_key }};;
+  }
+  dimension campaign_id {
+    label: 'Campaign ID'
+    type: 'text'
+    definition: @sql {{ #SOURCE.campaign_id }};;
+  }
+  dimension app_key {
+    label: 'App Key'
+    type: 'number'
+    hidden: true
+    description: 'Owning app. Not used for joins; facts carry their own app_key.'
+    definition: @sql {{ #SOURCE.app_key }};;
+  }
+  dimension name {
+    label: 'Campaign'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension channel {
+    label: 'Channel'
+    type: 'text'
+    description: 'Channel name, same values as demo_dim_channels.channel_name'
+    definition: @sql {{ #SOURCE.channel }};;
+  }
+  dimension view_type {
+    label: 'View Type'
+    type: 'text'
+    description: 'ua or retargeting'
+    definition: @sql {{ #SOURCE.view_type }};;
+  }
+  dimension budget {
+    label: 'Budget'
+    type: 'number'
+    description: 'Total budget in USD'
+    definition: @sql {{ #SOURCE.budget }};;
+  }
+  dimension start_date {
+    label: 'Start Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.start_date }};;
+  }
+  dimension end_date {
+    label: 'End Date'
+    type: 'date'
+    description: 'Empty while the campaign is active'
+    definition: @sql {{ #SOURCE.end_date }};;
+  }
+  dimension status {
+    label: 'Status'
+    type: 'text'
+    description: 'active, paused or completed'
+    definition: @sql {{ #SOURCE.status }};;
+  }
+  dimension thumbnail_url {
+    label: 'Thumbnail URL'
+    type: 'text'
+    hidden: true
+    definition: @sql {{ #SOURCE.thumbnail_url }};;
+  }
+}

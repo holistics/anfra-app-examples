@@ -1,0 +1,39 @@
+Model demo_fact_daily_active_users {
+  type: 'table'
+  label: 'Daily Active Users'
+  description: 'Daily active users per app, every day. Built on load from installs and the cohort retention curve.'
+  data_source_name: 'galaxy_demo'
+  table_name: 'fact_daily_active_users'
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension date_key {
+    label: 'Date Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.date_key }};;
+  }
+  dimension app_key {
+    label: 'App Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.app_key }};;
+  }
+  dimension active_users {
+    label: 'Active Users'
+    type: 'number'
+    description: 'DAU on that date'
+    definition: @sql {{ #SOURCE.active_users }};;
+  }
+  dimension new_users {
+    label: 'New Users'
+    type: 'number'
+    description: 'Installs that day'
+    definition: @sql {{ #SOURCE.new_users }};;
+  }
+}

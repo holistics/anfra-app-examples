@@ -1,0 +1,77 @@
+Model demo_fact_daily_spend {
+  type: 'table'
+  label: 'Daily Spend'
+  description: 'One row per campaign per day: spend, impressions, clicks and installs. Source of the installs and spend metrics.'
+  data_source_name: 'galaxy_demo'
+  table_name: 'fact_daily_spend'
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension date_key {
+    label: 'Date Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.date_key }};;
+  }
+  dimension campaign_key {
+    label: 'Campaign Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.campaign_key }};;
+  }
+  dimension app_key {
+    label: 'App Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.app_key }};;
+  }
+  dimension impressions {
+    label: 'Impressions'
+    type: 'number'
+    definition: @sql {{ #SOURCE.impressions }};;
+  }
+  dimension clicks {
+    label: 'Clicks'
+    type: 'number'
+    definition: @sql {{ #SOURCE.clicks }};;
+  }
+  dimension installs {
+    label: 'Paid Installs'
+    type: 'number'
+    description: 'Zero on Organic campaigns'
+    definition: @sql {{ #SOURCE.installs }};;
+  }
+  dimension organic_installs {
+    label: 'Organic Installs'
+    type: 'number'
+    description: 'Set only on Organic campaigns'
+    definition: @sql {{ #SOURCE.organic_installs }};;
+  }
+  dimension spend_amount {
+    label: 'Spend Amount'
+    type: 'number'
+    description: 'USD'
+    definition: @sql {{ #SOURCE.spend_amount }};;
+  }
+  dimension re_attributions {
+    label: 'Re-attributions'
+    type: 'number'
+    definition: @sql {{ #SOURCE.re_attributions }};;
+  }
+  dimension re_engagements {
+    label: 'Re-engagements'
+    type: 'number'
+    definition: @sql {{ #SOURCE.re_engagements }};;
+  }
+  dimension total_installs {
+    label: 'Total Installs'
+    type: 'number'
+    description: 'Paid plus organic installs'
+    definition: @sql {{ #SOURCE.installs }} + {{ #SOURCE.organic_installs }};;
+  }
+}

@@ -1,0 +1,67 @@
+Model demo_app_month_d7 {
+  type: 'query'
+  label: 'App Month D7'
+  description: 'Rolling three-month D7 retention through October 2026. Uses only cohorts mature by month end or the reporting cutoff. Empty prelaunch windows stay unknown; no future or all-time fallback.'
+  data_source_name: 'galaxy_demo'
+  query: @sql
+    WITH months AS (
+      SELECT DISTINCT date_trunc('month', date)::DATE AS month_start
+      FROM dim_dates
+      WHERE date <= (SELECT max(strptime(date_key::VARCHAR, '%Y%m%d'))::DATE FROM fact_daily_spend)
+    ),
+    d7 AS (
+      SELECT app_key,
+             strptime(install_date_key::VARCHAR, '%Y%m%d')::DATE AS install_date,
+             retained_users,
+             cohort_installs
+      FROM fact_cohort_revenue
+      WHERE day_number = 7
+    )
+    SELECT
+      a.app_key,
+      (year(m.month_start) * 10000 + month(m.month_start) * 100 + 1)::INTEGER AS month_key,
+      a.app_key * 100000000 + year(m.month_start) * 10000 + month(m.month_start) * 100 + 1 AS id,
+      sum(d7.retained_users)::DOUBLE / nullif(sum(d7.cohort_installs), 0) AS d7,
+      coalesce(sum(d7.cohort_installs), 0) AS cohort_installs_3m
+    FROM dim_apps a
+    CROSS JOIN months m
+    LEFT JOIN d7 ON d7.app_key = a.app_key
+      AND d7.install_date >= m.month_start - INTERVAL 2 MONTH
+      AND d7.install_date < m.month_start + INTERVAL 1 MONTH
+      AND d7.install_date + INTERVAL 7 DAY <= least(m.month_start + INTERVAL 1 MONTH - INTERVAL 1 DAY, DATE '2026-10-20')
+    GROUP BY a.app_key, m.month_start
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension app_key {
+    label: 'App Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.app_key }};;
+  }
+  dimension month_key {
+    label: 'Month Key'
+    type: 'number'
+    hidden: true
+    description: 'date_key of the first day of the month'
+    definition: @sql {{ #SOURCE.month_key }};;
+  }
+  dimension d7 {
+    label: 'D7 (3 months)'
+    type: 'number'
+    description: 'D7 retention of cohorts installed in the 3 months up to this month'
+    definition: @sql {{ #SOURCE.d7 }};;
+  }
+  dimension cohort_installs_3m {
+    label: 'Cohort Installs (3 months)'
+    type: 'number'
+    description: 'Cohort installs behind d7. 0 means no mature cohort is available.'
+    definition: @sql {{ #SOURCE.cohort_installs_3m }};;
+  }
+}

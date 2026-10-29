@@ -1,0 +1,26 @@
+Model demo_dim_events {
+  type: 'table'
+  label: 'Events'
+  description: 'In-app event types.'
+  data_source_name: 'galaxy_demo'
+  table_name: 'dim_events'
+
+  dimension event_key {
+    label: 'Event Key'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.event_key }};;
+  }
+  dimension event_name {
+    label: 'Event'
+    type: 'text'
+    definition: @sql {{ #SOURCE.event_name }};;
+  }
+  dimension event_category {
+    label: 'Event Category'
+    type: 'text'
+    description: 'engagement, monetization or retention'
+    definition: @sql {{ #SOURCE.event_category }};;
+  }
+}

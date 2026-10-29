@@ -1,0 +1,55 @@
+Model demo_fact_events {
+  type: 'table'
+  label: 'Events Daily'
+  description: 'Daily event counts per app, campaign and event.'
+  data_source_name: 'galaxy_demo'
+  table_name: 'fact_events'
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension date_key {
+    label: 'Date Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.date_key }};;
+  }
+  dimension app_key {
+    label: 'App Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.app_key }};;
+  }
+  dimension campaign_key {
+    label: 'Campaign Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.campaign_key }};;
+  }
+  dimension event_key {
+    label: 'Event Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.event_key }};;
+  }
+  dimension unique_users {
+    label: 'Unique Users'
+    type: 'number'
+    definition: @sql {{ #SOURCE.unique_users }};;
+  }
+  dimension event_count {
+    label: 'Event Count'
+    type: 'number'
+    definition: @sql {{ #SOURCE.event_count }};;
+  }
+  dimension event_revenue {
+    label: 'Event Revenue'
+    type: 'number'
+    description: 'USD'
+    definition: @sql {{ #SOURCE.event_revenue }};;
+  }
+}

@@ -1,0 +1,172 @@
+Model demo_fact_growth_daily {
+  type: 'table'
+  label: 'App Growth Daily'
+  description: 'Synthetic app-by-day AAARRR activity. Install-day acquisition and activation stages share the generated install population. Repeat value, referral and payment users are daily distinct counts, not period unique users. Discovery counts are impressions and visits, not people.'
+  data_source_name: 'galaxy_demo'
+  table_name: 'fact_growth_daily'
+
+  dimension id {
+    label: 'Id'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    description: 'Generated primary key.'
+    definition: @sql {{ #SOURCE.id }};;
+  }
+
+  dimension date_key {
+    label: 'Date Key'
+    type: 'number'
+    hidden: true
+    description: 'Shared dimension key.'
+    definition: @sql {{ #SOURCE.date_key }};;
+  }
+
+  dimension app_key {
+    label: 'App Key'
+    type: 'number'
+    hidden: true
+    description: 'Shared dimension key.'
+    definition: @sql {{ #SOURCE.app_key }};;
+  }
+
+  dimension awareness {
+    label: 'Awareness impressions'
+    type: 'number'
+    description: 'Daily paid and organic discovery impressions; repeated exposure is included.'
+    definition: @sql {{ #SOURCE.awareness }};;
+  }
+
+  dimension store_visits {
+    label: 'Store listing visits'
+    type: 'number'
+    description: 'Daily listing visits; visits are not distinct people.'
+    definition: @sql {{ #SOURCE.store_visits }};;
+  }
+
+  dimension installs {
+    label: 'Installs'
+    type: 'number'
+    description: 'Generated install population reconciled exactly to paid plus organic Daily Spend installs.'
+    definition: @sql {{ #SOURCE.installs }};;
+  }
+
+  dimension first_opens {
+    label: 'First opens'
+    type: 'number'
+    description: 'New installers from this install-date cohort who open the app on install day.'
+    definition: @sql {{ #SOURCE.first_opens }};;
+  }
+
+  dimension onboarded {
+    label: 'Onboarding completed'
+    type: 'number'
+    description: 'New installers in this install-date cohort completing onboarding on install day.'
+    definition: @sql {{ #SOURCE.onboarded }};;
+  }
+
+  dimension activated {
+    label: 'First value reached'
+    type: 'number'
+    description: 'New installers in this install-date cohort completing the app-specific first value event on install day.'
+    definition: @sql {{ #SOURCE.activated }};;
+  }
+
+  dimension repeat_value {
+    label: 'Repeat value user-days'
+    type: 'number'
+    description: 'Daily distinct existing users completing an app-specific value event. Summed across dates this is user-days, not period unique users or cohort retention.'
+    definition: @sql {{ #SOURCE.repeat_value }};;
+  }
+
+  dimension referrers {
+    label: 'Referrer user-days'
+    type: 'number'
+    description: 'Daily distinct users sending a referral. Summed across dates this is user-days, not period unique users.'
+    definition: @sql {{ #SOURCE.referrers }};;
+  }
+
+  dimension referred_installs {
+    label: 'Referred installs'
+    type: 'number'
+    description: 'Installs attributed to referrals on that date; a subset of total installs, not extra installs.'
+    definition: @sql {{ #SOURCE.referred_installs }};;
+  }
+
+  dimension paying_users {
+    label: 'Paying user-days'
+    type: 'number'
+    description: 'Daily distinct users who make a purchase or subscription payment. Summed across dates this is payer-days, not period distinct paying customers.'
+    definition: @sql {{ #SOURCE.paying_users }};;
+  }
+
+  dimension sessions {
+    label: 'Sessions'
+    type: 'number'
+    description: 'Sessions started on the date. Must equal total_sessions, which is the explicit quality denominator.'
+    definition: @sql {{ #SOURCE.sessions }};;
+  }
+
+  dimension successful_sessions {
+    label: 'Successful sessions'
+    type: 'number'
+    description: 'Sessions completing the app-specific useful outcome; a subset of total sessions.'
+    definition: @sql {{ #SOURCE.successful_sessions }};;
+  }
+
+  dimension crash_free_sessions {
+    label: 'Crash-free sessions'
+    type: 'number'
+    description: 'Sessions without a recorded crash; a subset of total sessions.'
+    definition: @sql {{ #SOURCE.crash_free_sessions }};;
+  }
+
+  dimension total_sessions {
+    label: 'Total sessions'
+    type: 'number'
+    description: 'All sessions started, including sessions ending in a crash.'
+    definition: @sql {{ #SOURCE.total_sessions }};;
+  }
+
+  dimension uninstalls {
+    label: 'Uninstall signals'
+    type: 'number'
+    description: 'Daily synthetic store/device uninstall signals. Not a matched-user churn rate.'
+    definition: @sql {{ #SOURCE.uninstalls }};;
+  }
+
+  dimension reactivated {
+    label: 'Reactivated user-days'
+    type: 'number'
+    description: 'Daily distinct users returning after the app-specific inactivity threshold. Summed across dates this is user-days.'
+    definition: @sql {{ #SOURCE.reactivated }};;
+  }
+
+  dimension search_impressions {
+    label: 'Store search impressions'
+    type: 'number'
+    description: 'Listing impressions from app-store search; subset of awareness impressions.'
+    definition: @sql {{ #SOURCE.search_impressions }};;
+  }
+
+  dimension search_visits {
+    label: 'Store search visits'
+    type: 'number'
+    description: 'Listing visits from app-store search; subset of store listing visits.'
+    definition: @sql {{ #SOURCE.search_visits }};;
+  }
+
+  dimension rating_count {
+    label: 'New ratings'
+    type: 'number'
+    description: 'Number of ratings submitted on that date, not lifetime review count.'
+    definition: @sql {{ #SOURCE.rating_count }};;
+  }
+
+  dimension rating_sum {
+    label: 'New rating score total'
+    type: 'number'
+    description: 'Sum of 1-to-5 star scores for new ratings; divide by rating_count to obtain a weighted mean.'
+    definition: @sql {{ #SOURCE.rating_sum }};;
+  }
+}

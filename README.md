@@ -11,6 +11,7 @@ Every app lives in its own folder under `projects/`.
 | App | Idea | Demo | Author |
 |---|---|---|---|
 | [football-predictions](projects/football-predictions) | Predicts football results and shows the reasons behind each call | [Demo](https://football-predictions.pages.holistics.dev/apps/football-predictions/1-matches) | Khai To |
+| [galaxy-orbit](projects/galaxy-orbit) | Mobile app publisher as a living galaxy: spot the app that needs you, then plan its growth | [Demo](https://galaxy-orbit.pages.holistics.dev/) | Tri Duong |
 
 ## Add your app
 

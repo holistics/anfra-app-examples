@@ -1,0 +1,58 @@
+Model demo_fact_cohort_revenue {
+  type: 'table'
+  label: 'Install Cohorts'
+  description: 'One row per install cohort (install date x app x campaign) per day since install, D0 to D28.'
+  data_source_name: 'galaxy_demo'
+  table_name: 'fact_cohort_revenue'
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension install_date_key {
+    label: 'Install Date Key'
+    type: 'number'
+    hidden: true
+    description: 'The cohort date'
+    definition: @sql {{ #SOURCE.install_date_key }};;
+  }
+  dimension app_key {
+    label: 'App Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.app_key }};;
+  }
+  dimension campaign_key {
+    label: 'Campaign Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.campaign_key }};;
+  }
+  dimension day_number {
+    label: 'Day Number'
+    type: 'number'
+    description: 'Days since install, 0 to 28'
+    definition: @sql {{ #SOURCE.day_number }};;
+  }
+  dimension cohort_installs {
+    label: 'Cohort Installs'
+    type: 'number'
+    description: 'Size of the cohort; same on every day_number'
+    definition: @sql {{ #SOURCE.cohort_installs }};;
+  }
+  dimension cumulative_revenue {
+    label: 'Cumulative Revenue'
+    type: 'number'
+    description: 'Revenue from the cohort up to this day, USD'
+    definition: @sql {{ #SOURCE.cumulative_revenue }};;
+  }
+  dimension retained_users {
+    label: 'Retained Users'
+    type: 'number'
+    description: 'Cohort users active on this day'
+    definition: @sql {{ #SOURCE.retained_users }};;
+  }
+}

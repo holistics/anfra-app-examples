@@ -1,0 +1,340 @@
+Dataset galaxy_demo {
+  label: 'Mobile App Publisher'
+  description: '''
+Synthetic mobile app publisher: 10 apps, 4 squads, 110 campaigns on 5 paid channels plus Organic,
+Synthetic history 1 Jan 2023 through 20 Oct 2026. Seeded only for Galaxy; original publisher data is unchanged.
+
+- Dates: every fact joins `demo_dim_dates`. Install cohorts join on their install date.
+- Installs and spend come from Daily Spend. Install Records reconciles with paid and organic daily totals, and cohort D0 uses the same install population. Country and device details are synthetic allocations.
+- Retention comes from Install Cohorts, D0 to D28. There is no D30.
+- Ratios (retention, share) are 0 to 1.
+'''
+  data_source_name: 'galaxy_demo'
+
+  models: [
+    demo_dim_apps,
+    demo_dim_squads,
+    demo_dim_members,
+    demo_dim_campaigns,
+    demo_dim_channels,
+    demo_dim_countries,
+    demo_dim_events,
+    demo_dim_dates,
+    demo_fact_daily_spend,
+    demo_fact_installs,
+    demo_fact_revenue,
+    demo_fact_events,
+    demo_fact_daily_active_users,
+    demo_fact_cohort_revenue,
+    demo_app_month_d7,
+  ]
+
+  relationships: [
+    relationship(demo_dim_apps.squad_key > demo_dim_squads.squad_key, true),
+    relationship(demo_dim_members.squad_key > demo_dim_squads.squad_key, true),
+    relationship(demo_dim_campaigns.channel > demo_dim_channels.channel_name, true),
+    // anfra rejects loops in active relationships. Active links form one tree:
+    // every fact to demo_dim_dates, Daily Spend to apps and campaigns, Install Records to countries.
+    // The rest are off here and switched on inside each metric with with_relationships().
+    relationship(demo_dim_campaigns.app_key > demo_dim_apps.app_key, false),
+
+    relationship(demo_fact_daily_spend.date_key > demo_dim_dates.date_key, true),
+    relationship(demo_fact_daily_spend.app_key > demo_dim_apps.app_key, true),
+    relationship(demo_fact_daily_spend.campaign_key > demo_dim_campaigns.campaign_key, true),
+
+    relationship(demo_fact_installs.date_key > demo_dim_dates.date_key, true),
+    relationship(demo_fact_installs.app_key > demo_dim_apps.app_key, false),
+    relationship(demo_fact_installs.campaign_key > demo_dim_campaigns.campaign_key, false),
+    relationship(demo_fact_installs.country_key > demo_dim_countries.country_key, true),
+
+    relationship(demo_fact_revenue.date_key > demo_dim_dates.date_key, true),
+    relationship(demo_fact_revenue.app_key > demo_dim_apps.app_key, false),
+    relationship(demo_fact_revenue.campaign_key > demo_dim_campaigns.campaign_key, false),
+    relationship(demo_fact_revenue.country_key > demo_dim_countries.country_key, false),
+
+    relationship(demo_fact_events.date_key > demo_dim_dates.date_key, true),
+    relationship(demo_fact_events.app_key > demo_dim_apps.app_key, false),
+    relationship(demo_fact_events.campaign_key > demo_dim_campaigns.campaign_key, false),
+    relationship(demo_fact_events.event_key > demo_dim_events.event_key, true),
+
+    relationship(demo_fact_daily_active_users.date_key > demo_dim_dates.date_key, true),
+    relationship(demo_fact_daily_active_users.app_key > demo_dim_apps.app_key, false),
+
+    relationship(demo_fact_cohort_revenue.install_date_key > demo_dim_dates.date_key, true),
+    relationship(demo_fact_cohort_revenue.app_key > demo_dim_apps.app_key, false),
+    relationship(demo_fact_cohort_revenue.campaign_key > demo_dim_campaigns.campaign_key, false),
+
+    relationship(demo_app_month_d7.month_key > demo_dim_dates.date_key, true),
+    relationship(demo_app_month_d7.app_key > demo_dim_apps.app_key, false),
+  ]
+
+  // Base metrics
+
+  metric installs {
+    label: 'Installs'
+    type: 'number'
+    description: 'Paid plus organic installs, from Daily Spend.'
+    definition: @aql demo_fact_daily_spend | sum(demo_fact_daily_spend.total_installs) ;;
+    format: '#,###0'
+  }
+
+  metric paid_installs {
+    label: 'Paid Installs'
+    type: 'number'
+    description: 'Installs from paid campaigns only.'
+    definition: @aql demo_fact_daily_spend | sum(demo_fact_daily_spend.installs) ;;
+    format: '#,###0'
+  }
+
+  metric organic_installs {
+    label: 'Organic Installs'
+    type: 'number'
+    definition: @aql demo_fact_daily_spend | sum(demo_fact_daily_spend.organic_installs) ;;
+    format: '#,###0'
+  }
+
+  metric spend {
+    label: 'Spend'
+    type: 'number'
+    description: 'Ad spend in USD.'
+    definition: @aql demo_fact_daily_spend | sum(demo_fact_daily_spend.spend_amount) ;;
+    format: '[$$]#,###0'
+  }
+
+  metric revenue {
+    label: 'Revenue'
+    type: 'number'
+    description: 'All revenue in USD: in-app purchases, ads and subscriptions. Scaled on load so ROAS is realistic.'
+    definition: @aql demo_fact_revenue | sum(demo_fact_revenue.amount)
+      | with_relationships(demo_fact_revenue.app_key > demo_dim_apps.app_key, demo_fact_revenue.campaign_key > demo_dim_campaigns.campaign_key, demo_fact_revenue.country_key > demo_dim_countries.country_key)
+     ;;
+    format: '[$$]#,###0'
+  }
+
+  metric active_users {
+    label: 'Active Users'
+    type: 'number'
+    description: 'Average daily active users over the dates in view. Across apps, adds apps per day first.'
+    definition: @aql
+      unique(demo_fact_daily_active_users.date_key)
+      | select(v: demo_fact_daily_active_users | sum(demo_fact_daily_active_users.active_users))
+      | avg(v)
+      | with_relationships(demo_fact_daily_active_users.app_key > demo_dim_apps.app_key)
+    ;;
+    format: '#,###0'
+  }
+
+  metric event_revenue {
+    label: 'Event Revenue'
+    type: 'number'
+    description: 'Revenue logged on in-app events (Events Daily). Not scaled, does not match revenue. Apps do not use it.'
+    definition: @aql demo_fact_events | sum(demo_fact_events.event_revenue)
+      | with_relationships(demo_fact_events.app_key > demo_dim_apps.app_key, demo_fact_events.campaign_key > demo_dim_campaigns.campaign_key)
+    ;;
+    format: '[$$]#,###0'
+  }
+
+  // Cohort retention: share of a cohort still active N days after install.
+
+  metric retention_d7 {
+    label: 'Retention D7'
+    type: 'number'
+    description: 'Retained users on day 7 / cohort installs, over all cohorts in view. Dates are install dates.'
+    definition: @aql
+      safe_divide(
+        demo_fact_cohort_revenue | where(demo_fact_cohort_revenue.day_number == 7) | sum(demo_fact_cohort_revenue.retained_users) | with_relationships(demo_fact_cohort_revenue.app_key > demo_dim_apps.app_key, demo_fact_cohort_revenue.campaign_key > demo_dim_campaigns.campaign_key),
+        demo_fact_cohort_revenue | where(demo_fact_cohort_revenue.day_number == 7) | sum(demo_fact_cohort_revenue.cohort_installs) | with_relationships(demo_fact_cohort_revenue.app_key > demo_dim_apps.app_key, demo_fact_cohort_revenue.campaign_key > demo_dim_campaigns.campaign_key)
+      )
+    ;;
+    format: '#,###0.0%'
+  }
+
+  metric retention_d28 {
+    label: 'Retention D28'
+    type: 'number'
+    description: 'Retained users on day 28 / cohort installs. Day 28 is the last day the data has; use it where D30 is wanted.'
+    definition: @aql
+      safe_divide(
+        demo_fact_cohort_revenue | where(demo_fact_cohort_revenue.day_number == 28) | sum(demo_fact_cohort_revenue.retained_users) | with_relationships(demo_fact_cohort_revenue.app_key > demo_dim_apps.app_key, demo_fact_cohort_revenue.campaign_key > demo_dim_campaigns.campaign_key),
+        demo_fact_cohort_revenue | where(demo_fact_cohort_revenue.day_number == 28) | sum(demo_fact_cohort_revenue.cohort_installs) | with_relationships(demo_fact_cohort_revenue.app_key > demo_dim_apps.app_key, demo_fact_cohort_revenue.campaign_key > demo_dim_campaigns.campaign_key)
+      )
+    ;;
+    format: '#,###0.0%'
+  }
+
+  metric retention {
+    label: 'Retention'
+    type: 'number'
+    description: 'Retained users / cohort installs, with no day filter. Break down by demo_fact_cohort_revenue.day_number for the D0 to D28 curve. Without a day breakdown it averages over all days.'
+    definition: @aql
+      safe_divide(
+        demo_fact_cohort_revenue | sum(demo_fact_cohort_revenue.retained_users) | with_relationships(demo_fact_cohort_revenue.app_key > demo_dim_apps.app_key, demo_fact_cohort_revenue.campaign_key > demo_dim_campaigns.campaign_key),
+        demo_fact_cohort_revenue | sum(demo_fact_cohort_revenue.cohort_installs) | with_relationships(demo_fact_cohort_revenue.app_key > demo_dim_apps.app_key, demo_fact_cohort_revenue.campaign_key > demo_dim_campaigns.campaign_key)
+      )
+    ;;
+    format: '#,###0.0%'
+  }
+
+  // Metrics built on metrics
+
+  metric arpu {
+    label: 'ARPU'
+    type: 'number'
+    description: 'Revenue / active users. Revenue for the period per average daily user.'
+    definition: @aql safe_divide(revenue, active_users) ;;
+    format: '[$$]#,###0.00'
+  }
+
+  metric cpi {
+    label: 'CPI'
+    type: 'number'
+    description: 'Spend / paid installs. Organic installs cost nothing, so they are left out.'
+    definition: @aql safe_divide(spend, paid_installs) ;;
+    format: '[$$]#,###0.00'
+  }
+
+  metric roas {
+    label: 'ROAS'
+    type: 'number'
+    description: 'Revenue / spend. Empty where spend is zero (Organic).'
+    definition: @aql safe_divide(revenue, spend) ;;
+    format: '#,###0.00'
+  }
+
+  metric revenue_per_install {
+    label: 'Revenue per Install'
+    type: 'number'
+    description: 'Revenue / installs (paid plus organic).'
+    definition: @aql safe_divide(revenue, installs) ;;
+    format: '[$$]#,###0.00'
+  }
+
+  // Week over week. Needs a date in view (demo_dim_dates.date | week()) or a date filter.
+
+  metric installs_growth_wow {
+    label: 'Installs Growth WoW'
+    type: 'number'
+    description: 'Change in installs against the week before, as a ratio.'
+    definition: @aql
+      safe_divide(
+        installs - (installs | relative_period(demo_dim_dates.date, interval(-1 week))),
+        installs | relative_period(demo_dim_dates.date, interval(-1 week))
+      )
+    ;;
+    format: '#,###0.0%'
+  }
+
+  metric revenue_growth_wow {
+    label: 'Revenue Growth WoW'
+    type: 'number'
+    description: 'Change in revenue against the week before, as a ratio.'
+    definition: @aql
+      safe_divide(
+        revenue - (revenue | relative_period(demo_dim_dates.date, interval(-1 week))),
+        revenue | relative_period(demo_dim_dates.date, interval(-1 week))
+      )
+    ;;
+    format: '#,###0.0%'
+  }
+
+  metric active_users_growth_wow {
+    label: 'Active Users Growth WoW'
+    type: 'number'
+    description: 'Change in average daily active users against the week before, as a ratio.'
+    definition: @aql
+      safe_divide(
+        active_users - (active_users | relative_period(demo_dim_dates.date, interval(-1 week))),
+        active_users | relative_period(demo_dim_dates.date, interval(-1 week))
+      )
+    ;;
+    format: '#,###0.0%'
+  }
+
+  metric share_of_portfolio {
+    label: 'Share of Portfolio'
+    type: 'number'
+    description: 'Revenue / revenue of all apps and squads, keeping every other breakdown (for example month).'
+    definition: @aql safe_divide(revenue, revenue | of_all(demo_dim_apps, demo_dim_squads)) ;;
+    format: '#,###0.0%'
+  }
+
+  // Health score: 0 to 100 per app per period. Each part is 0 to 1.
+  // score = 100 * (0.4 retention part + 0.3 growth part + 0.3 ROAS part)
+
+  metric health_d7 {
+    label: 'Health D7'
+    type: 'number'
+    hidden: true
+    description: 'D7 of cohorts installed in the 3 months up to the month, from App Month D7. Averaged when the view spans several months.'
+    definition: @aql demo_app_month_d7 | avg(demo_app_month_d7.d7) | with_relationships(demo_app_month_d7.app_key > demo_dim_apps.app_key) ;;
+    format: '#,###0.0%'
+  }
+
+  metric health_d7_median {
+    label: 'Health D7 Portfolio Median'
+    type: 'number'
+    hidden: true
+    description: 'Median of the app D7 values across all apps, for the same months.'
+    definition: @aql (demo_app_month_d7 | median(demo_app_month_d7.d7) | with_relationships(demo_app_month_d7.app_key > demo_dim_apps.app_key)) | of_all(demo_dim_apps, demo_dim_squads) ;;
+    format: '#,###0.0%'
+  }
+
+  metric health_retention_part {
+    label: 'Health Retention Part'
+    type: 'number'
+    description: 'health_d7 / (2 x portfolio median), capped at 1. Twice the median or better = full marks.'
+    definition: @aql
+      case(
+        when: safe_divide(health_d7, 2 * health_d7_median) > 1, then: 1,
+        else: safe_divide(health_d7, 2 * health_d7_median)
+      )
+    ;;
+    format: '#,###0.00'
+  }
+
+  metric health_growth_part {
+    label: 'Health Growth Part'
+    type: 'number'
+    description: '0.5 + 5 x active_users_growth_wow, kept in 0 to 1. 0% = half marks, +10% = full, -10% = zero.'
+    definition: @aql
+      case(
+        when: 0.5 + 5 * active_users_growth_wow > 1, then: 1,
+        when: 0.5 + 5 * active_users_growth_wow < 0, then: 0,
+        else: 0.5 + 5 * active_users_growth_wow
+      )
+    ;;
+    format: '#,###0.00'
+  }
+
+  metric health_roas_part {
+    label: 'Health ROAS Part'
+    type: 'number'
+    description: 'roas / 2, kept in 0 to 1. ROAS 1.0 = half marks, 2.0 or more = full, 0 = zero.'
+    definition: @aql
+      case(
+        when: roas / 2 > 1, then: 1,
+        when: roas < 0, then: 0,
+        else: roas / 2
+      )
+    ;;
+    format: '#,###0.00'
+  }
+
+  metric health_score {
+    label: 'Health Score'
+    type: 'number'
+    description: '0 to 100. 40% retention part + 30% growth part + 30% ROAS part. Break down by app and by month (demo_dim_dates.date | month()). A part with no data (ROAS in a month with no spend) is left out and the other weights are scaled up.'
+    definition: @aql
+      100 * (
+        0.4 * health_retention_part
+        + 0.3 * coalesce(health_growth_part, 0)
+        + 0.3 * coalesce(health_roas_part, 0)
+      ) / (
+        0.4
+        + case(when: health_growth_part is null, then: 0, else: 0.3)
+        + case(when: health_roas_part is null, then: 0, else: 0.3)
+      )
+    ;;
+    format: '#,###0'
+  }
+}

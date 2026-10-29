@@ -1,0 +1,31 @@
+Model demo_dim_members {
+  type: 'table'
+  label: 'Members'
+  description: 'Synthetic. 3-5 people per squad.'
+  data_source_name: 'galaxy_demo'
+  table_name: 'dim_members'
+
+  dimension member_key {
+    label: 'Member Key'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.member_key }};;
+  }
+  dimension squad_key {
+    label: 'Squad Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.squad_key }};;
+  }
+  dimension member_name {
+    label: 'Member'
+    type: 'text'
+    definition: @sql {{ #SOURCE.member_name }};;
+  }
+  dimension role {
+    label: 'Role'
+    type: 'text'
+    definition: @sql {{ #SOURCE.role }};;
+  }
+}

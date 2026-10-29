@@ -1,0 +1,61 @@
+Model demo_fact_revenue {
+  type: 'table'
+  label: 'Revenue'
+  description: 'One row per revenue event, in USD. Amounts scaled on load.'
+  data_source_name: 'galaxy_demo'
+  table_name: 'fact_revenue'
+
+  dimension revenue_id {
+    label: 'Revenue ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.revenue_id }};;
+  }
+  dimension date_key {
+    label: 'Date Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.date_key }};;
+  }
+  dimension app_key {
+    label: 'App Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.app_key }};;
+  }
+  dimension campaign_key {
+    label: 'Campaign Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.campaign_key }};;
+  }
+  dimension country_key {
+    label: 'Country Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.country_key }};;
+  }
+  dimension revenue_type {
+    label: 'Revenue Type'
+    type: 'text'
+    description: 'iap, ad_impression or subscription'
+    definition: @sql {{ #SOURCE.revenue_type }};;
+  }
+  dimension amount {
+    label: 'Amount'
+    type: 'number'
+    description: 'USD'
+    definition: @sql {{ #SOURCE.amount }};;
+  }
+  dimension currency {
+    label: 'Currency'
+    type: 'text'
+    hidden: true
+    definition: @sql {{ #SOURCE.currency }};;
+  }
+  dimension product_id {
+    label: 'Product ID'
+    type: 'text'
+    definition: @sql {{ #SOURCE.product_id }};;
+  }
+}

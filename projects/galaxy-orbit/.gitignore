@@ -1,0 +1,4 @@
+# anfra: local data source config and the database built by scripts/load.sh
+.anfra/
+data/*.duckdb
+data/*.duckdb.wal

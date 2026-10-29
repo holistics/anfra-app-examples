@@ -6,7 +6,7 @@ A single-page data app over synthetic HCMC flood data. It reads your route's cur
 
 - Demo: https://leave-now-or-wait.pages.holistics.dev/apps/flood
 - Video: https://media.holistics.io/anfra/demo/AnfraDemoVideo.mp4
-- Author: Huy Vu
+- Author: Khue Pham
 
 Every piece of business logic — flood risk, delay, cost, ROI — lives in **governed anfra metrics**, not in page JavaScript. The app's JS only renders D3/SVG and formats values.
 

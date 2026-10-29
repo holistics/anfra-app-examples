@@ -1,0 +1,6 @@
+data_sources:
+  # E-commerce tables, built from db/seed.dump.sql by db/build_ecommerce_duckdb.py.
+  ecommerce_duckdb:
+    type: duckdb
+    connection:
+      path: db/duckdb/ecommerce.duckdb?access_mode=read_only&enable_external_access=false

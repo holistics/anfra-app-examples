@@ -1,0 +1,1 @@
+explore { measures { latest: orders | max(orders.ordered_at), earliest: orders | min(orders.ordered_at) } }

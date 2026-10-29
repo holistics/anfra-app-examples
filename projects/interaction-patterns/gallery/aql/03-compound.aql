@@ -1,0 +1,6 @@
+explore {
+  dimensions { country: customers.country, category: products.category, status: orders.status }
+  measures { total_revenue: revenue }
+  filters { (customers.country == 'Vietnam' and products.category == 'Software') or orders.status == 'cancelled' }
+  sorts { total_revenue desc }
+}

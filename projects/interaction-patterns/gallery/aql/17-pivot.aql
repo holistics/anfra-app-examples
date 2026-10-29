@@ -1,0 +1,10 @@
+explore {
+  dimensions {
+    rows { country: customers.country }
+    columns { category: products.category }
+  }
+  measures {
+    total_revenue: revenue,
+    share_of_country: percent_of_total(revenue, 'row_total'),
+  }
+}

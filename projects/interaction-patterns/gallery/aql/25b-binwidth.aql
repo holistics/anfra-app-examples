@@ -1,0 +1,6 @@
+dimension orders.value_bin = floor(orders.order_value / 250) * 250;
+explore {
+  dimensions { bin_start: orders.value_bin }
+  measures { num_orders: order_count }
+  sorts { bin_start asc }
+}

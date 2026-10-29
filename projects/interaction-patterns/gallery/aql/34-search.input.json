@@ -1,0 +1,1 @@
+{"filters": [{"field": "customers.name", "operator": "contains", "values": ["customer 1"]}], "conditions": [], "sorts": [{"field": "num_orders", "direction": "desc"}], "dateDrills": []}

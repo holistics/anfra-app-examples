@@ -1,0 +1,25 @@
+Model orders {
+  type: 'table'
+  label: 'Orders'
+  data_source_name: 'ecommerce_duckdb'
+  table_name: 'public.orders'
+
+  dimension id { label: 'ID' type: 'number' primary_key: true }
+  dimension customer_id { label: 'Customer ID' type: 'number' }
+  dimension status { label: 'Status' type: 'text' }
+  dimension ordered_at { label: 'Ordered At' type: 'date' description: 'The order date in the customer\'s local time.' }
+  dimension discount_pct { label: 'Discount (%)' type: 'number' description: 'The discount on the whole order, in percent: 0, 5 or 10.' }
+  dimension ordered_ts { label: 'Ordered At (UTC time)' type: 'datetime' description: 'The order instant in UTC. Use it for hours and for time-zone switching; ordered_at is the local date.' }
+  dimension fiscal_year {
+    label: 'Fiscal Year'
+    type: 'number'
+    description: 'Fiscal years start on 1 July and are named by the year they end in: July 2026 is FY2027.'
+    definition: @aql date_part('year', orders.ordered_at) + case(when: date_part('month', orders.ordered_at) > 6, then: 1, else: 0) ;;
+  }
+  dimension fiscal_quarter {
+    label: 'Fiscal Quarter'
+    type: 'number'
+    description: 'Q1 is July to September.'
+    definition: @aql case(when: date_part('month', orders.ordered_at) > 9, then: 2, when: date_part('month', orders.ordered_at) > 6, then: 1, when: date_part('month', orders.ordered_at) > 3, then: 4, else: 3) ;;
+  }
+}

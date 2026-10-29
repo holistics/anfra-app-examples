@@ -1,0 +1,1 @@
+{"filters": [{"field": "order_items.quantity", "operator": "greater_than", "values": ["40"], "aggregation": "sum"}], "conditions": [], "sorts": [], "dateDrills": []}

@@ -1,0 +1,6 @@
+metric aov2 = revenue / order_count;
+explore {
+  dimensions { country: customers.country }
+  measures { total_revenue: revenue, aov2: aov2 }
+  sorts { aov2 desc }
+}

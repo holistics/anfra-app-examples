@@ -1,0 +1,8 @@
+explore {
+  dimensions { customer: customers.name }
+  measures {
+    total_revenue: revenue,
+    decile: ntile(10, order: revenue | desc(), partition: []),
+  }
+  sorts { total_revenue desc }
+}

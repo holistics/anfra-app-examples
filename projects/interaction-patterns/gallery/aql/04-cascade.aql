@@ -1,0 +1,4 @@
+explore {
+  dimensions { product: products.name }
+  sorts { product asc }
+}

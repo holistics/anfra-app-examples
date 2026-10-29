@@ -1,0 +1,1 @@
+{"filters": [{"field": "customers.country", "operator": "is", "values": ["Germany"]}, {"field": "products.category", "operator": "is", "values": ["Software"]}], "conditions": [], "sorts": [], "dateDrills": []}

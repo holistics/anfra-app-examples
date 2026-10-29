@@ -1,0 +1,93 @@
+{
+ "index-100": {
+  "try": "Show monthly revenue by category with an Index toggle that starts every category at 100 in its first month, so small and large categories share one scale.",
+  "mine": "Rebase every line to 100 at its first period, so series of very different sizes compare on one scale.",
+  "how": "Clicking the Index toggle divides each line by its own first value, so every line starts at 100 on one scale.",
+  "good": "Every line starts at 100 in the first period, and switching back shows the original values unchanged.",
+  "goodTry": "After clicking Index, every category starts at 100 in Jun 25 on one shared scale, and Parts ends at 84 in Sep 26."
+ },
+ "ranking": {
+  "try": "Show a customer leaderboard with each customer's overall rank and rank within their country, and a toggle to keep only each country's leader.",
+  "mine": "Show each row's rank overall and within its group side by side, so the leaders stand out.",
+  "how": "Each row gets two ranks, one across all rows and one within its group, and a toggle keeps only each group's leader.",
+  "good": "The top row overall also ranks first in its group, and the leaders toggle leaves exactly one row per group.",
+  "goodTry": "Customer 184 shows #1 both overall and in its country, and Country leaders only keeps one #1 customer per country."
+ },
+ "bins": {
+  "try": "Show orders and revenue by order value band, from under $100 to $1,000+, plus a histogram where the reader picks $250 or $500 bins.",
+  "mine": "Group a number into bands or a histogram, and let the reader pick the bin width.",
+  "how": "Each value falls into a band or bin, and picking a bin width regroups the values and redraws the histogram.",
+  "good": "The band counts add up to the total, and a wider bin width shows fewer, taller bars.",
+  "goodTry": "The bands show 295 orders under $100, 421 at $100-499, 294 at $500-999 and 490 at $1,000+, and $500 bins redraw the histogram."
+ },
+ "targets": {
+  "try": "Show 2026 monthly revenue against the monthly target as a dashed line, with attainment % on each bar. Picking a country moves the target with it.",
+  "mine": "Draw the target as a line that follows the same filters as the actuals, with attainment for each period.",
+  "how": "The target is drawn as a line that uses the same filters as the actuals, so changing a filter moves both together.",
+  "good": "Changing a filter moves the target line along with the bars, and periods above the line show attainment over 100%.",
+  "goodTry": "With all countries the dashed target is $84k. Picking Japan moves it to $8k, and only August beats it, at 160%."
+ },
+ "what-if": {
+  "try": "Show revenue by category, actual next to a scenario. The reader sets a price change per category, like Software +10%, and sees the difference.",
+  "mine": "Let the reader change an assumption, like a price change, and see the scenario next to the actual result.",
+  "how": "Moving a slider changes one assumption, and the scenario recalculates from it next to the unchanged actual.",
+  "good": "The scenario and the actual show side by side, and setting every slider back to zero makes them match.",
+  "goodTry": "Optimistic (Software +10%, Services +5%) lifts those two scenario bars above actual, and setting every slider to 0% brings the total back to $1,283,053."
+ },
+ "cohort-from-rank": {
+  "try": "Rank customers by revenue and let the reader save the top 10% or 25% as a cohort, then compare that cohort with everyone else.",
+  "mine": "Let the reader pick a rule like top 10%, save the matching rows as a group, and compare it with the rest.",
+  "how": "Picking a rule like top 10% ranks the rows, saves the matching ones as a group, and compares it with the rest.",
+  "good": "The saved group's size matches the rule, and the comparison shows the group and everyone else side by side.",
+  "goodTry": "Picking 10% saves the top 20 customers as Cohort: Top 10% (20), shown side by side with everyone else."
+ },
+ "bookmarks": {
+  "try": "Show revenue over time with Country, Date and grain filters. The reader saves the current view as a bookmark and brings it back in one click.",
+  "mine": "Let the reader save the current filters, sort and grouping as a bookmark and bring that view back in one click.",
+  "how": "Saving a bookmark records the current filters, sort and grouping, and clicking it later puts them back and reruns the page.",
+  "good": "After changing several filters, clicking a saved bookmark brings back exactly the view it saved.",
+  "goodTry": "Saving Japan, Q2 2026, weekly adds a bookmark. After changing the sort, clicking it brings back Japan, Q2 2026 and weekly."
+ },
+ "url-state": {
+  "try": "Show revenue over time with Country, Date and grain filters. Share copies the current view as text, and pasting it back opens the same view.",
+  "mine": "Let the reader copy the current view as text to send or keep, and paste it back to reopen the same view.",
+  "how": "Pressing Share turns the current view into text, and pasting that text back reopens the page with the same settings.",
+  "good": "Pasting the copied text after changing filters brings back every filter and setting it held.",
+  "goodTry": "Share the view on Japan, Q2 and weekly, change the filters, then paste the text back: the page reopens on Japan, Q2 and weekly."
+ },
+ "reset": {
+  "try": "Show revenue with Country and Status filters and a clickable category chart. Each filter chip has an × to clear it, and Reset all clears everything.",
+  "mine": "Give each active filter a clear button, plus Reset all to return every filter, selection and sort to its default.",
+  "how": "Each active filter shows as a chip with a clear button, and Reset all returns every filter, selection and sort to default.",
+  "good": "Clearing one chip leaves the other filters in place, and Reset all shows the same view as a fresh page load.",
+  "goodTry": "With Japan, Completed and Software selected, the × on one chip clears only that filter, and Reset all returns everything to its default."
+ },
+ "undo-redo": {
+  "try": "Show revenue with a Country filter, a grain switch and a clickable category chart. Undo and Redo buttons, and Ctrl+Z, step through the reader's changes.",
+  "mine": "Let the reader undo and redo their changes to filters and selections, one step at a time.",
+  "how": "Each change to a filter or selection is kept as a step, and Undo goes back one step while Redo goes forward.",
+  "good": "Undo removes only the last change, and Redo brings it back, ending on the same view as before.",
+  "goodTry": "After picking Japan, Week and Software, Undo leaves weekly Japan with no selection, and Redo brings the Software selection back."
+ },
+ "saved-views": {
+  "try": "Show revenue with a few filters. The reader saves the current view under a name and reopens it later from a Views list.",
+  "mine": "Let the reader save views under a name and reopen them from a list, for now only during the current visit.",
+  "how": "Saving a view stores its filters under a name, and picking that name from the list later brings the view back.",
+  "good": "A named view appears in the list and, clicked later in the same visit, brings back the settings it saved.",
+  "goodTry": "A view saved as Monday: APAC weekly appears under Views, and clicking it later in the same visit brings back its filters."
+ },
+ "refresh": {
+  "try": "Show revenue with a line saying how new the data is, when it was loaded and whether it came from cache, plus a Refresh button.",
+  "mine": "Show how new the data is and when it was loaded, with a Refresh button that fetches it again.",
+  "how": "A line shows how new the data is and when it loaded, and Refresh skips the cache and fetches everything again.",
+  "good": "Pressing Refresh updates the load time, and the freshness line says whether the data came from cache.",
+  "goodTry": "The top line shows the newest order date and when the query ran. Run again re-runs nothing, while Refresh re-runs and updates the time."
+ },
+ "trend-line": {
+  "try": "Add a dashed trend line to monthly revenue, with Linear, Exponential and Moving average (3 or 6 months) options, a Break down by category toggle, and an option to leave out the incomplete last month.",
+  "mine": "Add a dashed trend line to my time chart, with Linear, Exponential and Moving average options, one line per series when it has a legend, and an option to leave out the incomplete last period.",
+  "how": "The query returns the points; the app fits a straight or exponential line through them, or draws a moving average that the query computes. A month that isn't over yet is left out of the fit.",
+  "good": "The trend follows the filters, each series gets its own line when broken down, and a short last period doesn't drag the line down.",
+  "goodTry": "Across all 16 months the linear trend is −$56 a month. Leaving out September 2026 (23 of 30 days) turns it to +$342 a month. Broken down by category, Software grows +$450 a month and Services falls −$202."
+ }
+}

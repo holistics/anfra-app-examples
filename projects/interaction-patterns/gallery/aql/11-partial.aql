@@ -1,0 +1,9 @@
+explore {
+  dimensions { period: orders.ordered_at | month() }
+  measures {
+    total_revenue: revenue,
+    last_order_day: orders | max(orders.ordered_at),
+    days_with_orders: orders | count_distinct(orders.ordered_at),
+  }
+  sorts { period asc }
+}

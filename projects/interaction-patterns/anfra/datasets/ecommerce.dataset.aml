@@ -1,0 +1,59 @@
+Dataset ecommerce {
+  label: 'E-commerce'
+  description: 'Customers, orders and the products they bought'
+  data_source_name: 'ecommerce_duckdb'
+  models: [customers, orders, order_items, products, markets, sessions]
+  relationships: [
+    relationship(orders.customer_id > customers.id, true),
+    relationship(order_items.order_id > orders.id, true),
+    relationship(order_items.product_id > products.id, true),
+    relationship(customers.country > markets.name, true),
+    relationship(sessions.country > markets.name, true)
+  ]
+
+  metric order_count {
+    label: 'Order Count'
+    type: 'number'
+    definition: @aql count(orders.id) ;;
+  }
+  metric units_sold {
+    label: 'Units Sold'
+    type: 'number'
+    definition: @aql sum(order_items.quantity) ;;
+  }
+  metric revenue {
+    label: 'Revenue'
+    type: 'number'
+    definition: @aql sum(order_items, order_items.quantity * products.price) ;;
+  }
+
+  dimension order_value {
+    model: orders
+    label: 'Order Value'
+    type: 'number'
+    description: 'One order\'s revenue (quantity × price over its items), for bands and histograms.'
+    definition: @aql revenue | dimensionalize(orders.id) ;;
+  }
+  metric aov {
+    label: 'Average Order Value'
+    type: 'number'
+    definition: @aql revenue / order_count ;;
+  }
+  metric net_revenue {
+    label: 'Net Revenue'
+    type: 'number'
+    description: 'Revenue after the order discount: quantity × price × (1 − discount_pct / 100). Revenue stays gross.'
+    definition: @aql sum(order_items, order_items.quantity * products.price * (1 - orders.discount_pct / 100)) ;;
+  }
+  metric monthly_target {
+    label: 'Monthly Revenue Target'
+    type: 'number'
+    description: 'The sum of the markets\' monthly targets in scope. It is a per-month figure: compare it with one month of revenue.'
+    definition: @aql markets | sum(markets.monthly_target) ;;
+  }
+  metric session_count {
+    label: 'Sessions'
+    type: 'number'
+    definition: @aql count(sessions.id) ;;
+  }
+}

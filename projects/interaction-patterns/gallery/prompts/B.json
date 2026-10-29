@@ -1,0 +1,149 @@
+{
+ "date-drill": {
+  "try": "Show revenue over time with a Week / Month / Quarter switch. Clicking a bar zooms into that period one level finer, and a Back button zooms out.",
+  "mine": "Let the reader switch the time detail of the chart and click a period to zoom into it, with a way back out.",
+  "how": "Clicking a period swaps the time grain one level finer and keeps that period as a filter.",
+  "good": "The finer periods add up to the period clicked, and a breadcrumb takes the reader back up.",
+  "goodTry": "Switching to Quarter turns 16 month bars into 6; clicking Q2 2026 shows only April to June by month, and All dates returns every month."
+ },
+ "fiscal-calendar": {
+  "try": "Show revenue by quarter with a Calendar / Fiscal toggle. Fiscal years start in July, so bars relabel like \"FY27 Q1\".",
+  "mine": "Let the reader switch the chart between calendar periods and our fiscal periods.",
+  "how": "Switching to Fiscal regroups dates by a year that starts in a chosen month, and period labels change to match.",
+  "good": "Each period keeps the same months and total under its new fiscal label, and the toggle switches back cleanly.",
+  "goodTry": "On Calendar, Jul to Sep 2026 reads Q3 2026 at $234k; after picking Fiscal (July start) it reads FY27 Q1 at the same $234k."
+ },
+ "as-of-anchor": {
+  "try": "Show the last 30 days of revenue counted back from the newest order, not today, with an \"As of\" date next to the filters.",
+  "mine": "Count relative date ranges back from the newest data instead of today, and show the as-of date.",
+  "how": "The page looks up the newest date in the data and counts relative ranges, like last 30 days, back from it.",
+  "good": "Every day in the range has data, the range ends on the newest date, and a chip shows that as-of date.",
+  "goodTry": "With Newest order, a chip reads As of 23 Sep 2026, Last 30 days covers 25 Aug to 23 Sep, and every day has data."
+ },
+ "partial-period": {
+  "try": "Show monthly revenue, and mark months that aren't over yet with hatched bars and a note like \"23 of 30 days\".",
+  "mine": "Mark periods that aren't complete yet, so a partial period doesn't read as a drop.",
+  "how": "The page checks the last date with data in each period and marks periods that end early as incomplete.",
+  "good": "Only the unfinished period is marked, its note says how many days it has, and complete periods look normal.",
+  "goodTry": "The Sep 2026 bar is hatched with a note of 23 of 30 days, and turning off Mark incomplete periods makes it read as a drop."
+ },
+ "period-compare": {
+  "try": "Show 2026 monthly revenue with toggles to overlay the previous month and the same month last year, with the % change on hover.",
+  "mine": "Let the reader overlay the previous period and the same period last year, with the % change.",
+  "how": "Each toggle adds a line for the same measure shifted back one period or one year, with the percent change per period.",
+  "good": "For any period, the line shows the earlier period's value, and the percent change matches those two numbers.",
+  "goodTry": "With both toggles on, Sep 2026 shows −26% against Aug 2026 and −31% against Sep 2025."
+ },
+ "custom-compare": {
+  "try": "Compare revenue by country between two date ranges the reader picks (H2 2025 vs H1 2026 to start), as paired bars with the % change.",
+  "mine": "Let the reader pick two date ranges and compare them side by side.",
+  "how": "The reader picks two date ranges, and each item gets a pair of bars, one per range, with the percent change.",
+  "good": "Each pair matches that item's total in each range, and editing a date updates its bars right away.",
+  "goodTry": "With H2 2025 vs H1 2026, Singapore grows from $82k to $113k and Australia slips from $119k to $113k."
+ },
+ "to-date": {
+  "try": "Show monthly revenue with toggles for a year-to-date line and a trailing 3-month total.",
+  "mine": "Add toggles for a year-to-date line and a trailing-period total on the trend.",
+  "how": "Each toggle adds a line over the trend: one sums from the start of each year, one sums a rolling window.",
+  "good": "The year-to-date line climbs and resets at each year start, and the trailing line sums the last few periods.",
+  "goodTry": "The YTD line climbs through each year and resets in January, and a month's trailing 3-month total equals its revenue plus the two months before."
+ },
+ "hierarchy-drill": {
+  "try": "Show revenue by region. Clicking drills into countries, then customers, then a customer's orders, with a breadcrumb to climb back.",
+  "mine": "Let the reader drill down level by level by clicking, with a breadcrumb to climb back up.",
+  "how": "Clicking a value opens the next level down filtered to it, and the breadcrumb records each step so far.",
+  "good": "Each level's values add up to the one clicked, and clicking a crumb returns to that level with its filters.",
+  "goodTry": "Clicking APAC, Australia, then Customer 184 lists that customer's 13 orders, the breadcrumb reads All regions › APAC › Australia › Customer 184, and APAC climbs back."
+ },
+ "adhoc-breakdown": {
+  "try": "Show revenue by category. Right-clicking a bar offers \"Break down by\" status, country or product, and opens that breakdown for the clicked category.",
+  "mine": "Let the reader right-click a bar and break that value down by another field from a short list.",
+  "how": "Right-clicking a bar opens a short list of fields, and picking one opens a panel splitting that bar's value by it.",
+  "good": "The new panel's parts add up to the bar clicked, and closing it leaves the main chart as it was.",
+  "goodTry": "Right-clicking Software and picking Status opens a Software by status panel with completed, shipped and cancelled, and Close breakdown clears it."
+ },
+ "underlying-records": {
+  "try": "Show revenue, orders and average order value as KPIs, with a revenue-by-month column chart. Clicking a month narrows the KPIs to it and opens a drawer with its orders, newest first, 25 at a time.",
+  "mine": "Clicking a point or column in my charts narrows the KPIs to it and opens a drawer listing the records behind it, newest first, with Load more.",
+  "how": "Clicking a chart element filters to its values and opens a drawer with the records behind it, a page at a time.",
+  "good": "The drawer lists only records matching the clicked element, newest first, and Load more adds the next page without repeats.",
+  "goodTry": "Clicking May 2026 shows $88,378 and opens a drawer with the first 25 of its 101 orders, newest first; Load more adds the next 25."
+ },
+ "drillthrough": {
+  "try": "Show revenue by country. Clicking a country opens the Cohort Heatmap app filtered to that country.",
+  "mine": "Clicking a value opens another Data App with that value already filtered.",
+  "how": "Clicking a value opens a link to another Data App, passing that value so the app opens already filtered.",
+  "good": "The other app opens with the clicked value set in its filter, and its numbers match that value's slice.",
+  "goodTry": "Clicking Japan and picking Open in Cohort Heatmap opens that app with Country = Japan already set in its filter."
+ },
+ "metric-switch": {
+  "try": "Show categories by revenue with a Revenue / Orders / Units switch. Switching reorders the bars instantly.",
+  "mine": "Add a switch for which number the chart shows, so the bars reorder instantly.",
+  "how": "The page loads all the measures at once, so switching which one the chart shows only redraws and reorders the bars.",
+  "good": "The bars reorder at once for each measure, the axis and labels follow it, and nothing new loads.",
+  "goodTry": "Services leads on Revenue; switching to Units puts Hardware first with 2,775 units with cancelled orders left out, and the count of queries run does not change."
+ },
+ "dimension-switch": {
+  "try": "Show revenue with a \"Group by\" dropdown: country, category or status.",
+  "mine": "Add a \"Group by\" dropdown that changes what the chart's bars break down by.",
+  "how": "Picking a field in the Group by menu reruns the chart split by that field instead.",
+  "good": "The bars rebuild with the new field's values, and their total stays the same for every grouping.",
+  "goodTry": "Picking Status in Group by rebuilds the bars as completed, shipped and cancelled, and picking Category rebuilds them by category."
+ },
+ "sort": {
+  "try": "Show a customer table that sorts by any column when the reader clicks its header, and Load more keeps the order.",
+  "mine": "Make the table sort by any column on a header click, with paging that keeps the sort.",
+  "how": "Clicking a column header asks the server to sort by that column, and a second click flips the direction.",
+  "good": "Every page after the first continues the new sort, with no rows repeated or skipped.",
+  "goodTry": "Clicking the Orders header sorts most orders first, Load 25 more continues that order on page 2, and a second click flips it."
+ },
+ "top-n": {
+  "try": "Show revenue for the top 3, top 5 or all countries, picked from a menu, with an \"Other\" bar so the bars add up to the total.",
+  "mine": "Let the reader show only the top N items, with an \"Other\" bar for the rest.",
+  "how": "Picking N from the menu keeps the N largest items and folds the rest into one Other bar.",
+  "good": "The kept items are the largest, and the bars, Other included, still add up to the full total.",
+  "goodTry": "Top 3 keeps Australia, Singapore and Germany, an Other (3) bar holds $509k, and the bars still add up to $1.28M."
+ },
+ "pivot": {
+  "try": "Show revenue in a table of countries by categories, with a toggle between dollars and each country's % split.",
+  "mine": "Add a pivot table with a toggle between values and each row's percent split.",
+  "how": "Rows and columns each come from a field, and the toggle switches cells from values to each row's percent split.",
+  "good": "In percent mode each row adds up to 100%, and switching back shows the same values as before.",
+  "goodTry": "On % of country each row adds up to 100% and Services is 46% of Australia; % of category makes each column add up instead."
+ },
+ "totals": {
+  "try": "Show revenue by product grouped under category subtotal rows, with each product's share of its category and a grand total.",
+  "mine": "Group the table rows under subtotal rows, with each row's share of its group and a grand total.",
+  "how": "Rows sit under one subtotal row per group, each shows its share of the group, and a grand total ends the table.",
+  "good": "Each subtotal equals the sum of its rows, shares within a group add up to 100%, and the grand total matches.",
+  "goodTry": "Gizmo shows 61% of Hardware, the Hardware subtotal sits under its products, and the grand total reads $1.28M."
+ },
+ "percent-of-total": {
+  "try": "Show revenue by country, with each bar labelled with its share of the total. A category filter changes the shares.",
+  "mine": "Label each bar with its share of the total, following the page's filters.",
+  "how": "Each bar's value is divided by the total for the current filters, so the labels change when a filter changes.",
+  "good": "The share labels add up to 100% under any filter, and each matches the bar's value over the total.",
+  "goodTry": "Australia reads 24.4% and Japan 9.2%; filtering to Software changes the shares, and they still add up to 100%."
+ },
+ "cumulative-moving": {
+  "try": "Show monthly revenue with toggles for a running-total line and a 3-month moving average.",
+  "mine": "Add toggles for a running total and a 3-period moving average on the trend.",
+  "how": "Each toggle adds a line over the bars: one keeps a running sum, the other averages each period with the two before.",
+  "good": "The running total's last point equals the sum of all bars, and the average line is smoother than the bars.",
+  "goodTry": "The running total climbs over the monthly bars on its own scale, and hovering a month shows its revenue, 3-month average and running total."
+ },
+ "drill-path": {
+  "try": "Show revenue by region that drills into countries, then customers. Record each step down and up as a drill path of breadcrumbs above the chart; clicking a breadcrumb returns to that step.",
+  "mine": "Let readers drill down and up, keep every step as a drill path of breadcrumbs, and click any breadcrumb to go back to that step.",
+  "how": "Each drill down or up adds a step that remembers its filters; clicking a step sets those filters again.",
+  "good": "The path lists every step in order, up steps included, and clicking one shows exactly what the reader saw then.",
+  "goodTry": "Drill APAC, Australia, go up, then drill Singapore: the path shows all five steps, and clicking ↓ Australia brings back its $313,397."
+ },
+ "row-actions": {
+  "try": "Add row actions to the top-customers table: Open in CRM and Email, with URLs built as AQL fields from each row, and an in-app View orders action that opens the customer's latest orders.",
+  "mine": "Add row actions to a table in my Data App: links built from each row's fields, such as an Open in CRM URL, plus an in-app action that opens a filtered view.",
+  "how": "Each action's URL is a field built in AQL from the row's values. An outside link opens another tool; an in-app link sets a filter and shows another view.",
+  "good": "Every row's links carry that row's values, and the in-app action shows only that row's records.",
+  "goodTry": "Customer 184's CRM link ends in /accounts/184, and View orders lists #803 first, on 23 Aug 26 for $4,243."
+ }
+}

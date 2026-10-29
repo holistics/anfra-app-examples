@@ -1,0 +1,5 @@
+dimension orders.value_band = case(when: orders.order_value < 500, then: 'small', else: 'large');
+explore {
+  dimensions { category: products.category }
+  measures { total_revenue: revenue }
+}

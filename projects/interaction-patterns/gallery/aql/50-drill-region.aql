@@ -1,0 +1,5 @@
+explore {
+  dimensions { key: markets.region }
+  measures { total_revenue: revenue, order_n: order_count, buyers: count_distinct(orders, orders.customer_id) }
+  sorts { total_revenue desc }
+}

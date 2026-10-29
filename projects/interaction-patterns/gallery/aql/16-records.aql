@@ -1,0 +1,11 @@
+explore {
+  dimensions {
+    order_id: orders.id,
+    ordered_at: orders.ordered_at,
+    customer: customers.name,
+    country: customers.country,
+    status: orders.status,
+  }
+  measures { total_revenue: revenue, units: units_sold }
+  sorts { ordered_at desc, order_id desc }
+}

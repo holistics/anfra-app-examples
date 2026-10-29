@@ -1,0 +1,5 @@
+explore {
+  dimensions { category: products.category }
+  measures { total_revenue: revenue, num_customers: count_distinct(orders.customer_id) }
+  sorts { total_revenue desc }
+}

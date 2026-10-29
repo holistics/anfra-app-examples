@@ -1,0 +1,15 @@
+Model markets {
+  type: 'table'
+  label: 'Markets'
+  description: 'One row per market (a country customers come from): ISO code, region, UTC offset, map position and a monthly revenue target.'
+  data_source_name: 'ecommerce_duckdb'
+  table_name: 'public.countries'
+
+  dimension name { label: 'Country' type: 'text' primary_key: true }
+  dimension code { label: 'ISO Code' type: 'text' description: 'ISO 3166-1 alpha-2 code, for matching map shapes.' }
+  dimension region { label: 'Region' type: 'text' }
+  dimension utc_offset { label: 'UTC Offset (hours)' type: 'number' }
+  dimension latitude { label: 'Latitude' type: 'number' }
+  dimension longitude { label: 'Longitude' type: 'number' }
+  dimension monthly_target { label: 'Monthly Revenue Target' type: 'number' description: 'Revenue target for one calendar month, the same every month.' }
+}

@@ -1,0 +1,8 @@
+explore {
+  dimensions { period: orders.ordered_at | month(), category: products.category }
+  measures {
+    total_revenue: revenue,
+    index_100: revenue * 100.0 / first_value(revenue, order: orders.ordered_at | month(), partition: products.category),
+  }
+  sorts { category asc, period asc }
+}

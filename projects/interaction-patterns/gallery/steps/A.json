@@ -1,0 +1,126 @@
+{
+ "field-filter": [
+  "Read the KPI: <b>Monthly revenue</b> starts at $1.28M for all orders",
+  "Click <b>Vietnam</b> and <b>Singapore</b> in the <b>Country</b> row",
+  "Pick <b>Completed</b> in the <b>Status</b> list",
+  "Read the trend: the violet bars drop to $281k, with all orders in grey behind them"
+ ],
+ "scope-vs-filter": [
+  "Read the badge: <b>🔒 Completed orders only</b> is part of the query and has no control",
+  "Pick <b>Germany</b> in the <b>Country</b> list",
+  "Read the chart: <b>Completed revenue · Germany</b> shows $127k",
+  "Click <b>Reset filters</b>: Germany clears, and the lock stays"
+ ],
+ "compound-filter": [
+  "Read <b>Group 1</b>: it already holds <b>Vietnam</b> and <b>Software</b>",
+  "Pick <b>Cancelled</b> in the <b>Any status</b> list of <b>Group 2</b>",
+  "Read the title: (Country is Vietnam and Category is Software) or Status is cancelled",
+  "Read the table: it keeps only the rows that match either group"
+ ],
+ "aggregate-filter": [
+  "Read the title: <b>Customers by revenue</b> lists 200 of 200",
+  "Drag the <b>Revenue over</b> slider to <b>$12K</b>",
+  "Read the list: it shrinks to 16 of 200, the customers who spent more than $12k"
+ ],
+ "text-search": [
+  "Click the <b>Search customers…</b> box",
+  "Type <b>customer 1</b>",
+  "Read the table: it keeps the matching names, now <b>sorted by orders</b> with <b>Orders ▼</b>",
+  "Clear the box to go back to the sort by revenue"
+ ],
+ "one-control-many": [
+  "Click <b>Japan</b> in the <b>Country</b> row",
+  "Read the left panel: the KPI and the trend switch to <b>Revenue · Japan</b>",
+  "Read <b>Benchmark: all countries</b>: its bars don't move, and it still says ran 1 time",
+  "Click <b>Japan</b> again to go back to all countries"
+ ],
+ "cascading-options": [
+  "Read the hint: the <b>Product</b> row starts with 8 product options",
+  "Click <b>Analytics Pro</b> in the <b>Product</b> row",
+  "Pick <b>Hardware</b> in the <b>Category</b> list",
+  "Read the hint: the row shrinks to 3 product options, <b>Gadget</b>, <b>Gizmo</b> and <b>Widget</b>",
+  "Read the note: Dropped Analytics Pro, not in Hardware"
+ ],
+ "apply-button": [
+  "Pick <b>Japan</b> in the <b>All countries</b> list",
+  "Pick <b>Completed</b> in the <b>Any status</b> list",
+  "Pick <b>Jul–Sep 2026</b> in the <b>All dates</b> list: nothing runs, and the chart still shows the applied filters",
+  "Press <b>Apply (3)</b>: every query runs once, and the button turns to <b>Applied ✓</b>"
+ ],
+ "selection-to-filter": [
+  "Click <b>Vietnam</b> on <b>Revenue by country</b>: it becomes the selection",
+  "Click <b>Pin Vietnam</b>: Vietnam turns into a <b>Country: Vietnam</b> filter chip",
+  "Click <b>Software</b> on <b>Revenue by category</b>: a new selection starts inside Vietnam",
+  "Click the <b>Country: Vietnam ×</b> chip to remove the filter"
+ ],
+ "zoom-pan": [
+  "Scroll over the monthly chart, or click <b>＋</b>, to zoom in",
+  "Read the count: <b>Queries run</b> stays at 1, only the zoom steps go up",
+  "Double-click the <b>Sep 26</b> column",
+  "Read the title: <b>Revenue by week · Sep 2026</b>, and <b>Queries run</b> goes up to 2",
+  "Click <b>↑ Back to months</b> to return"
+ ],
+ "legend-toggle": [
+  "Click <b>Services</b> in the legend: its line hides and the y-axis rescales",
+  "Read the count: the legend hides go up, and <b>Queries run</b> stays the same",
+  "Hold Alt and click <b>Parts</b>: every panel re-queries for Parts only",
+  "Read <b>Total</b>: it shows Parts, $13.7K",
+  "Click <b>Show all</b> to bring every line back"
+ ],
+ "single-select": [
+  "Click <b>Germany</b> on <b>Revenue by country</b>: the other bars dim and <b>Monthly revenue</b> re-queries, with all countries in grey behind",
+  "Click <b>Japan</b> to add it: the trend shows Germany + Japan combined",
+  "Click <b>Japan</b> again to remove it, or <b>Clear</b> to start over",
+  "Click <b>Heatmap cell</b>, then the <b>Vietnam</b> cell under <b>Jan</b> and the <b>Japan</b> cell under <b>Mar</b>",
+  "Read <b>By category</b>: it shows $21.1k from (Vietnam, Jan) OR (Japan, Mar), not all four combinations"
+ ],
+ "range-brush": [
+  "Drag across <b>Revenue by month</b> from <b>Feb 26</b> to <b>Apr 26</b>",
+  "Read the title: <b>Feb 26 – Apr 26 brushed</b>",
+  "Read <b>In range</b>: revenue is $225,090 from 263 orders",
+  "Click <b>Clear brush</b> to drop the selection"
+ ],
+ "numeric-brush": [
+  "Drag across the histogram from <b>$1,000</b> to <b>$2,000</b>",
+  "Read the chip: <b>Order value: $1,000 – $2,000</b>, a <code>between</code> filter on <code>orders.order_value</code>",
+  "Read <b>In range</b>: 295 orders, and the hint says 10 orders of exactly $2,000 count too",
+  "Read <b>Revenue by category</b>: $218k of Software, $166k of Services"
+ ],
+ "cross-highlight": [
+  "Hover <b>Vietnam</b> on <b>Revenue by country</b>",
+  "Read <b>Revenue by category</b>: the grey bars keep the full totals, and Vietnam's part sits on top in violet",
+  "Read <b>Services</b>: $91.5k of $578k",
+  "Move to another country to compare, or click <b>Vietnam</b> to keep it highlighted after the pointer leaves"
+ ],
+ "two-selections": [
+  "Click <b>Germany</b> on <b>Revenue by country</b>: the page filters to Germany",
+  "Hold Ctrl (Cmd on Mac) and click <b>Software</b> on <b>Revenue by category</b>",
+  "Read <b>Revenue on this page</b>: $65,236, Germany's Software, with <b>Country: Germany (kept)</b> and <b>Selected: Software</b>",
+  "Click any bar without Ctrl to start over"
+ ],
+ "selection-cohort": [
+  "Click customers 1 to 5 in the <b>Customers</b> table",
+  "Click <b>Make cohort</b>",
+  "Read <b>Category share of revenue</b>: <b>Cohort: 5</b> in violet against <b>Rest: 195</b> in grey",
+  "Click <b>Reset</b> to start over"
+ ],
+ "date-filter": [
+  "Read the chart: the <b>1 Jan – 30 Jun 2026</b> chip is on, with exact dates",
+  "Click <b>Last 3 months</b>: the range moves to Jul–Sep",
+  "Click <b>Last 30 days</b>: a warning says data stops on 23 Sep 2026, so only days up to then count",
+  "Type <b>last q</b> in the <b>or type: last quarter</b> box, then press Tab to accept the grey <b>uarter</b>",
+  "Read the chart: <b>Last quarter</b> lights up, with 272 orders from 1 Jul to 30 Sep 2026"
+ ],
+ "custom-menu": [
+  "Right-click <b>Germany</b>: a menu opens at the pointer, with <b>Keep only</b>, <b>Exclude</b>, <b>Drill to customers</b> and <b>View orders</b>",
+  "Click <b>Exclude</b>: the chart drops to five countries, and the chip reads <b>Country is not Germany</b>",
+  "In the menu items strip, turn off <b>Exclude</b> and turn on <b>+ Copy as AQL filter</b>, then right-click <b>Singapore</b>: the menu has the new set",
+  "Click <b>Germany ×</b> to clear the filter, right-click <b>Germany</b> again and pick <b>Drill to customers</b>: Customer 92 leads, at $13,118"
+ ],
+ "range-filter": [
+  "Read the slider: two handles keep orders worth <b>$500 to $2,000</b>, which is <b>589 orders</b> and $622,557",
+  "Drag the right handle to the end, then type <b>2000</b> in <b>From</b>: <b>205 orders</b>, with the condition <code>between 2000 and 5500</code>",
+  "Click <b>One: over</b>: only the left handle stays, the condition becomes <code>&gt; 2000</code>, and the count drops to <b>195</b>, since the 10 orders of exactly $2,000 are left out",
+  "Click <b>One: under</b> and drag the handle: the charts follow, a quarter of a second after you stop"
+ ]
+}

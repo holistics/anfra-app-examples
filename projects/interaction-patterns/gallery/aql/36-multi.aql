@@ -1,0 +1,5 @@
+explore {
+  dimensions { category: products.category }
+  measures { total_revenue: revenue, num_orders: order_count, units: units_sold }
+  sorts { total_revenue desc }
+}

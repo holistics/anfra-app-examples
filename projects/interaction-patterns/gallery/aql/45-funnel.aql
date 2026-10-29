@@ -1,0 +1,11 @@
+explore {
+  dimensions { market: markets.name }
+  measures {
+    visits: session_count,
+    viewed_product: session_count | where(sessions.reached_step > 1),
+    added_to_cart: session_count | where(sessions.reached_step > 2),
+    checkout: session_count | where(sessions.reached_step > 3),
+    ordered: session_count | where(sessions.reached_step > 4),
+  }
+  sorts { visits desc }
+}

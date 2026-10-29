@@ -1,0 +1,5 @@
+explore {
+  dimensions { status: orders.status }
+  measures { total_revenue: revenue, num_orders: order_count }
+  sorts { total_revenue desc }
+}

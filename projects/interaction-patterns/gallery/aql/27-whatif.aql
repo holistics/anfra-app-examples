@@ -1,0 +1,7 @@
+dimension products.scenario_price = case(when: products.category == 'Software', then: products.price * 1.10, else: products.price);
+metric scenario_revenue = order_items | sum(order_items.quantity * products.scenario_price);
+explore {
+  dimensions { category: products.category }
+  measures { total_revenue: revenue, scenario_revenue: scenario_revenue, uplift: scenario_revenue - revenue }
+  sorts { total_revenue desc }
+}

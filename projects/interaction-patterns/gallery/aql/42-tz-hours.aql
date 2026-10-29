@@ -1,0 +1,7 @@
+dimension orders.hour_of_day = date_part('hour', orders.ordered_ts);
+explore {
+  dimensions { hour: orders.hour_of_day }
+  measures { num_orders: order_count }
+  filters { customers.country == 'Japan' }
+  sorts { hour asc }
+}

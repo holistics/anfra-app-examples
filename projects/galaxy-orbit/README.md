@@ -11,7 +11,6 @@ Each app in the portfolio is a planet, grouped by the squad that owns it. Land o
 ## Run it
 
 ```sh
-./scripts/load.sh   # writes .anfra/data_sources.yml if missing, loads data/*.parquet into data/galaxy-demo.duckdb
 anfra validate
 anfra serve         # http://127.0.0.1:7878/apps/galaxy-orbit/galaxy-orbit
 ```
@@ -22,8 +21,8 @@ anfra serve         # http://127.0.0.1:7878/apps/galaxy-orbit/galaxy-orbit
 | `datasets/galaxy_demo.dataset.aml` | App health, revenue, retention and campaigns |
 | `datasets/galaxy_growth.dataset.aml` | The growth journey: awareness to referral |
 | `models/` | AML models over the demo tables |
-| `data/*.parquet` | The data, one file per table |
-| `scripts/load.sh` | Builds the local DuckDB file from the Parquet files |
+| `data/galaxy-demo-2026.duckdb` | The data (DuckDB, opened read-only) |
+| `.anfra/data_sources.yml` | Data source `galaxy_demo`, path relative to this folder |
 | `scripts/seed-galaxy-demo.py` | How the data was generated (deterministic) |
 
 ## Data

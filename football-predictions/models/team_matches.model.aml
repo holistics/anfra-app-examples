@@ -1,0 +1,125 @@
+Model team_matches {
+  type: 'query'
+  label: 'Team matches'
+  description: 'One row per team per match. The grain for form, standings, H2H and per-team stats.'
+  data_source_name: 'football'
+  query: @sql
+    SELECT tm.*, t.name AS team_name, t.crest_url AS team_crest_url, o.name AS opponent_name, o.crest_url AS opponent_crest_url,
+           CASE WHEN tm.status = 'finished' AND tm.goals_against = 0 THEN 1 ELSE 0 END AS clean_sheet
+    FROM raw_team_matches tm
+    LEFT JOIN raw_teams t ON t.id = tm.team_id
+    LEFT JOIN raw_teams o ON o.id = tm.opponent_id
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension season {
+    label: 'Season'
+    type: 'text'
+    definition: @sql {{ #SOURCE.season }};;
+  }
+  dimension match_id {
+    label: 'Match ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.match_id }};;
+  }
+  dimension team_id {
+    label: 'Team ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.team_id }};;
+  }
+  dimension opponent_id {
+    label: 'Opponent ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.opponent_id }};;
+  }
+  dimension is_home {
+    label: 'Home (1/0)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.is_home }};;
+  }
+  dimension league_id {
+    label: 'League ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.league_id }};;
+  }
+  dimension kickoff_at {
+    label: 'Kickoff'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.kickoff_at }};;
+  }
+  dimension status {
+    label: 'Status'
+    type: 'text'
+    definition: @sql {{ #SOURCE.status }};;
+  }
+  dimension goals_for {
+    label: 'Goals for'
+    type: 'number'
+    definition: @sql {{ #SOURCE.goals_for }};;
+  }
+  dimension goals_against {
+    label: 'Goals against'
+    type: 'number'
+    definition: @sql {{ #SOURCE.goals_against }};;
+  }
+  dimension result {
+    label: 'Result (W/D/L)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.result }};;
+  }
+  dimension corners_for {
+    label: 'Corners for'
+    type: 'number'
+    definition: @sql {{ #SOURCE.corners_for }};;
+  }
+  dimension corners_against {
+    label: 'Corners against'
+    type: 'number'
+    definition: @sql {{ #SOURCE.corners_against }};;
+  }
+  dimension yellows {
+    label: 'Yellow cards'
+    type: 'number'
+    definition: @sql {{ #SOURCE.yellows }};;
+  }
+  dimension reds {
+    label: 'Red cards'
+    type: 'number'
+    definition: @sql {{ #SOURCE.reds }};;
+  }
+  dimension points {
+    label: 'Points'
+    type: 'number'
+    definition: @sql {{ #SOURCE.points }};;
+  }
+  dimension team_name {
+    label: 'Team'
+    type: 'text'
+    definition: @sql {{ #SOURCE.team_name }};;
+  }
+  dimension team_crest_url {
+    label: 'Team crest'
+    type: 'text'
+    definition: @sql {{ #SOURCE.team_crest_url }};;
+  }
+  dimension opponent_name {
+    label: 'Opponent'
+    type: 'text'
+    definition: @sql {{ #SOURCE.opponent_name }};;
+  }
+  dimension opponent_crest_url {
+    label: 'Opponent crest'
+    type: 'text'
+    definition: @sql {{ #SOURCE.opponent_crest_url }};;
+  }
+  dimension clean_sheet {
+    label: 'Clean sheet (1/0)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.clean_sheet }};;
+  }
+}

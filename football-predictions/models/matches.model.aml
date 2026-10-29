@@ -1,0 +1,292 @@
+Model matches {
+  type: 'query'
+  label: 'Matches'
+  description: 'One row per fixture with both team names, the AI headline and, once finished, whether each call hit. Home and away teams are joined in SQL because AQL allows one path into teams.'
+  data_source_name: 'football'
+  query: @sql
+    SELECT m.id, m.season, m.league_id, m.round, m.kickoff_at,
+           (m.kickoff_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date AS kickoff_date,
+           strftime(m.kickoff_at AT TIME ZONE 'Asia/Ho_Chi_Minh', '%H:%M') AS kickoff_time,
+           m.home_team_id, h.name AS home_team_name, h.short_name AS home_short, h.crest_url AS home_crest_url, h.primary_color AS home_color,
+           m.away_team_id, a.name AS away_team_name, a.short_name AS away_short, a.crest_url AS away_crest_url, a.primary_color AS away_color,
+           l.name AS league_name, l.sort_order AS league_order,
+           m.venue, m.status, m.home_goals, m.away_goals, m.ht_home, m.ht_away, m.home_corners, m.away_corners, m.attendance,
+           CASE WHEN m.status <> 'finished' THEN NULL WHEN m.home_goals > m.away_goals THEN 'H' WHEN m.home_goals = m.away_goals THEN 'D' ELSE 'A' END AS actual_outcome,
+           p.pred_home, p.pred_away, p.p_home, p.p_draw, p.p_away, p.p_over25, p.p_btts, p.confidence, p.signals, p.pick_team_id, p.generated_at AS predicted_at,
+           CASE WHEN p.p_home >= p.p_draw AND p.p_home >= p.p_away THEN 'H' WHEN p.p_away >= p.p_home AND p.p_away >= p.p_draw THEN 'A' ELSE 'D' END AS predicted_outcome,
+           CASE WHEN p.confidence < 45 THEN '1 Low' WHEN p.confidence < 55 THEN '2 Moderate' WHEN p.confidence < 65 THEN '3 High' ELSE '4 Very high' END AS confidence_band,
+           CASE WHEN m.status <> 'finished' THEN NULL ELSE
+             (CASE WHEN p.p_home >= p.p_draw AND p.p_home >= p.p_away THEN 'H' WHEN p.p_away >= p.p_home AND p.p_away >= p.p_draw THEN 'A' ELSE 'D' END)
+             = (CASE WHEN m.home_goals > m.away_goals THEN 'H' WHEN m.home_goals = m.away_goals THEN 'D' ELSE 'A' END) END AS result_hit,
+           CASE WHEN m.status <> 'finished' THEN NULL ELSE m.home_goals = p.pred_home AND m.away_goals = p.pred_away END AS exact_hit,
+           CASE WHEN m.status <> 'finished' THEN NULL ELSE (m.home_goals + m.away_goals >= 3) = (p.p_over25 >= 0.5) END AS over25_hit,
+           CASE WHEN m.status <> 'finished' THEN NULL ELSE (m.home_goals > 0 AND m.away_goals > 0) = (p.p_btts >= 0.5) END AS btts_hit,
+           CASE WHEN ap.match_id IS NULL THEN NULL WHEN ap.p_home >= ap.p_draw AND ap.p_home >= ap.p_away THEN 'H' WHEN ap.p_away >= ap.p_home AND ap.p_away >= ap.p_draw THEN 'A' ELSE 'D' END AS api_predicted_outcome,
+           m.status = 'finished' AND ap.match_id IS NOT NULL AS api_graded,
+           CASE WHEN m.status <> 'finished' OR ap.match_id IS NULL THEN NULL ELSE
+             (CASE WHEN ap.p_home >= ap.p_draw AND ap.p_home >= ap.p_away THEN 'H' WHEN ap.p_away >= ap.p_home AND ap.p_away >= ap.p_draw THEN 'A' ELSE 'D' END)
+             = (CASE WHEN m.home_goals > m.away_goals THEN 'H' WHEN m.home_goals = m.away_goals THEN 'D' ELSE 'A' END) END AS api_result_hit,
+           CASE WHEN m.status <> 'finished' OR ap.under_over IS NULL OR ap.under_over = '' THEN NULL ELSE
+             (m.home_goals + m.away_goals >= 3) = (left(ap.under_over, 1) = '+') END AS api_over25_hit
+    FROM raw_matches m
+    LEFT JOIN raw_teams h ON h.id = m.home_team_id
+    LEFT JOIN raw_teams a ON a.id = m.away_team_id
+    LEFT JOIN raw_leagues l ON l.id = m.league_id
+    LEFT JOIN raw_predictions p ON p.match_id = m.id
+    LEFT JOIN raw_api_predictions ap ON ap.match_id = m.id
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension season {
+    label: 'Season'
+    type: 'text'
+    definition: @sql {{ #SOURCE.season }};;
+  }
+  dimension league_id {
+    label: 'League ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.league_id }};;
+  }
+  dimension round {
+    label: 'Round'
+    type: 'number'
+    definition: @sql {{ #SOURCE.round }};;
+  }
+  dimension kickoff_at {
+    label: 'Kickoff (UTC)'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.kickoff_at }};;
+  }
+  dimension kickoff_date {
+    label: 'Kickoff date (Asia/Ho_Chi_Minh)'
+    type: 'date'
+    definition: @sql {{ #SOURCE.kickoff_date }};;
+  }
+  dimension kickoff_time {
+    label: 'Kickoff time (Asia/Ho_Chi_Minh)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.kickoff_time }};;
+  }
+  dimension home_team_id {
+    label: 'Home team ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.home_team_id }};;
+  }
+  dimension home_team_name {
+    label: 'Home team'
+    type: 'text'
+    definition: @sql {{ #SOURCE.home_team_name }};;
+  }
+  dimension home_short {
+    label: 'Home short'
+    type: 'text'
+    definition: @sql {{ #SOURCE.home_short }};;
+  }
+  dimension home_crest_url {
+    label: 'Home crest'
+    type: 'text'
+    definition: @sql {{ #SOURCE.home_crest_url }};;
+  }
+  dimension home_color {
+    label: 'Home colour'
+    type: 'text'
+    definition: @sql {{ #SOURCE.home_color }};;
+  }
+  dimension away_team_id {
+    label: 'Away team ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.away_team_id }};;
+  }
+  dimension away_team_name {
+    label: 'Away team'
+    type: 'text'
+    definition: @sql {{ #SOURCE.away_team_name }};;
+  }
+  dimension away_short {
+    label: 'Away short'
+    type: 'text'
+    definition: @sql {{ #SOURCE.away_short }};;
+  }
+  dimension away_crest_url {
+    label: 'Away crest'
+    type: 'text'
+    definition: @sql {{ #SOURCE.away_crest_url }};;
+  }
+  dimension away_color {
+    label: 'Away colour'
+    type: 'text'
+    definition: @sql {{ #SOURCE.away_color }};;
+  }
+  dimension league_name {
+    label: 'League'
+    type: 'text'
+    definition: @sql {{ #SOURCE.league_name }};;
+  }
+  dimension league_order {
+    label: 'League order'
+    type: 'number'
+    definition: @sql {{ #SOURCE.league_order }};;
+  }
+  dimension venue {
+    label: 'Venue'
+    type: 'text'
+    definition: @sql {{ #SOURCE.venue }};;
+  }
+  dimension status {
+    label: 'Status (finished/upcoming)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.status }};;
+  }
+  dimension home_goals {
+    label: 'Home goals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.home_goals }};;
+  }
+  dimension away_goals {
+    label: 'Away goals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.away_goals }};;
+  }
+  dimension ht_home {
+    label: 'HT home goals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ht_home }};;
+  }
+  dimension ht_away {
+    label: 'HT away goals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ht_away }};;
+  }
+  dimension home_corners {
+    label: 'Home corners'
+    type: 'number'
+    definition: @sql {{ #SOURCE.home_corners }};;
+  }
+  dimension away_corners {
+    label: 'Away corners'
+    type: 'number'
+    definition: @sql {{ #SOURCE.away_corners }};;
+  }
+  dimension attendance {
+    label: 'Attendance'
+    type: 'number'
+    definition: @sql {{ #SOURCE.attendance }};;
+  }
+  dimension actual_outcome {
+    label: 'Actual outcome (H/D/A)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.actual_outcome }};;
+  }
+  dimension pred_home {
+    label: 'Predicted home goals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pred_home }};;
+  }
+  dimension pred_away {
+    label: 'Predicted away goals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pred_away }};;
+  }
+  dimension p_home {
+    label: 'P(home win)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_home }};;
+  }
+  dimension p_draw {
+    label: 'P(draw)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_draw }};;
+  }
+  dimension p_away {
+    label: 'P(away win)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_away }};;
+  }
+  dimension p_over25 {
+    label: 'P(over 2.5)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_over25 }};;
+  }
+  dimension p_btts {
+    label: 'P(both score)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_btts }};;
+  }
+  dimension confidence {
+    label: 'Confidence'
+    type: 'number'
+    definition: @sql {{ #SOURCE.confidence }};;
+  }
+  dimension signals {
+    label: 'Signals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.signals }};;
+  }
+  dimension pick_team_id {
+    label: 'AI pick team ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pick_team_id }};;
+  }
+  dimension predicted_at {
+    label: 'Predicted at'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.predicted_at }};;
+  }
+  dimension predicted_outcome {
+    label: 'Predicted outcome (H/D/A)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.predicted_outcome }};;
+  }
+  dimension confidence_band {
+    label: 'Confidence band'
+    type: 'text'
+    definition: @sql {{ #SOURCE.confidence_band }};;
+  }
+  dimension result_hit {
+    label: 'Result call hit'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.result_hit }};;
+  }
+  dimension exact_hit {
+    label: 'Exact score hit'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.exact_hit }};;
+  }
+  dimension over25_hit {
+    label: 'Over/under call hit'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.over25_hit }};;
+  }
+  dimension btts_hit {
+    label: 'BTTS call hit'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.btts_hit }};;
+  }
+  dimension api_predicted_outcome {
+    label: 'API-Football outcome (H/D/A)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.api_predicted_outcome }};;
+  }
+  dimension api_graded {
+    label: 'API-Football graded'
+    type: 'truefalse'
+    description: 'Finished and API-Football published a prediction for it.'
+    definition: @sql {{ #SOURCE.api_graded }};;
+  }
+  dimension api_result_hit {
+    label: 'API-Football result hit'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.api_result_hit }};;
+  }
+  dimension api_over25_hit {
+    label: 'API-Football over/under hit'
+    type: 'truefalse'
+    description: 'Its under_over line, e.g. +2.5 or -2.5, against the real total. Null when the API gave no line.'
+    definition: @sql {{ #SOURCE.api_over25_hit }};;
+  }
+}

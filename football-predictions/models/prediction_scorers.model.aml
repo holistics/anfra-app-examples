@@ -1,0 +1,63 @@
+Model prediction_scorers {
+  type: 'query'
+  label: 'Predicted scorers'
+  data_source_name: 'football'
+  query: @sql
+    SELECT s.*, p.name AS player_name, p.position, p.shirt_number, t.name AS team_name
+    FROM raw_prediction_scorers s
+    LEFT JOIN raw_players p ON p.id = s.player_id
+    LEFT JOIN raw_teams t ON t.id = s.team_id
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension match_id {
+    label: 'Match ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.match_id }};;
+  }
+  dimension team_id {
+    label: 'Team ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.team_id }};;
+  }
+  dimension player_id {
+    label: 'Player ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.player_id }};;
+  }
+  dimension goal_share {
+    label: 'Share of team goals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.goal_share }};;
+  }
+  dimension p_anytime {
+    label: 'P(scores)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_anytime }};;
+  }
+  dimension player_name {
+    label: 'Player'
+    type: 'text'
+    definition: @sql {{ #SOURCE.player_name }};;
+  }
+  dimension position {
+    label: 'Position'
+    type: 'text'
+    definition: @sql {{ #SOURCE.position }};;
+  }
+  dimension shirt_number {
+    label: 'Shirt'
+    type: 'number'
+    definition: @sql {{ #SOURCE.shirt_number }};;
+  }
+  dimension team_name {
+    label: 'Team'
+    type: 'text'
+    definition: @sql {{ #SOURCE.team_name }};;
+  }
+}

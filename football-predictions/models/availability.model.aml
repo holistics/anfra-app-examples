@@ -1,0 +1,69 @@
+Model availability {
+  type: 'query'
+  label: 'Availability'
+  description: 'Current absences per team, as known now.'
+  data_source_name: 'football'
+  query: @sql
+    SELECT a.*, p.name AS player_name, p.position, p.shirt_number, t.name AS team_name
+    FROM raw_availability a
+    LEFT JOIN raw_players p ON p.id = a.player_id
+    LEFT JOIN raw_teams t ON t.id = a.team_id
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension team_id {
+    label: 'Team ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.team_id }};;
+  }
+  dimension player_id {
+    label: 'Player ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.player_id }};;
+  }
+  dimension status {
+    label: 'Status (injured/suspended)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.status }};;
+  }
+  dimension reason {
+    label: 'Reason'
+    type: 'text'
+    definition: @sql {{ #SOURCE.reason }};;
+  }
+  dimension since {
+    label: 'Reported'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.since }};;
+  }
+  dimension expected_return_round {
+    label: 'Expected return round'
+    type: 'number'
+    definition: @sql {{ #SOURCE.expected_return_round }};;
+  }
+  dimension player_name {
+    label: 'Player'
+    type: 'text'
+    definition: @sql {{ #SOURCE.player_name }};;
+  }
+  dimension position {
+    label: 'Position'
+    type: 'text'
+    definition: @sql {{ #SOURCE.position }};;
+  }
+  dimension shirt_number {
+    label: 'Shirt'
+    type: 'number'
+    definition: @sql {{ #SOURCE.shirt_number }};;
+  }
+  dimension team_name {
+    label: 'Team'
+    type: 'text'
+    definition: @sql {{ #SOURCE.team_name }};;
+  }
+}

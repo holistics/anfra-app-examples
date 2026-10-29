@@ -1,0 +1,94 @@
+Model lineups {
+  type: 'query'
+  label: 'Lineups'
+  description: '18 rows per side per match: 11 starters (slot_order 0-10 following the formation lines) and 7 bench. is_predicted = 1 for an upcoming match.'
+  data_source_name: 'football'
+  query: @sql
+    SELECT l.*, p.name AS player_name, p.shirt_number, p.age, p.is_captain, p.position AS player_position, t.name AS team_name, t.coach
+    FROM raw_lineups l
+    LEFT JOIN raw_players p ON p.id = l.player_id
+    LEFT JOIN raw_teams t ON t.id = l.team_id
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension match_id {
+    label: 'Match ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.match_id }};;
+  }
+  dimension team_id {
+    label: 'Team ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.team_id }};;
+  }
+  dimension player_id {
+    label: 'Player ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.player_id }};;
+  }
+  dimension is_starter {
+    label: 'Starter (1/0)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.is_starter }};;
+  }
+  dimension position {
+    label: 'Position in this match'
+    type: 'text'
+    definition: @sql {{ #SOURCE.position }};;
+  }
+  dimension slot_order {
+    label: 'Slot order'
+    type: 'number'
+    definition: @sql {{ #SOURCE.slot_order }};;
+  }
+  dimension formation {
+    label: 'Formation'
+    type: 'text'
+    definition: @sql {{ #SOURCE.formation }};;
+  }
+  dimension is_predicted {
+    label: 'Predicted XI (1/0)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.is_predicted }};;
+  }
+  dimension player_name {
+    label: 'Player'
+    type: 'text'
+    definition: @sql {{ #SOURCE.player_name }};;
+  }
+  dimension shirt_number {
+    label: 'Shirt'
+    type: 'number'
+    definition: @sql {{ #SOURCE.shirt_number }};;
+  }
+  dimension age {
+    label: 'Age'
+    type: 'number'
+    definition: @sql {{ #SOURCE.age }};;
+  }
+  dimension is_captain {
+    label: 'Captain (1/0)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.is_captain }};;
+  }
+  dimension player_position {
+    label: 'Natural position'
+    type: 'text'
+    definition: @sql {{ #SOURCE.player_position }};;
+  }
+  dimension team_name {
+    label: 'Team'
+    type: 'text'
+    definition: @sql {{ #SOURCE.team_name }};;
+  }
+  dimension coach {
+    label: 'Coach'
+    type: 'text'
+    definition: @sql {{ #SOURCE.coach }};;
+  }
+}

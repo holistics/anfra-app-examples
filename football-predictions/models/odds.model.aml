@@ -1,0 +1,51 @@
+Model odds {
+  type: 'query'
+  label: 'Odds'
+  description: 'Bookmaker implied probabilities, three captures per match before kickoff. Synthetic.'
+  data_source_name: 'football'
+  query: @sql
+    SELECT * FROM raw_odds
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension match_id {
+    label: 'Match ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.match_id }};;
+  }
+  dimension bookmaker {
+    label: 'Bookmaker'
+    type: 'text'
+    definition: @sql {{ #SOURCE.bookmaker }};;
+  }
+  dimension captured_at {
+    label: 'Captured at'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.captured_at }};;
+  }
+  dimension p_home {
+    label: 'Market P(home)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_home }};;
+  }
+  dimension p_draw {
+    label: 'Market P(draw)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_draw }};;
+  }
+  dimension p_away {
+    label: 'Market P(away)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_away }};;
+  }
+  dimension p_over25 {
+    label: 'Market P(over 2.5)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_over25 }};;
+  }
+}

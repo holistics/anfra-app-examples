@@ -1,0 +1,164 @@
+Dataset football {
+  label: 'Football predictions'
+  description: 'Fixtures, results, lineups, absences, odds and the Poisson model predictions with every factor behind them, plus API-Football predictions for comparison. Data from scripts/seed.py (synthetic) or scripts/fetch_api_football.py (real), then scripts/predict.py.'
+  data_source_name: 'football'
+
+  models: [leagues, teams, players, matches, team_matches, match_form, match_events, lineups, availability, odds,
+           predictions, prediction_factors, prediction_score_matrix, prediction_scorers, prediction_history, why, api_predictions]
+
+  relationships: [
+    relationship(matches.league_id > leagues.id, true),
+    relationship(team_matches.match_id > matches.id, true),
+    relationship(team_matches.team_id > teams.id, true),
+    relationship(match_form.match_id > matches.id, true),
+    relationship(predictions.match_id > matches.id, true),
+    relationship(prediction_factors.match_id > matches.id, true),
+    relationship(prediction_score_matrix.match_id > matches.id, true),
+    relationship(prediction_scorers.match_id > matches.id, true),
+    relationship(prediction_scorers.player_id > players.id, false),
+    relationship(prediction_history.match_id > matches.id, true),
+    relationship(odds.match_id > matches.id, true),
+    relationship(match_events.match_id > matches.id, true),
+    relationship(lineups.match_id > matches.id, true),
+    relationship(lineups.player_id > players.id, true),
+    relationship(availability.player_id > players.id, true),
+    relationship(why.match_id > matches.id, true),
+    relationship(api_predictions.match_id > matches.id, true),
+  ]
+
+  metric played {
+    label: 'Matches played'
+    type: 'number'
+    description: 'Finished team-matches, i.e. one per team per finished match.'
+    definition: @aql team_matches | count(team_matches.id) ;;
+  }
+  metric wins {
+    label: 'Wins'
+    type: 'number'
+    definition: @aql team_matches | count_if(team_matches.result == 'W') ;;
+  }
+  metric draws {
+    label: 'Draws'
+    type: 'number'
+    definition: @aql team_matches | count_if(team_matches.result == 'D') ;;
+  }
+  metric losses {
+    label: 'Losses'
+    type: 'number'
+    definition: @aql team_matches | count_if(team_matches.result == 'L') ;;
+  }
+  metric goals_for {
+    label: 'Goals for'
+    type: 'number'
+    definition: @aql team_matches | sum(team_matches.goals_for) ;;
+  }
+  metric goals_against {
+    label: 'Goals against'
+    type: 'number'
+    definition: @aql team_matches | sum(team_matches.goals_against) ;;
+  }
+  metric points {
+    label: 'Points'
+    type: 'number'
+    description: '3 per win, 1 per draw, from the points column written per team-match.'
+    definition: @aql team_matches | sum(team_matches.points) ;;
+  }
+  metric goals_per_match {
+    label: 'Goals per match'
+    type: 'number'
+    definition: @aql safe_divide(goals_for * 1.0, played) ;;
+  }
+  metric conceded_per_match {
+    label: 'Conceded per match'
+    type: 'number'
+    definition: @aql safe_divide(goals_against * 1.0, played) ;;
+  }
+  metric corners_per_match {
+    label: 'Corners per match'
+    type: 'number'
+    definition: @aql safe_divide((team_matches | sum(team_matches.corners_for)) * 1.0, played) ;;
+  }
+  metric cards_per_match {
+    label: 'Cards per match'
+    type: 'number'
+    description: 'Yellows plus reds per finished match.'
+    definition: @aql safe_divide((team_matches | sum(team_matches.yellows + team_matches.reds)) * 1.0, played) ;;
+  }
+  metric clean_sheets {
+    label: 'Clean sheets'
+    type: 'number'
+    definition: @aql team_matches | sum(team_matches.clean_sheet) ;;
+  }
+  metric graded {
+    label: 'Graded predictions'
+    type: 'number'
+    description: 'Finished matches with a prediction.'
+    definition: @aql matches | count_if(matches.status == 'finished') ;;
+  }
+  metric result_hits {
+    label: 'Result hits'
+    type: 'number'
+    definition: @aql matches | count_if(matches.result_hit is true) ;;
+  }
+  metric exact_hits {
+    label: 'Exact score hits'
+    type: 'number'
+    definition: @aql matches | count_if(matches.exact_hit is true) ;;
+  }
+  metric over25_hits {
+    label: 'Over/under hits'
+    type: 'number'
+    definition: @aql matches | count_if(matches.over25_hit is true) ;;
+  }
+  metric btts_hits {
+    label: 'BTTS hits'
+    type: 'number'
+    definition: @aql matches | count_if(matches.btts_hit is true) ;;
+  }
+  metric result_hit_rate {
+    label: 'Result hit rate'
+    type: 'number'
+    definition: @aql safe_divide(result_hits * 1.0, graded) ;;
+  }
+  metric exact_hit_rate {
+    label: 'Exact score hit rate'
+    type: 'number'
+    definition: @aql safe_divide(exact_hits * 1.0, graded) ;;
+  }
+  metric over25_hit_rate {
+    label: 'Over/under hit rate'
+    type: 'number'
+    definition: @aql safe_divide(over25_hits * 1.0, graded) ;;
+  }
+  metric btts_hit_rate {
+    label: 'BTTS hit rate'
+    type: 'number'
+    definition: @aql safe_divide(btts_hits * 1.0, graded) ;;
+  }
+  metric api_graded {
+    label: 'API-Football graded'
+    type: 'number'
+    description: 'Finished matches that API-Football published a prediction for.'
+    definition: @aql matches | count_if(matches.api_graded is true) ;;
+  }
+  metric api_result_hits {
+    label: 'API-Football result hits'
+    type: 'number'
+    definition: @aql matches | count_if(matches.api_result_hit is true) ;;
+  }
+  metric api_over25_hits {
+    label: 'API-Football over/under hits'
+    type: 'number'
+    definition: @aql matches | count_if(matches.api_over25_hit is true) ;;
+  }
+  metric api_result_hit_rate {
+    label: 'API-Football result hit rate'
+    type: 'number'
+    definition: @aql safe_divide(api_result_hits * 1.0, api_graded) ;;
+  }
+  metric api_over25_hit_rate {
+    label: 'API-Football over/under hit rate'
+    type: 'number'
+    definition: @aql safe_divide(api_over25_hits * 1.0, api_graded) ;;
+  }
+}

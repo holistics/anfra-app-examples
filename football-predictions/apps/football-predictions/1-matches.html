@@ -1,0 +1,30 @@
+<!doctype html>
+<!--
+  Football predictions, Matches page. One of four pages in this folder; shared.js holds the queries and renderers.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script type="application/json" id="data-app-metadata">
+  {"prompt": "Fun football prediction app: matches by day, AI score prediction with drill-down into why (form, injuries, cards, H2H, market), lineups", "model": "claude-fable-5-1", "effort": null, "createdAt": "2026-10-15T00:10:00Z", "updatedAt": "2026-10-15T00:10:00Z"}
+  </script>
+  <title>Matches</title>
+  <link href="https://rsms.me/inter/inter.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+  <div id="fatal" style="display:none;max-width:480px;margin:12px auto;padding:12px 14px;border-radius:12px;background:#fff5f5;color:#8b120e;border:1px solid #f6a5a2;font:13px/1.4 Inter,system-ui;white-space:pre-wrap"></div>
+  <script>
+    window.addEventListener('error', (e) => { const el = document.getElementById('fatal'); el.style.display = 'block'; el.textContent += `Error: ${e.message}${e.filename ? '' : ''}${e.lineno ? ' (line ' + e.lineno + ')' : ''}\n`; });
+    window.addEventListener('unhandledrejection', (e) => { const el = document.getElementById('fatal'); el.style.display = 'block'; el.textContent += `Unhandled: ${e.reason?.message || e.reason}\n`; });
+  </script>
+  <div class="shell" data-anfra-container="app" data-anfra-label="Football predictions: matches">
+    <main class="content" id="main" data-anfra-container="main" data-anfra-label="Content"></main>
+  </div>
+  <script src="shared.js"></script>
+  <script>setupFootball('matches', 'Matches');</script>
+</body>
+</html>

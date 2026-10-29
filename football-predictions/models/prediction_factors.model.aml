@@ -1,0 +1,52 @@
+Model prediction_factors {
+  type: 'query'
+  label: 'Prediction factors'
+  description: 'Every multiplier behind the expected goals of a match: multiply one team rows together with league_avg to get its lambda.'
+  data_source_name: 'football'
+  query: @sql
+    SELECT f.*, t.name AS team_name
+    FROM raw_prediction_factors f LEFT JOIN raw_teams t ON t.id = f.team_id
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension match_id {
+    label: 'Match ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.match_id }};;
+  }
+  dimension team_id {
+    label: 'Team whose attack this multiplies'
+    type: 'number'
+    definition: @sql {{ #SOURCE.team_id }};;
+  }
+  dimension factor {
+    label: 'Factor'
+    type: 'text'
+    definition: @sql {{ #SOURCE.factor }};;
+  }
+  dimension multiplier {
+    label: 'Multiplier'
+    type: 'number'
+    definition: @sql {{ #SOURCE.multiplier }};;
+  }
+  dimension note {
+    label: 'Why'
+    type: 'text'
+    definition: @sql {{ #SOURCE.note }};;
+  }
+  dimension group {
+    label: 'Group'
+    type: 'text'
+    definition: @sql {{ #SOURCE.group }};;
+  }
+  dimension team_name {
+    label: 'Team'
+    type: 'text'
+    definition: @sql {{ #SOURCE.team_name }};;
+  }
+}

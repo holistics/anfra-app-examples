@@ -1,0 +1,5 @@
+/* The keeper's lines sit under her at the counter, where her speech has always been; the highlight is desk-tour.css's. */
+.dtour[data-pos=bl] .dtour-dialogue.dialogue-scene{left:32px;right:auto;bottom:72px;top:auto;width:min(340px,calc(100% - 32px));grid-template-columns:minmax(0,1fr);align-items:end}
+.dtour[data-pos=bl] .dtour-dialogue .character-dialogue{grid-column:1}
+.shop-tour-dialogue.is-you .dialogue-name{color:#a6c4a2}
+@media(max-width:750px){.dtour[data-pos=bl] .dtour-dialogue.dialogue-scene{left:12px;bottom:12px}}

@@ -1,0 +1,625 @@
+/* Identity-first stage; the prior analytics prototype remains in its original modules. */
+.desk-screen .desk-grid{--left:min(460px,calc((100svh - 190px)/2))}
+.soul-sidebar .soul-panel{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.soul-sidebar .panel-heading{flex:0 0 auto}
+.obol-svg{width:78px;height:78px;flex-shrink:0;filter:drop-shadow(0 3px 3px #0004)}
+.identity-query{display:flex;align-items:center;gap:8px;padding-bottom:12px;flex-wrap:wrap}
+.identity-query select,.identity-query input{padding:8px 9px;border:1px solid #a4b8b344;background:#10242c;color:#c8cdb5;font-size:10px;min-width:0;border-radius:3px}
+.identity-query select{max-width:180px}.identity-query input{flex:1;min-width:100px}.identity-query .text-button{font-size:9px}
+.identity-record-scroll{overflow:auto;min-height:0;scrollbar-width:thin}
+.identity-records th{white-space:nowrap;font-size:8px;padding:10px}.identity-records th small{display:block;font-size:7px;margin-top:4px;color:#bca774}
+.identity-records td,.identity-records td:last-child{font-size:11px;white-space:nowrap;padding:12px 10px;color:#b9c7b2;text-align:left}
+.identity-records tr[role=button]:focus-visible{outline:1px solid var(--brass);outline-offset:-2px}.record-reference{font-size:10px;color:#c9b480;padding:0}
+.record-field-cell{background:none;color:inherit;font:inherit;padding:2px 4px;border-radius:2px;cursor:pointer}
+.record-field-cell:hover{background:#c4aa761a}
+.level-tool-hint{font-size:8px;color:#7f9e97;margin-left:auto}
+.evidence-tray{display:none}
+
+/* --- Soul window: a fixed-size booth; the face is never cropped, resized or faded except when the soul departs. --- */
+.soul-sidebar .soul-window{flex:0 0 160px;height:160px;transition:opacity .6s ease}
+.soul-sidebar .soul-window .portrait{height:136px;width:auto;max-height:none}
+.soul-sidebar .soul-window.departing{opacity:0}
+
+/* --- Desk: a fixed-size table. Documents are shaped and coloured differently; nothing is labelled. --- */
+.desk-surface{flex:0 0 78px;position:relative;display:flex;align-items:center;gap:12px;padding:10px 18px;background:radial-gradient(ellipse at 50% 0,#2a3b3618,transparent 70%);transition:opacity .4s ease,transform .4s ease}
+.desk-surface.returning{opacity:0;transform:translateY(16px)}
+.desk-item{flex:0 0 auto;width:50px;height:60px;position:relative;box-shadow:2px 3px 0 #0003;cursor:grab;touch-action:none;border-radius:1px}
+.desk-item:nth-child(3n+1){transform:rotate(-4deg)}.desk-item:nth-child(3n+2){transform:rotate(3deg) translateY(3px)}.desk-item:nth-child(3n+3){transform:rotate(-2deg) translateY(-2px)}
+.desk-item:hover{transform:translateY(-4px) rotate(0deg)!important;box-shadow:2px 7px 11px #0005}
+.desk-item--identity{background:linear-gradient(165deg,#e4d2a6,#cdb989)}
+.desk-item--identity:before{content:'';position:absolute;left:5px;top:6px;width:14px;height:16px;background:#7c8a7f;border-radius:1px;opacity:.55}
+.desk-item--permit{background:linear-gradient(165deg,#c99aa0,#a66f7c);border-radius:1px 10px 1px 10px}
+.desk-item--permit:before{content:'';position:absolute;inset:7px 6px;border:1px dashed #ffffff55}
+.desk-item--support{background:#c3c2a4;background-image:repeating-linear-gradient(#0000,#0000 9px,#8d8a6b33 9px,#8d8a6b33 10px)}
+.desk-item--support:after{content:'';position:absolute;top:0;right:0;border-width:0 9px 9px 0;border-style:solid;border-color:transparent #0000001f transparent transparent}
+.desk-item--permit.stamped-approved:after,.desk-item--permit.stamped-disputed:after{content:'';position:absolute;right:-4px;bottom:-4px;width:14px;height:14px;border-radius:50%;background:var(--green);border:2px solid #152930}
+.desk-item--permit.stamped-disputed:after{background:var(--red)}
+.desk-coin,.obol-loose{appearance:none;background:none;border:0;padding:0;cursor:pointer;perspective:260px}
+.desk-coin{flex:0 0 auto;width:26px;height:26px;border-radius:50%;box-shadow:1px 2px 0 #0003;display:flex;align-items:center;justify-content:center;overflow:hidden;opacity:.82}
+.desk-coin:hover{opacity:1}
+.desk-coin .obol-svg{width:22px;height:22px}
+.desk-empty{width:100%;margin:0;font:italic 10px var(--serif);color:#7f9994;text-align:center}
+@keyframes coin-flip{0%{transform:rotateY(0)}100%{transform:rotateY(360deg)}}
+.coin-flip-anim{animation:coin-flip .5s ease}
+.drag-ghost{opacity:.95;filter:drop-shadow(4px 10px 14px #0008)}
+
+/* --- The open workspace: the only part of the panel that grows; nothing scrolls or spills out of it. --- */
+.zoom-stage{flex:1 1 auto;min-height:0;position:relative;overflow:hidden;margin:4px 11px;border:1px dashed #a4b8b322;border-radius:3px;background:radial-gradient(ellipse at 50% 0,#0a19204d,transparent 70%);transition:opacity .4s ease,transform .4s ease}
+.zoom-stage.returning{opacity:0;transform:translateY(16px)}
+.open-doc{position:absolute;padding:13px 14px;background:linear-gradient(170deg,#e4d2a6,#cdb989);color:#3c392c;box-shadow:3px 6px 14px #0005;animation:zoom-in .18s ease;cursor:grab;user-select:none;touch-action:none}
+.open-doc--permit{background:linear-gradient(170deg,#d7a9af,#b67e8a)}
+.open-doc--support{background:#c3c2a4;background-image:repeating-linear-gradient(#0000,#0000 15px,#8d8a6b2e 15px,#8d8a6b2e 16px)}
+.open-doc--guide{padding:10px 22px 13px 10px;color:#49422e;border:4px solid #574936;border-bottom-width:7px;border-radius:3px 5px 5px 3px;background:linear-gradient(90deg,#b8a67c 0%,#e0d2a8 5%,#e9ddba 43%,#b3a17a 49%,#8e7d59 50%,#c3b48c 52%,#e7dab4 57%,#e1d4ac 94%,#c5b38a 100%);box-shadow:0 2px 0 #b6a17b,0 4px 0 #685b42,0 6px 0 #bba982,3px 11px 18px #0007,inset 0 0 18px #8b6c3c45}
+.open-doc--guide:before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.22;background-image:radial-gradient(ellipse at 12% 78%,#846c4129,transparent 25%),radial-gradient(ellipse at 87% 20%,#866c3e44,transparent 20%),repeating-linear-gradient(0deg,#6353300d 0 1px,transparent 1px 3px);border:1px solid #89764c66}
+.open-doc--guide:after{content:'';position:absolute;right:0;bottom:0;width:19px;height:19px;pointer-events:none;background:linear-gradient(135deg,transparent 47%,#ad9a72 49%,#eadeb9 53%,#c5b58c);filter:drop-shadow(-1px -1px 1px #68573444)}
+.open-doc--obol{background:none;box-shadow:none;padding:0;display:flex;align-items:center;justify-content:center}
+.open-doc--identity{width:250px}.open-doc--permit{width:230px}.open-doc--support{width:240px}.open-doc--obol{width:150px;height:150px}.open-doc--guide{width:270px}
+.obol-loose{width:140px;height:140px;display:flex;align-items:center;justify-content:center}
+.obol-loose .obol-svg{width:140px;height:140px;filter:drop-shadow(2px 5px 7px #0006)}
+@keyframes zoom-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+.open-doc.drag-shrink{margin:0;transform:translate(-50%,-50%) scale(.32);transition:transform .15s ease;pointer-events:none}
+.open-doc .eyebrow{font-size:8px;color:#74603b}
+.open-doc--permit .eyebrow{color:#6b3c45}
+.open-doc--guide .eyebrow{color:#6b5b3b}
+.open-doc h3{font:19px var(--serif);margin:8px 0}
+.open-doc .portrait{width:60px;height:56px;float:right;margin-left:8px;filter:none;animation:none}
+.zoom-fields{display:grid;gap:5px;margin-top:8px;clear:both;padding:0}
+.zoom-field{display:grid;grid-template-columns:88px 1fr;gap:8px;text-align:left;font-size:11px;padding:4px 5px;border-radius:2px;width:100%;background:none;color:inherit;cursor:pointer}
+.zoom-field dt{color:#6d6346;font-size:9px;align-self:center}
+.zoom-field dd{margin:0;color:#2f2c22}
+.zoom-field:hover{background:#0000000d}
+.hand-signature{font:11px var(--sans)}
+.support-claim{display:block;width:100%;padding:7px 8px;background:#0000000a;cursor:pointer}
+.support-claim p{font:11px/1.5 var(--sans);margin:0}
+.open-doc>small{font-size:9px;display:block;margin-top:10px;color:#5f583f}
+
+
+/* --- Book tray: a fixed strip at the bottom holding the Book of Instruction, centred away from the magnifier. --- */
+.book-tray{flex:0 0 58px;position:relative;display:flex;align-items:center;justify-content:center;padding:6px 16px;border-top:1px solid #a4b8b318}
+.desk-date{position:absolute;left:16px;font-size:9px;color:#86a19c;white-space:nowrap;font:13px var(--serif)}
+.book-holder{width:48px;height:30px;position:relative}
+.book-holder:before{content:'';position:absolute;left:2px;right:2px;bottom:0;height:6px;background:linear-gradient(#4a3f2e,#352c20);border-radius:1px;box-shadow:0 2px 3px #0005}
+.desk-book{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);width:38px;height:22px;background:linear-gradient(170deg,#3c4a3f,#263029);border-radius:2px;box-shadow:1px 2px 0 #0003;cursor:grab;touch-action:none}
+.desk-book:before{content:'';position:absolute;inset:3px;border:1px solid #c7b67e3d;border-radius:1px}
+.desk-book:after{content:'';position:absolute;right:6px;top:-5px;width:5px;height:8px;background:#8a3630;border-radius:0 0 1px 1px}
+.desk-book:hover{transform:translateX(-50%) translateY(-3px)}
+.book-slot{position:absolute;left:5px;right:5px;bottom:3px;height:4px;border:1px dashed #a4b8b333;border-radius:1px}
+
+/* --- Magnifier: an artifact resting by the book, not an icon. Opened, it dims the rest of the screen but leaves the evidence itself clear. --- */
+#magnifier-svg{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:70}
+#magnifier-borders{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:69}
+.magnifier-border{fill:none;stroke:var(--brass);stroke-width:1.5}
+.magnifier-border.match{stroke:var(--green)}.magnifier-border.mismatch{stroke:var(--red)}
+#magnifier-scrim{position:fixed;inset:0;opacity:0;pointer-events:none;transition:opacity .3s ease;z-index:65}
+#magnifier-scrim>svg{display:block;width:100%;height:100%}
+body.magnifier-mode #magnifier-scrim{opacity:.4}
+.magnifier-line{stroke-width:3.5;stroke-linejoin:round;stroke-linecap:round;stroke-dasharray:1 8;fill:none}
+.magnifier-line.match{stroke:var(--green)}.magnifier-line.mismatch{stroke:var(--red)}.magnifier-line.none{stroke:#8a9490}
+.magnifier-line-label{font:700 13px var(--sans);letter-spacing:.05em;paint-order:stroke;stroke:#05090c;stroke-width:5px;stroke-linejoin:round}
+.magnifier-line-label.match{fill:var(--green)}.magnifier-line-label.mismatch{fill:var(--red)}.magnifier-line-label.none{fill:#c7cdb8}
+body.magnifier-mode .wb-plot [data-action=compare]{cursor:crosshair}
+/* Selection is an opening in the dimmer, preserving the original field surface. */
+body.magnifier-mode.magnifier-focus #magnifier-scrim{opacity:.58}
+.magnifier-toggle{position:absolute;right:16px;top:50%;transform:translateY(-50%);width:48px;height:30px;background:none;border:0;cursor:pointer;z-index:56}
+.magnifier-toggle:before{content:'';position:absolute;left:2px;right:2px;bottom:0;height:6px;background:linear-gradient(#4a3f2e,#352c20);border-radius:1px;box-shadow:0 2px 3px #0005}
+.magnifier-toggle svg{position:absolute;left:50%;bottom:4px;transform:translateX(-50%);width:28px;height:28px;transition:filter .2s}
+.magnifier-toggle:hover svg,.magnifier-toggle[aria-pressed=true] svg{filter:drop-shadow(0 0 7px #c4aa76aa)}
+body.magnifier-mode .magnifier-toggle{z-index:62}
+/* A discrepancy opens the drawer while the magnifier is still on; the raised stage must not cover the stamps. */
+body.magnifier-mode .stamp-dock{z-index:63}
+
+/* --- Entrance stamps: hidden behind a tab at the left edge of the screen; the tab rides the drawer's edge as it opens. --- */
+.stamp-dock{position:fixed;top:50%;left:0;transform:translateY(-50%);z-index:58;pointer-events:none}
+/* Open metal rack: handles rise above the rail; the paper shows between its feet. */
+.stamp-drawer-panel{position:relative;width:300px;transform:translateX(-100%);background:none;border:0;box-shadow:none;transition:transform .3s ease;pointer-events:none}
+.stamp-dock.open .stamp-drawer-panel{transform:translateX(0)}
+.stamp-tab{position:absolute;top:55%;right:-25px;transform:translateY(-50%);width:25px;height:66px;background:linear-gradient(90deg,#404a3b,#7b7c60 48%,#3b473b);border:1px solid #9a9270;border-left:0;border-radius:0 5px 5px 0;color:#e1d5a4;font-size:16px;display:grid;place-items:center;box-shadow:3px 3px 7px #0007;pointer-events:auto}
+.stamp-dock.open .stamp-tab{transform:translateY(-50%) rotate(180deg)}
+.stamp-drawer-inner{position:relative;padding:0 16px 46px;pointer-events:none}
+.stamp-drawer-inner:before,.stamp-drawer-inner:after{content:'';position:absolute;top:68px;bottom:0;width:7px;background:linear-gradient(90deg,#1e2921,#a09b79 45%,#4d5646 65%,#222f26);border:1px solid #202c23;box-shadow:1px 2px 3px #0008;pointer-events:none}
+.stamp-drawer-inner:before{left:6px}.stamp-drawer-inner:after{right:6px}
+.stamp-holder-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;margin:0}
+.stamp-press{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0;border:0;height:150px}
+.stamp-press:before{content:'';position:absolute;top:82px;left:-16px;right:-16px;height:65px;background:repeating-linear-gradient(90deg,#0000 0 45px,#18291e88 46px 48px,#bbc39d33 49px 51px),linear-gradient(#686d58,#424d3d 25%,#303d30 80%,#19271e);border-top:2px solid #aaa586;border-bottom:3px solid #202e23;box-shadow:0 2px 4px #0007;pointer-events:none}
+.stamp-bay{height:150px;position:relative;background:none;border:0;box-shadow:none}
+.stamp-bay:before{content:'';position:absolute;left:9px;right:9px;bottom:12px;height:11px;background:#142117;box-shadow:inset 0 1px 2px #020a05,0 1px #b9b18a55;transform:skewX(-9deg);pointer-events:none}
+.stamp-plunger{position:relative;display:block;width:100%;height:150px;border:0;padding:0;background:none;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;pointer-events:auto}
+.stamp-tool{display:block;width:100%;height:150px;overflow:visible;filter:drop-shadow(2px 4px 3px #0006);transition:transform .12s ease,filter .12s ease}
+.stamp-plunger:hover:not(:disabled) .stamp-tool{transform:translateY(-4px);filter:drop-shadow(3px 8px 4px #0008) brightness(1.09)}
+.stamp-plunger:active:not(:disabled) .stamp-tool,.stamp-plunger.is-pressing .stamp-tool{transform:translateY(5px);filter:drop-shadow(1px 1px 2px #0007)}
+.stamp-plunger:focus-visible{outline:2px solid #dac68a;outline-offset:3px;border-radius:4px}
+.stamp-plunger:disabled{cursor:default}.stamp-plunger:disabled:not(.is-pressing) .stamp-tool{filter:drop-shadow(2px 3px 3px #0007) saturate(.65) brightness(.8)}
+.stamp-plunger .plunger-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.stamp-hint{position:relative;min-height:23px;margin:0 -16px;padding:5px 3px 3px;text-align:center;font:8px/1.6 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:#c4b990;text-shadow:0 1px #172118;background:linear-gradient(#7b7e63 0 2px,#515b45 3px,#303e31 85%,#233123);border:1px solid #9b9877;border-bottom:3px solid #19291e;box-shadow:0 3px 5px #0007;pointer-events:none}
+.open-doc--permit{width:250px;padding:18px 14px 15px;border:4px solid #544f48;background:linear-gradient(130deg,#e4cec3,#d6b5ad 65%,#caaba0);box-shadow:inset 0 0 0 1px #f0ded0,3px 7px 15px #0006}
+.permit-stamp-area{position:relative;height:113px;width:100%;border:2px dashed #9c8b47;background:#efdfc233}
+.permit-stamp-caption{margin:6px 0 14px;text-align:center;font:600 10px var(--sans);letter-spacing:.13em;color:#84753a}
+.permit-rule{height:5px;margin:0 -8px 12px;border-top:1px solid #7b655c;border-bottom:1px solid #7b655c;background:repeating-linear-gradient(90deg,#8f786c66 0 5px,transparent 5px 8px)}
+.open-doc--permit .eyebrow{text-align:center;margin:0;font-size:9px;letter-spacing:.12em;color:#6e4943}
+.open-doc--permit h3{font:13px ui-monospace,monospace;text-align:center;margin:8px 0 11px;color:#58443d}
+.open-doc--permit .zoom-field{grid-template-columns:47px minmax(0,1fr);gap:6px;padding:5px 2px;font-size:10px;border-bottom:1px solid #7b655c33}
+.open-doc--permit .zoom-field dd{overflow-wrap:anywhere}
+.paper-stamp{position:absolute;left:50%;top:50%;width:182px;max-width:calc(100% - 14px);padding:0 4px 3px;border:3px double currentColor;color:#3b5f32;transform:translate(-50%,-50%) rotate(-5deg);mix-blend-mode:multiply;opacity:.88;pointer-events:none;box-shadow:inset 0 0 0 .5px currentColor}
+.paper-stamp-date{display:block;text-align:center;border-bottom:1px solid currentColor;padding:3px 0;font:9px ui-monospace,monospace;letter-spacing:.03em}
+.paper-stamp-verdict{display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 0}
+.paper-stamp-verdict strong{font:700 19px/.92 var(--sans);letter-spacing:.02em}
+.paper-stamp-verdict svg{width:29px;height:33px;fill:none;stroke:currentColor;stroke-width:2.5}
+.paper-stamp>small{display:block;font:6px var(--sans);letter-spacing:.18em;text-align:center;border-top:1px solid currentColor;padding-top:2px}
+.paper-stamp.disputed{color:#873b31}
+@keyframes permit-press{0%,100%{translate:0 0}35%{translate:0 3px}70%{translate:0 -1px}}
+@keyframes permit-ink{from{opacity:0;transform:translate(-50%,-50%) rotate(-5deg) scale(1.15)}to{opacity:.88;transform:translate(-50%,-50%) rotate(-5deg) scale(1)}}
+.open-doc--permit.stamp-landing{animation:permit-press .4s ease-out}
+.stamp-landing .paper-stamp{animation:permit-ink .24s ease-out}
+@media(max-width:600px){.stamp-drawer-panel{width:min(300px,calc(100vw - 38px))}.stamp-drawer-inner{padding:0 16px 46px}.stamp-press{gap:8px}.stamp-plunger{width:100%}.open-doc--permit{width:min(250px,calc(100vw - 42px))}}
+@media(prefers-reduced-motion:reduce){.stamp-tool,.stamp-drawer-panel{transition:none}.open-doc--permit.stamp-landing,.stamp-landing .paper-stamp{animation:none}}
+
+/* --- Book of Instruction: worn paper leaves, metal binding and thumb tabs. --- */
+.instruction-heading{height:34px;display:flex;align-items:flex-start;justify-content:center;position:relative;border-bottom:1px solid #7b6a4144;margin-bottom:13px}
+.instruction-heading .eyebrow{font:8px/1.4 var(--serif);letter-spacing:.13em;margin:2px 0 0}
+.instruction-bookmark{position:absolute;left:5px;top:-14px;width:10px;height:31px;background:#64705b;clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%);box-shadow:1px 1px 2px #0005}
+.book-tabs{position:absolute;right:-3px;top:54px;display:flex;flex-direction:column;gap:5px;z-index:2}
+.book-tabs button{writing-mode:vertical-rl;padding:9px 4px;border:1px solid #87754f;border-radius:0 2px 2px 0;font:8px/1.2 var(--serif);letter-spacing:.1em;text-transform:uppercase;color:#756444;background:#c6bc96;box-shadow:1px 2px 2px #473b2c33;cursor:pointer}
+.book-tabs button[aria-pressed=true]{color:#3d442f;background:#e5ddba;border-left-color:#e5ddba;box-shadow:2px 2px 2px #473b2c44}
+.book-tabs button:focus-visible,.open-doc--guide button:focus-visible{outline:2px solid #586548;outline-offset:2px}
+.instruction-leaves{position:relative;min-height:230px}
+.instruction-spread{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.instruction-page{position:relative;min-width:0;min-height:230px;padding-bottom:20px}
+.instruction-chapter{font:10px/1.4 var(--serif);letter-spacing:.08em;text-transform:uppercase;text-align:center;margin:0 0 16px;color:#756448}
+.instruction-page-number{position:absolute;bottom:0;left:0;right:0;text-align:center;font:italic 9px var(--serif);color:#8a7855}
+.instruction-binding{position:absolute;left:calc(50% - 14px);top:51px;bottom:22px;width:18px;display:flex;flex-direction:column;justify-content:space-around;pointer-events:none;filter:drop-shadow(1px 2px 1px #463a2b66)}
+.instruction-binding i{display:block;height:7px;border:2px solid #625d4b;border-radius:2px;background:linear-gradient(#b0ac91,#89836b 50%,#bcb69c);box-shadow:-3px 0 0 -1px #5c4d34,3px 0 0 -1px #5c4d34}
+.guide-list{display:grid;gap:5px;list-style:none;padding:0;margin:0}
+.guide-list li{border-left:2px solid #81846866;padding:3px 0 3px 8px;margin-bottom:13px;background:none;font:12px/1.65 var(--serif);color:#49422e}
+.open-doc--guide .fixture-disclaimer{color:#796b4d!important;font:italic 9px/1.4 var(--serif)!important;margin:0 0 12px}
+.open-doc--guide .country-map{height:192px;border:1px solid #8e7c5166;background:radial-gradient(ellipse at 70% 35%,#b0b78b66,transparent 45%),repeating-linear-gradient(0deg,transparent 0 31px,#8d7b4e19 31px 32px),repeating-linear-gradient(90deg,transparent 0 43px,#8d7b4e19 43px 44px)}
+.open-doc--guide .country-pin{color:#494a32;text-shadow:0 1px #e4d8b0;font:9px var(--serif)}
+.open-doc--guide .pin-dot{width:8px;height:8px;background:#6e7755;border-color:#e2d6b0;box-shadow:0 0 0 1px #7b7754}
+.open-doc--guide .country-back{font:10px var(--serif);color:#695b3c}
+.open-doc--guide .country-detail{display:grid;border:0;padding:2px 0;background:none;gap:24px;align-items:stretch}
+.open-doc--guide .country-detail h3{color:#51462e;font-size:18px}
+.open-doc--guide .country-detail-label{display:block;color:#796b4b;font:9px/1.5 var(--serif);margin:6px 0 13px}
+.open-doc--guide .zoom-field.coin-pair{color:#675c40}
+.open-doc--guide button:hover:not(:disabled){color:#3d432e;background-color:#8c956c22}
+.open-doc--guide .office-list .zoom-field{border:0;border-bottom:1px solid #8e7a4e33;color:#4d462f;background:#eadfbc55;font:11px/1.4 var(--serif)}
+.open-doc--guide .office-list .zoom-field:before{color:#7a754f}
+.open-doc--guide .coin-pair-faces{flex-wrap:wrap;justify-content:center}
+.open-doc--guide:has(.country-map) .instruction-binding{opacity:.25;z-index:0}
+.fixture-disclaimer{font-size:8px!important;color:#89a39a!important;margin-bottom:8px}
+.country-map{position:relative;height:150px;border:1px solid #cdd6c733;background:radial-gradient(ellipse at 50% 50%,#1c333688,#0a161c)}
+.country-pin{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;color:#cfd0ba;font-size:8px;background:none;cursor:pointer}
+.pin-dot{width:10px;height:10px;border-radius:50%;background:#8da79b;border:2px solid #0a161c;box-shadow:0 0 0 2px #8da79b55}
+.country-back{display:block;margin-bottom:8px;font-size:9px;color:#9fb6ad;background:none;padding:4px 2px}
+.country-detail{border:1px solid #cdd6c722;padding:10px;background:#0000001a;display:flex;flex-direction:column;align-items:center;gap:10px}
+.country-detail h3{margin:0;font:16px var(--serif);color:#dbcda2;align-self:flex-start}
+.zoom-field.coin-pair{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;font-size:9px;color:#b9c7b2}
+.coin-pair-faces{display:flex;gap:4px}
+.coin-pair .obol-svg{width:40px;height:40px}
+.country-detail-label{align-self:flex-start;font-size:8px;color:#89a39a;letter-spacing:.05em;text-transform:uppercase}
+.office-list{list-style:none;padding:0;margin:0;display:grid;gap:5px;width:100%}
+.office-list .zoom-field{display:block;grid-template-columns:none;font-size:9px;border:1px solid #cdd6c722;padding:6px 9px}
+.office-list .zoom-field:before{content:'• ';color:#c4aa76}
+
+/* --- Case ledger: past and current only, marked right or wrong, with a slow reveal when a soul departs. --- */
+.case-status.pending{color:#9fb6ad}.case-status.correct{color:var(--green)}.case-status.wrong{color:var(--red)}
+.ledger-footer{padding:12px 18px 16px;text-align:right}
+
+/* --- Book of Truth diagram, list and raw-record browser. --- */
+.identity-diagram{position:relative;display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:70px 52px;align-items:start;padding:32px 28px;min-width:750px;min-height:100%;background-image:radial-gradient(#a4b8b31a .6px,transparent .6px);background-size:14px 14px}
+.identity-model-node{position:relative;z-index:1;background:#112730;border:1px solid #8ba29366;border-radius:4px;overflow:hidden;padding:0;text-align:left;min-width:0}
+.identity-diagram--identity{grid-template-columns:repeat(2,minmax(210px,1fr));min-width:630px;column-gap:75px}
+.identity-model-node>strong{display:block;padding:10px 9px;font-size:11px;background:#314b4d88;border-bottom:1px solid var(--line);color:#e0cda2}
+.identity-model-node .schema-field{padding:6px 7px;font-size:9px;gap:5px;min-height:26px}.identity-model-node .relationship-key>span{font-weight:700;color:#e9d4a3}.identity-model-node .schema-field i{font-size:7px;min-width:17px}
+.identity-diagram .schema-edges{height:100%;pointer-events:none}.identity-diagram .schema-edges path,.identity-diagram .schema-edges circle{stroke:#aebb9b;stroke-width:1.3;fill:none}.identity-diagram .schema-edges circle{fill:#14272e}
+.model-view-tabs button[aria-pressed=true]{border-bottom-color:#c4aa76;color:#e1d0a4}.dataset-browser-main>.model-view-body>.identity-record-scroll{flex:1}.dataset-browser-main .identity-records{min-width:550px}
+
+/* --- Map location markers. --- */
+.destination-tag{position:absolute;transform:translate(-50%,-100%);font:20px var(--serif);color:#c9c7ac;text-align:center;text-shadow:0 2px 10px #06111b;pointer-events:none;white-space:nowrap;opacity:.8}
+.destination-tag small{display:block;font:6px var(--sans);text-transform:uppercase;letter-spacing:.15em;margin-top:5px;color:#8daba5}
+body[data-arrival=running] .destination-tag,body[data-arrival=running] .location-marker{display:none}
+.marsh-marker .location-ring{border-style:dashed}.marsh-marker .location-label strong{font-size:24px}.marsh-marker .location-label small{color:#bdad7b}
+.map-story{max-width:330px;top:auto;bottom:12%;left:3.5%}.map-story h1{font-size:40px;margin:15px 0}.map-story>p:not(.eyebrow){font-size:10px}.map-story .brass-button{margin-top:17px;padding:12px 16px;font-size:10px}
+
+@media(max-width:1100px){.identity-query select{max-width:135px}.level-tool-hint{display:none}.destination-tag{font-size:16px}}
+@media(max-height:760px) and (min-width:901px){.soul-sidebar .soul-window{flex-basis:125px;height:125px}.soul-sidebar .soul-window .portrait{height:105px}.open-doc{padding:10px 12px}}
+@media(max-width:900px){.desk-screen .desk-grid{--left:none}.soul-sidebar{min-height:680px}.soul-sidebar .soul-window{flex-basis:150px;height:150px}.workbench{min-height:720px}.map-story{bottom:10%;max-width:230px}.map-story h1{font-size:29px}.map-story>p:not(.eyebrow){font-size:9px}.map-story .brass-button{padding:10px;font-size:9px}.destination-tag{font-size:14px}.destination-tag small{font-size:5px}.country-map{height:170px}}
+@media(max-width:600px){.identity-query{gap:6px}.identity-query select{max-width:100%;flex:1}.identity-query input{flex-basis:100%}.destination-tag{font-size:11px}.destination-tag small{display:none}.map-story{max-width:190px;bottom:12%;left:5%}.map-story h1{font-size:25px}.map-story>p:not(.eyebrow){display:none}.location-label strong{font-size:18px}.marsh-marker .location-label strong{font-size:17px}.river-inscription{display:none}.country-detail-row{flex-direction:column;gap:10px}.open-doc--guide,.open-doc--identity{width:min(78vw,260px)}}
+@media(max-height:760px) and (min-width:901px){.open-doc--guide{padding:10px 22px 13px 10px}}
+@media(max-width:900px){.soul-sidebar:has(.judge-card){min-height:800px}}
+@media(max-width:600px){.open-doc--guide{padding:10px 19px 13px 8px}.instruction-spread,.open-doc--guide .country-detail{gap:21px}.instruction-heading .eyebrow{font-size:7px;letter-spacing:.08em}.instruction-chapter{font-size:9px;letter-spacing:.02em}.guide-list li{font-size:11px;padding-left:6px}.open-doc--guide .office-list .zoom-field{font-size:10px;padding:6px 3px;overflow-wrap:anywhere}.open-doc--guide .country-detail h3{font-size:16px}.open-doc--guide .country-map{height:180px}.open-doc--guide .country-pin{font-size:8px}}
+
+/* The desk cannot open without a live Anfra behind it (AD-14). */
+.boot-failure{position:fixed;inset:0;z-index:999;display:flex;flex-direction:column;
+ align-items:center;justify-content:center;gap:1rem;padding:2rem;text-align:center;
+ background:#0b171d;color:#cfe3e0;font-family:Georgia,serif}
+.boot-failure h1{font-size:1.9rem;font-weight:400;letter-spacing:.02em;margin:0}
+.boot-failure p{max-width:46ch;line-height:1.6;opacity:.8;margin:0}
+.boot-failure pre{background:#0f2129;border:1px solid #1d3a44;border-radius:4px;
+ padding:.9rem 1.2rem;color:#9fc0b8;font-size:.82rem;text-align:left;margin:0}
+
+/* ---- the judgment pavilion --------------------------------------------- */
+
+.judge-card{margin:0 0 .85rem;padding:.85rem .95rem;border-radius:5px;
+ background:linear-gradient(180deg,#14282f,#102128);border:1px solid #27454f;
+ border-left:3px solid #c4aa76}
+.judge-card.judged-right{border-left-color:#7fa07c}
+.judge-card.judged-wrong{border-left-color:#b2705f}
+.judge-question{margin:.3rem 0 .6rem;font-family:Georgia,serif;font-size:1.02rem;
+ line-height:1.45;color:#e4ede9}
+.judge-named{margin:0 0 .5rem;font-size:.76rem;color:#9fc0b8}
+.judge-named b{color:#c4aa76;font-weight:600}
+.judge-answer{display:flex;align-items:center;gap:.5rem}
+.judge-answer input{flex:1;min-width:0;padding:.42rem .6rem;border-radius:4px;
+ border:1px solid #2d4f59;background:#0b1b21;color:#e4ede9;font-family:Georgia,serif}
+.judge-answer input:disabled{opacity:.65}
+.judge-mark{font-size:.78rem;color:#9fc0b8;white-space:nowrap}
+.judged-right .judge-mark{color:#8fb88b}
+.judged-wrong .judge-mark{color:#c98b78}
+.judge-note{margin:.5rem 0 0;font-size:.74rem;color:#c98b78;line-height:1.4}
+
+.pavilion-pane{display:flex;flex-direction:column;gap:1rem;padding:.9rem;overflow:auto}
+.writ-shelf,.writ-builder{display:flex;flex-direction:column;gap:.5rem}
+.writ-row{display:flex;align-items:center;justify-content:space-between;gap:.75rem;
+ padding:.5rem .65rem;border-radius:4px;background:#0f2129;border:1px solid #1e3d47}
+.writ-row strong{display:block;font-size:.88rem;color:#e4ede9}
+.writ-row small{display:block;font-size:.72rem;color:#8fa9a3;line-height:1.35;margin-top:.12rem}
+.writ-row-actions{display:flex;align-items:center;gap:.45rem;white-space:nowrap}
+.writ-value{font-family:Georgia,serif;font-size:1.05rem;color:#c4aa76}
+.writ-builder select,.writ-builder input{padding:.4rem .55rem;border-radius:4px;
+ border:1px solid #2d4f59;background:#0b1b21;color:#e4ede9;font-size:.82rem;max-width:100%}
+.writ-filter{display:flex;gap:.4rem;align-items:center}
+.writ-filter select,.writ-filter input{flex:1;min-width:0}
+.writ-window{display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#9fc0b8}
+.writ-window input[type=number]{width:3.6rem}
+.writ-torn{margin:0;font-size:.76rem;color:#c0a07e;line-height:1.45;font-style:italic}
+.writ-aql{margin:0;padding:.65rem .75rem;border-radius:4px;background:#07151a;
+ border:1px solid #1b3842;color:#9fc0b8;font-size:.72rem;
+ line-height:1.5;white-space:pre-wrap;overflow-x:auto}
+.writ-save{display:flex;gap:.5rem;align-items:center}
+.writ-save input{flex:1;min-width:0}
+.brass-button.small{padding:.42rem .8rem;font-size:.78rem}
+.tool-labeled.active{color:#c4aa76;border-color:#c4aa76}
+
+.amendment-table{width:100%;margin:.8rem 0}
+.amendment-table .was{color:#8fa9a3;text-decoration:line-through}
+.amendment-table .now{color:#c4aa76;font-weight:600}
+
+/* ---- the record of service --------------------------------------------- */
+
+.service-record{max-width:34rem}
+.service-name{margin:.25rem 0 1.1rem;font-family:Georgia,serif;font-size:1.5rem;
+ font-weight:400;color:#e4ede9;letter-spacing:.01em}
+.service-lines{margin:0 0 1.2rem;display:flex;flex-direction:column;gap:.1rem}
+.service-lines div{display:flex;align-items:baseline;gap:.7rem;padding:.42rem 0;
+ border-bottom:1px solid #16303a}
+.service-lines dt{flex:1;font-size:.86rem;color:#9fc0b8}
+.service-lines dd{margin:0;font-family:Georgia,serif;font-size:1.02rem;color:#e4ede9;
+ text-align:right}
+.service-turn{margin:0 0 1.3rem;padding:.9rem 1rem;border-left:3px solid #c4aa76;
+ background:#102128;font-family:Georgia,serif;font-size:1rem;line-height:1.6;color:#e4ede9}
+.service-gloss{display:flex;flex-direction:column;gap:.45rem;margin-bottom:1.1rem}
+.service-gloss p{margin:0;font-size:.8rem;line-height:1.5;color:#8fa9a3}
+.service-gloss b{color:#c4aa76;font-weight:600}
+.service-coda{margin:0;font-family:Georgia,serif;font-size:.95rem;line-height:1.6;
+ color:#c4aa76}
+
+/* ---- demo jumps --------------------------------------------------------- */
+
+.jump-menu{display:flex;flex-direction:column;gap:.5rem;max-height:70vh;overflow-y:auto}
+.jump-day{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;margin:.15rem 0}
+.jump-day>span{flex:0 0 3.6rem;font-size:.72rem;color:#8fa9a3}
+.jump-case-pair{display:inline-flex;align-items:stretch}
+.jump-case{min-width:2.1rem;padding:.35rem .4rem;border-radius:4px 0 0 4px;border:1px solid #2a4650;background:#0f2029;color:#e4ede9;font:600 .78rem var(--sans,sans-serif);cursor:pointer}
+.jump-case:hover{border-color:#c4aa76;background:#132832}
+.jump-case.is-done{color:#7fe0a0;border-color:#2f6a4c}
+.jump-case.is-wrong{color:#e69a89;border-color:#815348}
+.jump-case.is-current{outline:2px solid #c4aa76;outline-offset:1px}
+.jump-case-result{min-width:1.45rem;padding:.35rem .2rem;border:1px solid #2a4650;border-left:0;border-radius:0 4px 4px 0;background:#13252d;color:#8fa9a3;font:700 .78rem var(--sans,sans-serif);cursor:pointer}
+.jump-case-result:hover,.jump-case-result:focus-visible{background:#1c3540;outline:1px solid #c4aa76}
+.jump-case-result.correct{color:#7fe0a0;border-color:#2f6a4c}
+.jump-case-result.wrong{color:#e69a89;border-color:#815348}
+.jump-fill{display:flex;align-items:center;gap:.45rem;padding:.5rem .6rem;border:1px solid #2a4650;border-radius:4px;background:#11252d;font-size:.8rem;color:#e4ede9;cursor:pointer}
+.jump-fill input{accent-color:#c4aa76}
+.jump-help{margin:0;color:#8fa9a3;font-size:.75rem;line-height:1.45}
+.jump-heading{margin:.7rem 0 .1rem;font:700 .7rem var(--sans,sans-serif);letter-spacing:.12em;text-transform:uppercase;color:#b9a572}
+.jump-row{display:block;width:100%;text-align:left;padding:.7rem .85rem;border-radius:4px;
+ background:#0f2129;border:1px solid #1e3d47;color:inherit;cursor:pointer;font:inherit}
+.jump-row:hover{border-color:#c4aa76;background:#132832}
+.jump-row strong{display:block;font-size:.95rem;color:#e4ede9;font-family:Georgia,serif}
+.jump-row small{display:block;margin-top:.15rem;font-size:.76rem;color:#8fa9a3;line-height:1.4}
+
+/* ---- light, clarity, seals and the stall -------------------------------- */
+
+.clarity-tag,.seal-tag{margin-left:.55rem;font-size:.74rem;color:#8fa9a3;letter-spacing:.04em}
+.clarity-tag b,.seal-tag b{color:#c4aa76;font-weight:600}
+button.obols{background:none;border:none;cursor:pointer;font:inherit;color:inherit;
+ display:inline-flex;align-items:baseline}
+button.obols:hover .clarity-tag,button.obols:hover .seal-tag{color:#c4aa76}
+
+/* The Lethe takes the thing the game is about, first. */
+body.fading .identity-records th,body.fading .schema-field span,
+body.fading .catalog-table td:first-child,body.fading .zoom-fields dt{
+ filter:blur(1.1px);opacity:.75;transition:filter .6s ease}
+
+.shop-head{margin:0 0 .4rem;font-family:Georgia,serif;font-size:1rem;line-height:1.55;color:#e4ede9}
+.shop-purse{margin:0 0 1rem;font-size:.82rem;color:#9fc0b8}
+.shop-purse b{color:#c4aa76}
+.shop-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:1rem;
+ margin-bottom:.5rem;padding:.7rem .85rem;border-radius:4px;background:#0f2129;
+ border:1px solid #1e3d47;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.shop-row:hover:not(:disabled){border-color:#c4aa76;background:#132832}
+.shop-row:disabled{opacity:.45;cursor:not-allowed}
+.shop-row strong{display:block;font-family:Georgia,serif;font-size:.95rem;color:#e4ede9}
+.shop-row small{display:block;margin-top:.15rem;font-size:.75rem;color:#8fa9a3;line-height:1.4}
+.shop-price{white-space:nowrap;font-family:Georgia,serif;color:#c4aa76}
+.shop-note{margin:.9rem 0 0;font-size:.8rem;color:#9fc0b8;font-style:italic}
+
+.seal-panel p{font-size:.86rem;line-height:1.55;color:#9fc0b8}
+.seal-row{margin:.9rem 0;padding:.75rem .85rem;border-radius:4px;background:#0f2129;
+ border:1px solid #1e3d47}
+.seal-row.held{border-color:#c4aa76}
+.seal-row h4{margin:0 0 .25rem;font-family:Georgia,serif;font-weight:400;font-size:.98rem;color:#e4ede9}
+.seal-row.held h4{color:#c4aa76}
+.seal-row p{margin:0 0 .5rem;font-size:.78rem}
+.seal-bar{display:flex;align-items:center;gap:.6rem;margin-top:.3rem}
+.seal-bar span{flex:0 0 7rem;font-size:.74rem;color:#8fa9a3}
+.seal-bar i{flex:1;height:7px;border-radius:4px;background:#16303a;overflow:hidden}
+.seal-bar b{display:block;height:100%;background:#c4aa76;transition:width .5s ease}
+.seal-bar small{flex:0 0 3.4rem;text-align:right;font-size:.73rem;color:#9fc0b8}
+.seal-accuracy{margin-top:.45rem!important;font-size:.74rem!important}
+
+/* ---- the last case ------------------------------------------------------ */
+
+.filing p{font-family:Georgia,serif;font-size:.98rem;line-height:1.6;color:#e4ede9}
+.filing-table{width:100%;margin:.9rem 0}
+.filing-table td{padding:.5rem .4rem;border-bottom:1px solid #16303a;font-size:.86rem}
+.filing-table td:first-child{width:7rem;color:#8fa9a3;letter-spacing:.04em;
+ text-transform:uppercase;font-size:.72rem}
+.filing-note{margin:.8rem 0 0!important;color:#8fa9a3!important;font-style:italic;
+ font-size:.85rem!important}
+
+.petition p{font-family:Georgia,serif;font-size:.96rem;line-height:1.6;color:#e4ede9}
+.petition-field{display:flex;align-items:center;gap:.7rem;margin:.6rem 0}
+.petition-field span{flex:0 0 6.5rem;font-size:.8rem;color:#9fc0b8}
+.petition-field input,.petition-field select{flex:1;min-width:0;padding:.45rem .6rem;border-radius:4px;
+ border:1px solid #2d4f59;background:#0b1b21;color:#e4ede9;font-family:Georgia,serif}
+.petition-field i{flex:0 0 1rem;font-style:normal}
+.petition-field i.right{color:#8fb88b}
+.petition-field i.wrong{color:#c98b78}
+.petition-verdict{margin:.9rem 0 0!important;font-size:.92rem!important}
+.petition-verdict.right{color:#c4aa76!important}
+.petition-verdict.wrong{color:#c98b78!important}
+.petition-actions{display:flex;align-items:center;gap:.8rem;margin-top:1.1rem}
+
+.ending h3{margin:0 0 .8rem;font-family:Georgia,serif;font-weight:400;font-size:1.6rem;
+ color:#c4aa76;letter-spacing:.01em}
+.ending p{margin:0 0 1.4rem;font-family:Georgia,serif;font-size:1.02rem;line-height:1.7;
+ color:#e4ede9;max-width:40ch}
+
+/* ---- settings, and a header that belongs to the scene ------------------- */
+
+/* The original's header sat in the world rather than on top of it: no bar, no
+   seam, just the brand and its tools floating over the river. */
+.app-header{background:linear-gradient(#0a171ecc,#0a171e00)!important;border-bottom:0!important;
+ backdrop-filter:none!important}
+body[data-screen="map"] .app-header{background:linear-gradient(#0a171eaa,#0a171e00 88%)!important}
+
+.settings-wrap{position:relative}
+.realm-settings{position:absolute;right:0;top:calc(100% + 10px);width:200px;z-index:60;
+ background:#0d1f28f2;border:1px solid #22424e;border-radius:5px;padding:.6rem;
+ box-shadow:0 18px 46px #0009}
+.realm-settings h3{margin:.25rem 0 .4rem;font-size:.66rem;letter-spacing:.14em;
+ text-transform:uppercase;color:#8fa9a3;font-weight:500}
+.realm-settings .settings-option + .settings-option{margin-top:.75rem;
+ padding-top:.7rem;border-top:1px solid #1b3842}
+.realm-settings button{display:block;width:100%;text-align:left;padding:.34rem .45rem;
+ border-radius:3px;font-size:.78rem;color:#c3d3cd}
+.realm-settings button:hover{background:#c4aa7618;color:#f4e3b9}
+.realm-settings button[aria-pressed="true"]{color:#c4aa76}
+.realm-settings button[aria-pressed="true"]:after{content:'✓';float:right;opacity:.85}
+
+
+/* A name belongs beside its place, not across it. */
+.location-marker{gap:6px}
+.location-label strong{text-shadow:0 2px 14px #000,0 0 30px #000a}
+.location-label small:empty{display:none}
+
+/* A place's name sits above it, clear of the roof, not across the art. */
+.location-marker{flex-direction:column-reverse}
+.location-marker .location-label{margin-bottom:12px}
+.location-ring{order:2}
+.destination-tag{opacity:.72;letter-spacing:.14em}
+.destination-tag small{display:none}
+
+/* Map names float above their anchors, leaving the roofs clear. */
+body[data-screen="map"] .location-marker{flex-direction:column;gap:6px;padding:8px;transform:translate(-50%,-100%)}
+body[data-screen="map"] .location-marker .location-label{order:0;margin-bottom:0}
+body[data-screen="map"] .location-marker .location-ring{order:1;width:27px;height:27px;font-size:11px;background:#0a1923b3;box-shadow:0 0 0 5px #c4aa7608,0 0 20px #c4aa7612}
+body[data-screen="map"] .shop-marker .location-label strong{font-size:20px}
+body[data-screen="map"] .destination-tag{font-size:15px;letter-spacing:.12em;color:#91acb6;opacity:.65}
+body[data-screen="map"] .map-shade{background:linear-gradient(0deg,#030a1399,transparent 22%,transparent 88%,#030a1333),linear-gradient(90deg,#030a1333,transparent 22%,transparent 82%,#030a1333)}
+@media(max-width:600px){body[data-screen="map"] .destination-tag{font-size:10px;letter-spacing:.03em}body[data-screen="map"] .location-label strong{font-size:16px}body[data-screen="map"] .shop-marker .location-label strong{font-size:15px}}
+
+/* Only the island underfoot announces its places. */
+body[data-island="ferry"] .location-marker:not([data-island="ferry"]),
+body[data-island="home"] .location-marker:not([data-island="home"]),
+body[data-island="marsh"] .location-marker:not([data-island="marsh"]),
+body[data-voyage="running"] .location-marker{visibility:hidden!important;pointer-events:none}
+
+/* An illustrated map, with a quiet cream and green palette. */
+.river-atlas-toggle{position:absolute;right:28px;bottom:27px;z-index:10;display:flex;align-items:center;gap:12px;padding:13px 18px;border:1px solid #a28a585c;background:#153f38ed;border-radius:12px;color:#f0e6c9;box-shadow:0 8px 25px #0005;font:15px Georgia,serif;letter-spacing:.03em}
+.river-atlas-toggle svg{width:29px;height:27px;fill:none;stroke:currentColor;stroke-width:1.2;stroke-linejoin:round}
+.river-atlas-toggle:hover{border-color:#e7d59b;background:#21564a}
+body[data-arrival="running"] .river-atlas-toggle{display:none}
+.atlas-drawing{display:block;position:relative;width:100%;height:auto;max-height:calc(100svh - 150px);min-height:0}
+.atlas-route{fill:none;stroke:#8b5037;stroke-width:1.5;stroke-dasharray:3 7;opacity:.75}
+.atlas-route circle{stroke-dasharray:none;fill:#8b5037}
+.atlas-island{cursor:pointer;outline:none}
+.atlas-coast-outer{fill:#d6dfca;stroke:#416454;stroke-width:9;stroke-linejoin:round;paint-order:stroke;opacity:.35}
+.atlas-coast{fill:#dce3cf;stroke:#456453;stroke-width:2.5;stroke-linejoin:round;transition:fill .2s,stroke .2s}
+.atlas-island:hover .atlas-coast,.atlas-island:focus-visible .atlas-coast{fill:#f2e1a9;stroke:#27634c;stroke-width:4}
+.atlas-island.is-current .atlas-coast-outer{stroke:#b69b50;opacity:.8}
+.atlas-island.is-current .atlas-coast{fill:#e4d5a6}
+.atlas-ink,.atlas-player-house{fill:#b49a6b;stroke:#4c3c2d;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.atlas-player-house{fill:#ca9f50;stroke-width:2}
+.atlas-player-house>path:last-child{fill:#8d5726;stroke-width:.5}
+.atlas-contours{fill:none;stroke:#987d51;stroke-width:1;opacity:.5}
+.atlas-footpath{fill:none;stroke:#9d6b44;stroke-width:1.5;stroke-dasharray:2 4}
+.atlas-dock{fill:none;stroke:#59412a;stroke-width:2;stroke-linejoin:round}
+.atlas-place-name{font:27px Georgia,serif;fill:#204c3c;text-anchor:middle;letter-spacing:.015em}
+.atlas-island-number{font:12px Georgia,serif;letter-spacing:.2em;fill:#725635;text-anchor:middle}
+.atlas-here{display:none;fill:#dec17e;stroke:#8d5a2a;stroke-width:1.5}.atlas-here>circle:last-child{fill:#80532b}
+.is-current .atlas-here{display:block}
+
+
+
+.island-blink{position:absolute;inset:0;z-index:40;background:#010409;opacity:0;pointer-events:none}
+@media(max-width:600px){.river-atlas-toggle{right:18px;bottom:21px;padding:11px 14px;font-size:13px}.river-atlas-toggle svg{width:25px;height:23px}#river-atlas{width:calc(100vw - 20px);max-height:calc(100svh - 30px)}.atlas-place-name{font-size:31px}.atlas-island-number{font-size:17px}.atlas-close{right:12px;top:12px}.atlas-drawing{max-height:calc(100svh - 45px)}}
+
+body[data-screen="map"] .destination-tag{display:none}
+/* The inspection table has a raised rim; its tools stay legible in comparison mode. */
+.zoom-stage{margin:8px 11px;border:1px solid #9fa98b6b;border-radius:7px;background:linear-gradient(145deg,#213b40dc,#12272ee8);box-shadow:inset 0 0 0 3px #0a171c66,inset 0 1px #c5c49c28,0 6px 18px #0006}
+.book-tray{flex-basis:76px}
+.desk-clock{position:absolute;left:12px;bottom:8px;display:flex;flex-direction:column;align-items:center;width:76px;color:#bead79;cursor:help;z-index:4}
+.desk-clock>svg{width:45px;height:38px;fill:#343c31;stroke:#b4a16d;stroke-width:1.5;filter:drop-shadow(0 2px 2px #0006)}
+.desk-clock time{margin-top:3px;padding:2px 4px;background:#9d8b61;color:#1e2c28;border:1px solid #c6b688;font:600 11px/1.2 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.bc-calendar-tip{display:none;position:absolute;bottom:calc(100% + 10px);left:0;width:255px;padding:15px 17px;border:1px solid #a38e5f;border-radius:7px;background:#192e30;color:#d7d2b7;box-shadow:0 10px 26px #0008;font:12px/1.6 var(--sans);text-align:left}
+.bc-calendar-tip strong{display:block;margin-bottom:5px;color:#d5bd83;font-weight:600}
+.desk-clock:hover .bc-calendar-tip,.desk-clock:focus-visible .bc-calendar-tip{display:block}
+body.magnifier-mode .book-tray{z-index:62;position:relative;isolation:isolate}
+body.magnifier-mode .magnifier-toggle{border:1px solid #e0c581;border-radius:9px;background:radial-gradient(ellipse,#d5b66b66,#b6a76c1a);box-shadow:0 0 13px #e2c27899,0 0 30px #d1b16b55}
+body.magnifier-mode .magnifier-toggle svg{filter:drop-shadow(0 0 5px #efdf9d)}
+.open-doc--guide{max-height:calc(100% - 18px);overflow:auto;scrollbar-width:thin;scrollbar-color:#92805a #d5c79f}
+.instruction-spread--single,.open-doc--guide .country-detail.instruction-spread--single{display:block}
+.instruction-spread--single .instruction-page{min-height:0}
+.open-doc--guide .country-map{height:255px;overflow:hidden;background:#a1b3a0}
+.instruction-map-art{position:absolute;inset:0;width:100%;height:100%}
+.open-doc--guide .country-pin{font:600 9px var(--sans);padding:4px;gap:2px;text-shadow:0 1px #efdfaf,1px 0 #efdfaf,-1px 0 #efdfaf}
+.open-doc--guide .country-pin .pin-dot{width:6px;height:6px;border-width:1px}
+.country-section-title{font:600 11px var(--sans);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid #8e7a4e77;padding:7px 0 5px;margin:12px 0 8px;color:#635a3d}
+.open-doc--guide .issue-office-list .zoom-field{font-size:11px;padding:7px 5px}
+/* Curves do not intercept the data points the magnifier can select. */
+body.magnifier-mode .wb-plot path{pointer-events:none}
+
+/* Comparison result: dotted line and a coloured label (the look the desk tour uses), kept until the next comparison. */
+#magnifier-svg{--link:#7fe0a0}
+.magnifier-line{animation:none;fill:none;stroke:var(--c,#7fe0a0);stroke-width:5;stroke-dasharray:1 9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 6px var(--c,#7fe0a0))}
+.magnifier-line.mismatch,.magnifier-dot.mismatch,.magnifier-pill.mismatch,.magnifier-line-label.mismatch{--c:#ff7a6e}
+.magnifier-line.none,.magnifier-dot.none,.magnifier-pill.none,.magnifier-line-label.none{--c:#c7cdb8}
+.magnifier-dot{fill:var(--c,#7fe0a0)}
+.magnifier-pill{fill:#0b1511;stroke:var(--c,#7fe0a0);stroke-width:2;filter:drop-shadow(0 0 6px var(--c,#7fe0a0))}
+.magnifier-line-label{animation:none;paint-order:normal;stroke:none;fill:var(--c,#7fe0a0)!important;font:700 12px var(--sans);letter-spacing:.1em}
+/* The bookmark in a country page is the way back to the map. */
+.instruction-bookmark.is-back{left:8px;width:34px;height:36px;padding:0;border:0;display:grid;place-items:start center;padding-top:15px;cursor:pointer;color:#efe6c4;transition:filter .15s}
+.instruction-bookmark.is-back:hover{filter:brightness(1.18)}
+.instruction-bookmark.is-back svg{width:10px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Desk artifacts share the documents' aged brass, dark leather and parchment. */
+.book-tray{flex:0 0 104px;padding:8px 12px;background:linear-gradient(180deg,#11272c00,#10202588);border-top:1px solid #93866b44}
+.desk-clock{left:10px;bottom:8px;width:84px;color:#665c40}
+.desk-clock>svg{width:62px;height:66px;fill:none;stroke:none;filter:drop-shadow(2px 3px 2px #0007)}
+.desk-clock time{margin-top:0;padding:4px 6px;border:1px solid #98835b;border-radius:1px;background:linear-gradient(135deg,#ddcda8,#c5b58d);color:#4c4835;box-shadow:inset 0 0 0 1px #f1e3bd77,1px 2px 3px #0005;font:600 10px/1.1 ui-monospace,monospace;letter-spacing:.04em}
+.bc-calendar-tip{bottom:calc(100% + 12px);border:2px solid #6b6447;border-radius:2px;background:linear-gradient(135deg,#e0d0aa,#cbbc94);color:#4b4733;box-shadow:inset 0 0 0 1px #e9dcb8,3px 6px 15px #0007;font:12px/1.65 var(--sans)}
+.bc-calendar-tip strong{color:#5b5236}
+.book-holder{width:86px;height:87px}
+.book-holder:before{height:6px;left:4px;right:3px;bottom:1px;background:linear-gradient(#6c6042,#303b2a);border:1px solid #a0926044;box-shadow:0 3px 4px #0007}
+.desk-book{width:82px;height:84px;bottom:5px;padding:0;background:none;border:0;border-radius:0;box-shadow:none;filter:drop-shadow(2px 4px 2px #0006);transition:transform .15s ease}
+.desk-book:before,.desk-book:after{display:none}
+.desk-book>svg{display:block;width:100%;height:100%}
+.desk-book:hover{transform:translateX(-50%) translateY(-4px) rotate(-3deg)}
+.book-slot{bottom:5px;height:7px;left:8px;right:8px;border-color:#a6946366;background:#07140e55}
+.magnifier-toggle{right:10px;top:auto;bottom:10px;transform:none;width:76px;height:82px;padding:0;background:none;border:0;border-radius:50%;filter:drop-shadow(2px 4px 3px #0007)}
+.magnifier-toggle:before{display:none}
+.magnifier-toggle>svg{position:static;display:block;width:76px;height:82px;transform:none;filter:none;transition:filter .2s ease}
+.magnifier-toggle:hover>svg{filter:brightness(1.16)}
+body.magnifier-mode .magnifier-toggle{border:0;border-radius:50%;background:radial-gradient(ellipse,#ddcc8766,transparent 70%);box-shadow:0 0 20px #d6bc6c55}
+body.magnifier-mode .magnifier-toggle>svg{filter:drop-shadow(0 0 5px #e6d39777)}
+.desk-book:focus-visible,.magnifier-toggle:focus-visible,.desk-clock:focus-visible{outline:2px solid #d0b77c;outline-offset:3px}
+.open-doc--guide{border:5px solid #344a38;border-left:13px solid #2c4032;border-bottom-width:8px;border-radius:4px 8px 7px 3px;background:linear-gradient(90deg,#a69970,#e7d8b0 9%,#eee0b9 82%,#cbbc94);box-shadow:inset 2px 0 5px #77633e66,inset -1px 0 #f5e6bf,0 2px #b7a784,0 4px #d9cba8,0 7px #2b4031,4px 10px 18px #0007}
+.open-doc--guide:before{inset:7px auto 7px -10px;width:6px;opacity:.8;border:0;background:repeating-linear-gradient(180deg,transparent 0 23px,#b4a16c 23px 25px,transparent 25px 42px);mix-blend-mode:normal}
+.open-doc--guide:after{right:1px;bottom:1px;width:7px;height:100%;background:repeating-linear-gradient(0deg,#8f805a55 0 1px,transparent 1px 3px);filter:none;opacity:.35}
+.open-doc--guide .instruction-heading{border-bottom-color:#86785177}
+/* A mismatch guides the hand to the chevron; it never opens the rack. */
+body .stamp-dock.needs-attention{z-index:72}
+.stamp-dock.needs-attention .stamp-tab{color:#fff0bc;border-color:#efd594;background:linear-gradient(90deg,#8e7540,#c8b16b,#655d36);box-shadow:0 0 0 2px #dfc07177,0 0 13px #e3c66daa,0 0 29px #cfa64966;animation:stamp-tab-guide 1.9s ease-in-out infinite}
+@keyframes stamp-tab-guide{50%{box-shadow:0 0 0 3px #dfc07199,0 0 19px #e3c66dcc,0 0 34px #cfa64977}}
+/* The bell is an artifact on the booth's right wall, independent of the soul. */
+.soul-sidebar .soul-window{opacity:1;transition:none}
+.soul-figure{position:relative;display:flex;align-items:flex-end;justify-content:center;height:100%;width:100%;pointer-events:none}
+.soul-bell{position:absolute;top:4px;right:9px;z-index:3;width:70px;height:146px;border:0;border-radius:35%;padding:0;background:none;color:#c8b982;cursor:pointer;filter:drop-shadow(2px 3px 3px #0006)}
+.soul-bell-art{display:block;width:70px;height:128px;overflow:visible;transform-origin:50% 20%}
+.soul-bell .bell-swing{transform-origin:34px 13px}
+.soul-bell:disabled{cursor:default;opacity:.7}
+.soul-bell.is-ready{background:radial-gradient(ellipse at 45% 54%,#d0bc7533,transparent 68%);filter:drop-shadow(0 0 8px #c9b16f77)}
+.soul-bell.is-ready .bell-swing{animation:bell-invite 3s ease-in-out infinite}
+.soul-bell:focus-visible{outline:2px solid #e3cb88;outline-offset:0}
+.soul-bell:not(:disabled):hover{filter:drop-shadow(0 0 10px #ddc881aa) brightness(1.1)}
+.bell-caption{display:block;min-height:10px;text-align:center;margin-top:0;font:9px var(--serif);letter-spacing:.05em;color:#e3d39e}
+.soul-bell.is-ringing .bell-swing{animation:bell-ring .65s ease-out}
+@keyframes bell-invite{0%,74%,100%{transform:rotate(0)}80%{transform:rotate(-7deg)}86%{transform:rotate(5deg)}92%{transform:rotate(-3deg)}}
+@keyframes bell-ring{0%,100%{transform:rotate(0)}15%{transform:rotate(-24deg)}35%{transform:rotate(20deg)}55%{transform:rotate(-13deg)}75%{transform:rotate(8deg)}}
+.soul-figure.is-departed{opacity:0}
+.soul-figure.is-departing{animation:soul-leave .65s ease-in both}
+.soul-figure.is-arriving{animation:soul-arrive 1.4s cubic-bezier(.18,.68,.3,1) both}
+@keyframes soul-arrive{0%{opacity:0;transform:translate(-210px,9px)}25%{opacity:.6;transform:translate(-126px,-7px)}60%{opacity:1;transform:translate(-35px,3px)}83%{transform:translate(-5px,-4px)}100%{opacity:1;transform:translate(0,0)}}
+@keyframes soul-leave{0%{opacity:1;transform:translate(0,0)}45%{opacity:.7;transform:translate(70px,-7px)}100%{opacity:0;transform:translate(210px,3px)}}
+@media(max-width:600px){.book-tray{flex-basis:101px}.desk-clock{left:8px}.magnifier-toggle{right:8px}.soul-bell{right:8px}}
+@media(prefers-reduced-motion:reduce){.stamp-dock.needs-attention .stamp-tab,.soul-bell .bell-swing,.soul-figure.is-arriving,.soul-figure.is-departing{animation:none}.soul-figure.is-arriving{opacity:1}.soul-figure.is-departed{opacity:0}.desk-book{transition:none}}
+
+/* Matte paper-world finish: quiet ink contours, flat surfaces and a smaller bell. */
+.desk-clock>svg,.desk-book,.magnifier-toggle,.soul-bell{filter:none}
+.desk-clock time{background:#c1c5a1;color:#45513e;border:1px solid #879472;box-shadow:none;font-weight:500}
+.book-holder:before{background:#40553c;border:0;box-shadow:none;height:3px}
+.desk-book{filter:none}
+.desk-book:hover{transform:translateX(-50%) translateY(-2px)}
+.magnifier-toggle>svg{filter:none}
+.magnifier-toggle:hover>svg{filter:brightness(1.06)}
+.soul-bell{width:46px;height:98px;top:8px;right:12px;filter:none}
+.soul-bell-art{width:46px;height:84px}
+.bell-caption{font:8px var(--serif);margin-top:1px;letter-spacing:.02em;color:#c8cfac}
+.soul-bell:disabled{opacity:.75}
+.soul-bell:not(:disabled):hover{filter:brightness(1.08)}
+.soul-bell.is-ready{background:radial-gradient(ellipse,#bacb8133,transparent 70%);filter:none}
+.open-doc--guide{background:#d2d0ab;border-color:#425b43;border-left-color:#3c523d;box-shadow:inset 1px 0 #8c9472,0 2px #9fa88a,0 4px #c0c5a1,0 6px #3c523d,2px 3px 5px #0003}
+.bc-calendar-tip{background:#d2d0ab;border-color:#6b795a;color:#47513b;box-shadow:2px 3px 7px #0004}
+.bc-calendar-tip strong{color:#4c5c3e}
+
+/* The mint's coin is the thing to read in the guide: big, both faces side by side. */
+.open-doc--guide .coin-pair-faces{flex-wrap:nowrap;gap:10px}
+.open-doc--guide .coin-pair .obol-svg{width:98px;height:98px}
+.open-doc--guide .coin-pair{gap:8px;padding:10px 4px}
+.open-doc--guide .coin-pair small{font-size:11px}
+.open-doc--guide .country-section-title{margin:10px 0 6px}
+
+/* The book should not crowd the inspection zone: smaller coins, tighter rows, a shorter map. */
+.open-doc--guide .coin-pair .obol-svg{width:74px;height:74px}
+.open-doc--guide .coin-pair{gap:4px;padding:2px 4px}
+.open-doc--guide .coin-pair-faces{gap:8px}
+.open-doc--guide .instruction-heading{height:30px;margin-bottom:8px}
+.open-doc--guide .instruction-leaves{min-height:0}
+.open-doc--guide .instruction-page{min-height:0;padding-bottom:6px}
+.open-doc--guide .country-detail h3{margin:0 0 2px;font-size:17px}
+.open-doc--guide .country-section-title{margin:7px 0 4px;padding:4px 0 3px}
+.open-doc--guide .issue-office-list .zoom-field{padding:4px 5px;font-size:11px}
+.open-doc--guide .country-map{height:185px}
+.open-doc--guide .coin-pair .obol-svg{width:70px;height:70px}
+.open-doc--guide .instruction-heading{margin-bottom:4px}
+.open-doc--guide .country-detail h3{margin:0}
+.open-doc--guide .country-section-title{margin:5px 0 3px}
+.open-doc--guide .issue-office-list .zoom-field{padding:3px 5px}
+.open-doc--guide .coin-pair small{font-size:10px}
+
+/* Petition form: align with the game's quiet, ink-and-brass interface. */
+.petition{background:radial-gradient(ellipse at 90% 0%,#c4aa760d,transparent 55%)}
+.petition>p:first-child{max-width:58ch;margin-bottom:1.25rem;color:#c0cbc0}
+.petition-field{gap:.9rem;margin:.72rem 0;padding:.72rem .85rem;border:1px solid #b8a36b30;border-radius:5px;background:#0a1a2080}
+.petition-field span{flex-basis:7rem;color:#c4aa76;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase}
+.petition-field input,.petition-field select{padding:.68rem .75rem;border-color:#49616a;background:#10242b;color:#f0e8d5;border-radius:3px}
+.petition-field input:focus,.petition-field select:focus{border-color:#c4aa76;outline:1px solid #c4aa7666}
+.petition-field input::placeholder{color:#829692}
+.petition-actions{padding-top:.25rem}
+.petition-actions .brass-button{min-width:190px;justify-content:center}
+.developer-lock>label{display:block;margin:.5rem .45rem .25rem;color:#a9bcb8;font-size:.7rem;letter-spacing:.08em}
+.developer-lock>input{display:block;width:100%;padding:.48rem .55rem;border:1px solid #38545b;border-radius:3px;background:#091920;color:#f0e8d5;font-size:.8rem}
+.developer-lock>input:focus{border-color:#c4aa76;outline:1px solid #c4aa7666}
+.developer-lock>small{display:block;padding:.4rem .45rem;color:#8fa9a3;font-size:.66rem;line-height:1.45}
+#developer-options:empty{display:none}

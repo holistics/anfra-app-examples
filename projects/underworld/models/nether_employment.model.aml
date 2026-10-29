@@ -1,0 +1,38 @@
+Model nether_employment {
+  type: 'table'
+  label: 'Employment'
+  data_source_name: 'nether'
+  table_name: 'employment'
+
+  dimension employment_id {
+    label: 'Employment Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.employment_id }} ;;
+  }
+  dimension person_id {
+    label: 'Person Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.person_id }} ;;
+  }
+  dimension business_id {
+    label: 'Business Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.business_id }} ;;
+  }
+  dimension role {
+    label: 'Role'
+    type: 'text'
+    definition: @sql {{ #SOURCE.role }} ;;
+  }
+  dimension started_on {
+    label: 'Started On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.started_on }} ;;
+  }
+  dimension ended_on {
+    label: 'Ended On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.ended_on }} ;;
+  }
+}

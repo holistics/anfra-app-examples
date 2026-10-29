@@ -1,0 +1,23 @@
+Model nether_ailment {
+  type: 'table'
+  label: 'Ailment'
+  data_source_name: 'nether'
+  table_name: 'ailment'
+
+  dimension ailment_id {
+    label: 'Ailment Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.ailment_id }} ;;
+  }
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }} ;;
+  }
+  dimension severity {
+    label: 'Severity'
+    type: 'number'
+    definition: @sql {{ #SOURCE.severity }} ;;
+  }
+}

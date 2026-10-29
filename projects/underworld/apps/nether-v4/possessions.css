@@ -1,0 +1,277 @@
+/* Shared room chrome. The world and workstation keep their own rendering. */
+.app-header{display:grid!important;grid-template-columns:1fr auto 1fr;gap:18px;height:48px;padding:0 24px!important}
+.header-leading,.header-status{display:flex;align-items:center;gap:16px;min-width:0}.header-status{justify-self:end;grid-column:3}.header-leading{justify-self:start}
+
+
+.header-leading .shift-label{white-space:nowrap}.header-leading #queue-status{font-size:10px;color:#a6b8b5;white-space:nowrap}
+.atlas-island.is-locked{cursor:not-allowed}.atlas-island.is-locked>.atlas-coast,.atlas-island.is-locked>use,.atlas-island.is-locked>.atlas-ink{opacity:.34}.atlas-island.is-locked .atlas-coast-outer{opacity:.17}.atlas-island.is-locked .atlas-place-name{opacity:.5}.atlas-island.is-locked .atlas-island-number{display:none}.atlas-locked-icon{display:none;font:22px Georgia,serif}.is-locked .atlas-locked-icon{display:block}.is-locked:hover .atlas-coast{fill:#dce3cf;stroke:#456453;stroke-width:2.5}
+.location-marker:disabled{cursor:not-allowed;opacity:.5}.location-marker:disabled .location-ring{box-shadow:none!important}
+@media(max-width:850px){.header-leading .shift-label,.header-leading #queue-status{display:none}.app-header{padding:0 16px!important;gap:8px}.header-status{gap:7px}.header-status .obols{font-size:10px}.app-header .brand{font-size:13px}.header-status [data-action=jumpmenu],.header-status [data-action=service]{display:none}}
+.screen{inset:48px 0 0}
+@media(max-width:900px){.desk-screen{margin-top:48px}}
+/* The rooms are built from timber, stone and the same muted portrait palette. */
+.shop-screen,.home-screen{--room-ink:#1b2c2b;--room-wood:#574635;--room-edge:#92774e;--room-gold:#c3ab75;--room-green:#526f53;overflow:hidden;color:#d5cfb4;background:#172322}
+.shop-screen{display:grid;grid-template-columns:30% 70%;padding:28px 32px 72px;isolation:isolate;background:radial-gradient(ellipse at 19% 75%,#8a6a333b,transparent 45%),#192523}
+.shop-backdrop{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);gap:30px;padding:14px 22px 22px;opacity:.32;filter:brightness(.58);z-index:-2;perspective:900px;background:repeating-linear-gradient(90deg,#3c3d3022 0 100px,#111c1866 101px 104px)}
+.background-cupboard{border:10px solid #514331;border-bottom-width:23px;background:#141e18;box-shadow:inset 0 0 40px #0008,0 10px 20px #0006;display:grid;grid-template-rows:repeat(4,1fr)}
+.background-cupboard>div{display:flex;align-items:flex-end;justify-content:space-around;border-bottom:13px ridge #695138;box-shadow:inset 0 -20px 20px #0007;overflow:hidden}
+.background-object{width:15%;height:90px;filter:sepia(.3)}.background-object svg{width:100%;height:100%;object-fit:contain}
+.background-candle{position:absolute;width:14px;height:52px;background:#b5a87c;bottom:40%;box-shadow:0 -40px 90px 24px #b8843255}.background-candle:before{content:'';position:absolute;width:12px;height:23px;left:1px;top:-22px;background:#e9bf75;border-radius:60% 40% 60% 40%;box-shadow:0 0 22px #f3b46488}.candle-a{left:8%}.candle-b{right:9%;bottom:58%}
+.shop-keeper{position:relative;display:flex;flex-direction:column;justify-content:flex-end;padding-right:30px;min-height:0}
+.keeper-portrait{position:absolute;left:-4%;right:0;top:6%;bottom:115px;display:flex;align-items:flex-end;justify-content:center;filter:drop-shadow(0 20px 15px #0006)}.keeper-portrait>svg{width:100%;height:100%;object-fit:contain;object-position:bottom}
+.keeper-counter{position:absolute;left:-70px;right:0;bottom:86px;height:90px;background:linear-gradient(#91744b 0 8px,#3c382b 9px 21px,#6d5238 22px 29px,#403b2d 30px);border:1px solid #8d7047;box-shadow:0 15px 30px #0006;transform:skewY(-2deg)}
+.keeper-dialogue{position:relative;z-index:2}.keeper-dialogue .character-dialogue{min-height:110px}
+.shop-trade{display:flex;flex-direction:column;min-width:0;min-height:0;position:relative;border:1px solid #8c774b80;border-radius:5px;background:linear-gradient(120deg,#3e4133ef,#212e29f5);box-shadow:0 12px 50px #0008,inset 0 0 0 5px #111d1755;padding:22px 25px 18px}
+.shop-trade-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}.shop-trade-title h1,.home-room-heading h1{font:32px Georgia,serif;letter-spacing:.02em;color:#d0bc88}.shop-trade-title>span{display:flex;align-items:center;gap:8px;font:18px Georgia,serif;color:#d9c58b}
+.light-orb{display:inline-block;width:12px;height:12px;flex-shrink:0;border:1px solid #d2b772;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3e2ab,#c4a461 45%,#65533a);box-shadow:0 0 12px #d6b55c44;vertical-align:middle}
+.shop-trade-body{display:grid;grid-template-columns:56% 44%;flex:1;min-height:0;gap:18px;padding-right:18px}.wood-shelf{background:repeating-linear-gradient(90deg,#342e24 0 7px,#3c3428 8px 12px,#362e23 13px 30px);border:8px ridge #796044;box-shadow:inset 0 0 45px #0008,0 4px 12px #0005}
+.shop-shelf{overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(235px,calc((100svh - 287px)/2));align-content:start;gap:0;scrollbar-width:thin;scrollbar-color:#88714b #24281e}
+.stock-card{display:flex;flex-direction:column;align-items:center;min-width:0;padding:12px 8px 9px;position:relative;border:0;border-right:5px solid #6b5338;border-bottom:13px ridge #88704e;background:radial-gradient(ellipse at 50% 40%,#73725125,transparent 65%),#17262066;box-shadow:inset 0 12px 18px #0005;transition:background .2s}
+.stock-card:nth-child(2n){border-right:0}.stock-card:hover{background:#435c4055}.stock-card.selected{background:radial-gradient(ellipse at 50% 45%,#57795066,#223a28bb);box-shadow:inset 0 0 0 2px #78956a,inset 0 0 30px #4f774644}
+.stock-art{display:block;width:100%;flex:1;min-height:95px;filter:drop-shadow(0 10px 7px #0006)}.stock-art svg{width:100%;height:100%;max-height:220px}.stock-card strong{font:15px/1.3 Georgia,serif;color:#ded1aa;text-align:center;min-height:21px}.stock-price{display:flex;align-items:center;gap:7px;justify-content:center;font:15px Georgia,serif;color:#d4bf83;margin:9px 0 0}.stock-price small{font:9px var(--sans);text-transform:uppercase;letter-spacing:.1em;color:#a5b38c;margin-left:2px}
+.shop-item-preview{min-width:0;background:#13252277;border:1px solid #97805744;border-radius:3px;overflow:auto}
+.item-detail{display:flex;flex-direction:column;height:100%;min-height:0}.item-detail-art{min-height:120px;flex:2;display:flex;align-items:center;justify-content:center;position:relative;background:radial-gradient(ellipse,#8c8e5750,transparent 65%)}.item-detail-art:after{content:'';position:absolute;left:20%;right:20%;bottom:10%;height:12%;border-radius:50%;background:#020a0855;filter:blur(8px);z-index:0}.item-detail-art svg{position:relative;z-index:1;width:92%;height:92%;max-height:350px;filter:drop-shadow(0 12px 12px #0005)}
+.item-detail-copy{flex:1;padding:20px 22px 24px;border-top:1px solid #9d89512b;background:#101f1a55}.item-detail-copy h2{font:24px/1.2 Georgia,serif;color:#d8c18b;margin:0 0 13px}.item-detail-copy>p{font:15px/1.75 Georgia,serif;color:#b7baa5}.item-detail-copy .item-effect{font:12px/1.6 var(--sans);color:#a6bf98;margin-top:14px}.item-detail-copy .story-locked{display:flex;align-items:center;gap:7px;font:11px var(--sans);color:#8fa18b;margin-top:20px}.small-lock{width:13px;height:15px;flex-shrink:0}
+.shop-purchase{display:flex;justify-content:center;align-items:center;min-height:73px;padding-top:18px}.purchase-button{min-width:210px}
+.inventory-toggle{position:fixed;z-index:38;bottom:15px;left:18px;width:64px;height:64px;padding:0;border:0;background:transparent;filter:drop-shadow(0 5px 6px #0009)}.inventory-toggle>svg{width:100%;height:100%}.inventory-toggle:hover{filter:drop-shadow(0 0 12px #b4b47866)}.inventory-toggle>span{position:absolute;right:-2px;bottom:4px;min-width:20px;height:20px;padding:2px 5px;border:1px solid #967d4f;border-radius:50%;font:11px var(--sans);background:#20372c;color:#e1d4ac}.inventory-toggle:focus-visible{outline:2px solid #b4c899;border-radius:8px}body[data-arrival=running] .inventory-toggle{display:none}
+.inventory-body{display:grid;grid-template-columns:2fr 1fr;gap:24px;height:calc(100% - 66px);min-height:0}.inventory-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-auto-rows:calc((min(740px,100svh - 80px) - 135px)/4);align-content:start;overflow:auto;scrollbar-width:thin;scrollbar-color:#88714b #24281e}.inventory-cell{position:relative;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;border:1px solid #7b67454d;border-bottom:7px ridge #756045;background:#10221b77;box-shadow:inset 0 10px 20px #0004;padding:7px}.inventory-cell.selected{background:radial-gradient(ellipse,#526f4d99,#203a2bcc);box-shadow:inset 0 0 0 2px #8ba574}.inventory-cell:not(.is-empty):hover{background:#49674477}.inventory-cell svg{width:100%;height:100%;max-width:150px}.inventory-cell.is-empty{pointer-events:none;background:#12251d66}.item-quantity{position:absolute;bottom:6px;right:7px;font:15px Georgia,serif;color:#e7dbb6;text-shadow:0 2px 5px #000}
+.inventory-detail{min-height:0;overflow:auto;border:1px solid #87764e55;background:#10251d66}.inventory-detail .item-detail-art{min-height:220px}.inventory-detail .item-detail-copy{padding-inline:20px}.inventory-detail .room-button{margin-top:22px;width:100%}.empty-item{align-items:center;justify-content:center;font:italic 18px Georgia,serif;color:#a2ad95}
+.purchase-flight{position:fixed;z-index:1000;width:70px;height:70px;pointer-events:none;filter:drop-shadow(0 0 18px #d7bf7c88)}.purchase-flight svg{width:100%;height:100%}
+/* Two full-height bookcases, and a hearth immediately beside the puppy. */
+.home-screen{display:grid;grid-template-columns:2fr 1fr;padding:25px 30px 85px;gap:30px;background:radial-gradient(ellipse at 88% 69%,#805c2944,transparent 48%),repeating-linear-gradient(90deg,#2a302733 0 60px,#171f1c44 61px 64px),#222d26;isolation:isolate}
+.home-screen:before{content:'';position:absolute;inset:auto 0 0;height:24%;z-index:-1;background:repeating-linear-gradient(170deg,#65553b44 0 46px,#17211d55 47px 49px),linear-gradient(#2a3023,#4a4630);border-top:4px solid #4d4531;transform-origin:bottom;box-shadow:inset 0 25px 45px #101e19bb}
+.home-shelves{display:flex;flex-direction:column;min-height:0;min-width:0}.home-room-heading{display:flex;align-items:center;justify-content:space-between;min-height:50px;margin-bottom:12px;gap:15px}.placement-instruction{display:flex;align-items:center;gap:12px;font:12px/1.5 var(--sans);color:#bfcead}.placement-instruction button{color:#baa269;font:11px var(--sans);padding:7px;border:1px solid #8b79505c;border-radius:3px}
+.home-bookcases{display:grid;grid-template-columns:1fr 1fr;gap:24px;min-height:0;flex:1}.memory-bookcase{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;border:12px ridge #806346;background:linear-gradient(90deg,#342e22,#4c3e2c,#322d21);box-shadow:0 12px 25px #0006,inset 0 0 30px #0007;transition:filter .2s,opacity .2s}.memory-bookcase>header{display:flex;justify-content:center;align-items:center;gap:11px;height:40px;flex-shrink:0;background:linear-gradient(#6a5338,#403d2a);border-bottom:6px ridge #8c6e47}.memory-bookcase>header>span{font:10px Georgia,serif;color:#c1a976}.memory-bookcase h2{font:14px Georgia,serif;color:#c4af7f;text-align:center}.memory-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(6,minmax(0,1fr));flex:1;min-height:0}.memory-cell{position:relative;display:flex;justify-content:center;align-items:center;min-width:0;min-height:0;padding:4px;border:0;border-bottom:10px ridge #876a46;border-right:2px solid #695237;background:radial-gradient(ellipse at bottom,#84764a18,transparent 65%),#19271c77;box-shadow:inset 0 12px 18px #0006;overflow:visible}.memory-cell:nth-child(4n){border-right:0}.memory-cell>svg{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 5px 3px #0005);max-height:100px}.memory-cell:not(:disabled):hover{background:#57704444}.memory-cell.selected{box-shadow:inset 0 0 0 1px #8ca06b,inset 0 0 25px #54784855}.bookcase-foot{height:14px;flex-shrink:0;background:linear-gradient(#79603d,#463b28)}.shelf-unavailable{opacity:.32;filter:saturate(.3);pointer-events:none}.placement-target{animation:place-memory 1.5s ease-in-out infinite}.memory-cell.drop-target{background:#637c4a77;box-shadow:inset 0 0 0 2px #bcc98b}.memory-cell[draggable=true]{cursor:grab}.moving-memory .memory-cell[draggable=true]{cursor:grabbing}
+.home-hearth-side{position:relative;min-width:0;min-height:0}.hearth-setting{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;transition:opacity .2s}.hearth-stone{position:absolute;width:90%;height:60%;bottom:13%;left:5%;background:repeating-linear-gradient(0deg,#4b514341 0 54px,#1c2a2055 55px 60px),linear-gradient(90deg,#4b5142,#767458,#4b5142);border:10px ridge #75715a;border-radius:45% 45% 2% 2%;box-shadow:0 8px 25px #0006,inset 0 0 25px #19271e88}
+.hearth-opening{position:absolute;left:16%;right:16%;bottom:8%;height:70%;background:radial-gradient(ellipse at 50% 100%,#cf8d3b55,#15231d 65%);border:7px solid #343c30;border-radius:45% 45% 3% 3%;box-shadow:inset 0 0 30px #07161099,0 0 70px #bf8b3a22;overflow:hidden}
+.hearth-opening .fire{left:20%;right:20%;bottom:3%;height:57%;width:auto}.hearth-opening .fire i{width:40%;height:77%;left:7%;bottom:0}.hearth-opening .fire i:nth-child(2){left:34%;height:100%}.hearth-opening .fire i:nth-child(3){left:55%;height:65%}.hearth-logs{position:absolute;bottom:5%;left:11%;right:11%;height:16px;border-radius:50%;background:repeating-linear-gradient(105deg,#3d392b 0 22px,#242b20 23px 28px);box-shadow:0 0 20px #c8893744}.hearth-mantel{position:absolute;left:-20px;right:-20px;top:12%;height:25px;border:2px solid #9d8252;background:linear-gradient(#89704b,#4b4431);border-radius:4px}.hearth-rug{position:absolute;bottom:3%;left:-4%;right:-10%;height:18%;background:radial-gradient(ellipse,#8b774777 0 50%,#a08a5244 51% 54%,#63594088 56% 60%,transparent 62%);transform:rotate(-9deg)}
+.home-screen .puppy{position:absolute;left:-5%;bottom:2%;width:62%;height:32%;max-height:200px;z-index:2;filter:drop-shadow(0 9px 10px #0006)}.cerberus-gift{position:absolute;left:40%;bottom:0;width:58%;display:flex;align-items:center;gap:4px;background:#1a2b23ed;border:1px solid #9d875266;border-radius:4px;padding:8px;font:11px/1.6 Georgia,serif;color:#b6c09e;z-index:4}.cerberus-gift svg{width:48px;height:55px;flex-shrink:0}.cerberus-gift b{font-weight:normal;color:#dfcf9c}
+.home-memory-detail{position:absolute;inset:62px 0 0;background:linear-gradient(#1a2e24f2,#172b23fa);border:1px solid #8e7b4b88;border-radius:4px;box-shadow:0 8px 30px #0006;z-index:5;display:flex;flex-direction:column;overflow:auto}.home-memory-detail .item-detail{flex:1}.home-memory-detail .item-detail-art{min-height:150px}.home-memory-detail .item-detail-copy{flex:1}.home-memory-detail>.text-button{padding:15px;color:#baad7e;text-align:center;border-top:1px solid #87744844}.memory-detail-close{position:absolute;right:10px;top:10px;z-index:2}.showing-memory .hearth-setting{opacity:.18}
+.resonating>svg{animation:instrument-jolt .55s ease-in-out infinite;filter:drop-shadow(0 0 12px #c8d47d99)!important}.music-note{position:absolute;color:#d4d892;left:45%;bottom:45%;pointer-events:none;z-index:9;font:23px Georgia,serif;opacity:0;animation:memory-notes 1.7s ease-out infinite}.note-two{left:65%;animation-delay:.5s}.note-three{left:25%;animation-delay:1s}
+@keyframes place-memory{0%,100%{background-color:#1c332377;box-shadow:inset 0 0 0 1px #74885133}50%{background-color:#57744588;box-shadow:inset 0 0 0 2px #acbd7c99,inset 0 0 25px #7e9b4c33}}
+@keyframes memory-notes{0%{opacity:0;transform:translate(0,0) rotate(-10deg)}25%{opacity:.9}100%{opacity:0;transform:translate(15px,-85px) rotate(13deg)}}
+@keyframes instrument-jolt{0%,100%{transform:rotate(-2deg) translateY(0)}50%{transform:rotate(2deg) translateY(-3px)}}
+@media(prefers-reduced-motion:reduce){.placement-target{animation:none;background:#536b4188;box-shadow:inset 0 0 0 2px #a5b97a}.resonating>svg{animation:none}.music-note{animation:none;opacity:.65}}
+@media(max-width:1100px){.shop-screen{padding:20px 20px 78px;grid-template-columns:27% 73%}.shop-keeper{padding-right:18px}.keeper-dialogue .character-dialogue{padding:16px}.keeper-dialogue .dialogue-text{font-size:15px}.shop-trade{padding:16px}.shop-trade-body{gap:12px;padding-right:12px}.item-detail-copy{padding:15px}.item-detail-copy h2{font-size:21px}.item-detail-copy>p{font-size:14px}.stock-card strong{font-size:13px}.home-screen{gap:18px;padding:18px 20px 78px}.home-bookcases{gap:16px}.memory-bookcase{border-width:9px}.memory-bookcase h2{font-size:12px}}
+@media(max-width:750px){.shop-screen{grid-template-columns:1fr;overflow:auto;padding:15px 15px 90px;gap:18px}.shop-keeper{height:170px;padding:0 0 0 135px}.keeper-portrait{left:-10px;right:auto;width:145px;top:-20px;bottom:0}.keeper-counter{left:0;right:auto;width:140px;bottom:0;height:25px}.keeper-dialogue .character-dialogue{min-height:100px}.shop-trade{min-height:680px;overflow:visible}.shop-trade-body{min-height:490px;grid-template-columns:53% 47%;gap:9px;padding-right:9px}.shop-shelf{grid-auto-rows:220px}.stock-card{padding:7px 4px}.stock-card strong{font-size:12px}.stock-art{min-height:95px}.stock-price{font-size:13px;gap:4px}.stock-price .light-orb{width:9px;height:9px}.stock-price small{display:none}.item-detail-copy{padding:13px 10px}.item-detail-copy h2{font-size:20px}.item-detail-copy>p{font-size:13px}.item-detail-copy .story-locked{font-size:10px;line-height:1.6}.shop-trade-title h1{font-size:28px}.shop-item-preview .item-detail-art{min-height:190px;max-height:300px}.inventory-toggle{width:53px;height:53px;left:12px;bottom:12px}#inventory-dialog{width:calc(100vw - 20px);height:calc(100svh - 36px);padding:14px}.inventory-heading{height:42px;margin-bottom:12px}.inventory-heading h1{font-size:28px}.inventory-body{grid-template-columns:1fr;grid-template-rows:52% 48%;height:calc(100% - 54px);gap:10px}.inventory-grid{grid-auto-rows:calc((100svh - 125px)*.52/4);border-width:5px}.inventory-cell{padding:2px}.item-quantity{font-size:11px;bottom:4px;right:4px}.inventory-detail .item-detail{flex-direction:row}.inventory-detail .item-detail-art{min-height:0;flex:1;min-width:0}.inventory-detail .item-detail-copy{flex:1.25;border-top:0;border-left:1px solid #8e7b4b44;padding:14px 12px;overflow:auto}.inventory-detail .item-detail-copy h2{font-size:20px}.inventory-detail .item-detail-copy>p{font-size:12px}.inventory-detail .room-button{margin-top:12px;min-width:0;font-size:16px;padding:8px;min-height:36px}.home-screen{grid-template-columns:1fr;grid-template-rows:minmax(560px,70svh) minmax(300px,45svh);overflow:auto;padding:15px 14px 80px;gap:20px}.home-bookcases{gap:13px}.home-room-heading{align-items:flex-start;gap:10px}.home-room-heading h1{font-size:28px}.placement-instruction{font-size:10px;max-width:220px}.memory-bookcase{border-width:7px}.memory-bookcase>header{height:35px;gap:5px}.memory-bookcase h2{font-size:11px}.memory-cell{padding:1px;border-bottom-width:8px}.home-memory-detail{inset:0}.home-memory-detail .item-detail{flex-direction:row}.home-memory-detail .item-detail-art{flex:1;min-width:0}.home-memory-detail .item-detail-copy{flex:1.4;padding:20px 14px}.home-memory-detail .item-detail-copy h2{font-size:21px}.home-memory-detail .item-detail-copy>p{font-size:13px}.home-screen .puppy{left:0;width:45%;height:43%}.hearth-stone{width:60%;left:30%;height:90%;bottom:5%}.cerberus-gift{left:0;bottom:50%;width:42%}}
+.memory-cell[data-item]{cursor:grab;touch-action:none}.moving-memory .memory-cell[data-item]{cursor:grabbing}.memory-drag-ghost{position:fixed;width:76px;height:76px;z-index:1000;pointer-events:none;filter:drop-shadow(0 8px 8px #0008) drop-shadow(0 0 12px #b0bd7777)}.memory-drag-ghost svg{width:100%;height:100%}
+@media(max-width:750px){.home-screen .hearth-rug{left:5%;right:5%;transform:rotate(-6deg)}.header-status .obols{display:flex!important;align-items:center;gap:5px;font-size:10px}.header-status .seal-tag{display:none}.header-status .clarity-tag{display:inline-flex!important;gap:3px}.header-status .obols>span:first-child{font-size:12px}.header-status .icon-button{width:27px;height:27px}}
+
+/* Header stats: light and clarity, explained on hover. */
+.stat-row{display:flex;align-items:center;gap:10px}
+.stat{position:relative;display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 13px;border:1px solid #a28a585c;border-radius:999px;background:#0d1c23b3;color:#c4aa76;font:600 14px var(--sans);cursor:help}
+.stat:hover,.stat:focus-visible{border-color:#c4aa76;background:#12242b}
+.stat-icon{font-size:13px;color:#e1cea4}
+.stat b{font-weight:600;color:#e5e1cf}
+.stat-tip{position:absolute;top:calc(100% + 10px);right:0;z-index:60;width:max-content;max-width:min(260px,calc(100vw - 32px));white-space:normal;overflow-wrap:break-word;text-align:left;padding:10px 13px;border:1px solid #a28a585c;border-radius:8px;background:#0d1c23;color:#cfd8cc;font:400 12px/1.45 var(--sans);box-shadow:0 10px 28px #0008;opacity:0;visibility:hidden;transform:translateY(-3px);transition:opacity .15s,transform .15s;pointer-events:none}
+.stat-tip strong{display:block;margin-bottom:3px;color:#c4aa76;font-weight:600;letter-spacing:.04em}
+.stat:hover .stat-tip,.stat:focus-visible .stat-tip{opacity:1;visibility:visible;transform:none}
+
+/* Island dock: Mission, Map, Inventory. */
+
+/* Back button: same pill as the header stats. */
+.place-back[hidden]{display:none}
+
+/* The dock follows you everywhere except the workstation; the map is only for the riverbank. */
+
+/* Book of Truth diagram zoom: --dz scales the diagram's gaps, padding and type. */
+.identity-diagram{grid-template-columns:repeat(3,minmax(calc(180px*var(--dz,1)),1fr));gap:calc(70px*var(--dz,1)) calc(52px*var(--dz,1));padding:calc(32px*var(--dz,1)) calc(28px*var(--dz,1));min-width:calc(750px*var(--dz,1))}
+.identity-diagram--identity{grid-template-columns:repeat(2,minmax(210px,1fr));min-width:630px}
+.identity-model-node>strong{padding:calc(10px*var(--dz,1)) calc(9px*var(--dz,1));font-size:max(9px,calc(11px*var(--dz,1)))}
+.identity-model-node .schema-field{padding:calc(6px*var(--dz,1)) calc(7px*var(--dz,1));font-size:max(8px,calc(9px*var(--dz,1)));min-height:calc(26px*var(--dz,1))}
+.realm-settings .settings-slider{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.34rem .45rem;font:11px var(--sans);color:#a9bcb8}
+.realm-settings .settings-slider input{width:105px;accent-color:#c4aa76}
+
+/* Notebook: a book with index tabs sticking out of its left edge. */
+.nb-calendar{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.nb-day{display:flex;flex-direction:column;border:1px solid #a28a5540;border-radius:10px;background:#0d1c23;overflow:hidden}
+.nb-day header{padding:7px 0;text-align:center;font:600 12px var(--sans);letter-spacing:.06em;color:#bda97b;background:#1b2f35;border-bottom:1px solid #a28a5533}
+.nb-day-body{display:grid;place-items:center;min-height:58px}
+.nb-check{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#2f5a43;box-shadow:0 0 0 3px #a6c4a233}
+.nb-check svg{width:18px;height:18px;fill:none;stroke:#cfeacb;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.nb-day.is-done{border-color:#a6c4a266}
+.nb-day.is-done header{color:#cfeacb;background:#23402f}
+.nb-day.is-current{border-color:#c4aa76;background:#2a2a1e;box-shadow:0 0 0 1px #c4aa7655,0 0 18px #c4aa7622}
+.nb-day.is-current header{background:#c4aa76;color:#1a1608}
+.nb-today{font:500 10px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:#e1cea4}
+.nb-mission p{max-width:520px;font:15px/1.6 var(--sans);color:#cfd8cc}
+@media(max-width:700px){.nb-calendar{grid-template-columns:repeat(4,1fr);gap:8px}.nb-page{padding:20px 16px}}
+/* The breadcrumb row is gone, so the workstation grid takes its height back. */
+@media(min-width:901px){.desk-screen .desk-grid{height:100%}}
+/* The workstation runs edge to edge: the soul panel and the Book panel fill the screen below the header. */
+@media(min-width:901px){.desk-screen{padding:0}.desk-screen .desk-grid{max-width:none;gap:0}.soul-sidebar,.workbench{border-radius:0}}
+/* The verdict strip held an empty bar under the panel; the stamp drawer floats on its own. */
+@media(min-width:901px){#verdict-bar{padding:0;min-height:0;height:0;border:0;overflow:visible}.soul-sidebar{display:flex;flex-direction:column}.soul-sidebar #soul-panel{flex:1;min-height:0}}
+
+/* Old paper: the map, the notebook and the inventory share one book-and-relic look. */
+/* Close buttons match the map's. */
+/* Notebook tabs: aged leather index tabs. */
+.nb-mission p{color:var(--paper-ink);font:17px/1.65 Georgia,serif}
+/* Calendar */
+.nb-day{border:1px solid var(--paper-edge);background:var(--paper-card);border-radius:10px;box-shadow:0 2px 6px #6b522a22}
+.nb-day header{background:var(--paper-deep);color:var(--paper-ink-soft);border-bottom:1px solid #b49a6288;font:600 13px Georgia,serif}
+.nb-day.is-done{border-color:#5f8a63}.nb-day.is-done header{background:#6e9a6f;color:#fbf6e4;border-bottom-color:#4f7a52}
+.nb-check{background:#5f8a63;box-shadow:0 0 0 3px #5f8a6333}.nb-check svg{stroke:#fbf6e4}
+.nb-day.is-current{border-color:#b69b50;background:#f2e1a9;box-shadow:0 0 0 2px #b69b5088,0 4px 14px #b69b5044}
+.nb-day.is-current header{background:#c9a24f;color:#33281e;border-bottom-color:#a98a3c}
+.nb-today{color:var(--paper-sepia)}
+/* Case ledger rows */
+#notebook .case-row{background:var(--paper-card);border:1px solid var(--paper-edge);color:var(--paper-ink)}
+#notebook .case-row:hover,#notebook .case-row.current{background:#f2e1a9;border-color:#b69b50}
+#notebook .case-row>span:first-child{color:var(--paper-sepia)}
+#notebook .case-row h3{font:22px Georgia,serif;color:var(--paper-green)}
+#notebook .case-row small{color:var(--paper-ink-soft)}
+#notebook .case-row .case-status{color:var(--paper-ink-soft)}
+#notebook .case-status.correct{color:#3d6b43}#notebook .case-status.wrong{color:#9a4a35}
+/* Inventory */
+.inventory-grid{scrollbar-color:#b49a62 transparent}
+.inventory-cell{border:1px solid var(--paper-edge);border-bottom:6px ridge #a58b58;background:var(--paper-card);box-shadow:inset 0 6px 14px #b8ad8c33}
+.inventory-cell.selected{background:#f2e1a9;box-shadow:inset 0 0 0 2px #27634c}
+.inventory-cell:not(.is-empty):hover{background:#f7ecc4}
+.inventory-cell.is-empty{background:var(--paper-deep);opacity:.7}
+.item-quantity{color:var(--paper-ink);text-shadow:none;font:600 15px Georgia,serif}
+.inventory-detail{border:1px solid var(--paper-edge);background:var(--paper-card)}
+.inventory-detail .item-detail-art{background:radial-gradient(ellipse,#d9c9a088,transparent 65%)}
+.inventory-detail .item-detail-art:after{background:#6b522a33}
+.inventory-detail .item-detail-art svg{filter:drop-shadow(0 8px 8px #6b522a55)}
+.inventory-detail .item-detail-copy{background:transparent;border-top:1px solid #b49a6288}
+.inventory-detail .item-detail-copy h2{color:var(--paper-green)}
+.inventory-detail .item-detail-copy>p{color:var(--paper-ink)}
+.inventory-detail .item-effect{color:#3d6b43}
+.inventory-detail 
+.empty-item{color:var(--paper-ink-soft)}
+#inventory-dialog .inventory-grid.wood-shelf{background:var(--paper-deep);border:1px solid var(--paper-edge);border-radius:6px;box-shadow:inset 0 0 30px #b8ad8c44}
+#inventory-dialog .inventory-cell{border-radius:4px;margin:3px}
+#inventory-dialog .inventory-cell.is-empty{background:#e9dfc2;border-bottom-width:1px;opacity:1;box-shadow:inset 0 2px 8px #b8ad8c44}
+
+/* Dark relic: the same book-and-paper look, after dark. Tokens first, then what was hard-coded. */
+.nb-day{box-shadow:0 2px 6px #0005}
+.nb-day header{border-bottom-color:#6f5f3d88}
+.nb-day.is-done{border-color:#5d8461}.nb-day.is-done header{background:#2e5035;color:#cfeacb;border-bottom-color:#3f6a47}
+.nb-check{background:#386a45;box-shadow:0 0 0 3px #6e9a6f33}.nb-check svg{stroke:#dff3d9}
+.nb-day.is-current{border-color:#c4aa76;background:#2a281b;box-shadow:0 0 0 1px #c4aa7666,0 0 18px #c4aa7622}
+.nb-day.is-current header{background:#c4aa76;color:#1a1608;border-bottom-color:#a98a3c}
+#notebook .case-row:hover,#notebook .case-row.current{background:#2a281b;border-color:#c4aa76}
+#notebook .case-status.correct{color:#9fcf9f}#notebook .case-status.wrong{color:#d9907a}
+.inventory-cell{box-shadow:inset 0 6px 14px #00000044;border-bottom-color:#5a4d32}
+.inventory-cell.selected{background:#2d3a2a;box-shadow:inset 0 0 0 2px #8ba574}
+.inventory-cell:not(.is-empty):hover{background:#2a3a33}
+#inventory-dialog .inventory-grid.wood-shelf{box-shadow:inset 0 0 30px #00000066}
+#inventory-dialog .inventory-cell.is-empty{background:#161f1c;box-shadow:inset 0 2px 8px #00000066}
+.inventory-detail .item-detail-art{background:radial-gradient(ellipse,#8c8e5733,transparent 65%)}
+.inventory-detail .item-detail-art:after{background:#00000066}
+.inventory-detail .item-detail-art svg{filter:drop-shadow(0 10px 10px #0008)}
+.inventory-detail .item-effect{color:#a6bf98}
+.inventory-detail 
+/* The map */
+#atlas-cypress{fill:#3b4733;stroke:#b7a77c}#atlas-house{fill:#6f6044;stroke:#c9b98c}#atlas-peak{stroke:#c9b98c}#atlas-boat{fill:#85764f;stroke:#c9b98c}
+#atlas-water path{stroke:#9fb3a8!important}#atlas-grid path{stroke:#9a8658!important}
+.atlas-route{stroke:#c99b6a;opacity:.7}.atlas-route circle{fill:#c99b6a}
+.atlas-coast-outer{fill:#27382f;stroke:#4d7360;opacity:.45}
+.atlas-coast{fill:#233530;stroke:#6f9a85}
+.atlas-island:hover .atlas-coast,.atlas-island:focus-visible .atlas-coast{fill:#3b4530;stroke:#d6bd81}
+.atlas-island.is-current .atlas-coast-outer{stroke:#c4aa76;opacity:.85}
+.atlas-island.is-current .atlas-coast{fill:#3a3827}
+.atlas-ink,.atlas-player-house{fill:#5b4e37;stroke:#cdb98a}
+.atlas-player-house{fill:#9a7a3c}.atlas-player-house>path:last-child{fill:#e1cea4}
+.atlas-contours{stroke:#b49c68}.atlas-footpath{stroke:#c99b6a}.atlas-dock{stroke:#cdb98a}
+.atlas-place-name{fill:#d6bd81}.atlas-island-number{fill:#a99f80}
+.atlas-here{fill:#d6bd81;stroke:#8c6a2a}.atlas-here>circle:last-child{fill:#8c6a2a}
+
+/* Case ledger: compact rows, and a detail subpage. */
+#notebook .case-list{display:flex;flex-direction:column;gap:6px}
+#notebook .case-row{gap:12px;padding:8px 14px;min-height:0;align-items:center;border-radius:6px;width:100%}
+#notebook .case-row>span:first-child{font:600 13px Georgia,serif;width:24px}
+#notebook .case-row>div{display:flex;align-items:baseline;gap:10px;min-width:0}
+#notebook .case-row h3{font:500 16px Georgia,serif;margin:0}
+#notebook .case-row small{font:11px var(--sans);letter-spacing:.04em}
+#notebook .case-row .case-status{font:500 11px var(--sans);white-space:nowrap}
+.cd-head{margin-bottom:14px}
+.cd h3{display:inline-block;margin:0 14px 18px 0!important;font-size:26px!important}
+.cd-status{display:inline-block;padding:3px 12px;border:1px solid #6f5f3d;border-radius:999px;font:600 11px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--paper-ink-soft);vertical-align:middle}
+.cd-status.cd-ok{color:#9fcf9f;border-color:#5d8461}.cd-status.cd-bad{color:#d9907a;border-color:#9a5a45}
+.cd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.cd-group{padding:12px 14px 6px;border:1px solid #6f5f3d88;border-radius:8px;background:var(--paper-card)}
+.cd-group h4{margin:0 0 8px;font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--paper-sepia)}
+.cd-group dl{margin:0}
+.cd-group dl>div{display:flex;justify-content:space-between;gap:14px;padding:5px 0;border-top:1px solid #6f5f3d33;font:13px var(--sans)}
+.cd-group dt{color:var(--paper-ink-soft);flex:none}
+.cd-group dd{margin:0;text-align:right;color:var(--paper-ink);word-break:break-word}
+.cd-actions{margin-top:18px}
+
+/* The Book of Instruction is one page, so there is no crease down the middle. */
+.open-doc--guide{display:flex;flex-direction:column;height:auto;min-height:250px;overflow:hidden;background:linear-gradient(90deg,#d8c9a0 0%,#e9ddba 6%,#e9ddba 94%,#d4c498 100%)}
+.open-doc--guide .instruction-heading{flex:0 0 30px;height:30px;align-items:center;margin-bottom:8px}
+.open-doc--guide .instruction-title{min-width:0;margin:0;padding:0 28px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:17px/1.25 var(--serif);color:#51462e}
+.open-doc--guide .instruction-spread,.open-doc--guide .country-detail{grid-template-columns:1fr;gap:0}
+.open-doc--guide .instruction-page{min-height:0;padding-bottom:6px}
+.open-doc--guide .instruction-leaves{flex:1;min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:#92805a #d5c79f}
+.open-doc--guide .country-detail .instruction-page+.instruction-page{margin-top:0}
+
+
+/* Case ledger as a table, and the case page: portrait and stamp tray left, the papers right. */
+.case-table{width:100%;border-collapse:collapse;font:13px var(--sans)}
+.case-table th{padding:8px 12px;text-align:left;font:600 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--paper-sepia);border-bottom:1px solid #6f5f3d88}
+.case-table td{padding:0 12px;height:34px;color:var(--paper-ink);border-bottom:1px solid #6f5f3d33}
+.case-trow{cursor:pointer}
+.case-trow:hover td,.case-trow:focus-visible td{background:#c4aa760f}
+.case-trow:focus-visible{outline:1px solid #c4aa76;outline-offset:-1px}
+.case-table .ct-num{width:42px;font:600 13px Georgia,serif;color:var(--paper-sepia)}
+.case-table .ct-name{font:500 16px Georgia,serif;color:var(--paper-green)}
+.case-table .case-status{font:600 12px var(--sans)}
+.case-table .case-status.correct{color:#9fcf9f}.case-table .case-status.wrong{color:#d9907a}
+.cd-head{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.cd-head h3{margin:0!important;font-size:24px!important}
+.cd-body{display:grid;grid-template-columns:1fr 2fr;gap:20px;align-items:start}
+.cd-side{display:flex;flex-direction:column;gap:10px}
+.cd-portrait{display:grid;place-items:center;aspect-ratio:1/1;border:1px solid #6f5f3d88;border-radius:8px;background:radial-gradient(ellipse at 50% 60%,#2b3a36,#141c1a)}
+.cd-portrait .portrait{width:72%;height:auto;max-height:none}
+.cd-meta{margin:0;text-align:center;font:11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--paper-ink-soft)}
+.cd-trays{display:grid;grid-template-columns:2fr 1fr;gap:8px}
+.cd-tray{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:92px;padding:8px;border:1px solid #6f5f3d88;border-radius:8px;background:var(--paper-card)}
+.cd-tray small{font:600 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--paper-sepia)}
+.cd-stamp{padding:5px 12px;border:3px double currentColor;border-radius:6px;font:700 15px Georgia,serif;letter-spacing:.1em;text-transform:uppercase;transform:rotate(-5deg)}
+.cd-stamp.is-approved{color:#7fbf86}.cd-stamp.is-denied{color:#d9806e}
+.cd-result{font:700 16px Georgia,serif}.cd-result.is-right{color:#9fcf9f}.cd-result.is-wrong{color:#d9907a}
+.cd-none{color:var(--paper-ink-soft);font:13px var(--sans)}
+.cd-docs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.cd-doc{position:relative;padding:14px 16px 8px;border:1px solid #b9a273;border-radius:4px;background:#eadfbe;color:#49422e;box-shadow:0 4px 12px #0006,inset 0 0 18px #8b6c3c33}
+.cd-doc h4{margin:0 0 8px;font:600 10px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:#6b5b3b}
+.cd-doc dl{margin:0}.cd-doc dl>div{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid #8e7c5144;font:13px var(--sans)}
+.cd-doc dt{color:#756448}.cd-doc dd{margin:0;text-align:right;color:#3d3624}
+.cd-doc :is([data-ledger-field$="_id"],[data-ledger-field$="_on"],[data-ledger-field$="_date"],[data-ledger-field$=".birthdate"],[data-ledger-field$=".seal"],[data-ledger-field$=".year"],[data-ledger-field$=".price"],[data-ledger-field$=".value"],[data-ledger-field$=".killed"],[data-ledger-field$=".treated"]) dd{font-family:ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.cd-doc dl>div.is-discrepant{background:#a2332420;box-shadow:inset 3px 0 #a23324;margin:0 -8px;padding:5px 8px}
+.cd-doc .is-discrepant dt,.cd-doc .is-discrepant dd{color:#912d22}
+.cd-doc .is-discrepant dd{font-weight:700}
+.cd-conflict-mark{display:inline-flex;align-items:center;justify-content:center;width:12px;height:12px;border:1px solid currentColor;border-radius:50%;font:bold 10px var(--sans);vertical-align:1px}
+.cd-obol{display:grid;place-items:center;margin:2px 0 6px}.cd-obol svg{width:64px;height:64px}
+@media(max-width:800px){.cd-body{grid-template-columns:1fr}.cd-docs{grid-template-columns:1fr}}
+
+/* Sizes of the three modals; the shared look lives in ui.css. */
+#inventory-dialog{width:min(1060px,calc(100vw - 48px));height:min(740px,calc(100svh - 80px))}
+#notebook{width:min(900px,calc(100vw - 36px));height:min(560px,calc(100svh - 80px))}
+#river-atlas{width:min(1080px,calc(100vw - 36px));max-height:calc(100svh - 44px)}
+.inventory-body{display:grid;grid-template-columns:2fr 1fr;gap:24px;height:100%;min-height:0}
+
+
+
+.room-button.nui-btn{min-width:150px;height:44px;padding:0 26px;font:600 15px var(--sans)}
+
+/* Header: back on the left, the three tools in the middle, stats, settings and the name on the right. */
+.app-header{grid-template-columns:1fr auto 1fr}
+.island-dock{grid-column:2;justify-self:center;display:flex;align-items:center;gap:4px}
+.island-dock .dock-button{position:relative;display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 14px;border:1px solid transparent;border-radius:999px;background:none;color:#a99f80;font:500 12px var(--sans);letter-spacing:.06em}
+.island-dock .dock-button svg{width:18px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.2;stroke-linejoin:round;stroke-linecap:round}
+.island-dock .dock-button small{font:inherit;text-transform:none;letter-spacing:.04em;white-space:nowrap}
+.island-dock .dock-button:hover,.island-dock .dock-button:focus-visible{color:#e1cea4;border-color:#a28a585c;background:#c4aa760f}
+.island-dock .dock-button b{min-width:17px;padding:1px 5px;border-radius:9px;background:#293c42;color:#e1d4ac;font:600 10px var(--sans);text-align:center}
+body[data-arrival=running] .island-dock{display:none}
+.app-header .header-status .brand{position:static;transform:none;pointer-events:auto;margin-left:6px;padding-left:18px;border-left:1px solid #a4b8b326;font:600 15px Georgia,serif;letter-spacing:.2em;color:#e5e1cf}
+@media(max-width:900px){.island-dock .dock-button small{display:none}.island-dock .dock-button{padding:0 11px}.header-status .brand{display:none}}
+
+/* Ram's blood after the price moves: the old price struck through, the new one on a tag (green fell, red rose). */
+.stock-price--moved{align-items:center}
+.price-was{margin:0 7px 0 1px;color:#cfc6a5;font-size:1.05em;text-decoration:line-through;text-decoration-thickness:2px}
+.price-tag{padding:1px 9px 2px;border-radius:5px;font-weight:700;color:#fff;box-shadow:0 2px 6px #0006}
+.price-tag--down{background:#3f8f5a}
+.price-tag--up{background:#b4483f}

@@ -1,0 +1,33 @@
+Model nether_campaign {
+  type: 'table'
+  label: 'Campaign'
+  data_source_name: 'nether'
+  table_name: 'campaign'
+
+  dimension campaign_id {
+    label: 'Campaign Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.campaign_id }} ;;
+  }
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }} ;;
+  }
+  dimension started_on {
+    label: 'Started On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.started_on }} ;;
+  }
+  dimension ended_on {
+    label: 'Ended On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.ended_on }} ;;
+  }
+  dimension region {
+    label: 'Region'
+    type: 'text'
+    definition: @sql {{ #SOURCE.region }} ;;
+  }
+}

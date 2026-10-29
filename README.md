@@ -11,6 +11,7 @@ Every app lives in its own folder under `projects/`.
 | App | Idea | Demo | Author |
 |---|---|---|---|
 | [football-predictions](projects/football-predictions) | Predicts football results and shows the reasons behind each call | [Demo](https://football-predictions.pages.holistics.dev/apps/football-predictions/1-matches) | Khai To |
+| [leave-now-or-wait](projects/leave-now-or-wait) | Tells a Ho Chi Minh City commuter whether to leave now or wait out the flooding, with a Mayor-mode what-if simulator | [Demo](https://leave-now-or-wait.pages.holistics.dev/apps/flood) | Khue Pham |
 | [galaxy-orbit](projects/galaxy-orbit) | Mobile app publisher as a living galaxy: spot the app that needs you, then plan its growth | [Demo](https://galaxy-orbit.pages.holistics.dev/) | Tri Duong |
 
 ## Add your app

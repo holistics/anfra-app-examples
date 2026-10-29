@@ -1,0 +1,2420 @@
+<!doctype html>
+<!--
+  "Leave now or wait?" — Ho Chi Minh City flooding, a full-screen, Google-Maps-style
+  Data App. The map fills the viewport (pan + zoom); every panel floats over it.
+
+  GOVERNANCE: every number on screen comes from an anfra SDK query on a governed
+  metric by name (flood_risk, flooded_road_km, commute_delay_min, delay_cost_vnd,
+  modeled_water_depth_cm, depth_bucket, depth_from_rain_cm, depth_from_drainage_cm,
+  depth_from_tide_cm, flood_threshold_cm, peak_tide_m, rainfall_mm, traffic_volume,
+  district_wet_socks, the route_* and mayor Layer-5 metrics). Filters are SDK
+  controls (evening, hour, district, from/to, years, interventions). Page JS only
+  lays out, animates, and composes friendly phrasing around governed numbers — it
+  never computes a reported figure or restates a threshold. Thresholds (20 cm flood
+  line, the motorbike depth buckets) live in governed metrics; the page reads them.
+  Boundaries: OpenStreetMap (pre-2025, simplified, bundled). Flood values simulated.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Leave Now or Wait?</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+  <!-- bundled OSM map data (sandbox blocks fetch of local files, so load as a global) -->
+  <script src="hcmc_geo.js"></script>
+  <script src="hcmc_streets.js"></script>   <!-- real OSM streets for the 12 districts (© OpenStreetMap contributors) -->
+  <style>
+    :root{
+      color-scheme: dark light;
+      --bg:#0a1324; --bg2:#0f1d38; --ink:#eaf2ff; --mut:#9db0d0; --mut2:#7488a8;
+      --line:rgba(150,180,220,.18); --accent:#4cc6d4; --accent-ink:#04222a;
+      --glass:rgba(13,22,40,.72); --glass2:rgba(16,27,48,.82); --chip:rgba(120,160,210,.14);
+      --calm:#1f6f78; --warn:#f0b429; --bad:#c0392b; --good:#2f9e6f;
+      --shadow:0 10px 34px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.3);
+      --radius:16px;
+      /* motorbike icon (dark base — a light silhouette on the dark chip) */
+      --bike-tyre:#c7d3e8; --bike-hub:#3a4760; --bike-frame:#9fb4d6; --bike-seat:#dbe4f4;
+      --bike-water:rgba(76,198,212,.42); --bike-water-edge:rgba(150,230,245,.88);
+    }
+    @media (prefers-color-scheme: light){
+      :root:not([data-theme="dark"]){
+        --bg:#dfe9f7; --bg2:#eef3fb; --ink:#13233c; --mut:#4a5c7a; --mut2:#6d7f9c;
+        --line:rgba(40,70,120,.16);
+        --glass:rgba(255,255,255,.78); --glass2:rgba(255,255,255,.88); --chip:rgba(40,90,150,.10);
+        --shadow:0 10px 30px rgba(30,50,90,.18), 0 2px 8px rgba(30,50,90,.12);
+        /* motorbike icon (light — a dark silhouette on the light chip) */
+        --bike-tyre:#2f3c54; --bike-hub:#b2c1da; --bike-frame:#5f78a0; --bike-seat:#3a4761;
+        --bike-water:rgba(50,165,188,.46); --bike-water-edge:rgba(120,215,232,.92);
+      }
+    }
+    :root[data-theme="dark"]{
+      --bg:#0a1324; --bg2:#0f1d38; --ink:#eaf2ff; --mut:#9db0d0;
+      --glass:rgba(13,22,40,.72); --glass2:rgba(16,27,48,.82); --chip:rgba(120,160,210,.14);
+      --line:rgba(150,180,220,.18);
+      --bike-tyre:#c7d3e8; --bike-hub:#3a4760; --bike-frame:#9fb4d6; --bike-seat:#dbe4f4;
+      --bike-water:rgba(76,198,212,.42); --bike-water-edge:rgba(150,230,245,.88);
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; height:100%; overflow:hidden; }
+    body{ font:15px/1.45 system-ui,"Segoe UI",sans-serif; color:var(--ink); background:var(--bg);
+      -webkit-font-smoothing:antialiased; }
+    #app{ position:fixed; inset:0; overflow:hidden; }
+
+    /* ---- map layers ---- */
+    #map{ position:absolute; inset:0; width:100%; height:100%; display:block;
+      background:radial-gradient(130% 110% at 72% -20%, var(--bg2), var(--bg)); cursor:grab; }
+    #map.grabbing{ cursor:grabbing; }
+    #rain{ position:absolute; inset:0; pointer-events:none; }
+    #labels{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+    .dlabel{ position:absolute; top:0; left:0; font-size:12px; font-weight:600; letter-spacing:.2px;
+      color:var(--ink); text-shadow:0 1px 3px rgba(0,0,0,.7), 0 0 2px rgba(0,0,0,.5);
+      white-space:nowrap; opacity:.9; transition:opacity .25s; }
+    @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]) .dlabel{ text-shadow:0 1px 2px rgba(255,255,255,.8); } }
+
+    path.district{ cursor:pointer; transition:fill .6s ease; stroke:rgba(8,14,26,.75); stroke-width:.7;
+      vector-effect:non-scaling-stroke; }
+    path.district:hover{ filter:brightness(1.12); }
+    path.district.sel{ stroke:var(--accent); stroke-width:2.4; }
+    path.district.flooded{ animation:ripple 2.4s ease-in-out infinite; }
+    @keyframes ripple{ 0%,100%{ stroke:var(--bad); } 50%{ stroke:#ff9a8a; } }
+    .pin{ cursor:pointer; }
+    .pin-dot{ stroke:#06121f; vector-effect:non-scaling-stroke; }
+
+    /* ---- OpenStreetMap street layers (real streets, drawn by D3 over the districts) ---- */
+    :root{ --street-ink:#e8eefc; }
+    @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){ --street-ink:#20344f; } }
+    :root[data-theme="light"]{ --street-ink:#20344f; }
+    .streets .street{ fill:none; stroke:var(--street-ink); vector-effect:non-scaling-stroke;
+      pointer-events:none; stroke-linecap:round; stroke-linejoin:round; }
+    .streets .s-primary{ stroke-width:1.4; opacity:.30; }
+    .streets .s-secondary{ stroke-width:1.1; opacity:.22; }
+    .streets .s-tertiary{ stroke-width:.9; opacity:0; }          /* appears when zoomed in */
+    .streets[data-z="city"] .s-tertiary{ display:none; }         /* not drawn at all at city level */
+    .streets .s-residential{ stroke-width:.7; display:none; }    /* only the focused district, zoomed in */
+    .streets[data-z="district"] .s-primary{ opacity:.55; stroke-width:1.7; }
+    .streets[data-z="district"] .s-secondary{ opacity:.42; stroke-width:1.3; }
+    .streets[data-z="district"] .s-tertiary{ opacity:.34; stroke-width:1.0; }
+    .streets[data-z="street"] .s-primary{ opacity:.78; stroke-width:1.9; }
+    .streets[data-z="street"] .s-secondary{ opacity:.62; stroke-width:1.5; }
+    .streets[data-z="street"] .s-tertiary{ opacity:.5; stroke-width:1.2; }
+    .streets .s-residential.on{ display:block; opacity:.4; }
+    .streets[data-z="street"] .s-residential.on{ opacity:.55; stroke-width:.9; }
+    /* flooded/depth-coloured segments snapped onto real streets */
+    .fstreet{ fill:none; vector-effect:non-scaling-stroke; cursor:pointer; stroke-linecap:round; stroke-linejoin:round; }
+    .fstreet.dry{ opacity:.5; }
+    /* street-name labels (focused district, when zoomed in). font-size set per-zoom in JS (1/k) — NOT here (CSS would override the attr and stop it scaling) */
+    .sname{ fill:var(--street-ink); font-weight:600; paint-order:stroke;
+      stroke:rgba(6,12,24,.55); stroke-width:2.4px; pointer-events:none; opacity:0; transition:opacity .2s; }
+    @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]) .sname{ stroke:rgba(255,255,255,.7); } }
+    .streets:not([data-z="city"]) .sname.on{ opacity:.95; }
+    /* landmarks (font-size set per-zoom in JS) */
+    .lm-dot{ fill:#ffd36b; stroke:#6b4e00; stroke-width:.8; vector-effect:non-scaling-stroke; }
+    .lm-text{ fill:#ffe6a8; font-weight:700; paint-order:stroke;
+      stroke:rgba(6,12,24,.7); stroke-width:2.6px; pointer-events:none; }
+    @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]) .lm-text{ fill:#7a5a00; stroke:rgba(255,255,255,.85); } }
+
+    /* ---- floating panels (frosted glass) ---- */
+    .float{ position:absolute; background:var(--glass); backdrop-filter:blur(16px) saturate(1.2);
+      -webkit-backdrop-filter:blur(16px) saturate(1.2); border:1px solid var(--line);
+      border-radius:var(--radius); box-shadow:var(--shadow); z-index:5; }
+
+    /* top-left directions */
+    .directions{ left:14px; top:14px; width:330px; padding:13px 14px; }
+    .brandrow{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+    .brandrow h1{ font-size:15px; margin:0; font-weight:800; letter-spacing:.2px; }
+    .brandrow .sim{ margin-left:auto; font-size:10px; color:var(--mut); border:1px solid var(--line);
+      border-radius:999px; padding:2px 7px; white-space:nowrap; }
+    .fromto{ display:flex; align-items:flex-end; gap:7px; }
+    .fromto .f{ flex:1; min-width:0; }
+    .fromto label{ font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); display:block; margin-bottom:3px; }
+    .arrow{ color:var(--mut); font-size:16px; padding-bottom:7px; }
+    select, .ctl{ font:inherit; font-size:13px; width:100%; background:var(--chip); color:var(--ink);
+      border:1px solid var(--line); border-radius:9px; padding:7px 8px; }
+    .btn{ font:inherit; cursor:pointer; border-radius:10px; border:1px solid var(--line);
+      background:var(--chip); color:var(--ink); padding:8px 12px; font-weight:600; }
+    .btn:hover{ filter:brightness(1.08); }
+    .btn.primary{ background:var(--accent); color:var(--accent-ink); border-color:transparent; font-weight:800; }
+    .btn.block{ width:100%; margin-top:9px; }
+
+    /* top-center layer chips */
+    .layers{ left:50%; top:14px; transform:translateX(-50%); padding:6px; display:flex; gap:5px; }
+    .lchip{ font:inherit; font-size:12.5px; cursor:pointer; border:1px solid var(--line);
+      background:transparent; color:var(--mut); padding:7px 12px; border-radius:999px; display:flex; align-items:center; gap:6px; }
+    .lchip .dot{ width:8px; height:8px; border-radius:50%; background:currentColor; opacity:.5; }
+    .lchip[aria-pressed="true"]{ background:var(--chip); color:var(--ink); border-color:var(--accent); }
+    .lchip[aria-pressed="true"] .dot{ opacity:1; background:var(--accent); }
+
+    /* left side panel */
+    .side{ left:14px; top:192px; width:360px; max-height:calc(100vh - 304px); display:flex; flex-direction:column; }
+    .side .head{ display:flex; align-items:center; gap:8px; padding:12px 14px 10px; border-bottom:1px solid var(--line); }
+    .side .head .ttl{ font-size:15px; font-weight:800; margin:0; flex:1; min-width:0; }
+    .side .head .sub{ font-size:11px; color:var(--mut); font-weight:500; }
+    .iconbtn{ border:1px solid var(--line); background:var(--chip); color:var(--mut); cursor:pointer;
+      width:30px; height:30px; border-radius:8px; font-size:15px; line-height:1; flex:none; }
+    .iconbtn:hover{ color:var(--ink); }
+    .side .body{ padding:13px 14px; overflow:auto; }
+    .side.collapsed .body{ display:none; }
+    .side.collapsed{ max-height:none; }
+
+    .hint{ color:var(--mut); font-size:12.5px; }
+    .emptywrap{ text-align:center; padding:14px 6px; }
+    .emptywrap .big{ font-size:30px; }
+
+    /* verdict block */
+    .verdict{ display:flex; gap:12px; align-items:center; padding:12px; border-radius:12px; background:var(--chip); margin-bottom:12px; }
+    .verdict .em{ width:54px; height:54px; flex:none; }
+    .verdict .lab{ font-weight:800; font-size:15px; }
+    .verdict .det{ color:var(--mut); font-size:12.5px; margin-top:2px; }
+
+    /* inline motorbike flood-depth icon (water height = wet-socks level) */
+    .bike{ width:100%; height:100%; display:block; }
+    .bike .tyre{ fill:var(--bike-tyre); }
+    .bike .hub{ fill:var(--bike-hub); }
+    .bike .frame{ fill:var(--bike-frame); }
+    .bike .seat{ fill:var(--bike-seat); }
+    .bike .exhaust{ fill:var(--bike-hub); }
+    .bike .light{ fill:#ffd36b; }
+    .bike .bar{ stroke:var(--bike-frame); stroke-width:2.4; stroke-linecap:round; fill:none; }
+    .bike .bike-water{ fill:var(--bike-water); transition:y .55s cubic-bezier(.4,0,.2,1); }
+    .bike .bike-surf{ fill:var(--bike-water-edge); transition:y .55s cubic-bezier(.4,0,.2,1); }
+
+    /* 5-step wet-socks scale */
+    .sockscale{ display:flex; align-items:flex-end; gap:8px; margin-top:8px; }
+    .sockbars{ display:flex; gap:3px; align-items:flex-end; height:22px; }
+    .sockbars i{ width:7px; border-radius:2px; background:var(--line); display:block;
+      transition:background .3s ease, outline-color .3s ease; outline:2px solid transparent; outline-offset:1px; }
+    .socklab{ font-size:11px; color:var(--mut); font-weight:600; padding-bottom:1px; }
+    .socklab b{ color:var(--ink); }
+    @media (prefers-reduced-motion: reduce){
+      .bike .bike-water, .bike .bike-surf{ transition:none; }
+    }
+
+    .depthline{ display:flex; align-items:center; gap:8px; font-size:13px; margin:2px 0 12px; }
+    .depthline b{ font-variant-numeric:tabular-nums; }
+    .depthtag{ font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; color:#06121f; }
+
+    /* metric chips grid */
+    .chips{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+    .chip-metric{ text-align:left; font:inherit; cursor:pointer; border:1px solid var(--line);
+      background:var(--chip); border-radius:11px; padding:9px 10px; color:var(--ink); position:relative; transition:border-color .15s; }
+    .chip-metric:hover{ border-color:var(--accent); }
+    .chip-metric .k{ font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--mut); display:flex; align-items:center; gap:4px; }
+    .chip-metric .v{ font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; margin-top:3px; }
+    .chip-metric .mag{ font-size:10px; color:var(--mut2); }
+
+    .sechead{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); margin:6px 0 7px; font-weight:700; }
+    .bk-row{ display:flex; align-items:center; gap:8px; margin:5px 0; font-size:12px; }
+    .bk-row .lab{ width:118px; color:var(--mut); flex:none; }
+    .bk-bar{ flex:1; height:9px; border-radius:5px; background:var(--chip); overflow:hidden; }
+    .bk-bar span{ display:block; height:100%; border-radius:5px; }
+    .bk-row .pct{ width:34px; text-align:right; font-variant-numeric:tabular-nums; }
+
+    .note{ margin-top:10px; font-size:11.5px; color:var(--mut); cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+      border:1px dashed var(--line); border-radius:9px; padding:6px 9px; }
+    .note:hover{ color:var(--ink); border-color:var(--accent); }
+
+    #hourly, #leaveChart{ width:100%; }
+    #hourly{ height:160px; } #leaveChart{ height:190px; }
+
+    .kv{ display:flex; justify-content:space-between; font-size:13px; padding:5px 0; border-bottom:1px dashed var(--line); }
+    .kv:last-child{ border-bottom:0; } .kv b{ font-variant-numeric:tabular-nums; }
+
+    /* marker class only — must not set position, or it would override .float panels */
+
+    /* tide gauge (top-right) */
+    .tidecard{ right:14px; top:14px; width:188px; padding:12px 13px; }
+    .tidecard .ttl{ font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); font-weight:700; }
+    .tidewrap{ display:flex; gap:11px; align-items:center; margin-top:8px; }
+    .gauge{ width:16px; height:72px; border:1px solid var(--line); border-radius:9px; position:relative; overflow:hidden;
+      background:linear-gradient(180deg, rgba(120,160,210,.08), rgba(120,160,210,.02)); flex:none; }
+    .gauge .fill{ position:absolute; left:0; right:0; bottom:0; background:linear-gradient(180deg,#5bd0dd,#1f6f78);
+      transition:height .6s ease; }
+    .gauge .mid{ position:absolute; left:0; right:0; top:50%; height:1px; background:var(--line); }
+    .tideinfo .dir{ font-size:15px; font-weight:800; display:flex; align-items:center; gap:5px; }
+    .tideinfo .peak{ font-size:11.5px; color:var(--mut); margin-top:3px; }
+    .tideinfo .lvl{ font-size:11px; color:var(--mut2); margin-top:1px; font-variant-numeric:tabular-nums; }
+
+    /* bottom timeline (weather-radar) */
+    .timeline{ left:50%; bottom:14px; transform:translateX(-50%); width:min(760px, calc(100vw - 28px));
+      padding:10px 14px 12px; display:flex; align-items:center; gap:13px; }
+    .play{ width:42px; height:42px; border-radius:50%; border:0; background:var(--accent); color:var(--accent-ink);
+      font-size:16px; cursor:pointer; flex:none; box-shadow:0 2px 10px rgba(0,0,0,.3); }
+    .trackwrap{ flex:1; min-width:0; }
+    .trackrow{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--mut2); margin-bottom:2px; font-variant-numeric:tabular-nums; }
+    .track{ position:relative; height:30px; }
+    .track .rail{ position:absolute; left:0; right:0; top:13px; height:6px; border-radius:3px;
+      background:linear-gradient(90deg,var(--calm),#3aa6a0,var(--warn),var(--bad)); opacity:.5; }
+    .track .sweep{ position:absolute; top:5px; width:52px; height:22px; border-radius:11px; pointer-events:none;
+      background:radial-gradient(closest-side, rgba(76,198,212,.5), rgba(76,198,212,0)); transform:translateX(-50%); transition:left .25s ease; }
+    .track input[type=range]{ position:absolute; left:0; right:0; top:4px; width:100%; margin:0; accent-color:var(--accent); background:transparent; }
+    .clock{ font-variant-numeric:tabular-nums; font-weight:800; font-size:17px; min-width:52px; text-align:center; flex:none; }
+    .tl-right{ display:flex; flex-direction:column; gap:6px; flex:none; }
+    .tl-right select{ width:132px; }
+    .mini{ font-size:11px; padding:6px 9px; }
+
+    /* bottom-right legend + mayor */
+    .legendbox{ right:14px; bottom:62px; width:210px; padding:12px 13px; }  /* bottom:62 leaves the corner for the ? help button */
+    .legendbox .ttl{ font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); font-weight:700; }
+    .legbar{ height:9px; border-radius:5px; margin:7px 0 3px;
+      background:linear-gradient(90deg,var(--calm),#3aa6a0,var(--warn),var(--bad)); }
+    .legrow{ display:flex; justify-content:space-between; font-size:10px; color:var(--mut); }
+    .legpins{ display:flex; gap:6px; margin-top:9px; font-size:10px; color:var(--mut); justify-content:space-between; }
+    .legpins .p{ display:flex; flex-direction:column; align-items:center; gap:1px; flex:1; }
+    .legbike{ width:38px; height:28px; display:block; }
+
+    /* attribution bottom-left */
+    .attrib{ position:absolute; left:14px; bottom:12px; z-index:4; font-size:10px; color:var(--mut2);
+      max-width:300px; line-height:1.35; text-shadow:0 1px 2px rgba(0,0,0,.5); pointer-events:none; }
+
+    /* tooltip */
+    #tip{ position:absolute; z-index:20; pointer-events:none; background:var(--glass2); color:var(--ink);
+      border:1px solid var(--line); border-radius:9px; padding:7px 10px; font-size:12px; box-shadow:var(--shadow);
+      display:none; max-width:210px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+    #tip b{ font-variant-numeric:tabular-nums; }
+    #tip .t-name{ font-weight:700; margin-bottom:1px; }
+    #tip .tip-cmp{ margin-top:3px; } #tip .tip-cmp .cmp{ font-size:11px; }
+    #tip .tip-cta{ margin-top:4px; font-size:11px; font-weight:700; color:var(--accent); }
+
+    .mayor-overlay text, .route-overlay text{ paint-order:stroke; }
+
+    /* mayor panel bits (compact — fits with no inner scrollbar) */
+    /* Mayor mode gets a taller panel so everything shows without an inner scrollbar */
+    .side.mayor-mode{ max-height: calc(100vh - 206px); }
+    #mayorPanel .sechead{ margin:9px 0 5px; }
+    .m-top{ display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+    .m-exit{ font:inherit; font-size:12px; font-weight:700; cursor:pointer; flex:none;
+      border:1px solid var(--line); background:var(--chip); color:var(--ink); border-radius:8px; padding:5px 9px; }
+    .m-exit:hover{ filter:brightness(1.1); }
+    .m-year{ flex:1; min-width:0; font-size:11px; color:var(--mut); display:flex; align-items:center; gap:7px; }
+    .m-year strong{ color:var(--ink); font-variant-numeric:tabular-nums; min-width:16px; text-align:right; }
+    .m-year input{ flex:1; min-width:0; accent-color:var(--accent); }
+
+    .budget{ height:9px; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--chip); }
+    .budget > div{ height:100%; width:0; background:linear-gradient(90deg,var(--good),var(--warn)); transition:width .4s; }
+    .budget.over > div{ background:var(--bad); }
+    .budrow{ display:flex; justify-content:space-between; font-size:11.5px; margin:4px 0 4px; }
+
+    /* 2x2 intervention cards (compact) */
+    .iv-grid{ display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .iv-card{ position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:1px; text-align:left; font:inherit;
+      border:1px solid var(--line); background:var(--chip); color:var(--ink); border-radius:10px; padding:6px 8px; cursor:pointer;
+      transition:border-color .15s, background .15s, transform .08s; }
+    .iv-card:hover{ filter:brightness(1.06); }
+    .iv-card.armed{ border-color:var(--accent); background:rgba(76,198,212,.18); box-shadow:0 0 0 1px var(--accent) inset; }
+    .iv-card.placed{ border-color:var(--good); }
+    .iv-card.disabled{ opacity:.45; cursor:not-allowed; }
+    .iv-title{ display:flex; align-items:center; gap:6px; }
+    .iv-ic{ font-size:15px; line-height:1; }
+    .iv-name{ font-weight:700; font-size:12px; }
+    .iv-desc{ font-size:10px; color:var(--mut); line-height:1.2; margin-top:1px; }
+    .iv-cost{ font-size:10px; color:var(--mut2); margin-top:1px; font-variant-numeric:tabular-nums; }
+    .iv-placed-badge{ position:absolute; bottom:7px; right:7px; font-size:8.5px; font-weight:800; color:var(--good);
+      background:rgba(47,158,111,.18); border-radius:5px; padding:1px 5px; display:none; }
+    .iv-card.placed .iv-placed-badge{ display:block; }
+    .iv-over{ position:absolute; bottom:7px; right:7px; font-size:8.5px; font-weight:800; color:var(--bad);
+      background:rgba(192,57,43,.18); border-radius:5px; padding:1px 5px; display:none; }
+    .iv-card.disabled:not(.placed) .iv-over{ display:block; }
+    .m-actions{ display:flex; gap:7px; margin:8px 0 2px; } .m-actions .mini{ flex:1; }
+
+    /* results */
+    .m-empty{ text-align:center; font-size:12.5px; color:var(--mut); padding:16px 8px 6px; line-height:1.4; }
+    .mkpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin:10px 0 9px; }
+    .mkpi{ border:1px solid var(--line); background:var(--chip); border-radius:11px; padding:8px 9px; }
+    .mkpi .k{ font-size:9.5px; text-transform:uppercase; letter-spacing:.02em; color:var(--mut); white-space:nowrap; display:flex; align-items:center; gap:2px; }
+    .mkpi .v{ font-size:17px; font-weight:800; margin-top:2px; font-variant-numeric:tabular-nums; }
+    .mkpi .v.good{ color:var(--good); }
+    .m-stat{ display:flex; align-items:center; justify-content:space-between; gap:8px;
+      border:1px solid var(--line); background:var(--chip); border-radius:10px; padding:7px 10px; margin-bottom:7px; }
+    .m-stat-k{ font-size:11px; color:var(--mut); display:flex; align-items:center; gap:3px; }
+    .m-stat-v{ font-size:14px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .m-stat-v .arr{ color:var(--mut2); margin:0 1px; } .m-stat-v b{ color:var(--good); } .m-stat-v .m-unit{ font-size:10px; color:var(--mut); }
+    #m-commute-route{ color:var(--mut2); font-size:10px; }
+    /* benefit bar list */
+    .mb-row{ display:grid; grid-template-columns:70px 1fr 34px; align-items:center; gap:7px; margin:4px 0; font-size:11px; }
+    .mb-name{ color:var(--mut); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mb-bar{ height:9px; border-radius:5px; background:var(--chip); overflow:hidden; }
+    .mb-bar > span{ display:block; height:100%; background:linear-gradient(90deg,#2f9e6f,#3aa6a0); border-radius:5px; transition:width .6s; }
+    .mb-val{ text-align:right; font-variant-numeric:tabular-nums; color:var(--ink); }
+    #mayorPanel .lineage-btn{ margin-top:10px; }
+    /* a district that can receive the armed project */
+    path.district.placeable{ stroke:var(--accent); stroke-width:1.8; stroke-dasharray:4 3; }
+    .mayor-overlay text{ cursor:pointer; }
+    /* route-mode directions bits */
+    .gorow{ display:flex; gap:6px; align-items:stretch; } .gorow .block{ flex:1; }
+    .gorow .mini{ flex:none; white-space:nowrap; }
+    .ctl.placeholder{ color:var(--mut); }
+    /* alternative-route list in the panel */
+    .rlist{ display:flex; flex-direction:column; gap:5px; margin:2px 0 4px; }
+    .ritem{ display:flex; align-items:center; gap:8px; width:100%; text-align:left; font:inherit; cursor:pointer;
+      border:1px solid var(--line); background:var(--chip); color:var(--ink); border-radius:9px; padding:7px 9px; }
+    .ritem:hover{ filter:brightness(1.08); } .ritem.sel{ border-color:var(--accent); background:rgba(76,198,212,.14); }
+    .ritem .swatch{ width:10px; height:10px; border-radius:3px; flex:none; }
+    .ritem .rname{ flex:1; min-width:0; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ritem .rrisk{ font-size:11px; font-variant-numeric:tabular-nums; color:var(--mut); }
+    .ritem.sel .rrisk{ color:var(--ink); font-weight:700; }
+    .samemsg{ text-align:center; padding:16px 8px; color:var(--mut); font-size:13px; line-height:1.4; }
+
+    .loading{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:30;
+      background:var(--glass2); border:1px solid var(--line); border-radius:12px; padding:10px 16px; font-size:13px;
+      box-shadow:var(--shadow); display:none; }
+    .loading.on{ display:block; }
+    .loading.err{ color:var(--bad); }
+
+    /* ------- phone: side panel becomes a bottom sheet; timeline stays bottom ------- */
+    @media (max-width: 720px){
+      .directions{ left:10px; right:10px; top:10px; width:auto; }
+      .layers{ top:154px; left:10px; right:10px; transform:none; width:auto; justify-content:flex-start;
+        overflow-x:auto; -webkit-overflow-scrolling:touch; }
+      .tidecard, .legendbox{ display:none; }         /* tide lives in the Tide layer + card; legend hidden to save space */
+      .attrib{ display:none; }                         /* OSM credit kept on desktop; hidden on narrow phones */
+      /* timeline wraps to two rows so nothing collides on a narrow screen */
+      .timeline{ bottom:8px; left:10px; right:10px; width:auto; transform:none; flex-wrap:wrap; gap:8px 10px; padding:10px 12px; }
+      .timeline .trackwrap{ min-width:150px; }
+      .tl-right{ flex-basis:100%; flex-direction:row; width:100%; gap:8px; }
+      .tl-right select{ flex:1; width:auto; }
+      .tl-right .mini{ flex:none; }
+      /* bottom sheet sits ABOVE the timeline (timeline always visible at the very bottom) */
+      .side{ left:0; right:0; bottom:128px; top:auto; width:auto; max-height:calc(100vh - 340px);
+        border-radius:18px 18px 0 0; transform:translateY(calc(100% - 46px)); transition:transform .28s ease; }
+      .side.open{ transform:translateY(0); }
+      .side .head{ cursor:pointer; }
+      .side .body{ max-height:calc(100vh - 400px); }
+    }
+    @media (prefers-reduced-motion: reduce){
+      path.district{ transition:none; } path.district.flooded{ animation:none; }
+      .gauge .fill{ transition:none; } .track .sweep{ transition:none; } .side{ transition:none; }
+    }
+
+    /* -------- onboarding tour (plain JS/CSS, self-contained) -------- */
+    .tour-dim{ position:absolute; inset:0; z-index:9000; background:rgba(6,12,24,.62); pointer-events:none; }
+    .tour-overlay{ position:absolute; inset:0; z-index:9001; pointer-events:none; }
+    .tour-spot{ position:absolute; border-radius:14px; pointer-events:none;
+      box-shadow: 0 0 0 3px rgba(76,198,212,.85), 0 0 0 9999px rgba(6,12,24,.62), 0 0 26px 8px rgba(76,198,212,.38);
+      transition: top .34s cubic-bezier(.4,0,.2,1), left .34s cubic-bezier(.4,0,.2,1), width .34s, height .34s; }
+    .tour-tip{ position:absolute; z-index:9002; pointer-events:auto; width:274px; max-width:calc(100vw - 24px);
+      background:var(--glass2); backdrop-filter:blur(18px) saturate(1.2); -webkit-backdrop-filter:blur(18px) saturate(1.2);
+      border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:14px 15px; color:var(--ink);
+      transition: top .3s ease, left .3s ease; outline:none; }
+    .tour-tip .thead{ display:flex; align-items:center; gap:9px; margin-bottom:6px; }
+    .tour-tip .tbike{ width:30px; height:22px; flex:none; }
+    .tour-tip h4{ font-size:14px; margin:0; font-weight:800; letter-spacing:.1px; }
+    .tour-tip p{ font-size:12.5px; line-height:1.4; color:var(--mut); margin:0 0 13px; }
+    .tour-tip .trow{ display:flex; align-items:center; gap:8px; }
+    .tour-tip .count{ font-size:11px; color:var(--mut2); font-variant-numeric:tabular-nums; }
+    .tour-tip .hintaction{ font-size:11.5px; color:var(--accent); font-weight:700; }
+    .tour-tip .tspacer{ flex:1; }
+    .tour-btn{ font:inherit; font-size:12.5px; cursor:pointer; border-radius:9px; padding:7px 13px;
+      border:1px solid var(--line); background:var(--chip); color:var(--ink); font-weight:600; }
+    .tour-btn:hover{ filter:brightness(1.08); }
+    .tour-btn.primary{ background:var(--accent); color:var(--accent-ink); border-color:transparent; font-weight:800; }
+    .tour-skip{ background:transparent; border:0; color:var(--mut); cursor:pointer; font:inherit; font-size:12px; padding:6px 4px; }
+    .tour-skip:hover{ color:var(--ink); }
+    .tour-help{ position:absolute; right:16px; bottom:16px; z-index:8000; width:38px; height:38px; border-radius:50%;
+      border:1px solid var(--line); background:var(--glass); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+      color:var(--ink); font-size:17px; font-weight:800; cursor:pointer; box-shadow:var(--shadow); line-height:1; }
+    .tour-help:hover{ filter:brightness(1.1); }
+    .tour-tip .tbike .bike .bike-water{ transition:none; }
+    @media (prefers-reduced-motion: reduce){
+      .tour-spot{ transition:none; } .tour-tip{ transition:none; }
+    }
+    @media (max-width: 720px){
+      .tour-help{ right:14px; bottom:150px; }   /* clear of the timeline + bottom sheet */
+    }
+
+    /* -------- #1 Inspect ⓘ + popover -------- */
+    .insp{ font:inherit; font-size:11px; line-height:1; cursor:pointer; border:0; background:transparent;
+      color:var(--accent); padding:1px 2px; border-radius:4px; vertical-align:baseline; }
+    .insp:hover{ color:var(--ink); background:var(--chip); }
+    .chip-metric .cmp-wrap{ margin-top:2px; min-height:13px; }
+    .lineage-btn{ width:100%; margin:12px 0 2px; font-size:12.5px; }
+    .inspect{ position:absolute; z-index:9500; right:14px; top:14px; width:360px; max-width:calc(100vw - 28px);
+      max-height:calc(100vh - 28px); display:none; flex-direction:column; overflow:hidden;
+      background:var(--glass2); backdrop-filter:blur(18px) saturate(1.2); -webkit-backdrop-filter:blur(18px) saturate(1.2);
+      border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); color:var(--ink); }
+    .inspect.on{ display:flex; }
+    .inspect-head{ display:flex; align-items:center; gap:9px; padding:12px 14px; border-bottom:1px solid var(--line); }
+    .inspect-head h3{ margin:0; font-size:14px; font-weight:800; flex:1; }
+    .insp-badge-top{ font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-ink);
+      background:var(--accent); border-radius:6px; padding:2px 7px; }
+    .inspect-body{ padding:13px 14px; overflow:auto; }
+    .insp-badge{ display:inline-block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+      color:var(--accent); border:1px solid var(--accent); border-radius:999px; padding:2px 8px; margin-bottom:8px; opacity:.9; }
+    .insp-name{ font-size:14px; } .insp-name code{ font-size:11px; color:var(--mut); }
+    .insp-desc{ font-size:12px; color:var(--mut); margin:6px 0 0; }
+    .insp-k{ font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); font-weight:700; margin:12px 0 5px; }
+    .insp-code{ margin:0; background:rgba(120,160,210,.12); border:1px solid var(--line); border-radius:9px; padding:9px 10px;
+      font:12px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace; white-space:pre-wrap; word-break:break-word; color:var(--ink); }
+    .insp-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+    .insp-chip{ font:inherit; font-size:11.5px; cursor:pointer; border:1px solid var(--line); background:var(--chip);
+      color:var(--ink); border-radius:8px; padding:5px 9px; }
+    .insp-chip:hover{ border-color:var(--accent); }
+    /* lineage chain */
+    .lin-chain{ display:flex; flex-direction:column; align-items:stretch; }
+    .lin-node{ display:flex; align-items:center; gap:10px; text-align:left; font:inherit; cursor:pointer; width:100%;
+      border:1px solid var(--line); background:var(--chip); border-radius:11px; padding:9px 11px; color:var(--ink); }
+    .lin-node:hover{ border-color:var(--accent); }
+    .lin-step{ width:20px; height:20px; border-radius:50%; background:var(--accent); color:var(--accent-ink);
+      font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex:none; }
+    .lin-main{ flex:1; min-width:0; } .lin-main b{ font-size:12.5px; display:block; }
+    .lin-main code{ font-size:10.5px; color:var(--mut); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .lin-insp{ color:var(--accent); font-size:13px; flex:none; }
+    .lin-arrow{ text-align:center; color:var(--mut2); font-size:12px; line-height:1.4; }
+
+    /* -------- #2 comparison pill -------- */
+    .cmp{ display:inline-block; font-size:10.5px; font-weight:700; padding:1px 6px; border-radius:999px; }
+    .cmp.up{ color:#ff8a7a; background:rgba(192,57,43,.16); }
+    .cmp.down{ color:#4fd1a6; background:rgba(47,158,111,.18); }
+    .cmp.flat{ color:var(--mut); background:var(--chip); }
+    .cmp.none{ color:var(--mut2); font-weight:600; }
+
+    /* -------- city summary: worst-district drill row + back link -------- */
+    .worst-row{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; font:inherit; cursor:pointer;
+      border:1px solid var(--line); background:var(--chip); color:var(--ink); border-radius:12px; padding:9px 11px; margin:2px 0 10px;
+      transition:border-color .15s, background .15s; }
+    .worst-row:hover{ border-color:var(--accent); background:rgba(76,198,212,.12); }
+    .worst-row .em.sm{ width:40px; height:30px; flex:none; }
+    .worst-txt{ flex:1; min-width:0; }
+    .worst-txt .k{ font-size:10px; text-transform:uppercase; letter-spacing:.03em; color:var(--mut); display:flex; align-items:center; gap:3px; }
+    .worst-name{ font-size:14px; margin-top:1px; } .worst-name b{ font-weight:800; }
+    .worst-risk{ color:var(--mut); font-variant-numeric:tabular-nums; font-size:12px; }
+    .drill-cta{ font-size:11.5px; font-weight:700; color:var(--accent); flex:none; max-width:42%; text-align:right; }
+    .threshold-note{ display:block; } /* stack the two lines instead of side-by-side */
+    .threshold-note .thr-main{ font-size:12.5px; color:var(--ink); white-space:nowrap; }
+    .threshold-note .thr-sub{ font-size:11px; color:var(--mut); margin-top:2px; }
+    .threshold-note .thr-i{ color:var(--accent); }
+    .citylink{ font:inherit; font-size:12px; font-weight:700; color:var(--accent); background:transparent; border:0;
+      cursor:pointer; padding:0 0 8px; display:inline-flex; align-items:center; gap:3px; }
+    .citylink:hover{ filter:brightness(1.15); }
+    #cityHourly{ width:100%; }
+
+    /* -------- #5 Anfra Lens badges -------- */
+    /* gentle first-visit pulse to advertise the Lens */
+    @keyframes lenspulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(76,198,212,0), var(--shadow); }
+      50%{ box-shadow:0 0 0 7px rgba(76,198,212,.28), var(--shadow); } }
+    .lens-btn.pulse{ animation:lenspulse 1.9s ease-in-out infinite; border-color:var(--accent); }
+    @media (prefers-reduced-motion: reduce){ .lens-btn.pulse{ animation:none; } }
+    .lens-btn{ position:absolute; right:62px; bottom:16px; z-index:8000; height:38px; border-radius:19px; padding:0 14px;
+      border:1px solid var(--line); background:var(--glass); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+      color:var(--ink); font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; box-shadow:var(--shadow); }
+    .lens-btn[aria-pressed="true"]{ background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+    .lens-on [data-lens]{ position:relative; outline:1.5px dashed rgba(76,198,212,.7); outline-offset:1px; border-radius:8px; }
+    .lens-on [data-lens]::before{ content:attr(data-lens); position:absolute; top:-9px; left:8px; z-index:50;
+      font-size:9.5px; font-weight:800; letter-spacing:.03em; color:var(--accent-ink); background:var(--accent);
+      padding:1px 6px; border-radius:6px; white-space:nowrap; pointer-events:none; box-shadow:0 1px 4px rgba(0,0,0,.3); }
+    .lens-on #map[data-lens]::before{ top:64px; left:50%; transform:translateX(-50%); }
+    @media (max-width: 720px){ .lens-btn{ right:60px; bottom:150px; } }
+  </style>
+</head>
+<body>
+<div id="app">
+  <svg id="map" data-anfra-label="City flood map" data-lens="Cross-filter + Drill-down"></svg>
+  <canvas id="rain" data-anfra-render="skip"></canvas>
+  <div id="labels"></div>
+  <div id="tip"></div>
+  <div class="loading" id="loading">Loading…</div>
+
+  <!-- TOP-LEFT: directions -->
+  <div class="float directions" data-anfra-container="trip" data-anfra-label="Trip">
+    <div class="brandrow">
+      <span style="font-size:18px">🛵</span>
+      <h1>Leave now or wait?</h1>
+      <span class="sim">Simulated</span>
+    </div>
+    <div class="fromto">
+      <div class="f"><label>From</label><select id="from-sel" class="ctl" data-anfra-control="from"></select></div>
+      <div class="arrow">→</div>
+      <div class="f"><label>To</label><select id="to-sel" class="ctl" data-anfra-control="to"></select></div>
+    </div>
+    <div class="gorow">
+      <button class="btn primary block" id="go-leave">Leave now or wait? →</button>
+      <button class="btn mini" id="clear-route" style="display:none" title="Clear route">✕ Clear route</button>
+    </div>
+  </div>
+
+  <!-- TOP-CENTRE: layer chips -->
+  <div class="float layers" data-anfra-container="layers" data-anfra-label="Map layers">
+    <button class="lchip" id="layer-rain"    aria-pressed="true"><span class="dot"></span>Rain</button>
+    <button class="lchip" id="layer-tide"    aria-pressed="true"><span class="dot"></span>Tide</button>
+    <button class="lchip" id="layer-flooded" aria-pressed="true"><span class="dot"></span>Flooded streets</button>
+    <button class="lchip" id="layer-traffic" aria-pressed="false"><span class="dot"></span>Traffic</button>
+  </div>
+
+  <!-- TOP-RIGHT: tide gauge -->
+  <div class="float tidecard" id="tidecard" data-anfra-label="Tide" data-lens="Governed metric">
+    <div class="ttl">Tide now <button class="insp" data-inspect="peak_tide_m" title="Inspect">ⓘ</button></div>
+    <div class="tidewrap">
+      <div class="gauge"><div class="mid"></div><div class="fill" id="tide-fill" style="height:30%"></div></div>
+      <div class="tideinfo">
+        <div class="dir" id="tide-dir">—</div>
+        <div class="peak" id="tide-peak">—</div>
+        <div class="lvl" id="tide-lvl">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEFT: collapsible panel (district card / route results / mayor) -->
+  <aside class="float side" id="side" data-anfra-container="panel" data-anfra-label="Details">
+    <div class="head" id="side-head">
+      <div style="flex:1; min-width:0">
+        <h2 class="ttl" id="side-title">Tap a district</h2>
+        <div class="sub" id="side-sub">Pick anywhere on the map</div>
+      </div>
+      <button class="iconbtn" id="side-collapse" title="Collapse">▾</button>
+    </div>
+    <div class="body" id="side-body">
+
+      <!-- EXPLORE / district card -->
+      <div id="card">
+        <!-- CITY SUMMARY (no clicks needed) — every line a governed metric with ⓘ Inspect -->
+        <div id="card-empty">
+          <div class="chips" data-lens="Governed metric + Inspect">
+            <div class="chip-metric" data-lens="Period comparison">
+              <div class="k">Flood risk <button class="insp" data-inspect="flood_risk" data-inspect-q="cityFlood" title="Inspect">ⓘ</button></div>
+              <div class="v" id="city-risk">—</div><div class="cmp-wrap" id="city-risk-cmp"></div></div>
+            <div class="chip-metric">
+              <div class="k">Flooded roads <button class="insp" data-inspect="flooded_road_km" data-inspect-q="cityFlood" title="Inspect">ⓘ</button></div>
+              <div class="v" id="city-km">—</div><div class="mag">km across the city</div></div>
+            <div class="chip-metric" data-lens="Period comparison">
+              <div class="k">Commute delay <button class="insp" data-inspect="commute_delay_min" data-inspect-q="cardCommute" title="Inspect">ⓘ</button></div>
+              <div class="v" id="city-delay">—</div><div class="cmp-wrap" id="city-delay-cmp"></div></div>
+            <div class="chip-metric">
+              <div class="k">Delay cost <button class="insp" data-inspect="delay_cost_vnd" data-inspect-q="cardCommute" title="Inspect">ⓘ</button></div>
+              <div class="v" id="city-cost">—</div><div class="mag">city · this evening</div></div>
+          </div>
+
+          <div class="worst-row" id="city-worst" role="button" tabindex="0" data-lens="Drill-down">
+            <span class="em sm" id="city-worst-bike"></span>
+            <div class="worst-txt">
+              <div class="k">Worst district now</div>
+              <div class="worst-name"><b id="city-worst-name">—</b> <span class="worst-risk" id="city-worst-risk"></span>
+                <button class="insp" data-inspect="district_wet_socks" data-inspect-q="mapRisk" title="Inspect">ⓘ</button></div>
+            </div>
+            <span class="drill-cta" id="city-worst-cta">See flooded streets →</span>
+          </div>
+
+          <div class="note threshold-note" data-inspect="flood_threshold_cm">
+            <div class="thr-main"><b>Flooded = water ≥ 20 cm</b></div>
+            <div class="thr-sub">One definition used everywhere <span class="thr-i">ⓘ</span></div>
+          </div>
+
+          <div class="sechead" style="margin-top:12px">Flood risk by hour
+            <button class="insp" data-inspect="flood_risk" data-inspect-q="hourly" title="Inspect">ⓘ</button></div>
+          <div id="cityHourly" style="height:150px"></div>
+        </div>
+        <div id="card-detail" style="display:none">
+          <button class="citylink" id="back-city">← City</button>
+          <div class="verdict inspectable" data-anfra-block="verdict" data-anfra-query="mapRisk">
+            <div class="em" id="v-bike"></div>
+            <div style="min-width:0">
+              <div class="lab" id="v-lab">—</div><div class="det" id="v-det"></div>
+              <div class="sockscale"><span class="sockbars" id="v-scale"></span><span class="socklab" id="v-scale-lab"></span></div>
+            </div>
+          </div>
+
+          <div class="depthline inspectable" data-anfra-block="depth" data-anfra-query="cardFlood">
+            <span>Water:</span><b id="d-depth">—</b>
+            <span class="depthtag" id="d-tag">—</span>
+          </div>
+
+          <div class="chips" data-lens="Governed metric + Inspect">
+            <div class="chip-metric" data-lens="Period comparison">
+              <div class="k">Flood risk <button class="insp" id="tour-insp" data-inspect="flood_risk" title="Inspect">ⓘ</button></div>
+              <div class="v" id="c-risk">—</div><div class="cmp-wrap" id="c-risk-cmp"></div></div>
+            <div class="chip-metric">
+              <div class="k">Flooded roads <button class="insp" data-inspect="flooded_road_km" title="Inspect">ⓘ</button></div>
+              <div class="v" id="c-km">—</div><div class="mag">km flooded now</div></div>
+            <div class="chip-metric" data-lens="Period comparison">
+              <div class="k">Commute delay <button class="insp" data-inspect="commute_delay_min" title="Inspect">ⓘ</button></div>
+              <div class="v" id="c-delay">—</div><div class="cmp-wrap" id="c-delay-cmp"></div></div>
+            <div class="chip-metric">
+              <div class="k">Delay cost <button class="insp" data-inspect="delay_cost_vnd" title="Inspect">ⓘ</button></div>
+              <div class="v" id="c-cost">—</div><div class="mag">city · this evening</div></div>
+          </div>
+
+          <button class="btn block lineage-btn" id="lineage-btn" data-lens="Lineage">🧮 How is this calculated?</button>
+
+          <div class="sechead" style="margin-top:12px"><span id="bk-head">What's driving the water here?</span> <button class="insp" data-inspect="depth_from_drainage_cm" title="Inspect">ⓘ</button></div>
+          <div data-lens="Governed metric">
+            <div class="bk-row"><span class="lab">Rain on the road</span><div class="bk-bar"><span id="bk-rain" style="background:#5aa9ff"></span></div><span class="pct" id="bk-rain-p">—</span></div>
+            <div class="bk-row"><span class="lab">Drains can't cope</span><div class="bk-bar"><span id="bk-drain" style="background:#f0b429"></span></div><span class="pct" id="bk-drain-p">—</span></div>
+            <div class="bk-row"><span class="lab">Tide backing up</span><div class="bk-bar"><span id="bk-tide" style="background:#4cc6d4"></span></div><span class="pct" id="bk-tide-p">—</span></div>
+          </div>
+
+          <div class="note" id="thr-note" data-inspect="flood_threshold_cm">
+            ⓘ <span id="thr-text">Flooded = water ≥ 20 cm</span>
+          </div>
+
+          <!-- #3 drill-down leaf: a selected segment's hourly water-depth readings -->
+          <div id="segdrill" style="display:none; margin-top:14px" data-lens="Drill-down">
+            <div class="sechead">Hourly depth — <span id="segdrill-name">segment</span>
+              <button class="insp" data-inspect="modeled_water_depth_cm" data-inspect-q="segHourly" title="Inspect">ⓘ</button></div>
+            <div id="segHourly" style="height:140px"></div>
+          </div>
+
+          <div class="sechead" style="margin-top:14px">Flood risk by hour
+            <button class="insp" data-inspect="flood_risk" data-inspect-q="hourly" title="Inspect">ⓘ</button></div>
+          <div id="hourly" style="height:160px"></div>
+        </div>
+      </div>
+
+      <!-- LEAVE / route results -->
+      <div id="leavePanel" style="display:none">
+        <div class="samemsg" id="same-msg" style="display:none">🛵 That's the same place. Pick a different destination to see a route.</div>
+        <div id="leave-results">
+        <div class="verdict inspectable" data-anfra-block="verdict" data-anfra-query="leaveProfiles">
+          <div class="em" id="l-bike"></div>
+          <div style="min-width:0">
+            <div class="lab" id="l-head">—</div><div class="det" id="l-det"></div>
+            <div class="sockscale"><span class="sockbars" id="l-scale"></span><span class="socklab" id="l-scale-lab"></span></div>
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <label style="font-size:11px;color:var(--mut)">Routes for this trip — tap one</label>
+          <div class="rlist" id="route-list"></div>
+          <select id="route-sel" class="ctl" style="display:none"></select>
+        </div>
+        <div class="chips">
+          <div class="chip-metric" data-lens="Period comparison"><div class="k">Flood risk <button class="insp" data-inspect="rh_route_risk" title="Inspect">ⓘ</button></div><div class="v" id="l-risk">—</div><div class="cmp-wrap" id="l-risk-cmp"></div></div>
+          <div class="chip-metric"><div class="k">Flooded streets <button class="insp" data-inspect="rh_flooded_streets" title="Inspect">ⓘ</button></div><div class="v" id="l-streets">—</div><div class="mag">on route</div></div>
+          <div class="chip-metric"><div class="k">Expected delay <button class="insp" data-inspect="rh_delay_min" title="Inspect">ⓘ</button></div><div class="v" id="l-delay">—</div><div class="mag">minutes</div></div>
+          <div class="chip-metric"><div class="k">Wet-socks <button class="insp" data-inspect="rh_wet_socks_index" title="Inspect">ⓘ</button></div><div class="v" id="l-wet">—</div><div class="mag">1–5</div></div>
+        </div>
+        <div class="sechead">Delay by departure hour</div>
+        <div id="leaveChart"></div>
+        <p class="hint" style="margin-top:9px">The 🛵 on the map rides your route, coloured by its flood risk right now. Compares preset routes across departure hours — all from governed route metrics.</p>
+        </div>
+      </div>
+
+      <!-- MAYOR -->
+      <div id="mayorPanel" style="display:none">
+        <div class="m-top">
+          <button class="m-exit" id="m-exit" title="Back to the map">‹ Back</button>
+          <label class="m-year">Years from now <strong id="m-year-lab">0</strong>
+            <input id="m-year" type="range" min="0" max="15" step="1" value="0" data-anfra-control="years"></label>
+        </div>
+        <div class="budget" title="Budget"><div id="budget-bar"></div></div>
+        <div class="budrow"><span id="budget-spent">0 B₫ spent</span><span id="budget-cap" style="color:var(--mut)"></span></div>
+
+        <div class="sechead" id="iv-head">Pick a project, then tap a district</div>
+        <div id="iv-cards" class="iv-grid"></div>
+        <div class="m-actions">
+          <button class="btn mini" id="m-sample">✨ Try a sample plan</button>
+          <button class="btn mini" id="m-reset">↺ Reset</button>
+        </div>
+
+        <!-- RESULTS (all governed Layer-5 metrics, each ⓘ → Inspect) -->
+        <div id="m-empty" class="m-empty">🏗️ Place your first project to see what you save.</div>
+        <div id="m-filled" style="display:none">
+          <div class="mkpis" data-lens="Governed metric + Inspect">
+            <div class="mkpi"><div class="k">Hrs / mo <button class="insp" data-inspect="flooded_hours_avoided" title="Inspect">ⓘ</button></div><div class="v good" id="m-avoided">—</div></div>
+            <div class="mkpi"><div class="k">Saved / yr <button class="insp" data-inspect="delay_cost_saved_vnd_annual" title="Inspect">ⓘ</button></div><div class="v good" id="m-saved">—</div></div>
+            <div class="mkpi"><div class="k">ROI <button class="insp" data-inspect="intervention_roi" title="Inspect">ⓘ</button></div><div class="v" id="m-roi">—</div></div>
+          </div>
+          <div class="m-stat" data-lens="Governed metric + Inspect">
+            <div class="m-stat-k">Worst evening <button class="insp" data-inspect="flooded_hours_baseline" title="Inspect">ⓘ</button></div>
+            <div class="m-stat-v"><span id="m-worst-before">—</span> <span class="arr">→</span> <b id="m-worst-after">—</b> <span class="m-unit">flooded hrs</span></div>
+          </div>
+          <div class="m-stat" data-lens="Governed metric + Inspect">
+            <div class="m-stat-k">Your commute <span id="m-commute-route"></span> <button class="insp" data-inspect="route_delay_after_min" title="Inspect">ⓘ</button></div>
+            <div class="m-stat-v"><span id="m-commute-before">—</span> <span class="arr">→</span> <b id="m-commute-after">—</b> <span class="m-unit">min delay</span></div>
+          </div>
+          <div class="sechead" style="margin-top:12px">Where it helps most <button class="insp" data-inspect="flooded_hours_avoided" title="Inspect">ⓘ</button></div>
+          <div id="m-benefit-list" class="inspectable" data-anfra-block="m-benefit" data-anfra-query="mayorBenefit"></div>
+          <button class="btn block lineage-btn" id="m-lineage-btn" data-lens="Lineage">🧮 How is this calculated?</button>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- BOTTOM: timeline (weather radar) -->
+  <div class="float timeline" data-anfra-container="time" data-anfra-label="Time" data-lens="Cross-filter (time)">
+    <button class="play" id="play" title="Play" data-anfra-control="hour">▶</button>
+    <span class="clock" id="clock">21:00</span>
+    <div class="trackwrap">
+      <div class="trackrow"><span>15:00</span><span>17:00</span><span>19:00</span><span>21:00</span><span>23:00</span></div>
+      <div class="track">
+        <div class="rail"></div>
+        <div class="sweep" id="sweep"></div>
+        <input type="range" id="scrubber" min="15" max="23" step="1" value="21" data-anfra-control="hour" aria-label="Hour">
+      </div>
+    </div>
+    <div class="tl-right">
+      <select id="evening" class="ctl" data-anfra-control="evening"></select>
+      <button class="btn mini" id="replay">⛈️ Replay the worst evening</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM-RIGHT: legend + mayor -->
+  <div class="float legendbox" data-anfra-container="legend" data-anfra-label="Legend">
+    <div class="ttl">Flood risk (share of roads)</div>
+    <div class="legbar"></div>
+    <div class="legrow"><span>calm</span><span>severe</span></div>
+    <div class="ttl" style="margin-top:10px">Depth pins</div>
+    <div class="legpins" id="legpins"></div>
+    <button class="btn block" id="go-mayor">🏛️ Mayor for a day</button>
+  </div>
+
+  <!-- Anfra Lens toggle (off by default), sits by the "?" help button -->
+  <button class="lens-btn" id="lens-btn" aria-pressed="false" title="Anfra Lens — show the feature behind each element">🔍 Lens</button>
+
+  <!-- in-app Inspect / lineage popover (driven by Anfra.lineage + query.debug) -->
+  <div class="inspect" id="inspect">
+    <div class="inspect-head"><span class="insp-badge-top">anfra</span><h3 id="insp-title">Inspect</h3>
+      <button class="iconbtn" id="insp-close" title="Close">✕</button></div>
+    <div class="inspect-body" id="insp-body"></div>
+  </div>
+
+  <div class="attrib">Map data © OpenStreetMap contributors · boundaries pre-2025 · flood values simulated</div>
+</div>
+
+<script>
+(function(){
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isPhone = () => window.matchMedia('(max-width: 720px)').matches;
+  let DEFAULT_EVENING = '2026-10-02', DEFAULT_HOUR = 21, WORST_EVENING = '2026-10-02', WORST_HOUR = 21;
+
+  const app = Anfra.createApp({ title: 'Leave Now or Wait?' });
+
+  // ---------------------------------------------------------------- queries
+  const mapRisk = app.createQuery('mapRisk', { dataset:'flood', aql:`
+    explore { dimensions { district: districts.name } measures { risk: flood_risk, wet: district_wet_socks } }` });
+  const mapRain = app.createQuery('mapRain', { dataset:'flood', aql:`
+    explore { dimensions { district: districts.name } measures { rain: rainfall_mm } }` });
+  const trafficMap = app.createQuery('trafficMap', { dataset:'flood', aql:`
+    explore { dimensions { district: districts.name } measures { traffic: traffic_volume } }` });
+  const tideSeries = app.createQuery('tideSeries', { dataset:'flood', aql:`
+    explore { dimensions { hour: tide_hourly.hour } measures { tide: peak_tide_m } sorts { hour asc } }` });
+  const hourly = app.createQuery('hourly', { dataset:'flood', aql:`
+    explore { dimensions { hour: modeled_segment_readings.hour } measures { risk: flood_risk } sorts { hour asc } }` });
+  const cardFlood = app.createQuery('cardFlood', { dataset:'flood', aql:`
+    explore { dimensions { district: districts.name }
+      measures { risk: flood_risk, floodedKm: flooded_road_km, depth: modeled_water_depth_cm, bucket: depth_bucket } }` });
+  const cardCommute = app.createQuery('cardCommute', { dataset:'flood', aql:`
+    explore { measures { delay: commute_delay_min, cost: delay_cost_vnd } }` });
+  // city-wide totals for the "Tonight across the city" summary (no district dimension, not cross-filtered)
+  const cityFlood = app.createQuery('cityFlood', { dataset:'flood', aql:`
+    explore { measures { risk: flood_risk, floodedKm: flooded_road_km } }` });
+  const cityFloodPrev = app.createQuery('cityFloodPrev', { dataset:'flood', aql:`
+    explore { measures { risk: flood_risk } }` });
+  // per-district flood risk 7 days earlier — for the hover tooltip's period comparison
+  const mapRiskPrev = app.createQuery('mapRiskPrev', { dataset:'flood', aql:`
+    explore { dimensions { district: districts.name } measures { risk: flood_risk } }` });
+  const breakdown = app.createQuery('breakdown', { dataset:'flood', aql:`
+    explore { dimensions { district: districts.name }
+      measures { rain: depth_from_rain_cm, drain: depth_from_drainage_cm, tide: depth_from_tide_cm } }` });
+  const threshold = app.createQuery('threshold', { dataset:'flood', aql:`
+    explore { measures { thr: flood_threshold_cm } }` });
+  const segPins = app.createQuery('segPins', { dataset:'flood', aql:`
+    explore { dimensions { seg_id: modeled_segment_readings.segment_id, seg: road_segments.name }
+      measures { depth: modeled_water_depth_cm, bucket: depth_bucket } sorts { depth desc } }` });
+  const worstScan = app.createQuery('worstScan', { dataset:'flood', aql:`
+    explore { dimensions { evening: modeled_segment_readings.evening, hour: modeled_segment_readings.hour }
+      measures { risk: flood_risk } sorts { risk desc } }` });
+
+  // leave mode
+  const routesList = app.createQuery('routesList', { dataset:'flood', aql:`
+    explore { dimensions { from: route_hour_conditions.from_name, to: route_hour_conditions.to_name,
+      route: route_hour_conditions.route_name, route_id: route_hour_conditions.route_id }
+      measures { n: count(route_hour_conditions.route_id) } sorts { from asc, route asc } }` });
+  const leaveProfiles = app.createQuery('leaveProfiles', { dataset:'flood', aql:`
+    explore { dimensions { route_id: route_hour_conditions.route_id, route: route_hour_conditions.route_name, hour: route_hour_conditions.hour }
+      measures { risk: rh_route_risk, delay: rh_delay_min, streets: rh_flooded_streets, wet: rh_wet_socks_index }
+      sorts { route asc, hour asc } }` });
+  const routeSeq = app.createQuery('routeSeq', { dataset:'flood', aql:`
+    explore { dimensions { seq: route_district_seq.seq, district: route_district_seq.district }
+      measures { n: count(route_district_seq.route_id) } sorts { seq asc } }` });
+  // every route's district order (route_steps order) — used to trace each route along real streets
+  const routeSeqAll = app.createQuery('routeSeqAll', { dataset:'flood', aql:`
+    explore { dimensions { route_id: route_district_seq.route_id, seq: route_district_seq.seq, district: route_district_seq.district }
+      sorts { route_id asc, seq asc } }` });
+
+  // #2 PERIOD COMPARISON — same metrics, filtered to the evening 7 days earlier
+  const cardFloodPrev = app.createQuery('cardFloodPrev', { dataset:'flood', aql:`
+    explore { dimensions { district: districts.name } measures { risk: flood_risk } }` });
+  const cardCommutePrev = app.createQuery('cardCommutePrev', { dataset:'flood', aql:`
+    explore { measures { delay: commute_delay_min } }` });
+  const routePrev = app.createQuery('routePrev', { dataset:'flood', aql:`
+    explore { dimensions { route_id: route_hour_conditions.route_id, hour: route_hour_conditions.hour }
+      measures { risk: rh_route_risk, delay: rh_delay_min } }` });
+
+  // #3 DRILL-DOWN leaf — one segment's hourly water-depth readings
+  const segHourly = app.createQuery('segHourly', { dataset:'flood', aql:`
+    explore { dimensions { hour: modeled_segment_readings.hour }
+      measures { depth: modeled_water_depth_cm, bucket: depth_bucket } sorts { hour asc } }` });
+
+  // #6 GOVERNED RECOMMENDATION — the leave-now/wait rule lives in the model
+  const routeRec = app.createQuery('routeRec', { dataset:'flood', aql:`
+    explore { dimensions { hour: route_recommendation.hour }
+      measures { streets_now: max(route_recommendation.streets_now), delay_now: max(route_recommendation.delay_now),
+        best_hour: max(route_recommendation.best_hour), streets_saved: max(route_recommendation.streets_saved),
+        minutes_saved: max(route_recommendation.minutes_saved), dry_now: max(route_recommendation.dry_now),
+        rec: max(route_recommendation.recommend_wait) } sorts { hour asc } }` });
+
+  // ---------------------------------------------------------------- filters (SDK controls)
+  const eveningF = app.createFilter('evening', { dataset:'flood', field:'modeled_segment_readings.evening' });
+  const prevEveningF = app.createFilter('prevEvening', { dataset:'flood', field:'modeled_segment_readings.evening' });   // evening - 7 days (period comparison)
+  const hourF = app.createFilter('hour', { type:'number' });
+  const fromF = app.createFilter('from', { type:'string' });
+  const toF = app.createFilter('to', { type:'string' });
+  const routeSeqF = app.createFilter('routeseq', { type:'number' });
+  const routeRecF = app.createFilter('routerec', { type:'number' });
+  const segF = app.createFilter('seg', { type:'number' });   // #3 drill-down leaf (segment)
+
+  // evening control → every evening-scoped view
+  app.mapControl(eveningF, mapRisk,    { field:'modeled_segment_readings.evening' });
+  app.mapControl(eveningF, mapRain,    { field:'weather_hourly.evening' });
+  app.mapControl(eveningF, tideSeries, { field:'tide_hourly.evening' });
+  app.mapControl(eveningF, hourly,     { field:'modeled_segment_readings.evening' });
+  app.mapControl(eveningF, cardFlood,  { field:'modeled_segment_readings.evening' });
+  app.mapControl(eveningF, cityFlood,  { field:'modeled_segment_readings.evening' });
+  app.mapControl(eveningF, cardCommute,{ field:'trip_conditions.evening' });
+  app.mapControl(eveningF, breakdown,  { field:'modeled_segment_readings.evening' });
+  app.mapControl(eveningF, segPins,    { field:'modeled_segment_readings.evening' });
+  app.mapControl(eveningF, segHourly,  { field:'modeled_segment_readings.evening' });
+  app.mapControl(eveningF, leaveProfiles, { field:'route_hour_conditions.evening' });
+  app.mapControl(eveningF, routeRec,   { field:'route_recommendation.evening' });
+
+  // "last week" evening → the comparison queries
+  app.mapControl(prevEveningF, cardFloodPrev,   { field:'modeled_segment_readings.evening' });
+  app.mapControl(prevEveningF, cityFloodPrev,   { field:'modeled_segment_readings.evening' });
+  app.mapControl(prevEveningF, mapRiskPrev,     { field:'modeled_segment_readings.evening' });
+  app.mapControl(prevEveningF, cardCommutePrev, { field:'trip_conditions.evening' });
+  app.mapControl(prevEveningF, routePrev,       { field:'route_hour_conditions.evening' });
+
+  // #4 CROSS-FILTER — the hour control conditions every time-scoped view
+  app.mapControl(hourF, mapRisk,   { field:'modeled_segment_readings.hour' });
+  app.mapControl(hourF, mapRain,   { field:'weather_hourly.hour' });
+  app.mapControl(hourF, cardFlood, { field:'modeled_segment_readings.hour' });
+  app.mapControl(hourF, cityFlood, { field:'modeled_segment_readings.hour' });
+  app.mapControl(hourF, cityFloodPrev, { field:'modeled_segment_readings.hour' });
+  app.mapControl(hourF, mapRiskPrev, { field:'modeled_segment_readings.hour' });
+  app.mapControl(hourF, cardFloodPrev, { field:'modeled_segment_readings.hour' });
+  app.mapControl(hourF, breakdown, { field:'modeled_segment_readings.hour' });
+  app.mapControl(hourF, segPins,   { field:'modeled_segment_readings.hour' });
+
+  // #4 CROSS-FILTER — a district SELECTION on the map conditions every related view
+  app.mapCrossFilter(mapRisk, hourly);
+  app.mapCrossFilter(mapRisk, cardFlood);
+  app.mapCrossFilter(mapRisk, cardFloodPrev);
+  app.mapCrossFilter(mapRisk, breakdown);
+  app.mapCrossFilter(mapRisk, segPins);
+  // #3 DRILL-DOWN — a segment-pin pick conditions its hourly readings (control filter:
+  // the app keeps a single active selection, reserved here for the district cross-filter)
+  app.mapControl(segF, segHourly, { field:'modeled_segment_readings.segment_id' });
+
+  app.mapControl(fromF, leaveProfiles, { field:'route_hour_conditions.from_name' });
+  app.mapControl(toF,   leaveProfiles, { field:'route_hour_conditions.to_name' });
+  app.mapControl(fromF, routePrev, { field:'route_hour_conditions.from_name' });
+  app.mapControl(toF,   routePrev, { field:'route_hour_conditions.to_name' });
+  app.mapControl(routeSeqF, routeSeq,  { field:'route_district_seq.route_id' });
+  app.mapControl(routeRecF, routeRec,  { field:'route_recommendation.route_id' });
+
+  // ---------------------------------------------------------------- state
+  let mode = 'explore';
+  let hour = DEFAULT_HOUR, selected = null, selectedSeg = null, geo = null, water = null, lines = null;
+  let selFrom = '', selTo = '', selRoute = null;   // no pre-selected route by default
+  let lensOn = false, cityWorst = null;
+  const layers = { rain:true, tide:true, flooded:true, traffic:false };
+
+  const riskColor   = d3.scaleLinear().domain([0,.03,.12,.45]).range(['#1f6f78','#3aa6a0','#f0b429','#c0392b']).clamp(true);
+  const trafficColor= d3.scaleLinear().domain([1500,3400]).range(['rgba(240,180,41,0)','rgba(240,140,41,.5)']).clamp(true);
+  const bucketColor = { 1:'#2f9e6f', 2:'#f0b429', 3:'#e8743b', 4:'#c0392b' };
+  const bucketWord  = { 1:'dry tyres', 2:'ankle deep', 3:'up to your exhaust 🛵', 4:'seat deep — stay put' };
+  const fmtPct = v => v==null?'—':(Number(v)*100).toFixed(0)+'%';
+  const fmtVnd = v => { v=Number(v)||0; return v>=1e9?(v/1e9).toFixed(1)+' B₫' : v>=1e6?(v/1e6).toFixed(0)+' M₫' : Math.round(v).toLocaleString()+' ₫'; };
+  // playful verdicts across the wet-socks scale (district_wet_socks 1..5)
+  const VERDICT = {
+    1:['🩴','Sandals — you\'re fine','Dry run tonight. Ride easy.'],
+    2:['👟','Sneakers — a few wet patches','A puddle or two; nothing a scooter minds.'],
+    3:['🥾','Boots — pick your lane','Streets are going under in places. Mind the dips.'],
+    4:['🛵','Up to your exhaust — maybe wait','Enough water to stall a bike. Give it an hour.'],
+    5:['☕','Stay for another cà phê sữa đá','The roads are rivers. Order another iced coffee.'],
+  };
+
+  // ---- motorbike flood-depth icon (water height encodes the wet-socks level 1-5) ----
+  // The surface Y (viewBox 0 0 64 48, bigger Y = lower water) per level. Page JS only
+  // positions the water; the LEVEL itself is the governed wet_socks index.
+  const SOCK = {
+    1:{ y:43, word:'Dry tyres',          color:'#2f9e6f' },
+    2:{ y:39, word:'Ankle deep',         color:'#f0b429' },
+    3:{ y:34, word:'Up to the exhaust',  color:'#e8743b' },
+    4:{ y:26, word:'Seat deep',          color:'#c0392b' },
+    5:{ y:15, word:'Stay put',           color:'#8c1b10' },
+  };
+  function bikeSVG(){
+    return `<svg class="bike" viewBox="0 0 64 48" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <circle class="tyre" cx="16" cy="38" r="7"/><circle class="tyre" cx="49" cy="38" r="7"/>
+      <rect class="frame" x="19" y="33" width="25" height="5" rx="2"/>
+      <rect class="frame" x="9"  y="27" width="16" height="10" rx="3"/>
+      <rect class="seat"  x="7"  y="22" width="19" height="5" rx="2.5"/>
+      <path class="frame" d="M40 37 L41 24 Q42 18 47 17 L50.5 18 Q52.5 19 51.5 23 L50 37 Z"/>
+      <rect class="exhaust" x="22" y="35.4" width="10" height="2.6" rx="1.3"/>
+      <line class="bar" x1="47" y1="18" x2="39.5" y2="15"/>
+      <circle class="hub" cx="39.5" cy="15" r="1.4"/>
+      <circle class="light" cx="50.5" cy="23" r="1.9"/>
+      <circle class="hub" cx="16" cy="38" r="3"/><circle class="hub" cx="49" cy="38" r="3"/>
+      <rect class="bike-water" x="-2" width="68" y="48" height="52"/>
+      <rect class="bike-surf"  x="-2" width="68" y="48" height="1.8"/>
+    </svg>`;
+  }
+  function mountBike(el){ if(el && !el.querySelector('.bike')) el.innerHTML = bikeSVG(); }
+  function setBike(el, level){
+    if(!el) return; mountBike(el);
+    level = Math.max(1, Math.min(5, Math.round(Number(level)||1)));
+    const y = SOCK[level].y;
+    const w = el.querySelector('.bike-water'), s = el.querySelector('.bike-surf');
+    if(w) w.style.y = y+'px'; if(s) s.style.y = y+'px';
+  }
+  const SOCK_H = [9,12,15,18,21];
+  function renderSockScale(barsEl, labEl, level){
+    level = Math.max(1, Math.min(5, Math.round(Number(level)||1)));
+    if (barsEl){ barsEl.replaceChildren(...[1,2,3,4,5].map(i=>{
+      const b=document.createElement('i'); b.style.height=SOCK_H[i-1]+'px';
+      b.style.background = i<=level ? SOCK[i].color : 'var(--line)';
+      if (i===level) b.style.outlineColor = SOCK[i].color;
+      return b;
+    })); }
+    if (labEl) labEl.innerHTML = `<b>${level} of 5</b> · ${SOCK[level].word}`;
+  }
+
+  const svg = d3.select('#map');
+  const tip = document.getElementById('tip');
+  const canvas = document.getElementById('rain'), cctx = canvas.getContext('2d');
+  let projection, path, W=0, H=0;
+  let gZoom, gWater, gLines, gTraffic, gDistricts, gLabelsData=[], gPins, gRoute, gMayor;
+  let streets=null, gStreets, gLandmarks, streetsByD={}, resEls={};   // real OSM streets (per-district)
+  // a few landmarks (lon,lat) to help orientation
+  const LANDMARKS=[
+    {name:'Bến Thành Market', lon:106.6983, lat:10.7725},
+    {name:'Tân Sơn Nhất Airport', lon:106.6589, lat:10.8155},
+    {name:'Phú Mỹ Hưng', lon:106.7190, lat:10.7290},
+    {name:'Landmark 81', lon:106.7218, lat:10.7949},
+  ];
+  let districtPaths2d = {}, centroids = {}, dAreas = {}, dBounds = {}, pinPos = {};
+  let zt = d3.zoomIdentity;
+  const offctx = document.createElement('canvas').getContext('2d'); // for point-in-polygon
+
+  const zoom = d3.zoom().scaleExtent([1, 9]).on('zoom', ev => { zt = ev.transform; onZoom(); })
+    .on('start',()=>svg.classed('grabbing',true)).on('end',()=>svg.classed('grabbing',false));
+
+  const hourlyChart = echarts.init(document.getElementById('hourly'));
+  const cityHourlyChart = echarts.init(document.getElementById('cityHourly'));
+  const leaveChart  = echarts.init(document.getElementById('leaveChart'));
+  let segHourlyChart = null;
+
+  // "same evening last week" = selected evening - 7 days (UTC math, no TZ drift)
+  function prevWeek(iso){ const [y,m,d]=iso.split('-').map(Number); const dt=new Date(Date.UTC(y,m-1,d));
+    dt.setUTCDate(dt.getUTCDate()-7); return dt.toISOString().slice(0,10); }
+  const wkday = iso => { try{ return new Date(iso+'T00:00:00Z').toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'}); }catch(e){ return ''; } };
+
+  // ---------------------------------------------------------------- map build
+  function sizeMap(){
+    const r = document.getElementById('app').getBoundingClientRect();
+    W = r.width; H = r.height;
+    svg.attr('viewBox',`0 0 ${W} ${H}`).attr('width',W).attr('height',H);
+    canvas.width = W; canvas.height = H;
+    if (geo){
+      projection = d3.geoMercator().fitExtent([[26,26],[W-26,H-26]], geo);
+      path = d3.geoPath(projection);
+      buildBase();
+      recolor();
+      if (mode==='leave') renderLeaveOverlay();
+      if (mode==='mayor') { colorMayor(); placeMayorMarkers(); }
+      renderPins(); updateLabels();
+    }
+  }
+  function buildBase(){
+    svg.selectAll('*').remove();
+    gZoom = svg.append('g').attr('class','zoom');
+    gWater = gZoom.append('g');
+    gWater.selectAll('path').data(water?water.features:[]).join('path')
+      .attr('d',path).attr('fill','#15314d').attr('opacity',.9).attr('pointer-events','none');
+    gLines = gZoom.append('g');
+    gLines.selectAll('path').data(lines?lines.features:[]).join('path')
+      .attr('d',path).attr('fill','none').attr('stroke','#2a5c86').attr('stroke-width',1.1)
+      .attr('opacity',.8).attr('vector-effect','non-scaling-stroke').attr('pointer-events','none');
+    gTraffic = gZoom.append('g').attr('pointer-events','none');
+    gDistricts = gZoom.append('g').attr('class','districts');
+    gDistricts.selectAll('path').data(geo.features).join('path')
+      .attr('class','district').attr('d',path).attr('data-name',d=>d.properties.name)
+      .on('click',(e,d)=>{ e.stopPropagation();
+        if(mode==='mayor'){ placeOnDistrict(d.properties.name); } else { selectDistrict(d.properties.name,{fly:true}); } })
+      .on('mousemove',(e,d)=>showDistrictTip(e,d.properties.name))
+      .on('mouseleave',hideTip);
+    gStreets = gZoom.append('g').attr('class','streets');     // real OSM streets, over the districts
+    gPins = gZoom.append('g').attr('class','pins');
+    gRoute = gZoom.append('g').attr('class','route-overlay');
+    gMayor = gZoom.append('g').attr('class','mayor-overlay');
+    gLandmarks = gZoom.append('g').attr('class','landmarks').attr('pointer-events','none');
+
+    buildStreets();
+    buildLandmarks();
+
+    districtPaths2d = {}; centroids = {}; dAreas = {}; dBounds = {};
+    geo.features.forEach(f=>{ const nm=f.properties.name;
+      districtPaths2d[nm] = new Path2D(path(f)); centroids[nm] = path.centroid(f);
+      dAreas[nm] = Math.abs(path.area(f)); dBounds[nm] = path.bounds(f); });
+    // label metadata, ranked by area (largest first)
+    gLabelsData = geo.features.map(f=>({ name:f.properties.name, cen:path.centroid(f),
+      radius:Math.sqrt(Math.abs(path.area(f))/Math.PI) })).sort((a,b)=>b.radius-a.radius);
+    buildLabelEls();
+    svg.call(zoom); svg.on('dblclick.zoom',null);
+    svg.on('click',()=>{ if(mode==='explore'){ selectDistrict(null); resetZoom(); } });
+    gZoom.attr('transform', zt);
+    applyStreetZoom();
+    if (typeof routeSeqAll!=='undefined' && routeSeqAll.result) buildRouteGraphOnce();  // (re)build route paths for this projection
+  }
+
+  // ---- real OSM streets ---------------------------------------------------------
+  const HW_RANK={primary:0,secondary:1,tertiary:2,residential:3};
+  function buildStreets(){
+    streetsByD={}; resEls={}; routeGraphBuilt=false; streetGraph=null;   // projection changed → rebuild route paths
+    if(!streets||!streets.features) return;
+    // precompute projected geometry + svg path for each street, grouped by district
+    streets.features.forEach(f=>{
+      const d=f.properties.d; if(!d) return;
+      const proj=f.geometry.coordinates.map(c=>projection(c)).filter(p=>p&&isFinite(p[0]));
+      if(proj.length<2) return;
+      const rec={hw:f.properties.hw, name:f.properties.name||null, d, proj, svg:d3.line()(proj),
+        len:plen2(proj), mid:proj[Math.floor(proj.length/2)]};
+      (streetsByD[d]=streetsByD[d]||[]).push(rec);
+    });
+    const all=[]; for(const d in streetsByD) for(const r of streetsByD[d]) all.push(r);
+    // draw: main network always in DOM; residential hidden until its district is focused
+    gStreets.selectAll('path.street').data(all).join('path')
+      .attr('class',r=>'street s-'+r.hw).attr('data-d',r=>r.d).attr('d',r=>r.svg);
+    // street-name labels for the focused district (named primary/secondary), filled on select
+    gStreets.append('g').attr('class','snames');
+  }
+  function plen2(pts){ let s=0; for(let i=1;i<pts.length;i++) s+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]); return s; }
+  function zoomBand(){ return zt.k<1.8?'city':(zt.k<3.2?'district':'street'); }
+  function applyStreetZoom(){ if(gStreets) gStreets.attr('data-z', zoomBand()); }
+  // show the focused district's residential streets + name labels
+  function focusStreets(name){
+    if(!gStreets) return;
+    gStreets.selectAll('path.s-residential').classed('on', function(){ return this.getAttribute('data-d')===name; });
+    const g=gStreets.select('g.snames'); g.selectAll('*').remove();
+    if(!name||!streetsByD[name]) return;
+    const seen=new Set(); const named=streetsByD[name]
+      .filter(r=>r.name && (r.hw==='primary'||r.hw==='secondary'))
+      .sort((a,b)=>b.len-a.len)
+      .filter(r=>{ if(seen.has(r.name)) return false; seen.add(r.name); return true; })
+      .slice(0,7);
+    named.forEach(r=>{ g.append('text').attr('class','sname on').attr('x',r.mid[0]).attr('y',r.mid[1])
+      .attr('text-anchor','middle').attr('font-size',(10/zt.k)).text(r.name); });
+  }
+  function buildLandmarks(){
+    if(!gLandmarks) return; gLandmarks.selectAll('*').remove();
+    LANDMARKS.forEach(l=>{ const p=projection([l.lon,l.lat]); if(!p) return;
+      const g=gLandmarks.append('g').attr('transform',`translate(${p[0]},${p[1]})`);
+      g.append('circle').attr('class','lm-dot').attr('r',3/zt.k);
+      g.append('text').attr('class','lm-text').attr('x',5/zt.k).attr('y',3/zt.k).attr('font-size',10.5/zt.k).text(l.name);
+    });
+  }
+
+  // ---- labels overlay (HTML, constant size, culled + de-overlapped) ----
+  const labelLayer = document.getElementById('labels');
+  function buildLabelEls(){
+    labelLayer.replaceChildren();
+    gLabelsData.forEach((d,i)=>{ d.rank=i; const el=document.createElement('div'); el.className='dlabel'; el.textContent=d.name;
+      labelLayer.appendChild(el); d.el=el; });
+  }
+  function updateLabels(){
+    const placed=[]; const k=zt.k;
+    gLabelsData.forEach(d=>{
+      const sx=zt.applyX(d.cen[0]), sy=zt.applyY(d.cen[1]);
+      const on = sx>-10 && sx<W+10 && sy>-6 && sy<H+6;
+      const big = d.radius*k > 26 || d.rank < 4;        // big enough, or one of the largest
+      let show = on && big;
+      if (show) for (const p of placed){ if (Math.abs(p.x-sx)<58 && Math.abs(p.y-sy)<15){ show=false; break; } }
+      d.el.style.display = show?'block':'none';
+      if (show){ d.el.style.transform=`translate(-50%,-50%) translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px)`;
+        d.el.style.opacity = d.name===selected?1:.9; placed.push({x:sx,y:sy}); }
+    });
+  }
+
+  function onZoom(){
+    gZoom.attr('transform', zt);
+    updateLabels();
+    applyStreetZoom();
+    // keep overlays constant on screen (stroke via non-scaling-stroke; text/dots via 1/k)
+    gRoute.selectAll('text.bike').attr('font-size', 22/zt.k);
+    gMayor.selectAll('text').attr('font-size', 16/zt.k);
+    if (gStreets){ gStreets.selectAll('text.sname').attr('font-size', 10/zt.k); }
+    if (gLandmarks){ gLandmarks.selectAll('.lm-dot').attr('r',3/zt.k);
+      gLandmarks.selectAll('.lm-text').attr('x',5/zt.k).attr('y',3/zt.k).attr('font-size',10.5/zt.k); }
+    if (layers.flooded) renderPins();
+  }
+  function resetZoom(){ svg.transition().duration(reduceMotion?0:600).call(zoom.transform, d3.zoomIdentity); }
+  function flyTo(name){
+    const f = geo.features.find(x=>x.properties.name===name); if(!f) return;
+    const [[x0,y0],[x1,y1]] = path.bounds(f);
+    const w=x1-x0, h=y1-y0, cx=(x0+x1)/2, cy=(y0+y1)/2;
+    const k = Math.min(6, 0.68 / Math.max(w/W, h/H));
+    const t = d3.zoomIdentity.translate(W/2 - k*cx, H/2 - k*cy).scale(k);
+    svg.transition().duration(reduceMotion?0:700).call(zoom.transform, t);
+  }
+
+  // ---- coloring ----
+  function recolor(){
+    if (!mapRisk.result || !gDistricts) return;
+    const by = Object.fromEntries(mapRisk.result.rows.map(r=>[r.district,r]));
+    gDistricts.selectAll('path.district')
+      .classed('sel', d=>d.properties.name===selected)
+      .classed('flooded', d=>layers.flooded && !reduceMotion && Number(by[d.properties.name]?.wet||1)>=4)
+      .transition().duration(reduceMotion?0:650)
+      .attr('fill', d=>{ const v=by[d.properties.name]?.risk; return v==null?'#223049':riskColor(Number(v)); });
+    renderTraffic();
+  }
+  function renderTraffic(){
+    if (!gTraffic) return;
+    if (!layers.traffic || !trafficMap.result){ gTraffic.selectAll('*').remove(); return; }
+    const by = Object.fromEntries(trafficMap.result.rows.map(r=>[r.district,Number(r.traffic)]));
+    gTraffic.selectAll('path').data(geo.features).join('path')
+      .attr('d',path).attr('pointer-events','none')
+      .attr('fill',d=>trafficColor(by[d.properties.name]||0));
+  }
+
+  // ---- depth pins (per road segment, when a district is selected) ----
+  function pinsForDistrict(name, n){
+    if (pinPos[name] && pinPos[name].length>=n) return pinPos[name].slice(0,n);
+    const f = geo.features.find(x=>x.properties.name===name); if(!f) return [];
+    const [[x0,y0],[x1,y1]] = path.bounds(f);
+    const p2 = districtPaths2d[name];
+    let seed = 0; for(const c of name) seed = (seed*31 + c.charCodeAt(0))>>>0;
+    const rnd = ()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
+    const pts=[]; let guard=0;
+    while(pts.length<n && guard<n*80){ guard++;
+      const x=x0+rnd()*(x1-x0), y=y0+rnd()*(y1-y0);
+      if (offctx.isPointInPath(p2, x, y)){
+        let ok=true; for(const q of pts){ if(Math.hypot(q.x-x,q.y-y) < Math.max(6,(x1-x0)/14)){ ok=false; break; } }
+        if(ok) pts.push({x,y});
+      }
+    }
+    pinPos[name]=pts; return pts;
+  }
+  // Snap the synthetic road_segments (keeping their ids) onto real streets in the
+  // selected district, then draw them coloured by water depth instead of pins.
+  // Mapping is deterministic: segments sorted by id -> district's streets sorted by
+  // class/length, so a given segment id always lands on the same street.
+  function segStreetsFor(name, rows){
+    const list=(streetsByD[name]||[]).slice()
+      .sort((a,b)=> (HW_RANK[a.hw]-HW_RANK[b.hw]) || (b.len-a.len) );
+    if(!list.length) return [];
+    const sorted=rows.slice().sort((a,b)=>a.id-b.id);
+    return sorted.map((r,i)=>({ ...r, street:list[i%list.length] }));
+  }
+  function renderPins(){   // now: flooded/depth-coloured segments drawn on real streets
+    if (!gPins) return;
+    const show = mode==='explore' && layers.flooded && selected && zt.k>=1.6 && segPins.result && (streetsByD[selected]||[]).length;
+    if (!show){ gPins.selectAll('*').remove(); return; }
+    const rows = segPins.result.rows.map(r=>({ id:Number(r.seg_id), name:r.seg, depth:Number(r.depth), bucket:Number(r.bucket) }));
+    const data = segStreetsFor(selected, rows);
+    const sel = gPins.selectAll('path.fstreet').data(data, d=>d.id);
+    sel.exit().remove();
+    const merged = sel.enter().append('path').attr('class','fstreet')
+      .on('mousemove',(e,d)=>showPinTip(e,d)).on('mouseleave',hideTip)
+      .on('click',(e,d)=>{ e.stopPropagation(); selectSegment(d.id); })   // #3 drill-down
+      .merge(sel);
+    merged.attr('d', d=>d.street.svg)
+      .classed('dry', d=>d.bucket<3)
+      .attr('stroke', d=>bucketColor[d.bucket]||'#3aa6a0')
+      .attr('stroke-width', d=> d.id===selectedSeg ? 6 : (d.bucket>=3?4:2.2) )
+      .attr('stroke-opacity', d=> d.id===selectedSeg?1 : (d.bucket>=3?.95:.5) );
+  }
+
+  // ---- tooltip ----
+  function placeTip(e){ const r=document.getElementById('app').getBoundingClientRect();
+    let x=e.clientX-r.left+14, y=e.clientY-r.top+14;
+    if (x>W-220) x=e.clientX-r.left-14-tip.offsetWidth; if (y>H-70) y=e.clientY-r.top-14-tip.offsetHeight;
+    tip.style.left=x+'px'; tip.style.top=y+'px'; }
+  function showDistrictTip(e,name){
+    const by = mapRisk.result?Object.fromEntries(mapRisk.result.rows.map(r=>[r.district,r])):{};
+    const r = by[name];
+    // period comparison vs the same evening last week (governed flood_risk, prev evening)
+    const prevBy = mapRiskPrev.result?Object.fromEntries(mapRiskPrev.result.rows.map(x=>[x.district,x])):{};
+    const prevRisk = prevBy[name]?.risk;
+    const cmp = (r && mode==='explore') ? cmpHtml(r.risk, prevRisk, 'pct', prevWeek(currentEvening())) : '';
+    tip.innerHTML = `<div class="t-name">${name}</div>flood risk <b>${r?fmtPct(r.risk):'—'}</b>`
+      + (cmp?`<div class="tip-cmp">${cmp}</div>`:'')
+      + (mode==='explore'?`<div class="tip-cta">Click to drill in →</div>`:'');
+    tip.style.display='block'; placeTip(e);
+  }
+  function showPinTip(e,d){
+    tip.innerHTML = `<div class="t-name">${d.name||('Segment '+d.id)}</div>water <b>${d.depth.toFixed(0)} cm</b> · ${bucketWord[d.bucket]}`;
+    tip.style.display='block'; placeTip(e);
+  }
+  function hideTip(){ tip.style.display='none'; }
+
+  // ---------------------------------------------------------------- rain
+  let drops={};
+  function seedRain(){
+    drops={}; if(!mapRain.result||!geo) return;
+    const by = Object.fromEntries(mapRain.result.rows.map(r=>[r.district,Number(r.rain)]));
+    geo.features.forEach(f=>{ const nm=f.properties.name, rain=by[nm]||0;
+      const n=Math.min(30, Math.round(rain*2)); const [[x0,y0],[x1,y1]]=path.bounds(f);
+      drops[nm]=Array.from({length:n},()=>({x:x0+Math.random()*(x1-x0), y:y0+Math.random()*(y1-y0), len:4+Math.random()*7, sp:1.3+Math.random()*2})); });
+  }
+  function rainFrame(){
+    cctx.setTransform(1,0,0,1,0,0); cctx.clearRect(0,0,W,H);
+    if (layers.rain && !reduceMotion){
+      cctx.setTransform(zt.k,0,0,zt.k,zt.x,zt.y);
+      cctx.strokeStyle='rgba(150,200,255,.5)'; cctx.lineWidth=1/zt.k;
+      for(const nm in drops){ const p2=districtPaths2d[nm]; if(!p2) continue;
+        const b=dBounds[nm]; const y0=b[0][1], y1=b[1][1];
+        cctx.save(); cctx.clip(p2);
+        for(const d of drops[nm]){ cctx.beginPath(); cctx.moveTo(d.x,d.y); cctx.lineTo(d.x-1/zt.k,d.y+d.len); cctx.stroke();
+          d.y+=d.sp; if(d.y>y1){ d.y=y0-4; } }
+        cctx.restore();
+      }
+    }
+    requestAnimationFrame(rainFrame);
+  }
+
+  // ---------------------------------------------------------------- tide gauge
+  function renderTide(){
+    const card = document.getElementById('tidecard');
+    card.style.display = layers.tide ? '' : 'none';
+    if (!tideSeries.result) return;
+    const rows = tideSeries.result.rows.map(r=>({hour:Number(r.hour), tide:Number(r.tide)})).sort((a,b)=>a.hour-b.hour);
+    if (!rows.length) return;
+    const cur = rows.find(r=>r.hour===hour) || rows[rows.length-1];
+    const prev = rows.find(r=>r.hour===hour-1);
+    const rising = prev ? cur.tide>prev.tide : (rows[1]?rows[1].tide>rows[0].tide:true);
+    // next high water at/after current hour, else the day's max
+    const ahead = rows.filter(r=>r.hour>=hour);
+    const peak = (ahead.length?ahead:rows).reduce((a,b)=>b.tide>a.tide?b:a);
+    const lvlClass = cur.tide>=0.8?'high':cur.tide>=0.0?'mid':'low';
+    const vals = rows.map(r=>r.tide); const lo=Math.min(...vals,-1.0), hi=Math.max(...vals,1.4);
+    const frac = Math.max(.05, Math.min(1, (cur.tide-lo)/(hi-lo)));
+    document.getElementById('tide-fill').style.height = (frac*100)+'%';
+    // plain words instead of raw metres (the number is governed peak_tide_m; this phrasing is display)
+    const levelWord = lvlClass==='high'?'High tide':lvlClass==='mid'?'Mid tide':'Low tide';
+    const assess = lvlClass==='high' ? (rising?'watch riverside roads':'easing off now')
+                 : lvlClass==='mid'  ? (rising?'keep an eye on the river':'not a problem tonight')
+                 : 'not a problem tonight';
+    document.getElementById('tide-dir').innerHTML = `${rising?'↑':'↓'} ${levelWord}, ${rising?'rising':'falling'}`;
+    document.getElementById('tide-peak').textContent = `peaks ${String(peak.hour).padStart(2,'0')}:00`;
+    document.getElementById('tide-lvl').textContent = assess;
+  }
+
+  // ---------------------------------------------------------------- card
+  // hourly flood-risk bar chart, shared by the city summary and the district card
+  function renderHourlyChart(chart){
+    if (!hourly.result) return;
+    const rows = hourly.result.rows.map(r=>({hour:Number(r.hour),risk:Number(r.risk)}));
+    chart.setOption({ animation:!reduceMotion, grid:{left:34,right:10,top:12,bottom:22},
+      tooltip:{trigger:'axis', valueFormatter:v=>(v*100).toFixed(0)+'%'},
+      xAxis:{type:'category', data:rows.map(r=>r.hour+':00'), axisLabel:{color:'#8ea3c4',fontSize:9}, axisLine:{lineStyle:{color:'rgba(140,170,210,.3)'}}},
+      yAxis:{type:'value', max:v=>Math.max(.1,v.max), axisLabel:{formatter:v=>Math.round(v*100)+'%',color:'#8ea3c4',fontSize:9}, splitLine:{lineStyle:{color:'rgba(140,170,210,.12)'}}},
+      series:[{type:'bar', data:rows.map(r=>({value:r.risk, itemStyle:{ color:riskColor(r.risk),
+        borderColor:r.hour===hour?'#4cc6d4':'transparent', borderWidth:r.hour===hour?2:0, borderRadius:3 }}))}],
+    }, {replaceMerge:['series','xAxis','yAxis']});
+  }
+  // "Tonight across the city" summary — every line a governed metric via the SDK
+  function renderCity(){
+    const prevIso = prevWeek(currentEvening());
+    const cf = cityFlood.result?.rows?.[0];
+    if (cf){ document.getElementById('city-risk').textContent = fmtPct(cf.risk);
+      document.getElementById('city-km').textContent = Number(cf.floodedKm).toFixed(1)+' km';
+      const prevRisk = cityFloodPrev.result?.rows?.[0]?.risk;
+      document.getElementById('city-risk-cmp').innerHTML = cmpHtml(cf.risk, prevRisk, 'pct', prevIso); }
+    if (cardCommute.result?.rows?.[0]){ const cc = cardCommute.result.rows[0];
+      document.getElementById('city-delay').textContent = Math.round(Number(cc.delay)||0)+' min';
+      document.getElementById('city-cost').textContent = fmtVnd(cc.cost);
+      document.getElementById('city-delay-cmp').innerHTML = cmpHtml(cc.delay, cardCommutePrev.result?.rows?.[0]?.delay, 'min', prevIso); }
+    // worst district now (governed flood_risk / district_wet_socks by district; page only picks the max)
+    if (mapRisk.result && mapRisk.result.rows.length){
+      const worst = mapRisk.result.rows.slice().sort((a,b)=>Number(b.risk)-Number(a.risk))[0];
+      cityWorst = worst.district;
+      document.getElementById('city-worst-name').textContent = worst.district;
+      document.getElementById('city-worst-risk').textContent = '· '+fmtPct(worst.risk)+' of roads';
+      document.getElementById('city-worst-cta').textContent = 'See flooded streets in '+worst.district+' →';
+      setBike(document.getElementById('city-worst-bike'), Math.max(1,Math.min(5,Number(worst.wet)||1)));
+    }
+    renderHourlyChart(cityHourlyChart); setTimeout(()=>cityHourlyChart.resize(),0);
+  }
+  function renderCard(){
+    const empty = document.getElementById('card-empty'), detail = document.getElementById('card-detail');
+    if (!selected){ empty.style.display=''; detail.style.display='none';
+      setSideTitle('Tonight across the city', `${String(hour).padStart(2,'0')}:00 · ${currentEvening()}`);
+      renderCity(); return; }
+    empty.style.display='none'; detail.style.display='';
+    setSideTitle(selected, `${String(hour).padStart(2,'0')}:00 · ${currentEvening()}`);
+
+    const cf = cardFlood.result?.rows?.[0];
+    // wet-socks level (1-5) is the governed district_wet_socks metric, read from mapRisk
+    const wet = mapRisk.result ? Number(Object.fromEntries(mapRisk.result.rows.map(r=>[r.district,r]))[selected]?.wet||1) : 1;
+    const lvl = Math.max(1,Math.min(5,wet));
+    const [,lab,det] = VERDICT[lvl] || VERDICT[1];
+    setBike(document.getElementById('v-bike'), lvl);
+    renderSockScale(document.getElementById('v-scale'), document.getElementById('v-scale-lab'), lvl);
+    document.getElementById('v-lab').textContent=lab;
+    document.getElementById('v-det').textContent=det;
+
+    if (cf){
+      const depth = Number(cf.depth), bucket = Number(cf.bucket);
+      document.getElementById('d-depth').textContent = depth.toFixed(0)+' cm';
+      const tag=document.getElementById('d-tag'); tag.textContent = bucketWord[bucket]||'—';
+      tag.style.background = bucketColor[bucket]||'#888'; tag.style.color = bucket>=3?'#fff':'#06121f';
+      document.getElementById('c-risk').textContent = fmtPct(cf.risk);
+      document.getElementById('c-km').textContent = Number(cf.floodedKm).toFixed(1)+' km';
+      // heading must match the district's actual state (don't say "red" when it's dry)
+      const bkHead = document.getElementById('bk-head');
+      if (bkHead) bkHead.textContent = bucket>=4 ? 'Why is this red?'
+                                     : bucket===3 ? 'Why is this orange?'
+                                     : bucket===2 ? 'Why is this amber?'
+                                     : "What's driving the water here?";
+      // #2 period comparison vs same evening last week
+      const prevIso = prevWeek(currentEvening());
+      const prevRisk = cardFloodPrev.result?.rows?.[0]?.risk;
+      document.getElementById('c-risk-cmp').innerHTML = cmpHtml(cf.risk, prevRisk, 'pct', prevIso);
+    }
+    if (cardCommute.result?.rows?.[0]){
+      const cc = cardCommute.result.rows[0];
+      document.getElementById('c-delay').textContent = Math.round(Number(cc.delay)||0)+' min';   // Math.round avoids "-0"
+      document.getElementById('c-cost').textContent = fmtVnd(cc.cost);
+      const prevIso = prevWeek(currentEvening());
+      const prevDelay = cardCommutePrev.result?.rows?.[0]?.delay;
+      document.getElementById('c-delay-cmp').innerHTML = cmpHtml(cc.delay, prevDelay, 'min', prevIso);
+    }
+    renderBreakdown();
+    renderSegHourly();
+    renderHourlyChart(hourlyChart);
+  }
+  function renderBreakdown(){
+    if (!breakdown.result?.rows?.[0]) return;
+    const b = breakdown.result.rows[0];
+    const rain=Number(b.rain)||0, drain=Number(b.drain)||0, tide=Number(b.tide)||0;
+    const tot = rain+drain+tide || 1;
+    const set=(bar,pc,val)=>{ document.getElementById(bar).style.width=(val/tot*100).toFixed(0)+'%';
+      document.getElementById(pc).textContent=(val/tot*100).toFixed(0)+'%'; };
+    set('bk-rain','bk-rain-p',rain); set('bk-drain','bk-drain-p',drain); set('bk-tide','bk-tide-p',tide);
+  }
+  function renderThreshold(){
+    const t = threshold.result?.rows?.[0]?.thr;
+    if (t!=null) document.getElementById('thr-text').textContent = `Flooded = water ≥ ${Number(t).toFixed(0)} cm`;
+  }
+
+  // ---------------------------------------------------------------- side panel helpers
+  function setSideTitle(t,s){ document.getElementById('side-title').textContent=t; document.getElementById('side-sub').textContent=s||''; }
+  function showPanel(which){
+    document.getElementById('card').style.display = which==='explore'?'':'none';
+    document.getElementById('leavePanel').style.display = which==='leave'?'':'none';
+    document.getElementById('mayorPanel').style.display = which==='mayor'?'':'none';
+  }
+  function openSheet(){ if(isPhone()) document.getElementById('side').classList.add('open'); }
+
+  // collapse / sheet behaviour
+  document.getElementById('side-collapse').addEventListener('click',(e)=>{ e.stopPropagation();
+    document.getElementById('side').classList.toggle('collapsed'); });
+  document.getElementById('side-head').addEventListener('click',()=>{ if(isPhone())
+    document.getElementById('side').classList.toggle('open'); });
+
+  // ---------------------------------------------------------------- selection + hour
+  function currentEvening(){ return document.getElementById('evening').value || DEFAULT_EVENING; }
+  function selectDistrict(name, opts={}){
+    selected = (selected===name)?null:name;
+    // #4 cross-filter: a selection on the map query drives every mapped view.
+    // select() takes the clicked result ROW so it can resolve the dimension value.
+    const row = (selected && mapRisk.result) ? mapRisk.result.rows.find(r=>r.district===selected) : null;
+    if (selected && row) mapRisk.select(row); else app.clearSelection();
+    selectedSeg = null; segF.setCondition({operator:'none',values:[]});   // reset the drill-down leaf
+    pinPos={}; // recompute scatter for the new selection
+    gDistricts && gDistricts.selectAll('path.district').classed('sel',d=>d.properties.name===selected);
+    focusStreets(selected);   // reveal this district's residential streets + street names
+    if (selected){ showPanel('explore'); mode='explore'; openSheet(); if(opts.fly) flyTo(selected); }
+    app.execute(); renderCard(); updateLabels();
+  }
+  // #3 drill-down: pick a road segment → its hourly readings
+  function selectSegment(id){
+    selectedSeg = (selectedSeg===id) ? null : id;
+    segF.setCondition(selectedSeg!=null ? {operator:'is',values:[String(selectedSeg)]} : {operator:'none',values:[]});
+    app.execute(); renderPins(); renderSegHourly();
+  }
+  function setHour(h){ hour=h; document.getElementById('clock').textContent=String(h).padStart(2,'0')+':00';
+    document.getElementById('scrubber').value=h;
+    const pct=(h-15)/(23-15); document.getElementById('sweep').style.left=(pct*100)+'%';
+    hourF.setCondition({operator:'is',values:[String(h)]}); app.execute();
+    renderTide(); if(mode==='leave') renderLeave(); }
+
+  // ---------------------------------------------------------------- subscribe (render loop)
+  const logged=new Set();
+  app.subscribe(()=>{
+    [mapRisk,mapRain,trafficMap,tideSeries,hourly,cardFlood,cardCommute,cityFlood,cityFloodPrev,mapRiskPrev,breakdown,threshold,segPins,worstScan,
+     routesList,leaveProfiles,routeSeq,mayorMap,mayorKPIs,mayorBenefit,mayorEvenings,mayorCommute,interventionInfo].forEach(q=>{
+      if(q && q.state==='success' && !logged.has(q.name)){ logged.add(q.name);
+        try{ console.log(q.name, q.result.columns.map(c=>c.name), q.result.rows[0], q.result.debug?.executedAql); }catch(e){} }
+    });
+    maybeInitWorst();
+    status();
+    if (mode==='mayor'){ if(mayorMap&&mayorMap.result) colorMayor(); } else recolor();
+    if (mapRain.result) seedRain();
+    renderTide(); renderThreshold();
+    if (mode==='explore'){ renderCard(); renderPins(); }
+    if (routesList.result) populatePickers();
+    if (routeSeqAll.result) buildRouteGraphOnce();       // build the street graph + per-route paths once
+    maybeAutoRoute();                                     // URL ?from=&to= → draw on load
+    if (mode==='leave') renderLeave();
+    if (mode==='mayor') renderMayor();
+    updateLabels();
+  });
+  function status(){
+    const el=document.getElementById('loading');
+    const bad=[mapRisk,cardFlood,breakdown,segPins].find(q=>q.state==='error');
+    const busy=mapRisk.state==='executing' && !mapRisk.result;
+    el.classList.toggle('on', !!bad||busy); el.classList.toggle('err',!!bad);
+    el.textContent = bad?('Error: '+bad.error.message):'Loading…';
+  }
+
+  // worst evening default (computed from governed flood_risk, not hard-coded)
+  let worstDone=false;
+  function maybeInitWorst(){
+    if (worstDone || !worstScan.result || !worstScan.result.rows.length) return;
+    worstDone=true;
+    const top = worstScan.result.rows[0];
+    WORST_EVENING = String(top.evening).slice(0,10); WORST_HOUR = Number(top.hour);
+    const sel=document.getElementById('evening');
+    if (sel.value!==WORST_EVENING && [...sel.options].some(o=>o.value===WORST_EVENING)){
+      sel.value=WORST_EVENING; eveningF.setCondition({operator:'is',values:[WORST_EVENING]});
+      prevEveningF.setCondition({operator:'is',values:[prevWeek(WORST_EVENING)]});
+    }
+    if (hour!==WORST_HOUR){ setHour(WORST_HOUR); }
+  }
+
+  // ---------------------------------------------------------------- LEAVE mode
+  let pickersDone=false, seqLoadedFor=null, bikeRAF=null;
+  const shortName = nm => { const i=nm.indexOf('via '); return i>=0?nm.slice(i):nm; };
+  function populatePickers(){
+    if (pickersDone||!routesList.result) return; pickersDone=true;
+    const rows=routesList.result.rows;
+    const froms=[...new Set(rows.map(r=>r.from))].sort(), tos=[...new Set(rows.map(r=>r.to))].sort();
+    const fs=document.getElementById('from-sel'), ts=document.getElementById('to-sel');
+    fs.replaceChildren(new Option('Where from?',''), ...froms.map(v=>new Option(v,v)));
+    ts.replaceChildren(new Option('Where to?',''),   ...tos.map(v=>new Option(v,v)));
+    fs.value = froms.includes(selFrom)?selFrom:''; ts.value = tos.includes(selTo)?selTo:'';
+    fs.classList.toggle('placeholder',!fs.value); ts.classList.toggle('placeholder',!ts.value);
+  }
+  function enterLeave(){
+    mode='leave'; selected=null; app.clearSelection(); selectedSeg=null; segF.setCondition({operator:'none',values:[]}); focusStreets(null);
+    gDistricts&&gDistricts.selectAll('path.district').classed('sel',false).classed('flooded',false);
+    gPins&&gPins.selectAll('*').remove();
+    document.getElementById('side').classList.remove('mayor-mode'); document.getElementById('go-mayor').style.display='';
+    showPanel('leave'); openSheet();
+    fromF.setCondition({operator:'is',values:[selFrom]}); toF.setCondition({operator:'is',values:[selTo]});
+    recolor(); app.execute(); renderLeave(); setTimeout(()=>leaveChart.resize(),30);
+  }
+  // the "Leave now or wait? →" button: draw the route only after From + To are chosen
+  function goRoute(){
+    routeFitDone=false; selRoute=null; seqLoadedFor=null;
+    if (!selFrom || !selTo){ mode='leave'; showPanel('leave');
+      showSame('Pick where you’re coming from and where you’re going, then tap the button.'); openSheet(); return; }
+    enterLeave();
+  }
+  function clearRoute(){ if(bikeRAF)cancelAnimationFrame(bikeRAF); bikeRAF=null; gRoute&&gRoute.selectAll('*').remove(); }
+  // ✕ Clear route: remove the lines + motorbike and return to the city view
+  function doClearRoute(){ clearRoute(); selRoute=null;
+    document.getElementById('clear-route').style.display='none';
+    mode='explore'; selected=null; app.clearSelection(); showPanel('explore');
+    setSideTitle('Tap a district','Pick anywhere on the map');
+    recolor(); renderCard(); resetZoom();
+  }
+
+  // ---- street graph (real roads + bridges) → shortest path, so each route is ONE
+  // continuous path that follows streets in route order and only crosses water on bridges ----
+  let streetGraph=null, routePaths={}, routeSeqByR={}, routeGraphBuilt=false;
+  function buildRouteGraphOnce(){
+    if (routeGraphBuilt || !routeSeqAll.result || !streetsByD) return;
+    // per-route district order (route_steps order), from the governed route_district_seq
+    routeSeqByR={};
+    routeSeqAll.result.rows.forEach(r=>{ const rid=Number(r.route_id);
+      (routeSeqByR[rid]=routeSeqByR[rid]||[]).push([Number(r.seq), r.district]); });
+    for(const rid in routeSeqByR){ routeSeqByR[rid].sort((a,b)=>a[0]-b[0]); routeSeqByR[rid]=routeSeqByR[rid].map(x=>x[1]); }
+    // build a graph from projected MAIN-network streets (incl. bridges); residential excluded
+    const GRID=2.2, nodes=new Map(), adj=[], coord=[];
+    const nid=p=>{ const k=Math.round(p[0]/GRID)+','+Math.round(p[1]/GRID); let n=nodes.get(k);
+      if(n==null){ n=adj.length; nodes.set(k,n); adj.push([]); coord.push([p[0],p[1]]); } return n; };
+    for(const d in streetsByD) for(const r of streetsByD[d]){ if(r.hw==='residential') continue;
+      const pr=r.proj; for(let i=1;i<pr.length;i++){ const a=nid(pr[i-1]), b=nid(pr[i]); if(a===b) continue;
+        const w=Math.hypot(pr[i][0]-pr[i-1][0],pr[i][1]-pr[i-1][1]);
+        adj[a].push({to:b,w}); adj[b].push({to:a,w}); } }
+    streetGraph={adj,coord};
+    routePaths={};
+    for(const rid in routeSeqByR) routePaths[rid]=computeRoutePath(routeSeqByR[rid]);
+    routeGraphBuilt=true;
+  }
+  function nearestNode(p){ const c=streetGraph.coord; let bi=-1,bd=Infinity;
+    for(let i=0;i<c.length;i++){ const dx=c[i][0]-p[0],dy=c[i][1]-p[1],d=dx*dx+dy*dy; if(d<bd){bd=d;bi=i;} } return bi; }
+  // binary-heap Dijkstra → array of projected [x,y] from src to dst (null if unreachable)
+  function dijkstra(src,dst){ const adj=streetGraph.adj,n=adj.length;
+    const dist=new Float64Array(n).fill(Infinity), prev=new Int32Array(n).fill(-1);
+    const heap=[[0,src]]; dist[src]=0;
+    const push=(d,v)=>{ heap.push([d,v]); let i=heap.length-1; while(i>0){ const p=(i-1)>>1; if(heap[p][0]<=heap[i][0])break; [heap[p],heap[i]]=[heap[i],heap[p]]; i=p; } };
+    const pop=()=>{ const top=heap[0], last=heap.pop(); if(heap.length){ heap[0]=last; let i=0; for(;;){ let l=2*i+1,r=l+1,s=i; if(l<heap.length&&heap[l][0]<heap[s][0])s=l; if(r<heap.length&&heap[r][0]<heap[s][0])s=r; if(s===i)break; [heap[s],heap[i]]=[heap[i],heap[s]]; i=s; } } return top; };
+    while(heap.length){ const [d,u]=pop(); if(d>dist[u]) continue; if(u===dst) break;
+      for(const e of adj[u]){ const nd=d+e.w; if(nd<dist[e.to]){ dist[e.to]=nd; prev[e.to]=u; push(nd,e.to); } } }
+    if(dist[dst]===Infinity) return null;
+    const path=[]; for(let v=dst; v!==-1; v=prev[v]) path.push(streetGraph.coord[v]); path.reverse(); return path;
+  }
+  // chain shortest paths between consecutive districts in the route's order
+  function computeRoutePath(districtNames){
+    if(!streetGraph || districtNames.length<2) return null;
+    const pts=[];
+    for(let i=0;i<districtNames.length-1;i++){
+      const a=centroids[districtNames[i]], b=centroids[districtNames[i+1]]; if(!a||!b) continue;
+      const seg=dijkstra(nearestNode(a), nearestNode(b));
+      if(!seg||seg.length<2){ if(!pts.length) pts.push(a); pts.push(b); continue; }
+      (pts.length? seg.slice(1): seg).forEach(p=>pts.push(p));
+    }
+    return pts.length>=2?pts:null;
+  }
+
+  // draw one route (faint alternative, or the bold selected one with the bike)
+  function drawOneRoute(rid, risk, sel){
+    const pts=routePaths[rid]; if(!pts||pts.length<2) return;
+    const dl=d3.line().curve(d3.curveCatmullRom.alpha(0.5))(pts);
+    gRoute.append('path').attr('class','casing').attr('data-rid',rid).attr('d',dl).attr('fill','none')
+      .attr('stroke','#f2f7ff').attr('vector-effect','non-scaling-stroke').attr('stroke-linecap','round').attr('stroke-linejoin','round')
+      .attr('stroke-width',sel?8:4).attr('opacity',sel?.85:.3).attr('pointer-events','none');
+    gRoute.append('path').attr('class','road').attr('data-rid',rid).attr('d',dl).attr('fill','none')
+      .attr('stroke',riskColor(risk)).attr('vector-effect','non-scaling-stroke').attr('stroke-linecap','round').attr('stroke-linejoin','round')
+      .attr('stroke-width',sel?4.5:2).attr('opacity',sel?1:.45).style('cursor','pointer')
+      .on('click',(e)=>{ e.stopPropagation(); selectRoute(rid); })
+      .on('mousemove',(e)=>{ emphasizeRoute(rid); });
+    if(sel){ const p0=pts[0], p1=pts[pts.length-1];
+      [p0,p1].forEach(p=>gRoute.append('circle').attr('class','rend').attr('cx',p[0]).attr('cy',p[1]).attr('r',3.2/zt.k).attr('fill','#eaf2ff').attr('stroke','#06121f').attr('stroke-width',1/zt.k).attr('pointer-events','none'));
+    }
+  }
+  function emphasizeRoute(rid){
+    gRoute.selectAll('path.road').each(function(){ const on=+this.dataset.rid===rid;
+      d3.select(this).attr('stroke-width',on?4.5:2).attr('opacity',on?1:.45); });
+    gRoute.selectAll('path.casing').each(function(){ const on=+this.dataset.rid===rid;
+      d3.select(this).attr('stroke-width',on?8:4).attr('opacity',on?.85:.3); });
+    const node=gRoute.select('path.road[data-rid="'+rid+'"]').node(); const bike=gRoute.select('text.bike');
+    if(node && !bike.empty()) startBike(node,bike);
+  }
+  function selectRoute(rid){ selRoute=rid;
+    routeSeqF.setCondition({operator:'is',values:[String(rid)]});
+    routeRecF.setCondition({operator:'is',values:[String(rid)]}); seqLoadedFor=rid;
+    app.execute(); renderLeave(); }
+  function fitToRoute(allPts){ if(!allPts||allPts.length<2) return;
+    let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+    for(const p of allPts){ x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]); }
+    const w=(x1-x0)||1, h=(y1-y0)||1, cx=(x0+x1)/2, cy=(y0+y1)/2;
+    const k=Math.max(1,Math.min(8, 0.72/Math.max(w/W,h/H)));
+    const t=d3.zoomIdentity.translate(W/2-k*cx, H/2-k*cy).scale(k);
+    svg.transition().duration(reduceMotion?0:750).call(zoom.transform,t);
+  }
+  // URL ?from=district-7&to=district-1 → open with the route already drawn (for recording)
+  const slug=s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  let autoRouteTried=false;
+  function readRouteParams(){
+    const grab=loc=>{ try{ const q=new URLSearchParams(loc); return [q.get('from'),q.get('to')]; }catch(e){ return [null,null]; } };
+    let [f,t]=grab(location.search); if(!f&&!t){ [f,t]=grab(location.hash.replace(/^#/,'')); }
+    // In the anfra runtime the app is an about:srcdoc iframe (opaque origin), so parent.location
+    // throws — but document.referrer carries the host page's URL, incl. its ?from=&to=.
+    if(!f&&!t){ try{ const u=new URL(document.referrer); [f,t]=grab(u.search); if(!f&&!t)[f,t]=grab(u.hash.replace(/^#/,'')); }catch(e){} }
+    if(!f&&!t){ try{ [f,t]=grab(window.parent.location.search); }catch(e){} }
+    try{ if(typeof window.__ROUTE==='object'&&window.__ROUTE){ f=f||window.__ROUTE.from; t=t||window.__ROUTE.to; } }catch(e){}
+    return [f,t];
+  }
+  function maybeAutoRoute(){
+    if(autoRouteTried || !routesList.result || !routeGraphBuilt) return;
+    autoRouteTried=true;
+    const [f,t]=readRouteParams(); if(!f||!t) return;
+    const names=[...new Set(routesList.result.rows.flatMap(r=>[r.from,r.to]))];
+    const mf=names.find(n=>slug(n)===slug(f)), mt=names.find(n=>slug(n)===slug(t));
+    if(!mf||!mt) return;
+    selFrom=mf; selTo=mt;
+    document.getElementById('from-sel').value=mf; document.getElementById('to-sel').value=mt;
+    goRoute();
+  }
+  function startBike(node,bike){ if(!node) return; if(bikeRAF)cancelAnimationFrame(bikeRAF);
+    const L=node.getTotalLength(); if(!L) return;
+    if (reduceMotion){ const p=node.getPointAtLength(L*.5); bike.attr('x',p.x).attr('y',p.y); return; }
+    const dur=4600,t0=performance.now();
+    const step=now=>{ const t=((now-t0)%dur)/dur; const p=node.getPointAtLength(t*L); bike.attr('x',p.x).attr('y',p.y); bikeRAF=requestAnimationFrame(step); };
+    bikeRAF=requestAnimationFrame(step);
+  }
+  function renderLeaveOverlay(){ if(mode==='leave'&&leaveProfiles.result) renderLeave(); }
+  function showSame(msg){
+    document.getElementById('same-msg').textContent = msg;
+    document.getElementById('same-msg').style.display='';
+    document.getElementById('leave-results').style.display='none';
+    clearRoute(); document.getElementById('clear-route').style.display='none';
+    setSideTitle('Leave now or wait?', (selFrom||'…')+' → '+(selTo||'…'));
+  }
+  let routeFitDone=false;
+  function drawPairRoutes(routes, curRisk){
+    if (mode!=='leave' || !routeGraphBuilt || !gRoute) return;
+    clearRoute();
+    routes.forEach(([id])=>{ if(id!==selRoute) drawOneRoute(id, curRisk(id), false); });
+    drawOneRoute(selRoute, curRisk(selRoute), true);   // selected on top, bold
+    const node=gRoute.select('path.road[data-rid="'+selRoute+'"]').node();
+    if (node){ const bike=gRoute.append('text').attr('class','bike').text('🛵')
+      .attr('font-size',22/zt.k).attr('text-anchor','middle').attr('dominant-baseline','central'); startBike(node,bike); }
+    document.getElementById('clear-route').style.display='';
+    if (!routeFitDone){ fitToRoute(routes.map(([id])=>routePaths[id]).filter(Boolean).flat()); routeFitDone=true; }
+  }
+  function renderRouteList(routes, curRisk){
+    const wrap=document.getElementById('route-list'); wrap.replaceChildren();
+    routes.slice().sort((a,b)=>curRisk(a[0])-curRisk(b[0])).forEach(([id,nm])=>{
+      const risk=curRisk(id); const b=document.createElement('button'); b.type='button';
+      b.className='ritem'+(id===selRoute?' sel':''); b.dataset.rid=id;
+      b.innerHTML=`<span class="swatch" style="background:${riskColor(risk)}"></span>`+
+        `<span class="rname">${shortName(nm)}</span><span class="rrisk">${(risk*100).toFixed(0)}%${id===selRoute?' · recommended':''}</span>`;
+      b.addEventListener('mouseenter',()=>emphasizeRoute(id));
+      b.addEventListener('mouseleave',()=>emphasizeRoute(selRoute));
+      b.addEventListener('click',()=>selectRoute(id));
+      wrap.appendChild(b);
+    });
+  }
+  function renderLeave(){
+    if (!leaveProfiles.result) return;
+    if (!selFrom || !selTo){ showSame('Pick where you’re coming from and where you’re going, then tap the button.'); return; }
+    if (selFrom===selTo){ showSame('🛵 That’s the same place. Pick a different destination to see a route.'); return; }
+    document.getElementById('same-msg').style.display='none';
+    document.getElementById('leave-results').style.display='';
+    const rows=leaveProfiles.result.rows.map(r=>({rid:Number(r.route_id),route:r.route,hour:Number(r.hour),
+      risk:Number(r.risk),delay:Number(r.delay),streets:Number(r.streets),wet:Number(r.wet)}));
+    const routes=[...new Map(rows.map(r=>[r.rid,r.route])).entries()];
+    setSideTitle('Leave now or wait?', selFrom+' → '+selTo);
+    if (!rows.length){ setBike(document.getElementById('l-bike'),1);
+      renderSockScale(document.getElementById('l-scale'), document.getElementById('l-scale-lab'), 1);
+      document.getElementById('l-head').textContent='No preset route for that trip';
+      document.getElementById('l-det').textContent='Pick a different From / To (routes run into District 1).';
+      ['l-risk','l-streets','l-delay','l-wet'].forEach(id=>document.getElementById(id).textContent='—');
+      document.getElementById('route-list').replaceChildren(); clearRoute();
+      document.getElementById('clear-route').style.display='none'; leaveChart.clear(); return; }
+    // current-hour route_risk per route (governed rh_route_risk, from leaveProfiles)
+    const curRisk = rid => { const m=rows.filter(r=>r.rid===rid); const x=m.find(r=>r.hour===hour)||m[0]; return x?x.risk:1; };
+    // recommended = the pair's lowest-risk route at this hour (keep the user's pick if set)
+    if (!selRoute || !routes.find(([id])=>id===selRoute))
+      selRoute=routes.slice().sort((a,b)=>curRisk(a[0])-curRisk(b[0]))[0][0];
+    if (seqLoadedFor!==selRoute){ seqLoadedFor=selRoute;
+      routeSeqF.setCondition({operator:'is',values:[String(selRoute)]});
+      routeRecF.setCondition({operator:'is',values:[String(selRoute)]});   // #6 governed recommendation
+      app.execute(); }
+    drawPairRoutes(routes, curRisk);
+    renderRouteList(routes, curRisk);
+
+    const hours=[...new Set(rows.map(r=>r.hour))].sort((a,b)=>a-b);
+    leaveChart.setOption({ animation:!reduceMotion, grid:{left:36,right:10,top:24,bottom:22},
+      legend:{top:0,textStyle:{color:'#9db0d0',fontSize:9},data:routes.map(([id,nm])=>shortName(nm))},
+      tooltip:{trigger:'axis', valueFormatter:v=>v==null?'—':Math.round(v)+' min'},
+      xAxis:{type:'category', data:hours.map(h=>h+':00'), axisLabel:{color:'#8ea3c4',fontSize:9}},
+      yAxis:{type:'value', name:'min', nameTextStyle:{color:'#8ea3c4',fontSize:9}, axisLabel:{color:'#8ea3c4',fontSize:9}, splitLine:{lineStyle:{color:'rgba(140,170,210,.12)'}}},
+      series:routes.map(([id,nm])=>({name:shortName(nm),type:'line',smooth:true,
+        lineStyle:{width:id===selRoute?3.5:1.5}, symbol:'circle', symbolSize:id===selRoute?6:3,
+        data:hours.map(h=>{const x=rows.find(r=>r.rid===id&&r.hour===h); return x?Math.round(x.delay):null;}),
+        markLine:id===selRoute?{silent:true,symbol:'none',data:[{xAxis:(hour-15)}],lineStyle:{color:'#4cc6d4'}}:undefined}))
+    },{replaceMerge:['series','xAxis','yAxis','legend']});
+
+    const mine=rows.filter(r=>r.rid===selRoute).sort((a,b)=>a.hour-b.hour);
+    const now=mine.find(r=>r.hour===hour)||mine[0];
+    document.getElementById('l-risk').textContent=(now.risk*100).toFixed(0)+'%';
+    document.getElementById('l-streets').textContent=now.streets;
+    document.getElementById('l-delay').textContent=Math.round(now.delay)+' min';
+    document.getElementById('l-wet').textContent=now.wet+'/5';
+    // #2 period comparison for the route's flood risk, same hour last week
+    const prevIso=prevWeek(currentEvening());
+    const rp = routePrev.result ? routePrev.result.rows.find(r=>Number(r.route_id)===selRoute && Number(r.hour)===hour) : null;
+    document.getElementById('l-risk-cmp').innerHTML = cmpHtml(now.risk, rp?rp.risk:null, 'pct', prevIso);
+
+    // route wet-socks level (1-5) is the governed rh_wet_socks_index, carried on each row
+    setBike(document.getElementById('l-bike'), now.wet);
+    renderSockScale(document.getElementById('l-scale'), document.getElementById('l-scale-lab'), now.wet);
+    const head=document.getElementById('l-head'),det=document.getElementById('l-det');
+    // #6 verdict comes from the governed route_recommendation (the rule lives in the model)
+    const rec = routeRec.result ? routeRec.result.rows.find(r=>Number(r.hour)===hour) : null;
+    const truthy = v => v===true || v===1 || v==='true';
+    if (rec && truthy(rec.rec)){
+      const bh=Number(rec.best_hour), ss=Number(rec.streets_saved), ms=Math.round(Number(rec.minutes_saved));
+      const parts=[]; if(ss>0) parts.push(`${ss} fewer flooded street${ss===1?'':'s'}`); if(ms>=1) parts.push(`about ${ms} min faster`);
+      head.textContent=`Wait until ${bh}:00`;
+      det.textContent=`Leaving ${hour}:00 vs ${bh}:00 — ${parts.join(' and ')}.`;
+    } else if (rec && truthy(rec.dry_now)){
+      head.textContent='Leave now — the roads are dry';
+      det.textContent=`${shortName(now.route)} is clear at ${hour}:00 (about ${Math.round(now.delay)} min).`;
+    } else {
+      head.textContent='Leave now';
+      det.textContent=`Waiting won't help on this route tonight (about ${Math.round(now.delay)} min).`;
+    }
+
+  }
+
+  // ---------------------------------------------------------------- MAYOR mode
+  // Governance: every number comes from a governed Layer-5 metric via an SDK query.
+  // The page JS only picks the active intervention set + stress year (SDK filters),
+  // lays the result out, and animates it — no simulation maths lives here.
+  let mayorMap,mayorKPIs,mayorBenefit,mayorEvenings,mayorCommute,interventionInfo;
+  let yearsF,mScenF,mCostF,routeF,mayorInit=false;
+  let mayorYears=0, mayorActive=new Set(), cardsBuilt=false, ivMeta={}, BUDGET=3000;
+  let armedType=null, byTypeDistrict={}, minCostByType={};
+  const TYPES=[
+    {type:'tidal sluice',    icon:'🌊', desc:'Blocks high tide in riverside districts'},
+    {type:'drainage upgrade',icon:'🚰', desc:'Clears rainwater off the roads faster'},
+    {type:'retention pond',  icon:'🟢', desc:'Soaks up the first burst of rain'},
+    {type:'raised road',     icon:'🛣️', desc:'Lifts the worst streets above the flood'},
+  ];
+  const IV_ICON=Object.fromEntries(TYPES.map(t=>[t.type,t.icon]));
+  const mayorColor=d3.scaleLinear().domain([0,.001,.004,.01]).range(['#2f9e6f','#1f6f78','#f0b429','#c0392b']).clamp(true);
+  const prevKPI={};
+  const nz=x=>{ x=Number(x)||0; return Math.abs(x)<1e-9?0:x; };          // kill -0 / float dust
+  const pos=x=>Math.max(0,nz(x));
+
+  function initMayor(){
+    if (mayorInit) return; mayorInit=true;
+    mayorMap=app.createQuery('mayorMap',{dataset:'flood',aql:`explore { dimensions { district: districts.name } measures { risk: risk_after_interventions } }`});
+    mayorKPIs=app.createQuery('mayorKPIs',{dataset:'flood',aql:`explore { measures { avoided: flooded_hours_avoided, saved: delay_cost_saved_vnd_annual, roi: intervention_roi, cost: chosen_cost_vnd } }`});
+    mayorBenefit=app.createQuery('mayorBenefit',{dataset:'flood',aql:`explore { dimensions { district: districts.name } measures { avoided: flooded_hours_avoided } sorts { avoided desc } }`});
+    mayorEvenings=app.createQuery('mayorEvenings',{dataset:'flood',aql:`explore { dimensions { evening: scenario_effects.evening } measures { base: flooded_hours_baseline, after: flooded_hours_after } sorts { base desc } }`});
+    mayorCommute=app.createQuery('mayorCommute',{dataset:'flood',aql:`explore { measures { before: route_delay_before_min, after: route_delay_after_min } }`});
+    interventionInfo=app.createQuery('interventionInfo',{dataset:'flood',aql:`explore { dimensions { id: intervention_info.intervention_id, name: intervention_info.name, type: intervention_info.type, cost: intervention_info.cost_billion_vnd, district: intervention_info.district } measures { n: count(intervention_info.row_uid) } sorts { id asc } }`});
+    QREG.mayorMap=mayorMap; QREG.mayorKPIs=mayorKPIs; QREG.mayorBenefit=mayorBenefit; QREG.mayorEvenings=mayorEvenings; QREG.mayorCommute=mayorCommute;
+    yearsF=app.createFilter('years',{type:'number'}); mScenF=app.createFilter('mscen',{type:'number'});
+    mCostF=app.createFilter('mcost',{type:'number'}); routeF=app.createFilter('mroute',{type:'number'});
+    [mayorMap,mayorKPIs,mayorBenefit,mayorEvenings].forEach(q=>{
+      app.mapControl(yearsF,q,{field:'scenario_effects.years_from_now'});
+      app.mapControl(mScenF,q,{field:'scenario_effects.intervention_id'}); });
+    app.mapControl(yearsF,mayorCommute,{field:'route_scenario_effects.years_from_now'});
+    app.mapControl(mScenF,mayorCommute,{field:'route_scenario_effects.intervention_id'});
+    app.mapControl(routeF,mayorCommute,{field:'route_scenario_effects.route_id'});
+    app.mapControl(mCostF,mayorKPIs,{field:'interventions.id'});
+    applyMayorFilters();
+  }
+  function applyMayorFilters(){ const a=[...mayorActive];
+    yearsF.setCondition({operator:'is',values:[String(mayorYears)]});
+    mScenF.setCondition({operator:'is',values:['0',...a.map(String)]});
+    mCostF.setCondition({operator:'is',values:a.length?a.map(String):['-1']});
+    routeF.setCondition({operator:'is',values:[String(selRoute||3)]});
+    app.execute(); }
+  function spent(){ return [...mayorActive].reduce((s,id)=>s+(ivMeta[id]?.cost||0),0); }
+  function remaining(){ return BUDGET-spent(); }
+
+  function enterMayor(){
+    mode='mayor'; selected=null; app.clearSelection(); selectedSeg=null; segF.setCondition({operator:'none',values:[]}); focusStreets(null);
+    gDistricts&&gDistricts.selectAll('path.district').classed('sel',false);
+    gPins&&gPins.selectAll('*').remove(); clearRoute(); armedType=null;
+    document.getElementById('go-mayor').style.display='none';    // hide launcher while open
+    document.getElementById('side').classList.add('mayor-mode');
+    showPanel('mayor'); setSideTitle('Mayor for a day','Place projects, watch the map heal'); openSheet();
+    initMayor(); renderMayor();
+  }
+  function exitToExplore(){ mode='explore'; armedType=null; clearPlaceable();
+    gMayor&&gMayor.selectAll('*').remove();
+    document.getElementById('go-mayor').style.display='';
+    document.getElementById('side').classList.remove('mayor-mode');
+    showPanel('explore'); setSideTitle('Tap a district','Pick anywhere on the map'); recolor(); renderCard(); }
+
+  // ---- intervention catalogue + cards (from the interventionInfo governed query) ----
+  function buildCards(){
+    if (cardsBuilt||!interventionInfo.result) return; ivMeta={}; byTypeDistrict={}; minCostByType={};
+    interventionInfo.result.rows.forEach(r=>{ const id=Number(r.id);
+      if(!ivMeta[id]) ivMeta[id]={id,name:r.name,type:r.type,cost:Number(r.cost),districts:[]};
+      if(!ivMeta[id].districts.includes(r.district)) ivMeta[id].districts.push(r.district);
+      (byTypeDistrict[r.type]=byTypeDistrict[r.type]||{});
+      (byTypeDistrict[r.type][r.district]=byTypeDistrict[r.type][r.district]||[]).push(id); });
+    Object.values(ivMeta).forEach(iv=>{ minCostByType[iv.type]=Math.min(minCostByType[iv.type]??Infinity,iv.cost); });
+    cardsBuilt=true;
+    const wrap=document.getElementById('iv-cards'); wrap.replaceChildren();
+    TYPES.forEach(t=>{ if(minCostByType[t.type]==null) return;
+      const c=document.createElement('button'); c.type='button'; c.className='iv-card'; c.dataset.type=t.type;
+      c.innerHTML=`<span class="iv-placed-badge">placed</span><span class="iv-over">Over budget</span>`+
+        `<span class="iv-title"><span class="iv-ic">${t.icon}</span><span class="iv-name">${t.type.replace(/^\w/,m=>m.toUpperCase())}</span></span>`+
+        `<span class="iv-desc">${t.desc}</span><span class="iv-cost">from ${minCostByType[t.type].toLocaleString()} B₫</span>`;
+      c.addEventListener('click',()=>armType(t.type)); wrap.appendChild(c); });
+    document.getElementById('budget-cap').textContent='cap '+BUDGET.toLocaleString()+' B₫';
+  }
+  // which not-yet-placed interventions of a type remain
+  function openIdsOfType(type){ return Object.values(ivMeta).filter(iv=>iv.type===type && !mayorActive.has(iv.id)); }
+  function typeState(type){
+    const open=openIdsOfType(type);
+    const placed=Object.values(ivMeta).some(iv=>iv.type===type && mayorActive.has(iv.id));
+    const canMore = open.length>0 && Math.min(...open.map(iv=>iv.cost))<=remaining();
+    // greyed only when there's nothing placed AND nothing affordable to place
+    return {placed, canMore, disabled: !placed && !canMore};
+  }
+  function armType(type){
+    const st=typeState(type); if(st.disabled) return;
+    armedType=(armedType===type)?null:type;
+    updateMayorChrome();
+  }
+
+  // ---- placing / removing on the map ----
+  function pickForDistrict(type,name){
+    const ids=((byTypeDistrict[type]||{})[name]||[]).filter(id=>!mayorActive.has(id));
+    if(!ids.length) return null;
+    ids.sort((a,b)=>ivMeta[a].cost-ivMeta[b].cost);   // cheapest that fits, then next
+    return ids.find(id=>spent()+ivMeta[id].cost<=BUDGET) ?? ids[0];
+  }
+  function placeOnDistrict(name){
+    if(!armedType){ pulseSub('Pick a project card first'); return; }
+    const id=pickForDistrict(armedType,name);
+    if(id==null){ pulseSub('No '+armedType+' fits '+name); return; }
+    if(spent()+ivMeta[id].cost>BUDGET){ flashBudget(); pulseSub('Over budget — Reset or pick a cheaper plan'); return; }
+    mayorActive.add(id);
+    if(!openIdsOfType(armedType).length) armedType=null;   // nothing left of this type
+    applyMayorFilters(); updateMayorChrome();
+  }
+  function removeIv(id){ if(!mayorActive.has(id)) return; mayorActive.delete(id); applyMayorFilters(); updateMayorChrome(); }
+  function resetPlan(){ mayorActive.clear(); armedType=null; pendingSample=false; applyMayorFilters(); updateMayorChrome(); }
+  let pendingSample=false;
+  function samplePlan(){ // sluice + one drainage + one pond, within budget — a reliable demo
+    if (!cardsBuilt){ if(interventionInfo&&interventionInfo.result) buildCards(); }
+    if (!cardsBuilt){ pendingSample=true; return; }   // catalogue not loaded yet — run when it is
+    pendingSample=false; mayorActive.clear();
+    const pick=(type,district)=>{ const id=((byTypeDistrict[type]||{})[district]||[])[0]; if(id!=null) mayorActive.add(id); };
+    pick('tidal sluice','Nha Be'); pick('drainage upgrade','District 8'); pick('retention pond','Binh Thanh');
+    armedType=null; applyMayorFilters(); updateMayorChrome();
+  }
+  let subTimer=null;
+  function pulseSub(msg){ const el=document.getElementById('side-sub'); el.textContent=msg;
+    clearTimeout(subTimer); subTimer=setTimeout(()=>{ el.textContent = armedType?('Tap a district to place a '+armedType):'Place projects, watch the map heal'; },1800); }
+  function flashBudget(){ const b=document.querySelector('#mayorPanel .budget'); if(!b) return;
+    b.classList.add('over'); setTimeout(()=>b.classList.remove('over'),600); }
+
+  // ---- map: colour by risk_after_interventions, project markers, placeable hints ----
+  function colorMayor(){
+    if (!mayorMap||!mayorMap.result||!gDistricts) return;
+    const by=Object.fromEntries(mayorMap.result.rows.map(r=>[r.district,Number(r.risk)]));
+    gDistricts.selectAll('path.district').classed('sel',false).classed('flooded',false)
+      .transition().duration(reduceMotion?0:800).attr('fill',d=>{const v=by[d.properties.name]; return v==null?'#223049':mayorColor(v);});
+  }
+  function clearPlaceable(){ gDistricts&&gDistricts.selectAll('path.district').classed('placeable',false); }
+  function markPlaceable(){
+    if(!gDistricts) return;
+    const ok = armedType ? new Set(Object.keys(byTypeDistrict[armedType]||{}).filter(d=>{
+      const id=pickForDistrict(armedType,d); return id!=null && !mayorActive.has(id) && spent()+ivMeta[id].cost<=BUDGET; })) : new Set();
+    gDistricts.selectAll('path.district').classed('placeable',d=>ok.has(d.properties.name));
+  }
+  function placeMayorMarkers(){
+    if (!gMayor||mode!=='mayor') return; gMayor.selectAll('*').remove();
+    const marks=[];
+    [...mayorActive].forEach(id=>{ const iv=ivMeta[id]; if(!iv) return;
+      iv.districts.forEach(dn=>{ const c=centroids[dn]; if(!c) return; marks.push({id,iv,c}); }); });
+    const sel=gMayor.selectAll('text').data(marks).join('text')
+      .text(d=>IV_ICON[d.iv.type]||'📍')
+      .attr('x',d=>d.c[0]).attr('y',d=>d.c[1]-8/zt.k).attr('font-size',16/zt.k).attr('text-anchor','middle')
+      .style('cursor','pointer')
+      .on('click',(e,d)=>{ e.stopPropagation(); removeIv(d.id); })
+      .on('mousemove',(e,d)=>{ tip.innerHTML=`<div class="t-name">${d.iv.name}</div>tap to remove`; tip.style.display='block'; placeTip(e); })
+      .on('mouseleave',hideTip);
+    sel.append('title').text(d=>d.iv.name+' — tap to remove');
+  }
+
+  function countUp(el,to,fmt){ const from=prevKPI[el.id]||0; prevKPI[el.id]=to;
+    if (reduceMotion){ el.textContent=fmt(to); return; }
+    const t0=performance.now(),dur=800; const step=now=>{const k=Math.min(1,(now-t0)/dur); el.textContent=fmt(from+(to-from)*k); if(k<1)requestAnimationFrame(step);}; requestAnimationFrame(step); }
+
+  // chrome = everything that doesn't need fresh query results (budget, cards, markers)
+  function updateMayorChrome(){
+    if (interventionInfo&&interventionInfo.result) buildCards();
+    const sp=spent();
+    document.getElementById('budget-spent').textContent=sp.toLocaleString()+' B₫ spent';
+    document.getElementById('budget-bar').style.width=Math.min(100,sp/BUDGET*100)+'%';
+    document.getElementById('iv-head').textContent = armedType ? ('Tap a district to place a '+armedType) : 'Pick a project, then tap a district';
+    document.querySelectorAll('#iv-cards .iv-card').forEach(c=>{ const st=typeState(c.dataset.type);
+      c.classList.toggle('armed',armedType===c.dataset.type);
+      c.classList.toggle('placed',st.placed);
+      c.classList.toggle('disabled',st.disabled && armedType!==c.dataset.type); });
+    const has=mayorActive.size>0;
+    document.getElementById('m-empty').style.display=has?'none':'';
+    document.getElementById('m-filled').style.display=has?'':'none';
+    if (mode==='mayor'){ placeMayorMarkers(); markPlaceable(); if(mayorMap&&mayorMap.result) colorMayor(); }
+  }
+  function renderMayor(){
+    if (!mayorInit) return;
+    if (pendingSample && interventionInfo && interventionInfo.result){ samplePlan(); return; }
+    updateMayorChrome();
+    if (!mayorActive.size) return;                    // empty state: no numbers shown
+    if (mayorKPIs&&mayorKPIs.result&&mayorKPIs.result.rows[0]){ const r=mayorKPIs.result.rows[0];
+      countUp(document.getElementById('m-avoided'),pos(r.avoided),v=>Math.round(v).toLocaleString());
+      countUp(document.getElementById('m-saved'),pos(r.saved),v=>fmtVnd(v));
+      document.getElementById('m-roi').textContent=(pos(r.roi)*100).toFixed(1)+'%'; }
+    if (mayorEvenings&&mayorEvenings.result&&mayorEvenings.result.rows[0]){ const w=mayorEvenings.result.rows[0];
+      document.getElementById('m-worst-before').textContent=Math.round(pos(w.base));
+      document.getElementById('m-worst-after').textContent=Math.round(pos(w.after)); }
+    if (mayorCommute&&mayorCommute.result&&mayorCommute.result.rows[0]){ const cm=mayorCommute.result.rows[0];
+      document.getElementById('m-commute-route').textContent=(selFrom&&selTo)?('· '+selFrom+' → '+selTo):'';
+      document.getElementById('m-commute-before').textContent=pos(cm.before).toFixed(1);
+      document.getElementById('m-commute-after').textContent=pos(cm.after).toFixed(1); }
+    if (mayorBenefit&&mayorBenefit.result){
+      const rows=mayorBenefit.result.rows.map(x=>({d:x.district,a:pos(x.avoided)})).filter(x=>x.a>0).slice(0,4);
+      const max=rows.reduce((m,x)=>Math.max(m,x.a),0)||1;
+      const wrap=document.getElementById('m-benefit-list');
+      wrap.innerHTML = rows.length ? rows.map(x=>
+        `<div class="mb-row"><span class="mb-name">${x.d}</span><span class="mb-bar"><span style="width:${(x.a/max*100).toFixed(0)}%"></span></span><span class="mb-val">${Math.round(x.a)}</span></div>`
+      ).join('') : '<p class="hint" style="margin:2px 0">No flooded hours left to avoid on this plan.</p>';
+    }
+  }
+
+  // ---------------------------------------------------------------- controls
+  document.getElementById('scrubber').addEventListener('input',e=>{ stopPlay(); setHour(Number(e.target.value)); });
+  document.getElementById('evening').addEventListener('change',e=>{ eveningF.setCondition({operator:'is',values:[e.target.value]});
+    prevEveningF.setCondition({operator:'is',values:[prevWeek(e.target.value)]}); app.execute(); renderCard(); });
+  let playing=false, playTimer=null;
+  function stopPlay(){ playing=false; clearInterval(playTimer); document.getElementById('play').textContent='▶'; }
+  function startPlay(){ playing=true; document.getElementById('play').textContent='⏸';
+    playTimer=setInterval(()=>{ let h=hour>=23?15:hour+1; setHour(h); },1300); }
+  document.getElementById('play').addEventListener('click',()=>playing?stopPlay():startPlay());
+  document.getElementById('replay').addEventListener('click',()=>{
+    stopPlay(); const sel=document.getElementById('evening');
+    if ([...sel.options].some(o=>o.value===WORST_EVENING)){ sel.value=WORST_EVENING; eveningF.setCondition({operator:'is',values:[WORST_EVENING]});
+      prevEveningF.setCondition({operator:'is',values:[prevWeek(WORST_EVENING)]}); }
+    setHour(15); app.execute(); startPlay();
+  });
+
+  document.getElementById('go-leave').addEventListener('click',goRoute);
+  document.getElementById('go-mayor').addEventListener('click',enterMayor);
+  document.getElementById('m-exit').addEventListener('click', exitToExplore);
+  document.getElementById('m-sample').addEventListener('click', samplePlan);
+  document.getElementById('m-reset').addEventListener('click', resetPlan);
+  document.getElementById('m-lineage-btn').addEventListener('click', ()=>openLineage(MAYOR_CHAIN,'How is this calculated?'));
+  document.getElementById('lineage-btn').addEventListener('click', ()=>openLineage());    // #1 lineage view
+  document.getElementById('insp-close').addEventListener('click', closeInspect);
+  document.getElementById('lens-btn').addEventListener('click', ()=>{ stopLensPulse(); setLens(!lensOn); });    // #5 Anfra Lens
+  // city summary → drill into the worst district (SDK drill-down); district card → back to city
+  document.getElementById('city-worst').addEventListener('click', e=>{ if(e.target.closest('[data-inspect]')) return; if(cityWorst) selectDistrict(cityWorst,{fly:true}); });
+  document.getElementById('back-city').addEventListener('click', ()=>{ if(selected) selectDistrict(selected); resetZoom(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeInspect(); });
+  document.getElementById('from-sel').addEventListener('change',e=>{ selFrom=e.target.value; selRoute=null; seqLoadedFor=null; routeFitDone=false;
+    e.target.classList.toggle('placeholder',!selFrom); if(mode==='leave') goRoute(); });
+  document.getElementById('to-sel').addEventListener('change',e=>{ selTo=e.target.value; selRoute=null; seqLoadedFor=null; routeFitDone=false;
+    e.target.classList.toggle('placeholder',!selTo); if(mode==='leave') goRoute(); });
+  document.getElementById('clear-route').addEventListener('click', doClearRoute);
+  document.getElementById('m-year').addEventListener('input',e=>{ mayorYears=Number(e.target.value);
+    document.getElementById('m-year-lab').textContent=mayorYears; applyMayorFilters(); });
+  document.getElementById('m-benefit-list').addEventListener('click',e=>{ if(e.target.closest('.mb-row')){
+    openInspect('flooded_hours_avoided','mayorBenefit'); } });
+
+  window.addEventListener('resize',()=>{ sizeMap(); hourlyChart.resize(); cityHourlyChart.resize(); leaveChart.resize();
+    document.documentElement.style.setProperty('--sheet-h', (isPhone()?52:0)+'px'); });
+
+  // ---------------------------------------------------------------- boot
+  // d3.geoPath uses spherical winding; a ring wound the wrong way reads as the whole
+  // globe minus the shape. Detect (area > 2π) and reverse.
+  // =============================================================== #1 INSPECT + LINEAGE
+  // Metric definitions come from the SDK (Anfra.lineage); the executed query comes from
+  // each query's result.debug.executedAql. One lineage call caches every metric.
+  const QREG = { mapRisk, mapRain, trafficMap, tideSeries, hourly, cardFlood, cardCommute, breakdown,
+    threshold, segPins, segHourly, leaveProfiles, routeRec, cardFloodPrev, cardCommutePrev, routePrev,
+    cityFlood, cityFloodPrev, mapRiskPrev };
+  const INSPECT_QUERY = {
+    flood_risk:'cardFlood', flooded_road_km:'cardFlood', modeled_water_depth_cm:'cardFlood', depth_bucket:'cardFlood',
+    district_wet_socks:'mapRisk', rainfall_mm:'mapRain', traffic_volume:'trafficMap', peak_tide_m:'tideSeries',
+    commute_delay_min:'cardCommute', delay_cost_vnd:'cardCommute', flood_threshold_cm:'threshold',
+    depth_from_rain_cm:'breakdown', depth_from_drainage_cm:'breakdown', depth_from_tide_cm:'breakdown',
+    rh_route_risk:'leaveProfiles', rh_delay_min:'leaveProfiles', rh_flooded_streets:'leaveProfiles', rh_wet_socks_index:'leaveProfiles',
+    flooded_hours_avoided:'mayorKPIs', delay_cost_saved_vnd_annual:'mayorKPIs', intervention_roi:'mayorKPIs', risk_after_interventions:'mayorMap',
+    flooded_hours_baseline:'mayorEvenings', flooded_hours_after:'mayorEvenings',
+    route_delay_after_min:'mayorCommute', route_delay_before_min:'mayorCommute' };
+  const META = {}; let metaLoaded=false, metaLoading=null;
+  // One lineage per "deepest" metric covers its whole governed tree; three roots
+  // together cover every number on screen (explore + commute + mayor Layer-5).
+  const META_ROOTS = ['intervention_roi','route_delay_after_min','route_delay_before_min'];
+  function mergeDiagram(res){
+    const results=(res && (res.results||res)) || [];
+    results.forEach(r=>{ const diag=r&&r.diagram; if(!diag) return;
+      (diag.cards||[]).forEach(c=>(c.sections||[]).forEach(s=>(s.nodes||[]).forEach(n=>{
+        const fqn=(n.props&&n.props.fqn)||''; const nm=fqn.replace(/^flood\./,'');
+        if(nm && n.props && !/\./.test(nm) && !META[nm]) META[nm]={ label:n.label||nm, def:(n.props.definition||'').trim(), desc:(n.props.description||'').trim() };
+      }))); });
+  }
+  function loadMeta(){
+    if (metaLoaded) return Promise.resolve();
+    if (metaLoading) return metaLoading;
+    metaLoading = Promise.all(META_ROOTS.map(child=>
+      Anfra.lineage({ parent:'flood', child }).then(mergeDiagram).catch(e=>console.warn('lineage meta',child,e))
+    )).then(()=>{ metaLoaded=true; });
+    return metaLoading;
+  }
+  try{ window.__floodDebug = { app, QREG, get sel(){ return app.selection; } }; }catch(e){}
+  const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  function metricRefs(def){ return Object.keys(META).filter(m=>new RegExp('(^|[^a-zA-Z_])'+m+'([^a-zA-Z_]|$)').test(def)); }
+  function openInspect(metric, qname){
+    const pop=document.getElementById('inspect'); pop.classList.add('on');
+    document.getElementById('insp-title').textContent='Inspect';
+    document.getElementById('insp-body').innerHTML='<p class="hint">Loading definition…</p>';
+    loadMeta().then(()=>renderInspect(metric, qname));
+  }
+  function renderInspect(metric, qname){
+    const m=META[metric]; const q=QREG[qname||INSPECT_QUERY[metric]];
+    const aql = q && q.result && q.result.debug && q.result.debug.executedAql;
+    const body=document.getElementById('insp-body');
+    document.getElementById('insp-title').textContent='Inspect';
+    if(!m){ body.innerHTML='<p class="hint">No governed definition found for <code>'+esc(metric)+'</code>.</p>'; return; }
+    const builds = metricRefs(m.def).filter(x=>x!==metric);
+    body.innerHTML =
+      '<div class="insp-metric"><span class="insp-badge">Governed metric</span></div>'+
+      '<div class="insp-name"><b>'+esc(m.label)+'</b> <code>'+esc(metric)+'</code></div>'+
+      (m.desc?'<p class="insp-desc">'+esc(m.desc)+'</p>':'')+
+      '<div class="insp-k">Definition (AQL)</div><pre class="insp-code">'+esc(m.def)+'</pre>'+
+      (builds.length?'<div class="insp-k">Builds on — tap to follow</div><div class="insp-chips">'+builds.map(b=>'<button class="insp-chip" data-m="'+b+'">'+esc(META[b]?META[b].label:b)+'</button>').join('')+'</div>':'')+
+      (aql?'<div class="insp-k">Query that produced this number</div><pre class="insp-code">'+esc(aql.trim())+'</pre>':'<p class="hint">Run the view to see its executed query.</p>');
+    body.querySelectorAll('.insp-chip').forEach(b=>b.addEventListener('click',()=>renderInspect(b.dataset.m)));
+  }
+  const CHAIN = ['flood_threshold_cm','flooded_road_km','flood_risk','commute_delay_min','delay_cost_vnd'];
+  // Mayor Layer-5 chain: intervention → modeled depth (after) → flooded (≥20 cm) →
+  // flood risk → delay → cost saved. Each node is a governed metric (tap to Inspect).
+  const MAYOR_CHAIN = ['flood_threshold_cm','risk_after_interventions','flooded_hours_avoided','route_delay_after_min','delay_cost_saved_vnd_annual','intervention_roi'];
+  function openLineage(chain, title){
+    chain = Array.isArray(chain) ? chain : CHAIN;
+    const pop=document.getElementById('inspect'); pop.classList.add('on');
+    document.getElementById('insp-title').textContent=title||'How is this calculated?';
+    document.getElementById('insp-body').innerHTML='<p class="hint">Loading lineage…</p>';
+    loadMeta().then(()=>{
+      const body=document.getElementById('insp-body');
+      body.innerHTML='<div class="insp-badge">Lineage · governed chain</div><div class="lin-chain">'+
+        chain.map((m,i)=>{ const meta=META[m]||{label:m,def:''};
+          return '<button class="lin-node" data-m="'+m+'"><span class="lin-step">'+(i+1)+'</span>'+
+            '<span class="lin-main"><b>'+esc(meta.label)+'</b><code>'+esc(meta.def||m)+'</code></span>'+
+            '<span class="lin-insp">ⓘ</span></button>'+
+            (i<chain.length-1?'<div class="lin-arrow">↓</div>':''); }).join('')+'</div>'+
+        '<p class="hint" style="margin-top:8px">Each node is a governed metric. Tap one to Inspect its definition and the query behind it.</p>';
+      body.querySelectorAll('.lin-node').forEach(b=>b.addEventListener('click',()=>renderInspect(b.dataset.m)));
+    });
+  }
+  function closeInspect(){ document.getElementById('inspect').classList.remove('on'); }
+  // delegated: any [data-inspect] element opens Inspect for its metric
+  document.addEventListener('click', e=>{ const t=e.target.closest('[data-inspect]'); if(t){ e.stopPropagation();
+    openInspect(t.getAttribute('data-inspect'), t.getAttribute('data-inspect-q')); } });
+
+  // =============================================================== #2 PERIOD COMPARISON
+  function cmpHtml(cur, prev, kind, prevIso){
+    if(prev==null||cur==null||isNaN(Number(prev))||isNaN(Number(cur)))
+      return '<span class="cmp none">vs last week · no data</span>';
+    cur=Number(cur); prev=Number(prev);
+    let txt, dir;
+    if(kind==='pct'){ const d=(cur-prev)*100; dir=d>0.5?'up':d<-0.5?'down':'flat'; txt=(d>=0?'+':'')+d.toFixed(0)+' pts'; }
+    else { const d=cur-prev; dir=d>0.5?'up':d<-0.5?'down':'flat'; txt=(d>=0?'+':'')+Math.round(d)+' min'; }
+    const arrow=dir==='up'?'▲':dir==='down'?'▼':'�—';
+    return '<span class="cmp '+dir+'">'+arrow+' '+txt+' vs '+wkday(prevIso)+' '+prevIso.slice(5)+'</span>';
+  }
+  function prevRow(q, key){ return (q.result&&q.result.rows&&q.result.rows[0]) ? q.result.rows[0][key] : null; }
+
+  // =============================================================== #3 DRILL-DOWN leaf
+  function renderSegHourly(){
+    const wrap=document.getElementById('segdrill'); if(!wrap) return;
+    if(selectedSeg==null || !segHourly.result || !segHourly.result.rows.length){ wrap.style.display='none'; return; }
+    wrap.style.display='';
+    const row = segPins.result ? segPins.result.rows.find(r=>Number(r.seg_id)===Number(selectedSeg)) : null;
+    document.getElementById('segdrill-name').textContent = row? row.seg : ('Segment '+selectedSeg);
+    const rows=segHourly.result.rows.map(r=>({hour:Number(r.hour),depth:Number(r.depth),bucket:Number(r.bucket)}));
+    if(!segHourlyChart) segHourlyChart=echarts.init(document.getElementById('segHourly'));
+    segHourlyChart.setOption({ animation:!reduceMotion, grid:{left:36,right:10,top:10,bottom:22},
+      tooltip:{trigger:'axis', valueFormatter:v=>Math.round(v)+' cm'},
+      xAxis:{type:'category', data:rows.map(r=>r.hour+':00'), axisLabel:{color:'#8ea3c4',fontSize:9}},
+      yAxis:{type:'value', name:'cm', nameTextStyle:{color:'#8ea3c4',fontSize:9}, axisLabel:{color:'#8ea3c4',fontSize:9}, splitLine:{lineStyle:{color:'rgba(140,170,210,.12)'}}},
+      series:[{type:'bar', data:rows.map(r=>({value:r.depth, itemStyle:{color:bucketColor[r.bucket]||'#3aa6a0',
+        borderColor:r.hour===hour?'#4cc6d4':'transparent', borderWidth:r.hour===hour?2:0, borderRadius:3}}))}]
+    },{replaceMerge:['series','xAxis','yAxis']});
+  }
+
+  // =============================================================== #5 ANFRA LENS
+  function setLens(on){ lensOn=on; document.getElementById('app').classList.toggle('lens-on', on);
+    const b=document.getElementById('lens-btn'); if(b) b.setAttribute('aria-pressed', String(on)); }
+  // gentle first-visit pulse to advertise the Lens (stops once used / seen)
+  const LENS_PULSE_KEY='anfra_lens_pulse_v1';
+  function stopLensPulse(){ document.getElementById('lens-btn')?.classList.remove('pulse');
+    try{ localStorage.setItem(LENS_PULSE_KEY,'1'); }catch(e){} }
+  function startLensPulseIfFirst(){ let seen=false; try{ seen=localStorage.getItem(LENS_PULSE_KEY)==='1'; }catch(e){}
+    if(!seen) document.getElementById('lens-btn')?.classList.add('pulse'); }
+  // let the onboarding tour flash the Lens on for a moment at its finish
+  let lensPeekT=null;
+  window.__anfraLens = { set:setLens, stopPulse:stopLensPulse,
+    peek(ms){ stopLensPulse(); setLens(true); clearTimeout(lensPeekT); lensPeekT=setTimeout(()=>setLens(false), ms||1700); } };
+
+  function rewind(fc){ if(!fc||!fc.features) return fc;
+    fc.features.forEach(f=>{ const g=f.geometry; if(!g) return;
+      if ((g.type==='Polygon'||g.type==='MultiPolygon') && d3.geoArea(f)>2*Math.PI){
+        if (g.type==='Polygon') g.coordinates=g.coordinates.map(r=>r.slice().reverse());
+        else g.coordinates=g.coordinates.map(p=>p.map(r=>r.slice().reverse())); } });
+    return fc; }
+
+  geo = rewind(window.HCMC.districts); water = rewind(window.HCMC.water); lines = window.HCMC.lines;
+  streets = (window.HCMC && window.HCMC.streets) || {features:[]};
+  document.documentElement.style.setProperty('--sheet-h', (isPhone()?52:0)+'px');
+
+  // mount the motorbike icons (card verdict, route verdict) and the depth-pin legend
+  mountBike(document.getElementById('v-bike')); setBike(document.getElementById('v-bike'),1);
+  mountBike(document.getElementById('l-bike')); setBike(document.getElementById('l-bike'),1);
+  (function buildLegendBikes(){
+    const wrap=document.getElementById('legpins'); if(!wrap) return;
+    [[1,'dry'],[2,'ankle'],[3,'exhaust'],[4,'seat']].forEach(([lv,lab])=>{
+      const p=document.createElement('span'); p.className='p';
+      p.innerHTML=`<span class="legbike"></span><span>${lab}</span>`;
+      wrap.appendChild(p); const b=p.querySelector('.legbike'); mountBike(b); setBike(b,lv);
+    });
+  })();
+
+  sizeMap(); requestAnimationFrame(rainFrame); startLensPulseIfFirst();
+
+  // set filters before the first execute, so the first paint is already the
+  // worst evening at its worst hour (no flash through an unfiltered state).
+  hourF.setCondition({operator:'is',values:[String(DEFAULT_HOUR)]});
+  eveningF.setCondition({operator:'is',values:[DEFAULT_EVENING]});
+  prevEveningF.setCondition({operator:'is',values:[prevWeek(DEFAULT_EVENING)]});
+  // No route by default — From/To start empty; a route is drawn only after the user picks + clicks.
+  setHour(DEFAULT_HOUR);
+  eveningF.loadOptions().then(opts=>{
+    const vals=opts.map(v=>String(v).slice(0,10));
+    const sel=document.getElementById('evening');
+    sel.replaceChildren(...vals.map(v=>new Option(v,v)));
+    sel.value = vals.includes(DEFAULT_EVENING)?DEFAULT_EVENING:vals[0];
+    if (sel.value!==DEFAULT_EVENING){ eveningF.setCondition({operator:'is',values:[sel.value]});
+      prevEveningF.setCondition({operator:'is',values:[prevWeek(sel.value)]}); }
+    app.execute();
+  }).catch(e=>{ console.error('evening options',e); app.execute(); });
+})();
+</script>
+
+<script>
+/* ============================================================================
+   First-visit onboarding tour — plain JS/CSS, no external library.
+   Spotlights app elements, shows a frosted tooltip, remembers completion in
+   localStorage (try/catch). ?tour=off disables; ?tour=on forces; "?" replays.
+   ============================================================================ */
+(function(){
+  const KEY = 'anfra_flood_tour_v1';
+  const app = document.getElementById('app');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isPhone = () => window.matchMedia('(max-width: 720px)').matches;
+  // read ?tour=on|off from the URL (search or hash) or a host-set window.__TOUR.
+  // In the anfra runtime the app is an about:srcdoc iframe with no URL, so this is
+  // empty there; the storage gate below then keeps it from auto-nagging.
+  function readParam(){
+    try{ const q=new URLSearchParams(location.search); if(q.has('tour')) return q.get('tour'); }catch(e){}
+    try{ const q=new URLSearchParams(location.hash.replace(/^#/,'')); if(q.has('tour')) return q.get('tour'); }catch(e){}
+    try{ if(typeof window.__TOUR==='string') return window.__TOUR; }catch(e){}
+    return null;
+  }
+  function storageOK(){ try{ localStorage.setItem('__tourtest','1'); localStorage.removeItem('__tourtest'); return true; }catch(e){ return false; } }
+  const tourParam = readParam();      // 'on' | 'off' | null
+
+  // tiny motorbike glyph for the tooltip (mirrors the app's depth icon, flat)
+  const TBIKE = `<svg class="bike" viewBox="0 0 64 48" aria-hidden="true" style="width:100%;height:100%">
+    <circle class="tyre" cx="16" cy="38" r="7"/><circle class="tyre" cx="49" cy="38" r="7"/>
+    <rect class="frame" x="19" y="33" width="25" height="5" rx="2"/>
+    <rect class="frame" x="9" y="27" width="16" height="10" rx="3"/>
+    <rect class="seat" x="7" y="22" width="19" height="5" rx="2.5"/>
+    <path class="frame" d="M40 37 L41 24 Q42 18 47 17 L50.5 18 Q52.5 19 51.5 23 L50 37 Z"/>
+    <line class="bar" x1="47" y1="18" x2="39.5" y2="15" style="stroke:var(--bike-frame);stroke-width:2.4;stroke-linecap:round"/>
+    <circle class="hub" cx="16" cy="38" r="3"/><circle class="hub" cx="49" cy="38" r="3"/>
+    <circle class="light" cx="50.5" cy="23" r="1.9"/></svg>`;
+
+  // the current worst district on the map (from the city summary); fall back to any district
+  const worstName = ()=>{ const n=document.getElementById('city-worst-name')?.textContent?.trim(); return (n&&n!=='—')?n:null; };
+  const worstDistrictSel = ()=>{ const n=worstName(); return n?`path.district[data-name="${n}"]`:'path.district[data-name]'; };
+
+  const STEPS = [
+    { target:'#map', center:true, title:'Tonight it rains',
+      text:"It's 5 PM and the sky is turning black. This map shows where Ho Chi Minh City floods tonight.", cta:'next' },
+    { target:'#play', prefer:'top', title:'Watch the storm',
+      text:'Press play to watch the storm roll in.', action:{ sel:'#play', ev:'click' }, hint:'Press play ▶' },
+    { targetFn:worstDistrictSel, prefer:'right', title:'How deep does it get?',
+      text:'Tap a district to see how deep the water gets, in motorbike terms.',
+      action:{ sel:'#map', delegate:'path.district', ev:'click' }, hint:'Tap a district' },
+    { target:'.fromto', prefer:'right', title:'Leave now or wait?',
+      text:"Heading home? Pick where you're going and ask: leave now or wait?", cta:'next' },
+    { target:'#tour-insp', prefer:'right', ensureCard:true, title:'Every number is defined',
+      text:"Every number here has one definition. Tap ⓘ to see exactly how it's calculated.", cta:'next' },
+    { target:'#lens-btn', prefer:'top', finish:true, title:'See how it works',
+      text:'Curious how it works? Turn on the Lens to see which anfra feature powers each part.', cta:'finish' },
+  ];
+  const TOTAL = STEPS.filter(s=>!s.finish).length;   // 5 numbered steps
+
+  let dim, overlay, spot, tip, helpBtn, idx = -1, raf = 0, actionEl = null, actionHandler = null, lastAdv = 0;
+
+  // "seen" across localStorage → sessionStorage → in-memory, so a thrown localStorage
+  // (sandboxed iframe) doesn't wrongly hide OR permanently block the tour.
+  let memSeen=false;
+  function seen(){ try{ if(localStorage.getItem(KEY)==='1') return true; }catch(e){}
+    try{ if(sessionStorage.getItem(KEY)==='1') return true; }catch(e){} return memSeen; }
+  function markSeen(){ memSeen=true; try{ localStorage.setItem(KEY,'1'); }catch(e){} try{ sessionStorage.setItem(KEY,'1'); }catch(e){} }
+
+  function el(cls, html){ const d=document.createElement('div'); if(cls) d.className=cls; if(html!=null) d.innerHTML=html; return d; }
+
+  function build(){
+    dim = el('tour-dim'); dim.style.display='none';
+    overlay = el('tour-overlay');
+    spot = el('tour-spot'); spot.style.display='none';
+    overlay.appendChild(spot);
+    tip = el('tour-tip'); tip.setAttribute('role','dialog'); tip.setAttribute('aria-modal','true');
+    tip.setAttribute('aria-labelledby','tourTitle'); tip.setAttribute('aria-describedby','tourText'); tip.tabIndex = -1;
+    overlay.appendChild(tip);
+    app.appendChild(dim); app.appendChild(overlay);
+  }
+
+  function clearAction(){ if(actionEl && actionHandler){ actionEl.removeEventListener(actionHandler.ev, actionHandler.fn, true); }
+    actionEl = null; actionHandler = null; }
+
+  function resolveSel(step){ return step.targetFn ? step.targetFn() : step.target; }
+  function targetRect(step){
+    const sel = resolveSel(step); if(!sel) return null;
+    const t = document.querySelector(sel);
+    if(!t || t.offsetParent===null) return null;          // missing or hidden
+    const r = t.getBoundingClientRect();
+    if(r.width<1 && r.height<1) return null;
+    return { el:t, rect:r };
+  }
+
+  function placeSpot(rect){
+    if(!rect){ spot.style.display='none'; return; }
+    const pad = 8;
+    spot.style.display='';
+    spot.style.left = (rect.left - pad) + 'px';
+    spot.style.top = (rect.top - pad) + 'px';
+    spot.style.width = (rect.width + pad*2) + 'px';
+    spot.style.height = (rect.height + pad*2) + 'px';
+  }
+
+  function placeTip(step, rect){
+    const m = 12, vw = window.innerWidth, vh = window.innerHeight;
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    // lower bound on phone: keep above the bottom sheet + timeline
+    let maxBottom = vh - m;
+    if (isPhone()){
+      const sheet = document.getElementById('side');
+      const sr = sheet ? sheet.getBoundingClientRect() : null;
+      const tl = document.querySelector('.timeline');
+      const tlr = tl ? tl.getBoundingClientRect() : null;
+      const tops = [vh - m];
+      if (sr && sr.top < vh) tops.push(sr.top - m);
+      if (tlr && tlr.top < vh) tops.push(tlr.top - m);
+      maxBottom = Math.min.apply(null, tops);
+    }
+    if (step.center || !rect){
+      const left = (vw - tw)/2, top = Math.min((vh - th)/2, maxBottom - th);
+      tip.style.left = Math.max(m,left)+'px'; tip.style.top = Math.max(m,top)+'px'; return;
+    }
+    const space = { right:vw-rect.right, left:rect.left, top:rect.top, bottom:vh-rect.bottom };
+    const fits = s => s==='right'?space.right>=tw+m : s==='left'?space.left>=tw+m
+                    : s==='top'?space.top>=th+m : space.bottom>=th+m;
+    const order = [step.prefer||'bottom','bottom','top','right','left'].filter((v,i,a)=>a.indexOf(v)===i);
+    const side = order.find(fits) || step.prefer || 'bottom';
+    let top, left;
+    if (side==='right'){ left=rect.right+m; top=rect.top+rect.height/2-th/2; }
+    else if (side==='left'){ left=rect.left-m-tw; top=rect.top+rect.height/2-th/2; }
+    else if (side==='top'){ top=rect.top-m-th; left=rect.left+rect.width/2-tw/2; }
+    else { top=rect.bottom+m; left=rect.left+rect.width/2-tw/2; }
+    left = Math.max(m, Math.min(vw-tw-m, left));
+    top  = Math.max(m, Math.min(maxBottom-th, top));
+    tip.style.left = left+'px'; tip.style.top = top+'px';
+  }
+
+  function renderTip(step, i){
+    const counter = step.finish ? `<span class="count">🎉 You're set</span>`
+                                : `<span class="count">${i+1} of ${TOTAL}</span>`;
+    const hint = (!step.cta && step.hint) ? `<span class="hintaction">${step.hint}</span>` : '';
+    const skip = step.finish ? '' : `<button class="tour-skip" data-act="skip">Skip tour</button>`;
+    let primary = '';
+    if (step.cta==='next') primary = `<button class="tour-btn primary" data-act="next">Next →</button>`;
+    else if (step.cta==='finish') primary = `<button class="tour-btn primary" data-act="finish">Let's go</button>`;
+    const row = `<div class="trow">${counter}${hint}<span class="tspacer"></span>${skip}${primary}</div>`;
+    tip.innerHTML =
+      `<div class="thead"><span class="tbike">${TBIKE}</span><h4 id="tourTitle">${step.title}</h4></div>
+       <p id="tourText">${step.text}</p>${row}`;
+    tip.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click', ()=>{
+      const a=b.getAttribute('data-act');
+      if(a==='skip'||a==='finish') stop(true); else next();
+    }));
+  }
+
+  function cardVisible(){ const c=document.getElementById('tour-insp'); return c && c.offsetParent!==null; }
+  function ensureCard(done){
+    if (cardVisible()){ done(); return; }
+    const p = document.querySelector(worstDistrictSel());   // open a district card so the ⓘ exists
+    if (p) p.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
+    setTimeout(done, 640);
+  }
+
+  function loop(step){
+    cancelAnimationFrame(raf);
+    const tick = ()=>{ const hit = targetRect(step); if(hit) placeSpot(hit.rect); raf = requestAnimationFrame(tick); };
+    if (reduce){ const hit=targetRect(step); if(hit) placeSpot(hit.rect); }
+    else tick();
+  }
+
+  function showStep(i){
+    clearAction();
+    idx = i;
+    const step = STEPS[i];
+    const go = ()=>{
+      const hit = targetRect(step);
+      // if a step's target can't be found, skip it instead of breaking the tour
+      if (!step.center && !hit){ if (i < STEPS.length-1) return showStep(i+1); return stop(true); }
+      renderTip(step, i);
+      // last step: flash the Anfra Lens on for a moment so people see what it does
+      if (step.finish){ try{ window.__anfraLens && window.__anfraLens.peek(2400); }catch(e){} }
+      dim.style.display = (step.center || !hit) ? '' : 'none';   // full dim when no element to spotlight
+      if (step.center || !hit){ spot.style.display='none'; cancelAnimationFrame(raf); }
+      else { placeSpot(hit.rect); loop(step); }
+      // position after layout
+      requestAnimationFrame(()=>{ placeTip(step, hit && hit.rect); tip.focus(); });
+      // action-advance (press play / tap a district). delegate lets any child match (any district)
+      if (step.action){
+        const host = document.querySelector(step.action.sel) || document;
+        const del = step.action.delegate;
+        const fn = (ev)=>{ if(idx!==i) return; if(del && !(ev.target.closest && ev.target.closest(del))) return; setTimeout(next, 160); };
+        host.addEventListener(step.action.ev, fn, true);
+        actionEl = host; actionHandler = { ev:step.action.ev, fn };
+      }
+    };
+    if (step.ensureCard) ensureCard(go); else go();
+  }
+
+  function next(){ const t=Date.now(); if(t-lastAdv<150) return; lastAdv=t;
+    if (idx < STEPS.length-1) showStep(idx+1); else stop(true); }
+
+  function onKey(e){
+    if (idx<0) return;
+    if (e.key==='Escape'){ e.preventDefault(); stop(true); }
+    else if (e.key==='Enter' || e.key==='ArrowRight'){ e.preventDefault(); next(); }
+  }
+
+  function start(){
+    if (idx>=0) return;
+    if (!dim) build();
+    document.addEventListener('keydown', onKey, true);
+    window.addEventListener('resize', onResize);
+    showStep(0);
+  }
+  function onResize(){ if(idx<0) return; const step=STEPS[idx]; const hit=targetRect(step);
+    if(hit && !step.center) placeSpot(hit.rect); placeTip(step, hit&&hit.rect); }
+
+  function stop(markDone){
+    cancelAnimationFrame(raf); raf=0; clearAction();
+    document.removeEventListener('keydown', onKey, true);
+    window.removeEventListener('resize', onResize);
+    if (dim) dim.style.display='none';
+    if (overlay) overlay.remove(), overlay=null;
+    if (dim) dim.remove(), dim=null;
+    idx = -1;
+    if (markDone) markSeen();
+    if (helpBtn) helpBtn.focus();
+  }
+
+  // replay "?" button (bottom-right)
+  function addHelp(){
+    helpBtn = document.createElement('button');
+    helpBtn.className='tour-help'; helpBtn.id='tour-help';
+    helpBtn.setAttribute('aria-label','Replay the intro tour'); helpBtn.title='Replay the intro tour';
+    helpBtn.textContent='?';
+    helpBtn.addEventListener('click', ()=>{ if(idx>=0) stop(false); start(); });
+    app.appendChild(helpBtn);
+  }
+
+  // expose for testing / screenshots
+  window.__floodTour = { start, stop, goTo:(n)=>{ if(idx<0) start(); showStep(Math.max(0,Math.min(STEPS.length-1,n))); } };
+
+  addHelp();
+  if (tourParam === 'off'){ /* disabled for recording */ }
+  else if (tourParam === 'on'){ setTimeout(start, 400); }                 // force (?tour=on or window.__TOUR='on')
+  else if (!seen()){ setTimeout(()=>{ if(!seen()){ start(); markSeen(); } }, 900); }  // auto on first visit
+})();
+</script>
+</body>
+</html>

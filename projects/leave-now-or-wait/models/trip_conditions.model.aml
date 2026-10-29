@@ -1,0 +1,87 @@
+// Layer 4 — per-trip route conditions at departure time.
+// A QueryModel at trip grain: for each trip it walks the route's segments, reads
+// each one's modeled depth AT the trip's departure hour, and rolls up the route's
+// km, flooded km, risk, and depth. anfra's auto-joins fan out across the
+// trips-routes-steps chasm, so this per-trip rollup is done explicitly in SQL.
+//
+// The modeled-depth physics mirrors modeled_segment_readings (local anfra can't
+// reference one QueryModel from another); the flooded THRESHOLD is NOT restated —
+// it is read from the one-row flood_config table, the single source of truth.
+
+Model trip_conditions {
+  type: 'query'
+  label: 'Trip conditions'
+  description: 'Per-trip route flooding and travel at departure: route-km, flooded-km, route risk, modeled route depth, recorded travel, and whether the route was dry.'
+  data_source_name: 'flood'
+  models: [trips, route_steps, road_segments, weather_hourly, tide_hourly, segment_readings]
+
+  query: @sql
+    WITH rain3 AS (
+      SELECT district_id, ts,
+        SUM(rainfall_mm) OVER (
+          PARTITION BY district_id, CAST(ts AS DATE)
+          ORDER BY ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS rain_3h
+      FROM weather_hourly
+    ),
+    modeled AS (
+      SELECT
+        sr.segment_id,
+        sr.ts,
+        s.length_km,
+        (
+          GREATEST(0.0, r.rain_3h - s.drainage_capacity_mm_per_hr * 1.5)
+            * 0.40 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * s.elevation_m))
+          + r.rain_3h * 0.02 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * s.elevation_m))
+          + CASE WHEN s.near_river AND s.elevation_m < 3.0
+                 THEN GREATEST(0.0, t.tide_level_m - 0.5) * 18.0 * ((3.0 - s.elevation_m) / 3.0)
+                 ELSE 0.0 END
+        ) AS depth
+      FROM segment_readings sr
+      JOIN road_segments s  ON s.id = sr.segment_id
+      JOIN rain3 r          ON r.district_id = s.district_id AND r.ts = sr.ts
+      LEFT JOIN tide_hourly t ON t.ts = sr.ts
+    ),
+    cfg AS (SELECT threshold_cm FROM flood_config LIMIT 1),
+    trip_seg AS (
+      SELECT
+        tr.id            AS trip_id,
+        tr.route_id      AS route_id,
+        tr.depart_ts     AS depart_ts,
+        tr.travel_minutes AS travel_minutes,
+        m.length_km      AS length_km,
+        m.depth          AS depth,
+        (m.depth >= cfg.threshold_cm) AS flooded
+      FROM trips tr
+      JOIN route_steps rs ON rs.route_id = tr.route_id
+      JOIN modeled m      ON m.segment_id = rs.segment_id AND m.ts = tr.depart_ts
+      CROSS JOIN cfg
+    )
+    SELECT
+      trip_id                                                   AS id,
+      route_id                                                  AS route_id,
+      depart_ts                                                 AS depart_ts,
+      ANY_VALUE(travel_minutes)                                 AS travel_minutes,
+      SUM(length_km)                                            AS route_km,
+      SUM(CASE WHEN flooded THEN length_km ELSE 0 END)          AS flooded_km,
+      SUM(CASE WHEN flooded THEN length_km ELSE 0 END) / SUM(length_km) AS route_risk,
+      AVG(depth)                                                AS avg_route_depth_cm,
+      MAX(depth)                                                AS max_route_depth_cm,
+      (SUM(CASE WHEN flooded THEN length_km ELSE 0 END) = 0)    AS is_dry
+    FROM trip_seg
+    GROUP BY trip_id, route_id, depart_ts
+  ;;
+
+  dimension id { label: 'Trip ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension route_id { label: 'Route ID'; type: 'number'; definition: @sql {{ #SOURCE.route_id }};; }
+  dimension depart_ts { label: 'Departure'; type: 'datetime'; definition: @sql {{ #SOURCE.depart_ts }};; }
+  dimension evening { label: 'Evening'; type: 'date'; definition: @sql CAST({{ #SOURCE.depart_ts }} AS DATE);; }
+  dimension hour { label: 'Hour'; type: 'number'; definition: @sql EXTRACT(hour FROM {{ #SOURCE.depart_ts }});; }
+  dimension travel_minutes { label: 'Travel time (min)'; type: 'number'; definition: @sql {{ #SOURCE.travel_minutes }};; }
+  dimension route_km { label: 'Route-km'; type: 'number'; definition: @sql {{ #SOURCE.route_km }};; }
+  dimension flooded_km { label: 'Flooded route-km'; type: 'number'; definition: @sql {{ #SOURCE.flooded_km }};; }
+  dimension route_risk { label: 'Route flood risk (per trip)'; type: 'number'; definition: @sql {{ #SOURCE.route_risk }};; }
+  dimension avg_route_depth_cm { label: 'Avg route depth (cm)'; type: 'number'; definition: @sql {{ #SOURCE.avg_route_depth_cm }};; }
+  dimension max_route_depth_cm { label: 'Max route depth (cm)'; type: 'number'; definition: @sql {{ #SOURCE.max_route_depth_cm }};; }
+  dimension is_dry { label: 'Dry route at departure'; type: 'truefalse'; definition: @sql {{ #SOURCE.is_dry }};; }
+}

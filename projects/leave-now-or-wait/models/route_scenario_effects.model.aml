@@ -1,0 +1,158 @@
+// Layer 5 (commute) — Mayor-mode route delay, before vs after a plan.
+//
+// Same scenario engine as scenario_effects, but rolled up to ROUTE-hours so the
+// "Your commute" card can show the selected route's modeled delay before and after
+// the chosen interventions, at the selected stress horizon.
+//
+// Grain: (route_id, years_from_now, ts, intervention_id). Every row carries that
+// route-hour's STRESSED baseline delay (no interventions) and ONE intervention's
+// marginal delay relief. intervention_id = 0 is the baseline (relief 0) and is
+// always kept. After-delay for a chosen set, per route-hour:
+//     max(base_delay) - sum(relief over the active set)      (superposition)
+// mirroring scenario_effects exactly (per-intervention physics exact; cross-effects
+// not modeled). Route delay mirrors route_hour_conditions: avg(depth)+0.5*max(depth)
+// over the route's segments. Physics + threshold mirror modeled_segment_readings /
+// flood_config (single sources).
+
+Model route_scenario_effects {
+  type: 'query'
+  label: 'Route scenario effects'
+  description: 'Per route-hour, per stress horizon, per intervention: the stressed baseline modeled commute delay and that intervention\'s marginal delay relief. After-delay = baseline - sum(active relief).'
+  data_source_name: 'flood'
+  models: [routes, route_steps, road_segments, weather_hourly, tide_hourly, segment_readings, interventions, intervention_districts, intervention_segments, district_downstream, stress_horizons]
+
+  query: @sql
+    WITH rain3 AS (
+      SELECT district_id, ts,
+        SUM(rainfall_mm) OVER (
+          PARTITION BY district_id, CAST(ts AS DATE)
+          ORDER BY ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS rain_3h
+      FROM weather_hourly
+    ),
+    seg_hour AS (
+      SELECT sr.segment_id, s.district_id, sr.ts,
+             s.elevation_m, s.drainage_capacity_mm_per_hr AS drainage,
+             s.near_river, r.rain_3h, COALESCE(t.tide_level_m, 0.0) AS tide_level
+      FROM segment_readings sr
+      JOIN road_segments s ON s.id = sr.segment_id
+      JOIN rain3 r ON r.district_id = s.district_id AND r.ts = sr.ts
+      LEFT JOIN tide_hourly t ON t.ts = sr.ts
+    ),
+    stressed AS (
+      SELECT sh.years_from_now,
+             h.segment_id, h.district_id, h.ts, h.near_river, h.drainage,
+             GREATEST(0.1, h.elevation_m - sh.subsidence_m) AS elev_s,
+             h.rain_3h * sh.rain_factor                     AS rain_s,
+             h.tide_level + sh.tide_add_m                   AS tide_s
+      FROM seg_hour h CROSS JOIN stress_horizons sh
+    ),
+    baseline AS (
+      SELECT *,
+        ( GREATEST(0.0, rain_s - drainage * 1.5) * 0.40 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * elev_s))
+          + rain_s * 0.02 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * elev_s))
+          + CASE WHEN near_river AND elev_s < 3.0
+                 THEN GREATEST(0.0, tide_s - 0.5) * 18.0 * ((3.0 - elev_s) / 3.0) ELSE 0.0 END
+        ) AS baseline_depth
+      FROM stressed
+    ),
+    scope AS (
+      SELECT i.id AS intervention_id, i.type, s.id AS segment_id,
+             i.drainage_boost_mm_per_hr AS boost, i.tide_block_share AS tide_block, 0.0 AS absorb
+      FROM interventions i
+      JOIN intervention_districts xd ON xd.intervention_id = i.id
+      JOIN road_segments s ON s.district_id = xd.district_id
+      WHERE i.type IN ('drainage upgrade', 'tidal sluice')
+      UNION ALL
+      SELECT i.id, i.type, s.id, 0.0, 0.0, i.absorb_first_mm
+      FROM interventions i
+      JOIN intervention_districts xd ON xd.intervention_id = i.id
+      JOIN road_segments s ON s.district_id = xd.district_id
+      WHERE i.type = 'retention pond'
+      UNION ALL
+      SELECT i.id, i.type, s.id, 0.0, 0.0, i.absorb_first_mm
+      FROM interventions i
+      JOIN intervention_districts xd ON xd.intervention_id = i.id
+      JOIN district_downstream dd ON dd.district_id = xd.district_id
+      JOIN road_segments s ON s.district_id = dd.downstream_district_id
+      WHERE i.type = 'retention pond'
+      UNION ALL
+      SELECT i.id, i.type, xs.segment_id, 0.0, 0.0, 0.0
+      FROM interventions i
+      JOIN intervention_segments xs ON xs.intervention_id = i.id
+      WHERE i.type = 'raised road'
+    ),
+    -- per segment-hour-horizon-intervention: the depth under JUST that one intervention
+    effects AS (
+      SELECT b.years_from_now, b.segment_id, b.ts, sc.intervention_id,
+             CASE sc.type
+               WHEN 'raised road' THEN 0.0
+               WHEN 'drainage upgrade' THEN
+                 ( GREATEST(0.0, b.rain_s - (b.drainage + sc.boost) * 1.5) * 0.40 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * b.elev_s))
+                   + b.rain_s * 0.02 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * b.elev_s))
+                   + CASE WHEN b.near_river AND b.elev_s < 3.0 THEN GREATEST(0.0, b.tide_s - 0.5) * 18.0 * ((3.0 - b.elev_s) / 3.0) ELSE 0.0 END )
+               WHEN 'tidal sluice' THEN
+                 ( GREATEST(0.0, b.rain_s - b.drainage * 1.5) * 0.40 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * b.elev_s))
+                   + b.rain_s * 0.02 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * b.elev_s))
+                   + CASE WHEN b.near_river AND b.elev_s < 3.0 THEN GREATEST(0.0, b.tide_s - 0.5) * 18.0 * ((3.0 - b.elev_s) / 3.0) * (1.0 - sc.tide_block) ELSE 0.0 END )
+               WHEN 'retention pond' THEN
+                 ( GREATEST(0.0, GREATEST(0.0, b.rain_s - sc.absorb) - b.drainage * 1.5) * 0.40 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * b.elev_s))
+                   + GREATEST(0.0, b.rain_s - sc.absorb) * 0.02 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * b.elev_s))
+                   + CASE WHEN b.near_river AND b.elev_s < 3.0 THEN GREATEST(0.0, b.tide_s - 0.5) * 18.0 * ((3.0 - b.elev_s) / 3.0) ELSE 0.0 END )
+             END AS depth_with_one
+      FROM baseline b
+      JOIN scope sc ON sc.segment_id = b.segment_id
+    ),
+    -- baseline route delay per route-hour-horizon (avg + 0.5*max over the route's segments)
+    route_base AS (
+      SELECT rs.route_id, b.years_from_now, b.ts,
+             AVG(b.baseline_depth) + 0.5 * MAX(b.baseline_depth) AS base_delay
+      FROM route_steps rs
+      JOIN baseline b ON b.segment_id = rs.segment_id
+      GROUP BY rs.route_id, b.years_from_now, b.ts
+    ),
+    -- which interventions touch each route (at least one of its segments)
+    route_interv AS (
+      SELECT DISTINCT rs.route_id, e.intervention_id
+      FROM route_steps rs JOIN effects e ON e.segment_id = rs.segment_id
+    ),
+    -- full route-segment depth under one intervention: touched segs use depth_with_one, others keep baseline
+    route_seg_one AS (
+      SELECT ri.route_id, b.years_from_now, b.ts, ri.intervention_id, b.segment_id,
+             COALESCE(e.depth_with_one, b.baseline_depth) AS depth_one
+      FROM route_interv ri
+      JOIN route_steps rs ON rs.route_id = ri.route_id
+      JOIN baseline b ON b.segment_id = rs.segment_id
+      LEFT JOIN effects e
+        ON e.segment_id = b.segment_id AND e.ts = b.ts
+       AND e.years_from_now = b.years_from_now AND e.intervention_id = ri.intervention_id
+    ),
+    route_delay_one AS (
+      SELECT route_id, years_from_now, ts, intervention_id,
+             AVG(depth_one) + 0.5 * MAX(depth_one) AS delay_one
+      FROM route_seg_one
+      GROUP BY route_id, years_from_now, ts, intervention_id
+    )
+    -- baseline rows (intervention 0, no relief)
+    SELECT rb.route_id, rb.years_from_now, rb.ts,
+           0 AS intervention_id, rb.base_delay, 0.0 AS relief_delay
+    FROM route_base rb
+    UNION ALL
+    -- one row per intervention that touches the route: its marginal delay relief
+    SELECT rb.route_id, rb.years_from_now, rb.ts,
+           rd.intervention_id, rb.base_delay,
+           GREATEST(0.0, rb.base_delay - rd.delay_one) AS relief_delay
+    FROM route_delay_one rd
+    JOIN route_base rb
+      ON rb.route_id = rd.route_id AND rb.years_from_now = rd.years_from_now AND rb.ts = rd.ts
+  ;;
+
+  dimension row_uid { label: 'Row UID'; type: 'text'; primary_key: true;
+    definition: @sql {{ #SOURCE.route_id }} || '-' || {{ #SOURCE.years_from_now }} || '-' || {{ #SOURCE.ts }} || '-' || {{ #SOURCE.intervention_id }};; }
+  dimension route_id { label: 'Route ID'; type: 'number'; definition: @sql {{ #SOURCE.route_id }};; }
+  dimension years_from_now { label: 'Years from now'; type: 'number'; definition: @sql {{ #SOURCE.years_from_now }};; }
+  dimension ts { label: 'Timestamp'; type: 'datetime'; definition: @sql {{ #SOURCE.ts }};; }
+  dimension intervention_id { label: 'Intervention ID (0 = baseline)'; type: 'number'; definition: @sql {{ #SOURCE.intervention_id }};; }
+  dimension base_delay { label: 'Baseline route delay, stressed (min)'; type: 'number'; definition: @sql {{ #SOURCE.base_delay }};; }
+  dimension relief_delay { label: 'Delay relief from this intervention (min)'; type: 'number'; definition: @sql {{ #SOURCE.relief_delay }};; }
+}

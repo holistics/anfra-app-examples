@@ -1,0 +1,537 @@
+// Governed dataset for "Leave now or wait?". All business logic lives here as
+// metrics; derived metrics build on other metrics. Grown layer by layer.
+
+Dataset flood {
+  label: 'HCMC Flooding'
+  description: 'Rain, tide, road and commute facts for Ho Chi Minh City, with governed flood/commute/mayor metrics.'
+  data_source_name: 'flood'
+
+  models: [
+    districts,
+    road_segments,
+    weather_hourly,
+    tide_hourly,
+    segment_readings,
+    modeled_segment_readings,
+    routes,
+    trip_conditions,
+    scenario_effects,
+    route_scenario_effects,
+    interventions,
+    flood_config,
+    route_hour_conditions,
+    route_district_seq,
+    route_recommendation,
+    intervention_info,
+  ]
+
+  relationships: [
+    relationship(road_segments.district_id > districts.id, true),
+    relationship(segment_readings.segment_id > road_segments.id, true),
+    relationship(weather_hourly.district_id > districts.id, true),
+    relationship(modeled_segment_readings.segment_id > road_segments.id, true),
+    relationship(trip_conditions.route_id > routes.id, true),
+    relationship(routes.from_district_id > districts.id, false),
+    relationship(routes.to_district_id > districts.id, false),
+    relationship(scenario_effects.district_id > districts.id, true),
+    relationship(route_scenario_effects.route_id > routes.id, true),
+    relationship(route_hour_conditions.route_id > routes.id, true),
+    relationship(route_district_seq.route_id > routes.id, true),
+    relationship(route_recommendation.route_id > routes.id, true),
+  ]
+
+  // ---------------------------------------------------------------- LAYER 1
+  metric rainfall_mm {
+    label: 'Rainfall (mm)'
+    type: 'number'
+    definition: @aql avg(weather_hourly.rainfall_mm) ;;
+    format: '#,##0.0'
+    description: 'Average recorded rainfall per district-hour in scope.'
+  }
+
+  metric peak_tide_m {
+    label: 'Peak tide (m)'
+    type: 'number'
+    definition: @aql max(tide_hourly.tide_level_m) ;;
+    format: '#,##0.00'
+    description: 'Highest recorded citywide tide level in scope.'
+  }
+
+  metric traffic_volume {
+    label: 'Traffic (veh/hr)'
+    type: 'number'
+    definition: @aql avg(road_segments.traffic_volume_per_hr) ;;
+    format: '#,##0'
+    description: 'Average road-segment traffic volume (vehicles/hour) in scope. A static road attribute — how busy the roads are, independent of the weather.'
+  }
+
+  metric avg_water_depth_cm {
+    label: 'Avg water depth — recorded (cm)'
+    type: 'number'
+    definition: @aql avg(segment_readings.water_depth_cm) ;;
+    format: '#,##0.0'
+    description: 'Average sensor-recorded road water depth across segment-hours in scope.'
+  }
+
+  // ---------------------------------------------------------------- LAYER 2
+  metric modeled_water_depth_cm {
+    label: 'Avg water depth — modeled (cm)'
+    type: 'number'
+    definition: @aql avg(modeled_segment_readings.modeled_water_depth_cm) ;;
+    format: '#,##0.0'
+    description: 'Average modeled road water depth across segment-hours (recent-3h rain minus drainage, plus tide backflow for low near-river segments). Mirrors the data generator.'
+  }
+
+  metric model_error_cm {
+    label: 'Model error (cm)'
+    type: 'number'
+    definition: @aql modeled_water_depth_cm - avg_water_depth_cm ;;
+    format: '#,##0.00'
+    description: 'Modeled minus recorded depth. Builds on the modeled and recorded metrics; should be near zero (only sensor noise separates them).'
+  }
+
+  metric mean_abs_model_error_cm {
+    label: 'Mean |model error| (cm)'
+    type: 'number'
+    definition: @aql avg(abs(modeled_segment_readings.model_error_cm)) ;;
+    format: '#,##0.00'
+    description: 'Average absolute per-segment-hour gap between modeled and recorded depth — the size of the miss.'
+  }
+
+  // ---------------------------------------------------------------- LAYER 3
+  // "Flooded" is gated once by modeled_segment_readings.is_flooded (>= 20 cm).
+  metric flood_threshold_cm {
+    label: 'Flood threshold (cm)'
+    type: 'number'
+    definition: @aql max(flood_config.threshold_cm) ;;
+    format: '#,##0'
+    description: 'The single flooded-depth cutoff (20 cm — a motorbike stalls), read from the one-row flood_config table. Every "flooded" rule depends on this one number.'
+  }
+
+  // Depth split into its three mechanisms (they sum to modeled_water_depth_cm),
+  // so the "why is this red?" breakdown reads each from a governed metric.
+  metric depth_from_rain_cm {
+    label: 'Depth from rain (cm)'
+    type: 'number'
+    definition: @aql avg(modeled_segment_readings.rain_cm) ;;
+    format: '#,##0.0'
+    description: 'The share of modeled depth from rain sheeting on the road surface. Builds on the modeled segment rain component.'
+  }
+
+  metric depth_from_drainage_cm {
+    label: 'Depth from weak drainage (cm)'
+    type: 'number'
+    definition: @aql avg(modeled_segment_readings.drain_pool_cm) ;;
+    format: '#,##0.0'
+    description: 'The share of modeled depth from rain that pooled because drainage could not carry it away this storm.'
+  }
+
+  metric depth_from_tide_cm {
+    label: 'Depth from tide (cm)'
+    type: 'number'
+    definition: @aql avg(modeled_segment_readings.tide_cm) ;;
+    format: '#,##0.0'
+    description: 'The share of modeled depth from river backflow at high tide on low near-river roads.'
+  }
+
+  metric depth_bucket {
+    label: 'Depth bucket (motorbike, 1-4)'
+    type: 'number'
+    definition: @aql
+      case(
+        when: modeled_water_depth_cm >= 35.0,              then: 4,
+        when: modeled_water_depth_cm >= flood_threshold_cm, then: 3,
+        when: modeled_water_depth_cm >= 10.0,             then: 2,
+        else: 1
+      )
+    ;;
+    format: '#,##0'
+    description: 'Water depth in motorbike terms: 1 dry tyres (<10 cm), 2 ankle deep (10-20), 3 up to your exhaust (>= the 20 cm flood threshold — it stalls), 4 seat deep (>= 35 cm). Builds on modeled_water_depth_cm and flood_threshold_cm.'
+  }
+
+  metric total_road_km {
+    label: 'Total road-km (segment-hours)'
+    type: 'number'
+    definition: @aql sum(modeled_segment_readings.length_km) ;;
+    format: '#,##0.0'
+    description: 'Road length summed over the segment-hours in scope (the denominator for flood risk).'
+  }
+
+  metric flooded_road_km {
+    label: 'Flooded road-km'
+    type: 'number'
+    definition: @aql sum(case(when: modeled_segment_readings.is_flooded == true, then: modeled_segment_readings.length_km, else: 0.0)) ;;
+    format: '#,##0.0'
+    description: 'Road length on flooded segment-hours (modeled depth >= 20 cm). 0 when nothing floods. Builds on the is_flooded gate.'
+  }
+
+  metric flood_risk {
+    label: 'Flood risk (share of road-km)'
+    type: 'number'
+    definition: @aql flooded_road_km / total_road_km ;;
+    format: '#,##0.0%'
+    description: 'Length-weighted share of road-km that is flooded. Builds on flooded_road_km and total_road_km.'
+  }
+
+  metric flooded_hours {
+    label: 'Flooded segment-hours'
+    type: 'number'
+    definition: @aql sum(case(when: modeled_segment_readings.is_flooded == true, then: 1, else: 0)) ;;
+    format: '#,##0'
+    description: 'Count of flooded segment-hours (modeled depth >= 20 cm). Builds on the is_flooded gate.'
+  }
+
+  metric district_wet_socks {
+    label: 'Wet-socks index (1-5)'
+    type: 'number'
+    definition: @aql
+      case(
+        when: flood_risk > 0.10, then: 5,
+        when: flood_risk > 0.05, then: 4,
+        when: flood_risk > 0.02, then: 3,
+        when: flood_risk > 0.0,  then: 2,
+        else: 1
+      )
+    ;;
+    format: '#,##0'
+    description: 'Boots-or-sandals severity (1 dry … 5 worst) from a district-hour flood_risk. Builds on flood_risk.'
+  }
+
+  // ---------------------------------------------------------------- LAYER 4
+  // Per-trip route conditions come from trip_conditions (threshold read from
+  // flood_config, not restated).
+  metric route_total_km {
+    label: 'Route-km at departure'
+    type: 'number'
+    hidden: true
+    definition: @aql sum(trip_conditions.route_km) ;;
+    format: '#,##0.0'
+    description: 'Total route road-km across trips in scope. Denominator for route_risk.'
+  }
+
+  metric route_flooded_km {
+    label: 'Flooded route-km at departure'
+    type: 'number'
+    hidden: true
+    definition: @aql sum(trip_conditions.flooded_km) ;;
+    format: '#,##0.0'
+    description: 'Route road-km flooded at departure, across trips in scope.'
+  }
+
+  metric route_risk {
+    label: 'Route flood risk'
+    type: 'number'
+    definition: @aql route_flooded_km / route_total_km ;;
+    format: '#,##0.0%'
+    description: "Length-weighted share of the route's road-km flooded at departure. Builds on route_flooded_km and route_total_km."
+  }
+
+  metric wet_socks_index {
+    label: 'Wet-socks index (1-5)'
+    type: 'number'
+    definition: @aql
+      case(
+        when: route_risk > 0.5,  then: 5,
+        when: route_risk > 0.25, then: 4,
+        when: route_risk > 0.10, then: 3,
+        when: route_risk > 0.0,  then: 2,
+        else: 1
+      )
+    ;;
+    format: '#,##0'
+    description: 'Friendly 1-5 commute severity from route_risk: 1 dry, 5 worst. Builds on route_risk.'
+  }
+
+  metric avg_travel_min {
+    label: 'Avg travel time (min)'
+    type: 'number'
+    hidden: true
+    definition: @aql avg(trip_conditions.travel_minutes) ;;
+    format: '#,##0.0'
+    description: 'Average recorded trip travel time in scope.'
+  }
+
+  metric baseline_travel_min {
+    label: 'Dry-evening baseline travel (min)'
+    type: 'number'
+    hidden: true
+    definition: @aql avg(trip_conditions.travel_minutes) | where(trip_conditions.is_dry == true) ;;
+    format: '#,##0.0'
+    description: 'Average travel time on trips whose route was dry at departure.'
+  }
+
+  metric commute_delay_min {
+    label: 'Commute delay (min)'
+    type: 'number'
+    definition: @aql avg_travel_min - baseline_travel_min ;;
+    format: '#,##0.0'
+    description: 'Average travel time above the dry-evening baseline. Builds on avg_travel_min and baseline_travel_min.'
+  }
+
+  // ---------------------------------------------------------------- LAYER 5
+  // Scenario flooding. Filter years_from_now to one horizon and intervention_id to
+  // the active set ({0} = baseline; add ids to switch projects on). After-depth per
+  // segment-hour = baseline - sum(active relief). Baseline metrics self-filter id=0.
+  metric flooded_road_km_after {
+    label: 'Flooded road-km — after'
+    type: 'number'
+    definition: @aql
+      scenario_effects
+      | group(scenario_effects.reading_id, scenario_effects.years_from_now)
+      | select(flooded_len:
+          case(
+            when: (max(scenario_effects.baseline_depth) - sum(scenario_effects.reduction)) >= max(scenario_effects.threshold_cm),
+            then: max(scenario_effects.length_km),
+            else: 0.0
+          ))
+      | sum(flooded_len)
+    ;;
+    format: '#,##0.0'
+    description: 'Flooded road-km under the active interventions and selected stress horizon.'
+  }
+
+  metric flooded_hours_after {
+    label: 'Flooded segment-hours — after'
+    type: 'number'
+    definition: @aql
+      scenario_effects
+      | group(scenario_effects.reading_id, scenario_effects.years_from_now)
+      | select(flooded_flag:
+          case(
+            when: (max(scenario_effects.baseline_depth) - sum(scenario_effects.reduction)) >= max(scenario_effects.threshold_cm),
+            then: 1, else: 0
+          ))
+      | sum(flooded_flag)
+    ;;
+    format: '#,##0'
+    description: 'Flooded segment-hours under the active interventions and selected stress horizon.'
+  }
+
+  metric flooded_road_km_baseline {
+    label: 'Flooded road-km — baseline'
+    type: 'number'
+    hidden: true
+    definition: @aql
+      scenario_effects
+      | where(scenario_effects.intervention_id == 0)
+      | group(scenario_effects.reading_id, scenario_effects.years_from_now)
+      | select(flooded_len:
+          case(
+            when: max(scenario_effects.baseline_depth) >= max(scenario_effects.threshold_cm),
+            then: max(scenario_effects.length_km), else: 0.0
+          ))
+      | sum(flooded_len)
+    ;;
+    format: '#,##0.0'
+    description: 'Flooded road-km with NO interventions at the selected horizon (self-filters intervention_id = 0).'
+  }
+
+  metric flooded_hours_baseline {
+    label: 'Flooded segment-hours — baseline'
+    type: 'number'
+    hidden: true
+    definition: @aql
+      scenario_effects
+      | where(scenario_effects.intervention_id == 0)
+      | group(scenario_effects.reading_id, scenario_effects.years_from_now)
+      | select(flooded_flag:
+          case(
+            when: max(scenario_effects.baseline_depth) >= max(scenario_effects.threshold_cm),
+            then: 1, else: 0
+          ))
+      | sum(flooded_flag)
+    ;;
+    format: '#,##0'
+    description: 'Flooded segment-hours with NO interventions at the selected horizon.'
+  }
+
+  metric risk_after_interventions {
+    label: 'Flood risk — after'
+    type: 'number'
+    definition: @aql flooded_road_km_after / total_road_km ;;
+    format: '#,##0.0%'
+    description: 'Flooded share of road-km under the active interventions and horizon. Builds on flooded_road_km_after and total_road_km.'
+  }
+
+  metric flooded_hours_avoided {
+    label: 'Flooded hours avoided'
+    type: 'number'
+    definition: @aql flooded_hours_baseline - flooded_hours_after ;;
+    format: '#,##0'
+    description: 'Flooded segment-hours prevented by the active interventions, at the selected horizon. Builds on the baseline and after metrics.'
+  }
+
+  // --- Layer 5 cost / ROI ---
+  // value_of_time read once from flood_config. Commuter delay (modeled, from
+  // trip_conditions water-on-route) priced at that rate; delay saved is scaled by
+  // the flooded-road-km reduction (the approximation agreed for the what-if).
+  metric value_of_time_vnd_per_hour {
+    label: 'Value of time (VND/hour)'
+    type: 'number'
+    definition: @aql max(flood_config.value_of_time_vnd_per_hour) ;;
+    format: '#,##0'
+    description: 'The single value-of-time constant, read from flood_config.'
+  }
+
+  metric commuter_scale {
+    label: 'Commuter scale'
+    type: 'number'
+    hidden: true
+    definition: @aql max(flood_config.commuter_scale) ;;
+    format: '#,##0'
+    description: 'How many real commuter-trips each sample trip represents (from flood_config).'
+  }
+
+  metric delay_hours {
+    label: 'Commuter delay (hours)'
+    type: 'number'
+    hidden: true
+    definition: @aql (sum(trip_conditions.avg_route_depth_cm) + 0.5 * sum(trip_conditions.max_route_depth_cm)) / 60.0 * commuter_scale ;;
+    format: '#,##0'
+    description: 'Modeled water-induced commuter delay in hours, scaled to the city by commuter_scale (avg + 0.5*max route depth per trip, as minutes).'
+  }
+
+  metric delay_cost_vnd {
+    label: 'Delay cost (VND)'
+    type: 'number'
+    definition: @aql delay_hours * value_of_time_vnd_per_hour ;;
+    format: '#,##0'
+    description: 'Value of commuter time lost to flooding (baseline, today). Builds on delay_hours and value_of_time_vnd_per_hour.'
+  }
+
+  metric delay_cost_saved_vnd {
+    label: 'Delay cost saved (VND)'
+    type: 'number'
+    definition: @aql delay_cost_vnd * ((flooded_road_km_baseline - flooded_road_km_after) / flooded_road_km_baseline) ;;
+    format: '#,##0'
+    description: 'Commuter delay cost avoided, scaled by the flooded-road-km reduction under the active interventions. Builds on delay_cost_vnd and the flooded-km metrics.'
+  }
+
+  metric chosen_cost_vnd {
+    label: 'Chosen interventions cost (VND)'
+    type: 'number'
+    hidden: true
+    definition: @aql sum(interventions.cost_billion_vnd) * 1000000000 ;;
+    format: '#,##0'
+    description: 'Total capital cost of the interventions in scope (filter interventions.id to the chosen set).'
+  }
+
+  metric delay_cost_saved_vnd_annual {
+    label: 'Delay cost saved (VND/year)'
+    type: 'number'
+    definition: @aql delay_cost_saved_vnd * 12.0 ;;
+    format: '#,##0'
+    description: 'Commuter delay cost avoided per year: the ~30-evening (one-month) sample saving scaled x12. Builds on delay_cost_saved_vnd (the same x12 the annual ROI uses).'
+  }
+
+  metric intervention_roi {
+    label: 'Intervention ROI (annual)'
+    type: 'number'
+    definition: @aql delay_cost_saved_vnd_annual / chosen_cost_vnd ;;
+    format: '#,##0.00%'
+    description: 'Annual delay cost saved divided by one-time capital cost. Builds on delay_cost_saved_vnd_annual and chosen_cost_vnd.'
+  }
+
+  // --- Layer 5 commute (route delay before vs after a plan) ---
+  // From route_scenario_effects: per route-hour, after-delay = baseline - sum(active
+  // relief) (superposition). Filter route_scenario_effects.route_id to the route,
+  // years_from_now to the horizon, and intervention_id to the active set ({0} = none).
+  metric route_delay_before_min {
+    label: 'Route delay — before (min)'
+    type: 'number'
+    definition: @aql
+      route_scenario_effects
+      | where(route_scenario_effects.intervention_id == 0)
+      | group(route_scenario_effects.route_id, route_scenario_effects.ts, route_scenario_effects.years_from_now)
+      | select(d: max(route_scenario_effects.base_delay))
+      | avg(d)
+    ;;
+    format: '#,##0.0'
+    description: 'Modeled commute delay for the route with NO interventions, at the selected stress horizon (avg over the route-hours in scope). Self-filters intervention_id = 0.'
+  }
+
+  metric route_delay_after_min {
+    label: 'Route delay — after (min)'
+    type: 'number'
+    definition: @aql
+      route_scenario_effects
+      | group(route_scenario_effects.route_id, route_scenario_effects.ts, route_scenario_effects.years_from_now)
+      | select(d:
+          case(
+            when: (max(route_scenario_effects.base_delay) - sum(route_scenario_effects.relief_delay)) > 0.0,
+            then: max(route_scenario_effects.base_delay) - sum(route_scenario_effects.relief_delay),
+            else: 0.0
+          ))
+      | avg(d)
+    ;;
+    format: '#,##0.0'
+    description: 'Modeled commute delay for the route under the active interventions and selected horizon: per route-hour, baseline delay minus the summed relief of the active projects (superposition), averaged over the route-hours in scope.'
+  }
+
+  // ------------------------------------------------ COMMUTER VIEW (route x hour)
+  metric rh_route_km {
+    label: 'Route-km (route-hours)'
+    type: 'number'
+    hidden: true
+    definition: @aql sum(route_hour_conditions.route_km) ;;
+    format: '#,##0.0'
+    description: 'Route road-km summed over the route-hours in scope.'
+  }
+
+  metric rh_flooded_km {
+    label: 'Flooded route-km (route-hours)'
+    type: 'number'
+    hidden: true
+    definition: @aql sum(route_hour_conditions.flooded_km) ;;
+    format: '#,##0.0'
+    description: 'Flooded route road-km summed over the route-hours in scope.'
+  }
+
+  metric rh_route_risk {
+    label: 'Route flood risk (by hour)'
+    type: 'number'
+    definition: @aql rh_flooded_km / rh_route_km ;;
+    format: '#,##0.0%'
+    description: "Share of the route's road-km flooded, for the selected route and hour. Builds on rh_flooded_km and rh_route_km."
+  }
+
+  metric rh_delay_min {
+    label: 'Expected delay (min)'
+    type: 'number'
+    definition: @aql avg(route_hour_conditions.delay_min) ;;
+    format: '#,##0.0'
+    description: 'Modeled water-induced commute delay for the route at the selected hour (avg + 0.5*max route depth, minutes).'
+  }
+
+  metric rh_max_depth_cm {
+    label: 'Deepest water on route (cm)'
+    type: 'number'
+    definition: @aql max(route_hour_conditions.max_depth_cm) ;;
+    format: '#,##0'
+    description: 'Deepest modeled water on any route segment at the selected hour.'
+  }
+
+  metric rh_wet_socks_index {
+    label: 'Wet-socks index (1-5)'
+    type: 'number'
+    definition: @aql
+      case(
+        when: rh_route_risk > 0.5,  then: 5,
+        when: rh_route_risk > 0.25, then: 4,
+        when: rh_route_risk > 0.10, then: 3,
+        when: rh_route_risk > 0.0,  then: 2,
+        else: 1
+      )
+    ;;
+    format: '#,##0'
+    description: 'Friendly 1-5 commute severity from the route-hour flood risk. Builds on rh_route_risk.'
+  }
+
+  metric rh_flooded_streets {
+    label: 'Flooded streets on route'
+    type: 'number'
+    definition: @aql sum(route_hour_conditions.flooded_seg_count) ;;
+    format: '#,##0'
+    description: 'Number of the route\'s streets that are flooded at the selected hour.'
+  }
+}

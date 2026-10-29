@@ -1,0 +1,84 @@
+// Layer 2 — modeled water depth per segment-hour.
+// A QueryModel: the physics is row-level (a trailing-3-hour rain window joined to
+// each segment's drainage/elevation and the hour's tide), which the semantic layer
+// expresses as SQL. It mirrors scripts/generate_data.py EXACTLY (same coefficients),
+// minus the sensor noise — so modeled vs recorded differ only by that noise.
+//
+// Coefficients (the single place they live): RUNOFF 0.40 cm/mm, SHEET 0.02 cm/mm,
+// DRAIN_HOURS 1.5, elev_factor = clamp(1.30 - 0.12*elevation_m, 0.20, 1.30),
+// tide backflow = max(0, tide-0.5)*18*(3-elevation_m)/3 for near-river, elevation<3m.
+
+Model modeled_segment_readings {
+  type: 'query'
+  label: 'Modeled segment readings'
+  description: 'Per segment-hour modeled water depth (baseline, today), with the recorded depth and per-row model error alongside.'
+  data_source_name: 'flood'
+  models: [segment_readings, road_segments, weather_hourly, tide_hourly]
+
+  query: @sql
+    WITH rain3 AS (
+      SELECT
+        district_id,
+        ts,
+        SUM(rainfall_mm) OVER (
+          PARTITION BY district_id, CAST(ts AS DATE)
+          ORDER BY ts
+          ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS rain_3h
+      FROM weather_hourly
+    ),
+    -- Modeled depth is the sum of three mechanisms, kept as separate columns so
+    -- the "why is this red?" breakdown reads each one from a governed metric
+    -- (never re-derived in page JS). elev_factor is clamp(1.30 - 0.12*elev).
+    base AS (
+      SELECT
+        sr.id                         AS id,
+        sr.segment_id                 AS segment_id,
+        s.district_id                 AS district_id,
+        sr.ts                         AS ts,
+        s.length_km                   AS length_km,
+        sr.water_depth_cm             AS recorded_depth_cm,
+        -- rain on the road: the thin sheet rain always leaves (rain-driven)
+        ( r.rain_3h * 0.02 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * s.elevation_m)) )
+                                      AS rain_cm,
+        -- drains can't cope: rain that pooled because drainage fell short this storm
+        ( GREATEST(0.0, r.rain_3h - s.drainage_capacity_mm_per_hr * 1.5)
+            * 0.40 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * s.elevation_m)) )
+                                      AS drain_pool_cm,
+        -- tide backing up: river backflow for low near-river segments at high tide
+        ( CASE WHEN s.near_river AND s.elevation_m < 3.0
+                 THEN GREATEST(0.0, t.tide_level_m - 0.5) * 18.0 * ((3.0 - s.elevation_m) / 3.0)
+                 ELSE 0.0 END )
+                                      AS tide_cm
+      FROM segment_readings sr
+      JOIN road_segments s  ON s.id = sr.segment_id
+      JOIN rain3 r          ON r.district_id = s.district_id AND r.ts = sr.ts
+      LEFT JOIN tide_hourly t ON t.ts = sr.ts
+    )
+    SELECT
+      base.*,
+      (base.rain_cm + base.drain_pool_cm + base.tide_cm)     AS modeled_water_depth_cm,
+      (base.rain_cm + base.drain_pool_cm + base.tide_cm - base.recorded_depth_cm) AS model_error_cm,
+      -- "Flooded" = modeled depth >= the threshold, read from the one-row
+      -- flood_config table (the single definition of the 20 cm cutoff). Change
+      -- flood_config.threshold_cm in one place and every derived metric moves.
+      ((base.rain_cm + base.drain_pool_cm + base.tide_cm) >= cfg.threshold_cm) AS is_flooded
+    FROM base
+    CROSS JOIN (SELECT threshold_cm FROM flood_config LIMIT 1) cfg
+  ;;
+
+  dimension id { label: 'Reading ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension segment_id { label: 'Segment ID'; type: 'number'; definition: @sql {{ #SOURCE.segment_id }};; }
+  dimension district_id { label: 'District ID'; type: 'number'; definition: @sql {{ #SOURCE.district_id }};; }
+  dimension ts { label: 'Timestamp'; type: 'datetime'; definition: @sql {{ #SOURCE.ts }};; }
+  dimension evening { label: 'Evening'; type: 'date'; definition: @sql CAST({{ #SOURCE.ts }} AS DATE);; }
+  dimension hour { label: 'Hour'; type: 'number'; definition: @sql EXTRACT(hour FROM {{ #SOURCE.ts }});; }
+  dimension length_km { label: 'Length (km)'; type: 'number'; definition: @sql {{ #SOURCE.length_km }};; }
+  dimension recorded_depth_cm { label: 'Water depth — recorded (cm)'; type: 'number'; definition: @sql {{ #SOURCE.recorded_depth_cm }};; }
+  dimension rain_cm { label: 'Depth from rain (cm)'; type: 'number'; definition: @sql {{ #SOURCE.rain_cm }};; }
+  dimension drain_pool_cm { label: 'Depth from weak drainage (cm)'; type: 'number'; definition: @sql {{ #SOURCE.drain_pool_cm }};; }
+  dimension tide_cm { label: 'Depth from tide (cm)'; type: 'number'; definition: @sql {{ #SOURCE.tide_cm }};; }
+  dimension modeled_water_depth_cm { label: 'Water depth — modeled (cm)'; type: 'number'; definition: @sql {{ #SOURCE.modeled_water_depth_cm }};; }
+  dimension model_error_cm { label: 'Model error (cm)'; type: 'number'; definition: @sql {{ #SOURCE.model_error_cm }};; }
+  dimension is_flooded { label: 'Flooded (>= 20 cm)'; type: 'truefalse'; definition: @sql {{ #SOURCE.is_flooded }};; }
+}

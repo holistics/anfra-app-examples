@@ -1,0 +1,134 @@
+// Layer 5 — Mayor-mode scenario engine (segment-hour x years-horizon x intervention).
+//
+// What-if inputs are FILTERS (anfra has no runtime params):
+//   - years_from_now : filter to one stress horizon (0..15). Default 0 = today.
+//   - intervention_id: the active set. Row intervention_id = 0 is the baseline
+//     (reduction 0) and is ALWAYS kept; toggle a project on by adding its id to
+//     the filter. So "no interventions" = {0}; "sluice #1+#3" = {0,1,3}.
+//
+// Each row carries that segment-hour's STRESSED baseline depth (no interventions)
+// and ONE intervention's marginal relief (reduction). The after-depth for a chosen
+// set is  max(baseline_depth) - sum(reduction over the active set)  per segment-hour
+// (superposition — the approximate model you approved; per-intervention physics is
+// exact, cross-effects like double-drainage diminishing returns are not captured).
+//
+// Threshold read from flood_config (single source). Physics mirrors
+// modeled_segment_readings; stress scales rain, raises tide, and lowers elevation.
+
+Model scenario_effects {
+  type: 'query'
+  label: 'Scenario effects'
+  description: 'Per segment-hour, per stress horizon, per intervention: the stressed baseline modeled depth and that intervention\'s marginal relief. After-depth = baseline - sum(active relief).'
+  data_source_name: 'flood'
+  models: [segment_readings, road_segments, weather_hourly, tide_hourly, interventions, intervention_districts, intervention_segments, district_downstream, stress_horizons]
+
+  query: @sql
+    WITH rain3 AS (
+      SELECT district_id, ts,
+        SUM(rainfall_mm) OVER (
+          PARTITION BY district_id, CAST(ts AS DATE)
+          ORDER BY ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS rain_3h
+      FROM weather_hourly
+    ),
+    cfg AS (SELECT threshold_cm FROM flood_config LIMIT 1),
+    seg_hour AS (
+      SELECT sr.id AS reading_id, sr.segment_id, s.district_id, sr.ts,
+             s.length_km, s.elevation_m, s.drainage_capacity_mm_per_hr AS drainage,
+             s.near_river, r.rain_3h, COALESCE(t.tide_level_m, 0.0) AS tide_level
+      FROM segment_readings sr
+      JOIN road_segments s ON s.id = sr.segment_id
+      JOIN rain3 r ON r.district_id = s.district_id AND r.ts = sr.ts
+      LEFT JOIN tide_hourly t ON t.ts = sr.ts
+    ),
+    -- stress each segment-hour across the 16 horizons
+    stressed AS (
+      SELECT sh.years_from_now,
+             h.reading_id, h.segment_id, h.district_id, h.ts, h.length_km, h.near_river,
+             h.drainage,
+             GREATEST(0.1, h.elevation_m - sh.subsidence_m) AS elev_s,
+             h.rain_3h * sh.rain_factor                     AS rain_s,
+             h.tide_level + sh.tide_add_m                   AS tide_s
+      FROM seg_hour h CROSS JOIN stress_horizons sh
+    ),
+    baseline AS (
+      SELECT *,
+        ( GREATEST(0.0, rain_s - drainage * 1.5) * 0.40 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * elev_s))
+          + rain_s * 0.02 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * elev_s))
+          + CASE WHEN near_river AND elev_s < 3.0
+                 THEN GREATEST(0.0, tide_s - 0.5) * 18.0 * ((3.0 - elev_s) / 3.0) ELSE 0.0 END
+        ) AS baseline_depth
+      FROM stressed
+    ),
+    -- which (intervention, segment) pairs, with that mechanism's levers
+    scope AS (
+      SELECT i.id AS intervention_id, i.type, s.id AS segment_id,
+             i.drainage_boost_mm_per_hr AS boost, i.tide_block_share AS tide_block, 0.0 AS absorb
+      FROM interventions i
+      JOIN intervention_districts xd ON xd.intervention_id = i.id
+      JOIN road_segments s ON s.district_id = xd.district_id
+      WHERE i.type IN ('drainage upgrade', 'tidal sluice')
+      UNION ALL
+      SELECT i.id, i.type, s.id, 0.0, 0.0, i.absorb_first_mm
+      FROM interventions i
+      JOIN intervention_districts xd ON xd.intervention_id = i.id
+      JOIN road_segments s ON s.district_id = xd.district_id
+      WHERE i.type = 'retention pond'
+      UNION ALL
+      SELECT i.id, i.type, s.id, 0.0, 0.0, i.absorb_first_mm
+      FROM interventions i
+      JOIN intervention_districts xd ON xd.intervention_id = i.id
+      JOIN district_downstream dd ON dd.district_id = xd.district_id
+      JOIN road_segments s ON s.district_id = dd.downstream_district_id
+      WHERE i.type = 'retention pond'
+      UNION ALL
+      SELECT i.id, i.type, xs.segment_id, 0.0, 0.0, 0.0
+      FROM interventions i
+      JOIN intervention_segments xs ON xs.intervention_id = i.id
+      WHERE i.type = 'raised road'
+    ),
+    effects AS (
+      SELECT b.years_from_now, b.reading_id, b.segment_id, b.district_id, b.ts, b.length_km,
+             sc.intervention_id, b.baseline_depth,
+             CASE sc.type
+               WHEN 'raised road' THEN 0.0
+               WHEN 'drainage upgrade' THEN
+                 ( GREATEST(0.0, b.rain_s - (b.drainage + sc.boost) * 1.5) * 0.40 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * b.elev_s))
+                   + b.rain_s * 0.02 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * b.elev_s))
+                   + CASE WHEN b.near_river AND b.elev_s < 3.0 THEN GREATEST(0.0, b.tide_s - 0.5) * 18.0 * ((3.0 - b.elev_s) / 3.0) ELSE 0.0 END )
+               WHEN 'tidal sluice' THEN
+                 ( GREATEST(0.0, b.rain_s - b.drainage * 1.5) * 0.40 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * b.elev_s))
+                   + b.rain_s * 0.02 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * b.elev_s))
+                   + CASE WHEN b.near_river AND b.elev_s < 3.0 THEN GREATEST(0.0, b.tide_s - 0.5) * 18.0 * ((3.0 - b.elev_s) / 3.0) * (1.0 - sc.tide_block) ELSE 0.0 END )
+               WHEN 'retention pond' THEN
+                 ( GREATEST(0.0, GREATEST(0.0, b.rain_s - sc.absorb) - b.drainage * 1.5) * 0.40 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * b.elev_s))
+                   + GREATEST(0.0, b.rain_s - sc.absorb) * 0.02 * GREATEST(0.20, LEAST(1.30, 1.30 - 0.12 * b.elev_s))
+                   + CASE WHEN b.near_river AND b.elev_s < 3.0 THEN GREATEST(0.0, b.tide_s - 0.5) * 18.0 * ((3.0 - b.elev_s) / 3.0) ELSE 0.0 END )
+             END AS depth_with_one
+      FROM baseline b
+      JOIN scope sc ON sc.segment_id = b.segment_id
+    )
+    SELECT b.years_from_now, b.reading_id, b.segment_id, b.district_id, b.ts, b.length_km,
+           0 AS intervention_id, b.baseline_depth, 0.0 AS reduction, cfg.threshold_cm
+    FROM baseline b CROSS JOIN cfg
+    UNION ALL
+    SELECT e.years_from_now, e.reading_id, e.segment_id, e.district_id, e.ts, e.length_km,
+           e.intervention_id, e.baseline_depth,
+           GREATEST(0.0, e.baseline_depth - e.depth_with_one) AS reduction, cfg.threshold_cm
+    FROM effects e CROSS JOIN cfg
+  ;;
+
+  dimension row_uid { label: 'Row UID'; type: 'text'; primary_key: true;
+    definition: @sql {{ #SOURCE.reading_id }} || '-' || {{ #SOURCE.years_from_now }} || '-' || {{ #SOURCE.intervention_id }};; }
+  dimension years_from_now { label: 'Years from now'; type: 'number'; definition: @sql {{ #SOURCE.years_from_now }};; }
+  dimension reading_id { label: 'Reading ID'; type: 'number'; definition: @sql {{ #SOURCE.reading_id }};; }
+  dimension segment_id { label: 'Segment ID'; type: 'number'; definition: @sql {{ #SOURCE.segment_id }};; }
+  dimension district_id { label: 'District ID'; type: 'number'; definition: @sql {{ #SOURCE.district_id }};; }
+  dimension ts { label: 'Timestamp'; type: 'datetime'; definition: @sql {{ #SOURCE.ts }};; }
+  dimension evening { label: 'Evening'; type: 'date'; definition: @sql CAST({{ #SOURCE.ts }} AS DATE);; }
+  dimension length_km { label: 'Length (km)'; type: 'number'; definition: @sql {{ #SOURCE.length_km }};; }
+  dimension intervention_id { label: 'Intervention ID (0 = baseline)'; type: 'number'; definition: @sql {{ #SOURCE.intervention_id }};; }
+  dimension baseline_depth { label: 'Baseline depth, stressed (cm)'; type: 'number'; definition: @sql {{ #SOURCE.baseline_depth }};; }
+  dimension reduction { label: 'Relief from this intervention (cm)'; type: 'number'; definition: @sql {{ #SOURCE.reduction }};; }
+  dimension threshold_cm { label: 'Flood threshold (cm)'; type: 'number'; definition: @sql {{ #SOURCE.threshold_cm }};; }
+}

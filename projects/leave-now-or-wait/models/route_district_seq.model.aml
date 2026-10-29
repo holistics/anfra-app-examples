@@ -1,0 +1,24 @@
+// The ordered districts each route passes through (first step in which a district
+// appears). Stage 2 draws the motorbike's path along these districts' centroids.
+
+Model route_district_seq {
+  type: 'query'
+  label: 'Route district sequence'
+  description: 'Per route, the districts it passes through in order (by first step).'
+  data_source_name: 'flood'
+  models: [route_steps, road_segments, districts]
+
+  query: @sql
+    SELECT rs.route_id AS route_id, d.name AS district, MIN(rs.step_order) AS seq
+    FROM route_steps rs
+    JOIN road_segments s ON s.id = rs.segment_id
+    JOIN districts d ON d.id = s.district_id
+    GROUP BY rs.route_id, d.name
+  ;;
+
+  dimension row_uid { label: 'Row UID'; type: 'text'; primary_key: true;
+    definition: @sql {{ #SOURCE.route_id }} || '-' || {{ #SOURCE.district }};; }
+  dimension route_id { label: 'Route ID'; type: 'number'; definition: @sql {{ #SOURCE.route_id }};; }
+  dimension district { label: 'District'; type: 'text'; definition: @sql {{ #SOURCE.district }};; }
+  dimension seq { label: 'Order'; type: 'number'; definition: @sql {{ #SOURCE.seq }};; }
+}

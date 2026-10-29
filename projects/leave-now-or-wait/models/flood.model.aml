@@ -1,0 +1,204 @@
+// Raw-fact table models for the "Leave now or wait?" flood dataset.
+// Every dimension maps straight to a source column; all business logic lives in
+// the dataset's governed metrics, never here. One primary key per model.
+
+Model districts {
+  type: 'table'
+  label: 'Districts'
+  description: 'HCMC districts on a coarse map grid (tile_row grows going south).'
+  data_source_name: 'flood'
+  table_name: 'districts'
+
+  dimension id { label: 'District ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension name { label: 'District'; type: 'text'; definition: @sql {{ #SOURCE.name }};; }
+  dimension tile_row { label: 'Tile Row'; type: 'number'; definition: @sql {{ #SOURCE.tile_row }};; }
+  dimension tile_col { label: 'Tile Col'; type: 'number'; definition: @sql {{ #SOURCE.tile_col }};; }
+}
+
+Model road_segments {
+  type: 'table'
+  label: 'Road segments'
+  description: 'Road segments with their physical and traffic attributes.'
+  data_source_name: 'flood'
+  table_name: 'road_segments'
+
+  dimension id { label: 'Segment ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension district_id { label: 'District ID'; type: 'number'; definition: @sql {{ #SOURCE.district_id }};; }
+  dimension name { label: 'Segment'; type: 'text'; definition: @sql {{ #SOURCE.name }};; }
+  dimension length_km { label: 'Length (km)'; type: 'number'; definition: @sql {{ #SOURCE.length_km }};; }
+  dimension elevation_m { label: 'Elevation (m)'; type: 'number'; definition: @sql {{ #SOURCE.elevation_m }};; }
+  dimension drainage_capacity_mm_per_hr { label: 'Drainage capacity (mm/hr)'; type: 'number'; definition: @sql {{ #SOURCE.drainage_capacity_mm_per_hr }};; }
+  dimension near_river { label: 'Near river'; type: 'truefalse'; definition: @sql {{ #SOURCE.near_river }};; }
+  dimension traffic_volume_per_hr { label: 'Traffic volume (veh/hr)'; type: 'number'; definition: @sql {{ #SOURCE.traffic_volume_per_hr }};; }
+}
+
+Model weather_hourly {
+  type: 'table'
+  label: 'Weather (hourly)'
+  description: 'Recorded hourly rainfall per district.'
+  data_source_name: 'flood'
+  table_name: 'weather_hourly'
+
+  dimension id { label: 'ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension district_id { label: 'District ID'; type: 'number'; definition: @sql {{ #SOURCE.district_id }};; }
+  dimension ts { label: 'Timestamp'; type: 'datetime'; definition: @sql {{ #SOURCE.ts }};; }
+  dimension evening { label: 'Evening'; type: 'date'; definition: @sql CAST({{ #SOURCE.ts }} AS DATE);; }
+  dimension hour { label: 'Hour'; type: 'number'; definition: @sql EXTRACT(hour FROM {{ #SOURCE.ts }});; }
+  dimension rainfall_mm { label: 'Rainfall (mm)'; type: 'number'; definition: @sql {{ #SOURCE.rainfall_mm }};; }
+}
+
+Model tide_hourly {
+  type: 'table'
+  label: 'Tide (hourly)'
+  description: 'One citywide tide-level series, hourly.'
+  data_source_name: 'flood'
+  table_name: 'tide_hourly'
+
+  dimension ts { label: 'Timestamp'; type: 'datetime'; primary_key: true; definition: @sql {{ #SOURCE.ts }};; }
+  dimension evening { label: 'Evening'; type: 'date'; definition: @sql CAST({{ #SOURCE.ts }} AS DATE);; }
+  dimension hour { label: 'Hour'; type: 'number'; definition: @sql EXTRACT(hour FROM {{ #SOURCE.ts }});; }
+  dimension tide_level_m { label: 'Tide level (m)'; type: 'number'; definition: @sql {{ #SOURCE.tide_level_m }};; }
+}
+
+Model segment_readings {
+  type: 'table'
+  label: 'Segment readings'
+  description: 'Recorded water-depth sensor readings per segment per hour.'
+  data_source_name: 'flood'
+  table_name: 'segment_readings'
+
+  dimension id { label: 'Reading ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension segment_id { label: 'Segment ID'; type: 'number'; definition: @sql {{ #SOURCE.segment_id }};; }
+  dimension ts { label: 'Timestamp'; type: 'datetime'; definition: @sql {{ #SOURCE.ts }};; }
+  dimension water_depth_cm { label: 'Water depth — recorded (cm)'; type: 'number'; definition: @sql {{ #SOURCE.water_depth_cm }};; }
+}
+
+Model routes {
+  type: 'table'
+  label: 'Routes'
+  description: 'Preset commuter routes between district pairs.'
+  data_source_name: 'flood'
+  table_name: 'routes'
+
+  dimension id { label: 'Route ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension from_district_id { label: 'From district ID'; type: 'number'; definition: @sql {{ #SOURCE.from_district_id }};; }
+  dimension to_district_id { label: 'To district ID'; type: 'number'; definition: @sql {{ #SOURCE.to_district_id }};; }
+  dimension name { label: 'Route'; type: 'text'; definition: @sql {{ #SOURCE.name }};; }
+}
+
+Model route_steps {
+  type: 'table'
+  label: 'Route steps'
+  description: 'Ordered segments that make up each route.'
+  data_source_name: 'flood'
+  table_name: 'route_steps'
+
+  dimension id { label: 'Step ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension route_id { label: 'Route ID'; type: 'number'; definition: @sql {{ #SOURCE.route_id }};; }
+  dimension step_order { label: 'Step order'; type: 'number'; definition: @sql {{ #SOURCE.step_order }};; }
+  dimension segment_id { label: 'Segment ID'; type: 'number'; definition: @sql {{ #SOURCE.segment_id }};; }
+}
+
+Model trips {
+  type: 'table'
+  label: 'Trips'
+  description: 'Recorded sample commutes with their measured travel time.'
+  data_source_name: 'flood'
+  table_name: 'trips'
+
+  dimension id { label: 'Trip ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension route_id { label: 'Route ID'; type: 'number'; definition: @sql {{ #SOURCE.route_id }};; }
+  dimension depart_ts { label: 'Departure'; type: 'datetime'; definition: @sql {{ #SOURCE.depart_ts }};; }
+  dimension travel_minutes { label: 'Travel time (min)'; type: 'number'; definition: @sql {{ #SOURCE.travel_minutes }};; }
+}
+
+Model interventions {
+  type: 'table'
+  label: 'Interventions'
+  description: 'Candidate flood interventions and the levers each mechanism uses.'
+  data_source_name: 'flood'
+  table_name: 'interventions'
+
+  dimension id { label: 'Intervention ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension name { label: 'Intervention'; type: 'text'; definition: @sql {{ #SOURCE.name }};; }
+  dimension type { label: 'Type'; type: 'text'; definition: @sql {{ #SOURCE.type }};; }
+  dimension cost_billion_vnd { label: 'Cost (billion VND)'; type: 'number'; definition: @sql {{ #SOURCE.cost_billion_vnd }};; }
+  dimension drainage_boost_mm_per_hr { label: 'Drainage boost (mm/hr)'; type: 'number'; definition: @sql {{ #SOURCE.drainage_boost_mm_per_hr }};; }
+  dimension tide_block_share { label: 'Tide block share'; type: 'number'; definition: @sql {{ #SOURCE.tide_block_share }};; }
+  dimension absorb_first_mm { label: 'Absorb first (mm)'; type: 'number'; definition: @sql {{ #SOURCE.absorb_first_mm }};; }
+}
+
+Model intervention_districts {
+  type: 'table'
+  label: 'Intervention → districts'
+  description: 'Which districts a sluice / drainage / retention intervention targets.'
+  data_source_name: 'flood'
+  table_name: 'intervention_districts'
+
+  dimension id { label: 'ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension intervention_id { label: 'Intervention ID'; type: 'number'; definition: @sql {{ #SOURCE.intervention_id }};; }
+  dimension district_id { label: 'District ID'; type: 'number'; definition: @sql {{ #SOURCE.district_id }};; }
+}
+
+Model intervention_segments {
+  type: 'table'
+  label: 'Intervention → segments'
+  description: 'Which segments a raised-road intervention lifts out of flooding.'
+  data_source_name: 'flood'
+  table_name: 'intervention_segments'
+
+  dimension id { label: 'ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension intervention_id { label: 'Intervention ID'; type: 'number'; definition: @sql {{ #SOURCE.intervention_id }};; }
+  dimension segment_id { label: 'Segment ID'; type: 'number'; definition: @sql {{ #SOURCE.segment_id }};; }
+}
+
+Model district_downstream {
+  type: 'table'
+  label: 'District downstream'
+  description: 'The downstream (next-south) neighbour of each district.'
+  data_source_name: 'flood'
+  table_name: 'district_downstream'
+
+  dimension id { label: 'ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension district_id { label: 'District ID'; type: 'number'; definition: @sql {{ #SOURCE.district_id }};; }
+  dimension downstream_district_id { label: 'Downstream district ID'; type: 'number'; definition: @sql {{ #SOURCE.downstream_district_id }};; }
+}
+
+Model climate_rates {
+  type: 'table'
+  label: 'Climate rates'
+  description: 'Annual stress rates (rain intensity, sea-level rise, subsidence), stored as facts.'
+  data_source_name: 'flood'
+  table_name: 'climate_rates'
+
+  dimension id { label: 'ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension rain_intensity_pct_per_year { label: 'Rain intensity (%/yr)'; type: 'number'; definition: @sql {{ #SOURCE.rain_intensity_pct_per_year }};; }
+  dimension tide_rise_m_per_year { label: 'Sea-level rise (m/yr)'; type: 'number'; definition: @sql {{ #SOURCE.tide_rise_m_per_year }};; }
+  dimension subsidence_m_per_year { label: 'Subsidence (m/yr)'; type: 'number'; definition: @sql {{ #SOURCE.subsidence_m_per_year }};; }
+}
+
+Model flood_config {
+  type: 'table'
+  label: 'Flood config'
+  description: 'One-row governance config: the flooded-depth threshold and the value of commuter time, each defined once.'
+  data_source_name: 'flood'
+  table_name: 'flood_config'
+
+  dimension id { label: 'ID'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.id }};; }
+  dimension threshold_cm { label: 'Flood threshold (cm)'; type: 'number'; definition: @sql {{ #SOURCE.threshold_cm }};; }
+  dimension value_of_time_vnd_per_hour { label: 'Value of time (VND/hour)'; type: 'number'; definition: @sql {{ #SOURCE.value_of_time_vnd_per_hour }};; }
+  dimension commuter_scale { label: 'Commuter scale (trips per sample)'; type: 'number'; definition: @sql {{ #SOURCE.commuter_scale }};; }
+}
+
+Model stress_horizons {
+  type: 'table'
+  label: 'Stress horizons'
+  description: 'Per-year stress factors (0-15) derived from climate_rates; the target of the years_from_now what-if filter.'
+  data_source_name: 'flood'
+  table_name: 'stress_horizons'
+
+  dimension years_from_now { label: 'Years from now'; type: 'number'; primary_key: true; definition: @sql {{ #SOURCE.years_from_now }};; }
+  dimension rain_factor { label: 'Rain factor'; type: 'number'; definition: @sql {{ #SOURCE.rain_factor }};; }
+  dimension tide_add_m { label: 'Tide add (m)'; type: 'number'; definition: @sql {{ #SOURCE.tide_add_m }};; }
+  dimension subsidence_m { label: 'Subsidence (m)'; type: 'number'; definition: @sql {{ #SOURCE.subsidence_m }};; }
+}

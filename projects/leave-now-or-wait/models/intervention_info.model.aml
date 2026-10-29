@@ -1,0 +1,32 @@
+// Intervention catalogue for the Mayor-mode cards: each intervention with its
+// type, capital cost, and the district(s) it is placed on (district-targeted for
+// sluice/drainage/retention; the raised roads via their segments' districts).
+
+Model intervention_info {
+  type: 'query'
+  label: 'Intervention info'
+  description: 'Each intervention with type, cost, and target district (for the mayor cards and map markers).'
+  data_source_name: 'flood'
+  models: [interventions, intervention_districts, intervention_segments, road_segments, districts]
+
+  query: @sql
+    SELECT i.id AS intervention_id, i.name, i.type, i.cost_billion_vnd, d.name AS district
+    FROM interventions i
+    JOIN intervention_districts xd ON xd.intervention_id = i.id
+    JOIN districts d ON d.id = xd.district_id
+    UNION
+    SELECT i.id, i.name, i.type, i.cost_billion_vnd, d.name
+    FROM interventions i
+    JOIN intervention_segments xs ON xs.intervention_id = i.id
+    JOIN road_segments s ON s.id = xs.segment_id
+    JOIN districts d ON d.id = s.district_id
+  ;;
+
+  dimension row_uid { label: 'Row UID'; type: 'text'; primary_key: true;
+    definition: @sql {{ #SOURCE.intervention_id }} || '-' || {{ #SOURCE.district }};; }
+  dimension intervention_id { label: 'Intervention ID'; type: 'number'; definition: @sql {{ #SOURCE.intervention_id }};; }
+  dimension name { label: 'Intervention'; type: 'text'; definition: @sql {{ #SOURCE.name }};; }
+  dimension type { label: 'Type'; type: 'text'; definition: @sql {{ #SOURCE.type }};; }
+  dimension cost_billion_vnd { label: 'Cost (billion VND)'; type: 'number'; definition: @sql {{ #SOURCE.cost_billion_vnd }};; }
+  dimension district { label: 'District'; type: 'text'; definition: @sql {{ #SOURCE.district }};; }
+}

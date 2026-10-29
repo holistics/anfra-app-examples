@@ -1,0 +1,6 @@
+# Local DuckDB database (regenerate with: uv run scripts/generate_data.py)
+data/*.duckdb
+data/*.duckdb.wal
+
+# Local anfra data-source credentials
+.anfra/data_sources.yml

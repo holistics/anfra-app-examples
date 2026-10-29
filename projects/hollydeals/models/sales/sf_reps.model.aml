@@ -1,0 +1,10 @@
+Model sf_reps {
+  type: 'table'
+  label: 'Sales reps'
+  description: 'One row per sales rep with a photo, loaded from data/reps/ (never committed). Matches a deal owner by first name.'
+  data_source_name: 'warehouse'
+  table_name: '"sales"."reps"'
+
+  dimension name { label: 'Rep' type: 'text' primary_key: true definition: @sql {{ #SOURCE.name }};; }
+  dimension photo { label: 'Photo' type: 'text' hidden: true definition: @sql {{ #SOURCE.photo }};; }
+}

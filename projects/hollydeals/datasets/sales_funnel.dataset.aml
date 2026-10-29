@@ -1,0 +1,63 @@
+Dataset sales_funnel {
+  label: 'Sales funnel'
+  description: 'From the weekly sales reports. New, won, lost and live deals per week and per month, with deal details, product feedback and quotes.'
+  data_source_name: 'warehouse'
+  models: [sf_reports, sf_deals, sf_deal_weeks, sf_feedback, sf_feedback_deals, sf_quotes, sf_reps]
+  relationships: [
+    relationship(sf_deal_weeks.week > sf_reports.week, true),
+    relationship(sf_deal_weeks.slug > sf_deals.slug, true),
+    relationship(sf_quotes.slug > sf_deals.slug, true),
+    relationship(sf_feedback_deals.feedback_id > sf_feedback.id, true),
+    relationship(sf_feedback_deals.slug > sf_deals.slug, true),
+    relationship(sf_deals.owner > sf_reps.name, true),
+  ]
+
+  metric new_deals {
+    label: 'New deals'
+    type: 'number'
+    description: 'Distinct deals with the status New in the period.'
+    definition: @aql coalesce(count_distinct(sf_deal_weeks.slug) | where(sf_deal_weeks.status == 'New'), 0);;
+  }
+  metric won_deals {
+    label: 'Won deals'
+    type: 'number'
+    description: 'Distinct deals with the status Won in the period.'
+    definition: @aql coalesce(count_distinct(sf_deal_weeks.slug) | where(sf_deal_weeks.status == 'Won'), 0);;
+  }
+  metric lost_deals {
+    label: 'Lost deals'
+    type: 'number'
+    description: 'Distinct deals with the status Lost in the period.'
+    definition: @aql coalesce(count_distinct(sf_deal_weeks.slug) | where(sf_deal_weeks.status == 'Lost'), 0);;
+  }
+  metric live_deals {
+    label: 'Live deals'
+    type: 'number'
+    description: 'Distinct deals mentioned in the period with any status other than Won or Lost.'
+    definition: @aql coalesce(count_distinct(sf_deal_weeks.slug) | where(sf_deal_weeks.is_live), 0);;
+  }
+  metric close_lost_due {
+    label: 'Close-lost due'
+    type: 'number'
+    description: 'Distinct deals with the status Close-lost due in the period.'
+    definition: @aql coalesce(count_distinct(sf_deal_weeks.slug) | where(sf_deal_weeks.status == 'Close-lost due'), 0);;
+  }
+  metric new_deals_first {
+    label: 'New deals (first week)'
+    type: 'number'
+    description: 'Distinct deals whose first week as New falls in the period, so a month counts each deal once.'
+    definition: @aql coalesce(count_distinct(sf_deal_weeks.slug) | where(sf_deal_weeks.is_first_new), 0);;
+  }
+  metric won_deals_first {
+    label: 'Won deals (first week)'
+    type: 'number'
+    description: 'Distinct deals whose first week as Won falls in the period, so a month counts each deal once.'
+    definition: @aql coalesce(count_distinct(sf_deal_weeks.slug) | where(sf_deal_weeks.is_first_won), 0);;
+  }
+  metric lost_deals_first {
+    label: 'Lost deals (first week)'
+    type: 'number'
+    description: 'Distinct deals whose first week as Lost falls in the period, so a month counts each deal once.'
+    definition: @aql coalesce(count_distinct(sf_deal_weeks.slug) | where(sf_deal_weeks.is_first_lost), 0);;
+  }
+}

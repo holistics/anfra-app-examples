@@ -1,0 +1,12 @@
+Model sf_feedback {
+  type: 'table'
+  label: 'Product feedback'
+  description: 'From the weekly sales reports. One row per product-engineering bullet. The deals it names are in Feedback deals.'
+  data_source_name: 'warehouse'
+  table_name: '"sales"."feedback"'
+
+  dimension id { label: 'Feedback id' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.id }};; }
+  dimension week { label: 'Week' type: 'text' definition: @sql {{ #SOURCE.week }};; }
+  dimension text { label: 'Feedback' type: 'text' definition: @sql {{ #SOURCE.text }};; }
+  dimension deal_count { label: 'Deals mentioned' type: 'number' definition: @sql {{ #SOURCE.deal_count }};; }
+}

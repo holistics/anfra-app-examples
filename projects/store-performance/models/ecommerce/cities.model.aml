@@ -1,0 +1,10 @@
+Model cities {
+  type: 'table'
+  label: 'Cities'
+  data_source_name: 'warehouse'
+  table_name: '"ecommerce"."cities"'
+
+  dimension id { label: 'City id' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.id }};; }
+  dimension name { label: 'City' type: 'text' definition: @sql {{ #SOURCE.name }};; }
+  dimension country_id { label: 'Country id' type: 'number' hidden: true definition: @sql {{ #SOURCE.country_id }};; }
+}

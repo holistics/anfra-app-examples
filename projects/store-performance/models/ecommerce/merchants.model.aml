@@ -1,0 +1,9 @@
+Model merchants {
+  type: 'table'
+  label: 'Merchants'
+  data_source_name: 'warehouse'
+  table_name: '"ecommerce"."merchants"'
+
+  dimension id { label: 'Merchant id' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.id }};; }
+  dimension name { label: 'Merchant' type: 'text' definition: @sql {{ #SOURCE.name }};; }
+}

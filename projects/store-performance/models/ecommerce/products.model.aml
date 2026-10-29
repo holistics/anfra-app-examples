@@ -1,0 +1,16 @@
+Model products {
+  type: 'table'
+  label: 'Products'
+  description: 'What the store sells. Price and cost are per unit, in USD. Fictional products.'
+  data_source_name: 'warehouse'
+  table_name: '"ecommerce"."products"'
+
+  dimension id { label: 'Product id' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.id }};; }
+  dimension name { label: 'Product' type: 'text' definition: @sql {{ #SOURCE.name }};; }
+  dimension category_id { label: 'Category id' type: 'number' hidden: true definition: @sql {{ #SOURCE.category_id }};; }
+  dimension merchant_id { label: 'Merchant id' type: 'number' hidden: true definition: @sql {{ #SOURCE.merchant_id }};; }
+  dimension created_at { label: 'Listed at' type: 'datetime' definition: @sql {{ #SOURCE.created_at }};; }
+  dimension price { label: 'Price' type: 'number' definition: @sql {{ #SOURCE.price }};; }
+  dimension cost { label: 'Unit cost' type: 'number' definition: @sql {{ #SOURCE.cost }};; }
+  dimension product_image_url { label: 'Image URL' type: 'text' hidden: true definition: @sql {{ #SOURCE.product_image_url }};; }
+}

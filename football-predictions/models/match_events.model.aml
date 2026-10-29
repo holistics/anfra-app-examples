@@ -1,0 +1,63 @@
+Model match_events {
+  type: 'query'
+  label: 'Match events'
+  data_source_name: 'football'
+  query: @sql
+    SELECT e.*, p.name AS player_name, p.shirt_number, t.name AS team_name
+    FROM raw_match_events e
+    LEFT JOIN raw_players p ON p.id = e.player_id
+    LEFT JOIN raw_teams t ON t.id = e.team_id
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension match_id {
+    label: 'Match ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.match_id }};;
+  }
+  dimension team_id {
+    label: 'Team ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.team_id }};;
+  }
+  dimension player_id {
+    label: 'Player ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.player_id }};;
+  }
+  dimension minute {
+    label: 'Minute'
+    type: 'number'
+    definition: @sql {{ #SOURCE.minute }};;
+  }
+  dimension type {
+    label: 'Type (goal/yellow/red/sub)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.type }};;
+  }
+  dimension detail {
+    label: 'Detail'
+    type: 'text'
+    definition: @sql {{ #SOURCE.detail }};;
+  }
+  dimension player_name {
+    label: 'Player'
+    type: 'text'
+    definition: @sql {{ #SOURCE.player_name }};;
+  }
+  dimension shirt_number {
+    label: 'Shirt'
+    type: 'number'
+    definition: @sql {{ #SOURCE.shirt_number }};;
+  }
+  dimension team_name {
+    label: 'Team'
+    type: 'text'
+    definition: @sql {{ #SOURCE.team_name }};;
+  }
+}

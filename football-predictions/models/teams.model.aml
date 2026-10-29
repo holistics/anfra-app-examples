@@ -1,0 +1,55 @@
+Model teams {
+  type: 'query'
+  label: 'Teams'
+  data_source_name: 'football'
+  query: @sql
+    SELECT * FROM raw_teams
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension league_id {
+    label: 'League ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.league_id }};;
+  }
+  dimension name {
+    label: 'Team'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension short_name {
+    label: 'Short name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.short_name }};;
+  }
+  dimension crest_url {
+    label: 'Crest URL'
+    type: 'text'
+    definition: @sql {{ #SOURCE.crest_url }};;
+  }
+  dimension primary_color {
+    label: 'Colour'
+    type: 'text'
+    definition: @sql {{ #SOURCE.primary_color }};;
+  }
+  dimension coach {
+    label: 'Coach'
+    type: 'text'
+    definition: @sql {{ #SOURCE.coach }};;
+  }
+  dimension formation {
+    label: 'Formation'
+    type: 'text'
+    definition: @sql {{ #SOURCE.formation }};;
+  }
+  dimension venue {
+    label: 'Venue'
+    type: 'text'
+    definition: @sql {{ #SOURCE.venue }};;
+  }
+}

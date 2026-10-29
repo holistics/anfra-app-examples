@@ -1,0 +1,30 @@
+Model leagues {
+  type: 'query'
+  label: 'Leagues'
+  data_source_name: 'football'
+  query: @sql
+    SELECT * FROM raw_leagues
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension name {
+    label: 'League'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension country {
+    label: 'Country'
+    type: 'text'
+    definition: @sql {{ #SOURCE.country }};;
+  }
+  dimension sort_order {
+    label: 'Sort order'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sort_order }};;
+  }
+}

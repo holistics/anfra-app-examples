@@ -1,0 +1,50 @@
+Model players {
+  type: 'query'
+  label: 'Players'
+  data_source_name: 'football'
+  query: @sql
+    SELECT * FROM raw_players
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension team_id {
+    label: 'Team ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.team_id }};;
+  }
+  dimension name {
+    label: 'Player'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension position {
+    label: 'Position'
+    type: 'text'
+    definition: @sql {{ #SOURCE.position }};;
+  }
+  dimension shirt_number {
+    label: 'Shirt'
+    type: 'number'
+    definition: @sql {{ #SOURCE.shirt_number }};;
+  }
+  dimension age {
+    label: 'Age'
+    type: 'number'
+    definition: @sql {{ #SOURCE.age }};;
+  }
+  dimension is_captain {
+    label: 'Captain (1/0)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.is_captain }};;
+  }
+  dimension quality {
+    label: 'Quality (hidden rating)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.quality }};;
+  }
+}

@@ -8,6 +8,7 @@ See them live: [anfra.ai/data-apps](https://anfra.ai/data-apps)
 
 | App | Idea | Demo | Author |
 |---|---|---|---|
+| [football-predictions](football-predictions) | Predicts football results and shows the reasons behind each call | [Demo](https://football-predictions.pages.holistics.dev/apps/football-predictions/1-matches) | Khai To |
 
 ## Add your app
 

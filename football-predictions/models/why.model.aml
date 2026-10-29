@@ -1,0 +1,72 @@
+Model why {
+  type: 'query'
+  label: 'Why (evidence)'
+  description: 'One row per piece of evidence behind a match prediction, for both sides: model factors, last-5 form, cards, absences, meetings and the latest market capture. One model so chips and rows cross-filter natively.'
+  data_source_name: 'football'
+  query: @sql
+    WITH m AS (SELECT id AS match_id, kickoff_at, home_team_id, away_team_id FROM raw_matches),
+    sides AS (SELECT match_id, kickoff_at, home_team_id AS team_id, away_team_id AS opp_id FROM m
+              UNION ALL SELECT match_id, kickoff_at, away_team_id, home_team_id FROM m),
+    form AS (
+      SELECT s.match_id, s.team_id, tm.match_id AS form_match_id, tm.kickoff_at, tm.is_home, tm.goals_for, tm.goals_against, tm.result,
+             tm.yellows, tm.reds, tm.corners_for, o.name AS opponent_name,
+             ROW_NUMBER() OVER (PARTITION BY s.match_id, s.team_id ORDER BY tm.kickoff_at DESC) AS seq
+      FROM sides s
+      JOIN raw_team_matches tm ON tm.team_id = s.team_id AND tm.kickoff_at < s.kickoff_at AND tm.status = 'finished'
+      LEFT JOIN raw_teams o ON o.id = tm.opponent_id
+      QUALIFY seq <= 5),
+    latest_odds AS (SELECT * FROM raw_odds QUALIFY ROW_NUMBER() OVER (PARTITION BY match_id ORDER BY captured_at DESC) = 1),
+    tz AS (SELECT 'Asia/Ho_Chi_Minh' AS z)
+    SELECT 'f-' || f.id AS id, f.match_id, f.team_id, t.name AS team_name, f."group" AS grp, 'factor' AS kind, f.factor AS label, f.note AS detail,
+           f.multiplier::DOUBLE AS value, NULL::TIMESTAMPTZ AS happened_at, 0 AS ord
+    FROM raw_prediction_factors f LEFT JOIN raw_teams t ON t.id = f.team_id
+    UNION ALL
+    SELECT 'm-' || fm.match_id || '-' || fm.team_id || '-' || fm.form_match_id, fm.match_id, fm.team_id, t.name, 'form', 'match',
+           fm.result || ' ' || fm.goals_for || '-' || fm.goals_against || ' ' || CASE WHEN fm.is_home = 1 THEN 'vs ' ELSE 'at ' END || fm.opponent_name,
+           strftime(fm.kickoff_at AT TIME ZONE (SELECT z FROM tz), '%d %b %Y') || ' · ' || fm.corners_for || ' corners',
+           fm.goals_for::DOUBLE, fm.kickoff_at, fm.seq
+    FROM form fm LEFT JOIN raw_teams t ON t.id = fm.team_id
+    UNION ALL
+    SELECT 'c-' || fm.match_id || '-' || fm.team_id || '-' || fm.form_match_id, fm.match_id, fm.team_id, t.name, 'discipline', 'cards',
+           fm.yellows || 'Y ' || fm.reds || 'R ' || CASE WHEN fm.is_home = 1 THEN 'vs ' ELSE 'at ' END || fm.opponent_name,
+           strftime(fm.kickoff_at AT TIME ZONE (SELECT z FROM tz), '%d %b %Y') || CASE WHEN fm.reds > 0 THEN ' · red card, suspension followed' ELSE '' END,
+           (fm.yellows + fm.reds)::DOUBLE, fm.kickoff_at, fm.seq
+    FROM form fm LEFT JOIN raw_teams t ON t.id = fm.team_id
+    UNION ALL
+    -- the same window the model uses: reports from the 7 days before the prediction instant, one row per player
+    SELECT 'a-' || s.match_id || '-' || a.id, s.match_id, s.team_id, t.name, 'availability', 'absence',
+           p.name || ' (' || p.position || ') ' || a.status, a.reason || ' · reported ' || strftime(a.since AT TIME ZONE (SELECT z FROM tz), '%d %b'),
+           NULL::DOUBLE, a.since, 0
+    FROM sides s
+    JOIN raw_predictions pr ON pr.match_id = s.match_id
+    JOIN raw_availability a ON a.team_id = s.team_id AND a.since <= pr.generated_at AND a.since >= pr.generated_at - INTERVAL 7 DAY
+    JOIN raw_players p ON p.id = a.player_id LEFT JOIN raw_teams t ON t.id = s.team_id
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY s.match_id, s.team_id, a.player_id ORDER BY a.since DESC) = 1
+    UNION ALL
+    SELECT 'h-' || s.match_id || '-' || s.team_id || '-' || tm.match_id, s.match_id, s.team_id, t.name, 'h2h', 'meeting',
+           tm.result || ' ' || tm.goals_for || '-' || tm.goals_against || ' ' || CASE WHEN tm.is_home = 1 THEN 'vs ' ELSE 'at ' END || o.name,
+           strftime(tm.kickoff_at AT TIME ZONE (SELECT z FROM tz), '%d %b %Y') || ' · ' || tm.season,
+           tm.goals_for::DOUBLE, tm.kickoff_at, ROW_NUMBER() OVER (PARTITION BY s.match_id, s.team_id ORDER BY tm.kickoff_at DESC)
+    FROM sides s
+    JOIN raw_team_matches tm ON tm.team_id = s.team_id AND tm.opponent_id = s.opp_id AND tm.kickoff_at < s.kickoff_at AND tm.status = 'finished'
+    LEFT JOIN raw_teams t ON t.id = s.team_id LEFT JOIN raw_teams o ON o.id = tm.opponent_id
+    UNION ALL
+    SELECT 'o-' || o.match_id || '-' || k.ord, o.match_id, NULL, NULL, 'market', 'odds', k.label,
+           o.bookmaker || ' · captured ' || strftime(o.captured_at AT TIME ZONE (SELECT z FROM tz), '%d %b %H:%M'),
+           CASE k.ord WHEN 1 THEN o.p_home WHEN 2 THEN o.p_draw WHEN 3 THEN o.p_away ELSE o.p_over25 END::DOUBLE, o.captured_at, k.ord
+    FROM latest_odds o
+    CROSS JOIN (VALUES (1, 'Market P(home)'), (2, 'Market P(draw)'), (3, 'Market P(away)'), (4, 'Market P(over 2.5)')) AS k(ord, label)
+  ;;
+
+  dimension id { label: 'ID' type: 'text' primary_key: true definition: @sql {{ #SOURCE.id }};; }
+  dimension match_id { label: 'Match ID' type: 'number' definition: @sql {{ #SOURCE.match_id }};; }
+  dimension team_id { label: 'Team ID (null = match level)' type: 'number' definition: @sql {{ #SOURCE.team_id }};; }
+  dimension team_name { label: 'Team' type: 'text' definition: @sql {{ #SOURCE.team_name }};; }
+  dimension grp { label: 'Group' type: 'text' description: 'form, availability, discipline, venue, h2h, market' definition: @sql {{ #SOURCE.grp }};; }
+  dimension kind { label: 'Kind' type: 'text' description: 'factor, match, cards, absence, meeting, odds' definition: @sql {{ #SOURCE.kind }};; }
+  dimension label { label: 'Label' type: 'text' definition: @sql {{ #SOURCE.label }};; }
+  dimension detail { label: 'Detail' type: 'text' definition: @sql {{ #SOURCE.detail }};; }
+  dimension value { label: 'Value' type: 'number' description: 'multiplier for a factor, goals for a match, cards, probability for odds' definition: @sql {{ #SOURCE.value }};; }
+  dimension happened_at { label: 'Happened at' type: 'datetime' definition: @sql {{ #SOURCE.happened_at }};; }
+  dimension ord { label: 'Order' type: 'number' definition: @sql {{ #SOURCE.ord }};; }
+}

@@ -1,0 +1,111 @@
+Model match_form {
+  type: 'query'
+  label: 'Match form'
+  description: 'For each match and each of its two teams, the last 5 finished matches before kickoff. Precomputed so the app needs one query per match.'
+  data_source_name: 'football'
+  query: @sql
+    WITH sides AS (
+      SELECT id AS match_id, season, kickoff_at, home_team_id AS team_id FROM raw_matches
+      UNION ALL SELECT id, season, kickoff_at, away_team_id FROM raw_matches)
+    SELECT s.match_id || '-' || s.team_id || '-' || tm.match_id AS id, s.match_id, s.season, s.team_id,
+           tm.match_id AS form_match_id, tm.kickoff_at, tm.is_home, tm.goals_for, tm.goals_against, tm.result, tm.yellows, tm.reds, tm.corners_for,
+           tm.opponent_id, o.name AS opponent_name, o.short_name AS opponent_short, o.crest_url AS opponent_crest_url,
+           ROW_NUMBER() OVER (PARTITION BY s.match_id, s.team_id ORDER BY tm.kickoff_at DESC) AS seq
+    FROM sides s
+    JOIN raw_team_matches tm ON tm.team_id = s.team_id AND tm.kickoff_at < s.kickoff_at AND tm.status = 'finished'
+    LEFT JOIN raw_teams o ON o.id = tm.opponent_id
+    QUALIFY seq <= 5
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension season {
+    label: 'Season'
+    type: 'text'
+    definition: @sql {{ #SOURCE.season }};;
+  }
+  dimension match_id {
+    label: 'Match ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.match_id }};;
+  }
+  dimension team_id {
+    label: 'Team ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.team_id }};;
+  }
+  dimension form_match_id {
+    label: 'Form match ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.form_match_id }};;
+  }
+  dimension kickoff_at {
+    label: 'Played at'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.kickoff_at }};;
+  }
+  dimension is_home {
+    label: 'Home (1/0)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.is_home }};;
+  }
+  dimension goals_for {
+    label: 'Goals for'
+    type: 'number'
+    definition: @sql {{ #SOURCE.goals_for }};;
+  }
+  dimension goals_against {
+    label: 'Goals against'
+    type: 'number'
+    definition: @sql {{ #SOURCE.goals_against }};;
+  }
+  dimension result {
+    label: 'Result'
+    type: 'text'
+    definition: @sql {{ #SOURCE.result }};;
+  }
+  dimension yellows {
+    label: 'Yellows'
+    type: 'number'
+    definition: @sql {{ #SOURCE.yellows }};;
+  }
+  dimension reds {
+    label: 'Reds'
+    type: 'number'
+    definition: @sql {{ #SOURCE.reds }};;
+  }
+  dimension corners_for {
+    label: 'Corners'
+    type: 'number'
+    definition: @sql {{ #SOURCE.corners_for }};;
+  }
+  dimension opponent_id {
+    label: 'Opponent ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.opponent_id }};;
+  }
+  dimension opponent_name {
+    label: 'Opponent'
+    type: 'text'
+    definition: @sql {{ #SOURCE.opponent_name }};;
+  }
+  dimension opponent_short {
+    label: 'Opponent short'
+    type: 'text'
+    definition: @sql {{ #SOURCE.opponent_short }};;
+  }
+  dimension opponent_crest_url {
+    label: 'Opponent crest'
+    type: 'text'
+    definition: @sql {{ #SOURCE.opponent_crest_url }};;
+  }
+  dimension seq {
+    label: 'Recency (1 = latest)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.seq }};;
+  }
+}

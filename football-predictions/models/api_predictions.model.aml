@@ -1,0 +1,149 @@
+Model api_predictions {
+  type: 'query'
+  label: 'API-Football predictions'
+  description: 'The prediction API-Football publishes for a fixture: win percentages, advice, expected goals bands and its home/away comparison. Fetched by scripts/fetch_api_football.py; computed by the API from its data at fetch time, not a pre-match snapshot.'
+  data_source_name: 'football'
+  query: @sql
+    SELECT p.*, w.name AS winner_name,
+           CASE WHEN p.p_home >= p.p_draw AND p.p_home >= p.p_away THEN 'H' WHEN p.p_away >= p.p_home AND p.p_away >= p.p_draw THEN 'A' ELSE 'D' END AS predicted_outcome
+    FROM raw_api_predictions p
+    LEFT JOIN raw_teams w ON w.id = p.winner_team_id
+  ;;
+
+  dimension match_id {
+    label: 'Match ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.match_id }};;
+  }
+  dimension generated_at {
+    label: 'Fetched at'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.generated_at }};;
+  }
+  dimension p_home {
+    label: 'P(home)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_home }};;
+  }
+  dimension p_draw {
+    label: 'P(draw)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_draw }};;
+  }
+  dimension p_away {
+    label: 'P(away)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_away }};;
+  }
+  dimension predicted_outcome {
+    label: 'Predicted outcome (H/D/A)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.predicted_outcome }};;
+  }
+  dimension winner_team_id {
+    label: 'Winner team ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.winner_team_id }};;
+  }
+  dimension winner_name {
+    label: 'Winner'
+    type: 'text'
+    definition: @sql {{ #SOURCE.winner_name }};;
+  }
+  dimension win_or_draw {
+    label: 'Win or draw'
+    type: 'number'
+    definition: @sql {{ #SOURCE.win_or_draw }};;
+  }
+  dimension under_over {
+    label: 'Under/over'
+    type: 'text'
+    definition: @sql {{ #SOURCE.under_over }};;
+  }
+  dimension goals_home {
+    label: 'Goals band home'
+    type: 'text'
+    definition: @sql {{ #SOURCE.goals_home }};;
+  }
+  dimension goals_away {
+    label: 'Goals band away'
+    type: 'text'
+    definition: @sql {{ #SOURCE.goals_away }};;
+  }
+  dimension advice {
+    label: 'Advice'
+    type: 'text'
+    definition: @sql {{ #SOURCE.advice }};;
+  }
+  dimension cmp_form_home {
+    label: 'Form home'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cmp_form_home }};;
+  }
+  dimension cmp_form_away {
+    label: 'Form away'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cmp_form_away }};;
+  }
+  dimension cmp_att_home {
+    label: 'Attack home'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cmp_att_home }};;
+  }
+  dimension cmp_att_away {
+    label: 'Attack away'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cmp_att_away }};;
+  }
+  dimension cmp_def_home {
+    label: 'Defence home'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cmp_def_home }};;
+  }
+  dimension cmp_def_away {
+    label: 'Defence away'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cmp_def_away }};;
+  }
+  dimension cmp_poisson_home {
+    label: 'Poisson home'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cmp_poisson_home }};;
+  }
+  dimension cmp_poisson_away {
+    label: 'Poisson away'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cmp_poisson_away }};;
+  }
+  dimension cmp_h2h_home {
+    label: 'H2H home'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cmp_h2h_home }};;
+  }
+  dimension cmp_h2h_away {
+    label: 'H2H away'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cmp_h2h_away }};;
+  }
+  dimension cmp_goals_home {
+    label: 'Goals home'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cmp_goals_home }};;
+  }
+  dimension cmp_goals_away {
+    label: 'Goals away'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cmp_goals_away }};;
+  }
+  dimension cmp_total_home {
+    label: 'Total home'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cmp_total_home }};;
+  }
+  dimension cmp_total_away {
+    label: 'Total away'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cmp_total_away }};;
+  }
+}

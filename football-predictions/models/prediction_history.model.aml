@@ -1,0 +1,60 @@
+Model prediction_history {
+  type: 'query'
+  label: 'Prediction history'
+  data_source_name: 'football'
+  query: @sql
+    SELECT * FROM raw_prediction_history
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension match_id {
+    label: 'Match ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.match_id }};;
+  }
+  dimension generated_at {
+    label: 'Generated at'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.generated_at }};;
+  }
+  dimension p_home {
+    label: 'P(home)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_home }};;
+  }
+  dimension p_draw {
+    label: 'P(draw)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_draw }};;
+  }
+  dimension p_away {
+    label: 'P(away)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_away }};;
+  }
+  dimension pred_home {
+    label: 'Predicted home goals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pred_home }};;
+  }
+  dimension pred_away {
+    label: 'Predicted away goals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pred_away }};;
+  }
+  dimension signals {
+    label: 'Signals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.signals }};;
+  }
+  dimension reason {
+    label: 'Reason for the update'
+    type: 'text'
+    definition: @sql {{ #SOURCE.reason }};;
+  }
+}

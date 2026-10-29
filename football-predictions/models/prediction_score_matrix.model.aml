@@ -1,0 +1,35 @@
+Model prediction_score_matrix {
+  type: 'query'
+  label: 'Score matrix'
+  data_source_name: 'football'
+  query: @sql
+    SELECT match_id || '-' || home_goals || '-' || away_goals AS id, * FROM raw_prediction_score_matrix
+  ;;
+
+  dimension id {
+    label: 'ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension match_id {
+    label: 'Match ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.match_id }};;
+  }
+  dimension home_goals {
+    label: 'Home goals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.home_goals }};;
+  }
+  dimension away_goals {
+    label: 'Away goals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.away_goals }};;
+  }
+  dimension probability {
+    label: 'Probability'
+    type: 'number'
+    definition: @sql {{ #SOURCE.probability }};;
+  }
+}

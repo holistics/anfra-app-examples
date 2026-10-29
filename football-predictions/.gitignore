@@ -1,0 +1,5 @@
+# anfra: data source credentials
+.anfra/data_sources.yml
+data/.scratch.duckdb
+data/.scratch.duckdb.wal
+data/api/

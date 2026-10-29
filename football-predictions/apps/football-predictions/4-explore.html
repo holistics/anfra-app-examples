@@ -1,0 +1,496 @@
+<!doctype html>
+<!--
+  Football predictions, Explore page. A self-building explorer over the governed metrics of the `football` dataset.
+  The pickers come from Anfra.datasets, so the reader can only ask for what the model governs. Every question is a new
+  explore {} query; a query's AQL is fixed once declared, so each pick builds a fresh app and aborts the old one.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script type="application/json" id="data-app-metadata">
+  {"prompt": "Explore page: pick a governed metric, a dimension and a grain; totals, time series and a breakdown from Anfra.datasets", "model": "claude-fable-5-1", "effort": null, "createdAt": "2026-10-16T00:00:00Z", "updatedAt": "2026-10-16T00:00:00Z"}
+  </script>
+  <title>Explore</title>
+  <link href="https://rsms.me/inter/inter.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .rail { display: flex; flex-direction: column; gap: 12px; }
+    .rail .card { margin-bottom: 0; }
+    .rail h4 { margin: 0 0 8px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--text-helper); text-transform: uppercase; letter-spacing: .3px; }
+    .rail .group { margin-top: 8px; font-size: 12px; font-weight: 500; color: var(--text-weak); }
+    .rail label.m { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; }
+    .rail label.m input { margin: 0; }
+    .rail label.m.off { color: var(--text-disabled); cursor: not-allowed; }
+    .rail select { width: 100%; }
+    .seg.full { display: flex; }
+    .seg.full button { flex: 1; }
+    .chart-card .chart { height: 280px; }
+    .mono { font-family: var(--mono); font-size: 12px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .chips:empty { display: none; }
+    .chips .chip-f { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 4px 0 8px; border: 1px solid var(--border-highlight); background: var(--primary-soft); border-radius: var(--r-btn); font-size: 12px; font-weight: 500; color: var(--primary-active); }
+    .chips .chip-f small { font-weight: 400; color: var(--text-helper); }
+    .chips .chip-f button { border: 0; background: none; cursor: pointer; width: 18px; height: 18px; border-radius: 3px; color: inherit; padding: 0; line-height: 1; }
+    .chips .chip-f button:hover { background: var(--primary-soft-2); }
+    .board th.sortable { cursor: pointer; user-select: none; }
+    .board th.sortable:hover { color: var(--text); }
+    .board td.l { position: relative; }
+    .board td.l .bar-bg { position: absolute; left: 0; bottom: 4px; height: 3px; background: var(--primary-soft-2); border-radius: 2px; }
+    .board tr.click:hover td { background: var(--hover); }
+    .board tr.on td { background: var(--primary-soft); }
+    .board-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+    .defn .name { font-family: var(--mono); font-size: 12px; color: var(--text-helper); }
+    .defn .aql { font-family: var(--mono); font-size: 12px; line-height: 18px; background: var(--secondary); border: 1px solid var(--border-light); border-radius: 8px; padding: 8px 10px; margin: 6px 0; white-space: pre-wrap; word-break: break-word; color: var(--text-strong); }
+    .qview pre { font-family: var(--mono); font-size: 12px; line-height: 18px; background: var(--secondary); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px 12px; margin: 0; white-space: pre-wrap; word-break: break-word; max-height: 360px; overflow: auto; color: var(--text-strong); }
+    .qview .tabs { margin: 0 0 10px; }
+  </style>
+</head>
+<body>
+  <div id="fatal" style="display:none;max-width:480px;margin:12px auto;padding:12px 14px;border-radius:12px;background:#fff5f5;color:#8b120e;border:1px solid #f6a5a2;font:13px/1.4 Inter,system-ui;white-space:pre-wrap"></div>
+  <script>
+    window.addEventListener('error', (e) => { const el = document.getElementById('fatal'); el.style.display = 'block'; el.textContent += `Error: ${e.message}${e.lineno ? ' (line ' + e.lineno + ')' : ''}\n`; });
+    window.addEventListener('unhandledrejection', (e) => { const el = document.getElementById('fatal'); el.style.display = 'block'; el.textContent += `Unhandled: ${e.reason?.message || e.reason}\n`; });
+  </script>
+  <div class="shell" data-anfra-container="app" data-anfra-label="Football predictions: explore">
+    <main class="content" id="main" data-anfra-container="main" data-anfra-label="Content">
+      <div class="page-head"><h1>Explore</h1><span class="sub">Any governed metric, by any dimension, at any grain</span></div>
+      <div class="lg">
+        <div class="rail" data-anfra-container="rail" data-anfra-label="Pickers">
+          <section class="card" data-anfra-block="metric-picker" data-anfra-label="Metrics">
+            <h4>Metric <span class="note">(up to 3 from one group)</span></h4>
+            <div id="metrics"></div>
+          </section>
+          <section class="card" data-anfra-block="dimension-picker" data-anfra-label="Dimension">
+            <h4>Break down by</h4>
+            <select id="dimension"></select>
+          </section>
+          <section class="card" data-anfra-block="grain-picker" data-anfra-label="Grain" data-anfra-control="grain">
+            <h4>Grain</h4>
+            <div class="seg full" id="grain"></div>
+          </section>
+          <section class="card" data-anfra-block="season-picker" data-anfra-label="Season" data-anfra-control="season">
+            <h4>Season</h4>
+            <select id="season"><option value="">All seasons</option></select>
+          </section>
+          <section class="card defn" data-anfra-block="definition" data-anfra-label="Metric definition">
+            <h4>Definition</h4>
+            <div id="defn"></div>
+          </section>
+        </div>
+        <div id="body">
+          <div class="chips" id="chips" data-anfra-block="active-filters" data-anfra-label="Active filters"></div>
+          <div class="kpis" id="kpis" data-anfra-block="totals" data-anfra-label="Totals" data-anfra-query="totals"></div>
+          <section class="card chart-card" style="margin-top:12px" data-anfra-block="series" data-anfra-label="Over time" data-anfra-query="series">
+            <div class="label" id="series-title" style="margin-bottom:8px">Over time</div>
+            <div id="series-status"></div>
+            <div class="chart" id="series-chart"></div>
+          </section>
+          <div id="board"></div>
+          <div id="qview"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ---------- constants ----------
+    const DATASET = 'football';
+    const TZ = 'Asia/Ho_Chi_Minh';
+    // The two metric families and the fact model each one aggregates. The names are the governed metrics in datasets/football.dataset.aml.
+    const FAMILIES = [
+      { key: 'team', label: 'Team form', fact: 'team_matches', time: 'team_matches.kickoff_at',
+        names: ['played', 'wins', 'draws', 'losses', 'goals_for', 'goals_against', 'points', 'goals_per_match', 'conceded_per_match', 'corners_per_match', 'cards_per_match', 'clean_sheets'] },
+      { key: 'acc', label: 'Prediction accuracy', fact: 'matches', time: 'matches.kickoff_date',
+        names: ['graded', 'result_hits', 'exact_hits', 'over25_hits', 'btts_hits', 'result_hit_rate', 'exact_hit_rate', 'over25_hit_rate', 'btts_hit_rate', 'api_graded', 'api_result_hits', 'api_over25_hits', 'api_result_hit_rate', 'api_over25_hit_rate'] },
+    ];
+    const RATE = /_rate$|_per_match$/;
+    // Dimensions worth offering. IDs, colours and crest URLs are noise, so this is an allowlist resolved against the descriptor.
+    const DIM_ALLOW = ['team_matches.team_name', 'team_matches.opponent_name', 'team_matches.season', 'team_matches.is_home', 'team_matches.result',
+      'matches.league_name', 'matches.round', 'matches.confidence_band', 'matches.predicted_outcome', 'matches.actual_outcome',
+      'leagues.country', 'teams.coach', 'teams.formation'];
+    const GRAINS = ['day', 'week', 'month', 'year'];
+    // Copied from datasets/football.dataset.aml by the build step of this page; the descriptor carries no definition text.
+    const DEFS = {
+    "played": {
+    "aql": "team_matches | count(team_matches.id)",
+    "desc": "Finished team-matches, i.e. one per team per finished match."
+    },
+    "wins": {
+    "aql": "team_matches | count_if(team_matches.result == 'W')",
+    "desc": ""
+    },
+    "draws": {
+    "aql": "team_matches | count_if(team_matches.result == 'D')",
+    "desc": ""
+    },
+    "losses": {
+    "aql": "team_matches | count_if(team_matches.result == 'L')",
+    "desc": ""
+    },
+    "goals_for": {
+    "aql": "team_matches | sum(team_matches.goals_for)",
+    "desc": ""
+    },
+    "goals_against": {
+    "aql": "team_matches | sum(team_matches.goals_against)",
+    "desc": ""
+    },
+    "points": {
+    "aql": "team_matches | sum(team_matches.points)",
+    "desc": "3 per win, 1 per draw, from the points column written per team-match."
+    },
+    "goals_per_match": {
+    "aql": "safe_divide(goals_for * 1.0, played)",
+    "desc": ""
+    },
+    "conceded_per_match": {
+    "aql": "safe_divide(goals_against * 1.0, played)",
+    "desc": ""
+    },
+    "corners_per_match": {
+    "aql": "safe_divide((team_matches | sum(team_matches.corners_for)) * 1.0, played)",
+    "desc": ""
+    },
+    "cards_per_match": {
+    "aql": "safe_divide((team_matches | sum(team_matches.yellows + team_matches.reds)) * 1.0, played)",
+    "desc": "Yellows plus reds per finished match."
+    },
+    "clean_sheets": {
+    "aql": "team_matches | sum(team_matches.clean_sheet)",
+    "desc": ""
+    },
+    "graded": {
+    "aql": "matches | count_if(matches.status == 'finished')",
+    "desc": "Finished matches with a prediction."
+    },
+    "result_hits": {
+    "aql": "matches | count_if(matches.result_hit is true)",
+    "desc": ""
+    },
+    "exact_hits": {
+    "aql": "matches | count_if(matches.exact_hit is true)",
+    "desc": ""
+    },
+    "over25_hits": {
+    "aql": "matches | count_if(matches.over25_hit is true)",
+    "desc": ""
+    },
+    "btts_hits": {
+    "aql": "matches | count_if(matches.btts_hit is true)",
+    "desc": ""
+    },
+    "result_hit_rate": {
+    "aql": "safe_divide(result_hits * 1.0, graded)",
+    "desc": ""
+    },
+    "exact_hit_rate": {
+    "aql": "safe_divide(exact_hits * 1.0, graded)",
+    "desc": ""
+    },
+    "over25_hit_rate": {
+    "aql": "safe_divide(over25_hits * 1.0, graded)",
+    "desc": ""
+    },
+    "btts_hit_rate": {
+    "aql": "safe_divide(btts_hits * 1.0, graded)",
+    "desc": ""
+    },
+    "api_graded": {
+    "aql": "matches | count_if(matches.api_graded is true)",
+    "desc": "Finished matches that API-Football published a prediction for."
+    },
+    "api_result_hits": {
+    "aql": "matches | count_if(matches.api_result_hit is true)",
+    "desc": ""
+    },
+    "api_over25_hits": {
+    "aql": "matches | count_if(matches.api_over25_hit is true)",
+    "desc": ""
+    },
+    "api_result_hit_rate": {
+    "aql": "safe_divide(api_result_hits * 1.0, api_graded)",
+    "desc": ""
+    },
+    "api_over25_hit_rate": {
+    "aql": "safe_divide(api_over25_hits * 1.0, api_graded)",
+    "desc": ""
+    }
+    };
+
+    // ---------- catalog, from the descriptor ----------
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const num = (v) => (v == null || v === '' ? null : Number(v));
+    function buildCatalog () {
+      const all = Anfra.datasets || {};
+      const ds = all[DATASET] || Object.values(all).find((d) => d.name === DATASET);
+      if (!ds) throw new Error(`Dataset "${DATASET}" is not in Anfra.datasets (have: ${Object.keys(all).join(', ') || 'none'})`);
+      console.log('[explore] dataset descriptor', ds);
+      const byName = Object.fromEntries((ds.metrics || []).map((m) => [m.name, m]));
+      const metrics = FAMILIES.map((f) => ({ ...f, metrics: f.names.filter((n) => byName[n]).map((n) => ({ name: n, label: byName[n].label || n, family: f.key })) }));
+      const fields = {};
+      (ds.data_models || []).forEach((m) => (m.fields || []).forEach((fl) => { fields[`${m.name}.${fl.name}`] = { ref: `${m.name}.${fl.name}`, label: `${fl.label || fl.name} · ${m.label || m.name}`, type: fl.type }; }));
+      const dims = DIM_ALLOW.filter((r) => fields[r]).map((r) => fields[r]);
+      return { metrics, dims, fields };
+    }
+    const CAT = buildCatalog();
+    const metricByName = Object.fromEntries(CAT.metrics.flatMap((f) => f.metrics.map((m) => [m.name, m])));
+    const familyOf = (name) => CAT.metrics.find((f) => f.metrics.some((m) => m.name === name));
+
+    // ---------- state ----------
+    const state = { metrics: ['goals_per_match'], dim: '', grain: 'month', season: '', seasonOptions: [], filters: {}, sort: { field: 'm0', direction: 'desc' }, qtab: 'aql' };
+
+    // ---------- helpers ----------
+    const tzParts = new Intl.DateTimeFormat('en-US', { timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    function tzOffsetMs (utcDate) {
+      const p = Object.fromEntries(tzParts.formatToParts(utcDate).map((x) => [x.type, x.value]));
+      return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - utcDate.getTime();
+    }
+    function parseTs (v) {
+      if (v == null) return null;
+      const s = String(v).replace(' ', 'T');
+      if (/[zZ]|[+-]\d\d:\d\d$/.test(s)) return new Date(s);
+      const asUtc = new Date(s.length <= 10 ? s + 'T00:00:00Z' : s + 'Z');
+      if (Number.isNaN(asUtc.getTime())) return null;
+      return new Date(asUtc.getTime() - tzOffsetMs(asUtc));
+    }
+    function fmtPeriod (v, grain) {
+      const d = parseTs(v); if (!d) return String(v ?? '');
+      const o = { timeZone: TZ };
+      if (grain === 'year') return d.toLocaleDateString('en-GB', { ...o, year: 'numeric' });
+      if (grain === 'month') return d.toLocaleDateString('en-GB', { ...o, month: 'short', year: 'numeric' });
+      return d.toLocaleDateString('en-GB', { ...o, day: '2-digit', month: 'short', year: '2-digit' });
+    }
+    function fmtVal (name, v) {
+      const n = num(v); if (n == null) return '–';
+      if (/_rate$/.test(name)) return `${(n * 100).toFixed(1)}%`;
+      if (RATE.test(name)) return n.toFixed(2);
+      return n.toLocaleString('en-GB');
+    }
+    function qStatus (q, emptyText) {
+      if (!q || q.state === 'idle' || q.state === 'executing' || !q.result) return `<div class="spinner">Loading…</div>`;
+      if (q.state === 'error') return `<div class="error">${esc(q.error?.name === 'PermissionError' ? 'No access to this data.' : `Couldn't load: ${q.error?.message}`)}</div>`;
+      if (q.state === 'success' && q.result.rows.length === 0) return `<div class="empty">${esc(emptyText)}</div>`;
+      return null;
+    }
+
+    // ---------- layout: one app per question ----------
+    // A query's AQL cannot change and nothing can be removed, so a new pick builds a fresh app and aborts the old one.
+    let L = null;         // { app, totals, series, grain, season, unsub }
+    let gen = 0;
+    let seasonFilterForOptions = null;
+
+    function aqlMeasures () { return state.metrics.map((n, i) => `m${i}: ${n}`).join(', '); }
+    function buildLayout () {
+      if (L) { try { L.unsub(); } catch (e) {} try { L.app.abort(); } catch (e) {} }
+      const myGen = ++gen;
+      const fam = familyOf(state.metrics[0]) || CAT.metrics[0];
+      const time = fam.time;
+      const finished = `filters { ${fam.fact}.status == 'finished' }`;
+      const app = Anfra.createApp({ title: 'Explore', timezone: TZ });
+      const totals = app.createQuery('totals', { dataset: DATASET, aql: `explore { measures { ${aqlMeasures()} } ${finished} }` });
+      const series = app.createQuery('series', { dataset: DATASET, aql: `
+        explore { dimensions { period: ${time} } measures { ${aqlMeasures()} } ${finished} sorts { period asc } }` });
+      const grain = app.createDateDrill('grain', { default: state.grain, label: 'Grain' });
+      app.mapControl(grain, series, { field: time });
+      const season = app.createFilter('season', { dataset: DATASET, field: `${fam.fact}.season`, label: 'Season' });
+      app.mapControl(season, totals, { field: `${fam.fact}.season` });
+      app.mapControl(season, series, { field: `${fam.fact}.season` });
+      if (state.season) season.setCondition({ operator: 'is', values: [state.season] });
+      let board = null;
+      if (state.dim) {
+        if (Number(state.sort.field.slice(1)) >= state.metrics.length) state.sort = { field: 'm0', direction: 'desc' };
+        const sortField = state.sort.field;
+        board = app.createQuery('board', { dataset: DATASET, pageSize: 25, aql: `
+          explore { dimensions { d: ${state.dim} } measures { ${aqlMeasures()} } ${finished} sorts { ${sortField} ${state.sort.direction} } }` });
+        app.mapControl(season, board, { field: `${fam.fact}.season` });
+      }
+      // value filters picked from a leaderboard. Each is mapped onto everything except a board on its own dimension, so a leaderboard never filters itself.
+      const filters = {};
+      let fi = 0;
+      Object.entries(state.filters).forEach(([ref, values]) => {
+        if (!values.length) return;
+        const f = app.createFilter(`f${++fi}`, { dataset: DATASET, field: ref });
+        f.setCondition({ operator: 'is', values });
+        app.mapControl(f, totals, { field: ref });
+        app.mapControl(f, series, { field: ref });
+        if (board && ref !== state.dim) app.mapControl(f, board, { field: ref });
+        filters[ref] = f;
+      });
+      const unsub = app.subscribe(() => { if (myGen === gen) render(); });
+      L = { app, totals, series, board, grain, season, filters, unsub, time, fam };
+      if (!seasonFilterForOptions) {
+        seasonFilterForOptions = season;
+        season.loadOptions().then((opts) => { state.seasonOptions = (opts || []).map(String).sort().reverse(); renderRail(); }).catch((e) => console.error('season options', e));
+      }
+      app.execute();
+      render();
+    }
+
+    // ---------- actions ----------
+    function toggleMetric (name, on) {
+      const first = familyOf(state.metrics[0]);
+      // the two families aggregate different facts, so ticking a metric from the other family switches to it
+      const next = on && first && familyOf(name) !== first ? [name]
+        : on ? [...state.metrics, name] : state.metrics.filter((n) => n !== name);
+      if (!next.length) return renderRail();                 // keep at least one
+      state.metrics = next.slice(0, 3);
+      buildLayout(); renderRail(); renderDefn();
+    }
+    function setGrain (g) { state.grain = g; L.grain.setGrain(g); L.app.execute(); renderRail(); }
+    function toggleValue (ref, v) {
+      const cur = state.filters[ref] || [];
+      state.filters[ref] = cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v];
+      if (L.filters[ref]) { L.filters[ref].setCondition({ operator: 'is', values: state.filters[ref] }); L.app.execute(); render(); }
+      else buildLayout();                                   // a new filter has to be declared, which means a new app
+    }
+    function clearFilter (ref) {
+      state.filters[ref] = [];
+      if (L.filters[ref]) { L.filters[ref].setCondition({ operator: 'is', values: [] }); L.app.execute(); render(); }
+      else render();
+    }
+    function sortBoard (field) {
+      const dir = state.sort.field === field && state.sort.direction === 'desc' ? 'asc' : 'desc';
+      state.sort = { field, direction: dir };
+      if (L.board) { L.board.setSort([{ field, direction: dir }]); L.app.execute(); }
+    }
+    function setSeason (v) {
+      state.season = v;
+      L.season.setCondition({ operator: 'is', values: v ? [v] : [] });
+      L.app.execute();
+    }
+
+    // ---------- render ----------
+    let seriesChart = null;
+    function renderRail () {
+      const first = familyOf(state.metrics[0]);
+      const full = state.metrics.length >= 3;
+      document.getElementById('metrics').innerHTML = CAT.metrics.map((f) => `<div class="group">${esc(f.label)}</div>` +
+        f.metrics.map((m) => {
+          const on = state.metrics.includes(m.name);
+          const off = !on && full && first && first.key === f.key;        // full within this family; the other family is always clickable and switches
+          return `<label class="m ${off ? 'off' : ''}" title="${esc(m.name)}"><input type="checkbox" data-metric="${esc(m.name)}" ${on ? 'checked' : ''} ${off ? 'disabled' : ''}>${esc(m.label)}</label>`;
+        }).join('')).join('');
+      document.querySelectorAll('#metrics input').forEach((i) => i.addEventListener('change', () => toggleMetric(i.dataset.metric, i.checked)));
+      const dimSel = document.getElementById('dimension');
+      dimSel.innerHTML = `<option value="">None</option>` + CAT.dims.map((d) => `<option value="${esc(d.ref)}" ${d.ref === state.dim ? 'selected' : ''}>${esc(d.label)}</option>`).join('');
+      dimSel.onchange = () => { state.dim = dimSel.value; buildLayout(); };
+      document.getElementById('grain').innerHTML = GRAINS.map((g) => `<button type="button" data-grain="${g}" class="${g === state.grain ? 'active' : ''}">${g[0].toUpperCase() + g.slice(1)}</button>`).join('');
+      document.querySelectorAll('#grain button').forEach((b) => b.addEventListener('click', () => setGrain(b.dataset.grain)));
+      const seasonSel = document.getElementById('season');
+      seasonSel.innerHTML = `<option value="">All seasons</option>` + state.seasonOptions.map((s) => `<option value="${esc(s)}" ${s === state.season ? 'selected' : ''}>${esc(s)}</option>`).join('');
+      seasonSel.onchange = () => setSeason(seasonSel.value);
+    }
+
+    function render () {
+      renderChips();
+      renderTotals();
+      renderSeries();
+      renderBoard();
+      renderQuery();
+    }
+    function renderDefn () {
+      const n = state.metrics[0];
+      const m = metricByName[n];
+      const d = DEFS[n];
+      document.getElementById('defn').innerHTML = `<div><b>${esc(m.label)}</b></div><div class="name">${esc(n)}</div>` +
+        (d ? `<div class="aql">${esc(d.aql)}</div>${d.desc ? `<div class="note">${esc(d.desc)}</div>` : ''}` : '<div class="note">No definition text available.</div>') +
+        `<div class="note" style="margin-top:6px">Defined once in football.dataset.aml, used everywhere. Every tile, line and row here is this definition.</div>`;
+    }
+    function renderQuery () {
+      const el = document.getElementById('qview');
+      const q = L.board || L.series;
+      const dbg = q.result?.debug;
+      const canSql = !!(Anfra.user && Anfra.user.canViewGeneratedSql);
+      const tabs = [['aql', 'AQL'], ...(canSql ? [['sql', 'SQL']] : [])];
+      if (!tabs.some(([k]) => k === state.qtab)) state.qtab = 'aql';
+      const body = !dbg ? '<div class="spinner">Loading…</div>'
+        : state.qtab === 'aql' ? `<pre>${esc(dbg.executedAql || q.result?.meta?.aql || '(not reported)')}</pre>`
+        : `<pre>${esc(dbg.executedSql || '(not reported)')}</pre>`;
+      el.innerHTML = `<section class="card qview" style="margin-top:12px" data-anfra-block="this-query" data-anfra-label="This query" data-anfra-query="${L.board ? 'board' : 'series'}">
+        <div class="label">This query <span class="note">· ${L.board ? 'breakdown' : 'time series'}${dbg?.fromCache ? ' · from cache' : ''}${dbg?.executedAt ? ' · ran ' + esc(String(dbg.executedAt)) : ''}</span></div>
+        <div class="tabs">${tabs.map(([k, t]) => `<button type="button" data-qtab="${k}" class="${state.qtab === k ? 'active' : ''}">${t}</button>`).join('')}</div>
+        ${body}
+        ${canSql ? '' : '<div class="note" style="margin-top:8px">Generated SQL is hidden for this user.</div>'}
+      </section>`;
+      el.querySelectorAll('[data-qtab]').forEach((b) => b.addEventListener('click', () => { state.qtab = b.dataset.qtab; renderQuery(); }));
+    }
+    const canExport = () => !!(Anfra.user && Anfra.user.canExportData) && !!(Anfra.features && Anfra.features.export);
+    function renderChips () {
+      const el = document.getElementById('chips');
+      el.innerHTML = Object.entries(state.filters).filter(([, v]) => v.length).map(([ref, values]) => {
+        const d = CAT.fields[ref];
+        return `<span class="chip-f"><small>${esc(d ? d.label.split(' · ')[0] : ref)}:</small> ${values.map(esc).join(', ')}<button type="button" data-clear="${esc(ref)}" title="Remove filter" aria-label="Remove filter">×</button></span>`;
+      }).join('');
+      el.querySelectorAll('[data-clear]').forEach((b) => b.addEventListener('click', () => clearFilter(b.dataset.clear)));
+    }
+    function renderBoard () {
+      const el = document.getElementById('board');
+      if (!state.dim || !L.board) { el.innerHTML = ''; return; }
+      const q = L.board;
+      const d = CAT.fields[state.dim];
+      const title = `${state.metrics.map((n) => metricByName[n].label).join(', ')} by ${d ? d.label.split(' · ')[0] : state.dim}`;
+      const st = qStatus(q, 'No rows.');
+      const head = `<section class="card board" style="margin-top:12px" data-anfra-block="breakdown" data-anfra-label="Breakdown" data-anfra-query="board"><div class="label" style="margin-bottom:8px">${esc(title)}</div>`;
+      if (st) { el.innerHTML = head + st + '</section>'; return; }
+      const rows = q.result.rows;
+      const maxes = state.metrics.map((n, i) => Math.max(...rows.map((r) => Math.abs(num(r[`m${i}`]) || 0)), 0));
+      const sel = state.filters[state.dim] || [];
+      const arrow = (f) => (state.sort.field === f ? (state.sort.direction === 'desc' ? ' ▼' : ' ▲') : '');
+      el.innerHTML = head + `
+        <table class="table">
+          <tr><th class="l">${esc(d ? d.label.split(' · ')[0] : state.dim)}</th>${state.metrics.map((n, i) => `<th class="sortable" data-sort="m${i}">${esc(metricByName[n].label)}${arrow(`m${i}`)}</th>`).join('')}</tr>
+          ${rows.map((r) => `<tr class="click ${sel.includes(String(r.d)) ? 'on' : ''}" data-v="${esc(r.d)}"><td class="l">${esc(r.d ?? '–')}<span class="bar-bg" style="width:${maxes[0] ? Math.abs(num(r.m0) || 0) / maxes[0] * 100 : 0}%"></span></td>${state.metrics.map((n, i) => `<td>${fmtVal(n, r[`m${i}`])}</td>`).join('')}</tr>`).join('')}
+        </table>
+        <div class="board-foot"><span class="note">${rows.length} rows${q.hasMore ? ' loaded' : ''} · click a row to filter the page to it</span><span style="display:flex;gap:8px">${q.hasMore ? '<button type="button" class="btn sm" id="board-more">Load more</button>' : ''}${canExport() ? '<button type="button" class="btn sm" id="board-export">Export CSV</button>' : ''}</span></div>
+      </section>`;
+      el.querySelectorAll('[data-sort]').forEach((h) => h.addEventListener('click', () => sortBoard(h.dataset.sort)));
+      el.querySelectorAll('tr.click').forEach((tr) => tr.addEventListener('click', () => toggleValue(state.dim, tr.dataset.v)));
+      document.getElementById('board-more')?.addEventListener('click', () => q.fetchMore().catch((e) => console.error('fetchMore', e)));
+      document.getElementById('board-export')?.addEventListener('click', () => {
+        const fname = `${state.metrics.join('-')}_by_${state.dim.replace('.', '-')}${state.season ? '_' + state.season : ''}.csv`;
+        q.export({ filename: fname, format: 'csv' }).catch((e) => console.error('export', e));
+      });
+    }
+    function renderTotals () {
+      const el = document.getElementById('kpis');
+      const q = L.totals;
+      const st = qStatus(q, 'No finished matches.');
+      const row = st ? null : q.result.rows[0];
+      el.innerHTML = state.metrics.map((n, i) => `<div class="kpi"><div class="k">${esc(metricByName[n].label)}</div><div class="v">${row ? fmtVal(n, row[`m${i}`]) : '…'}</div><div class="sub">${esc(state.season || 'all seasons')} · ${esc(n)}</div></div>`).join('');
+    }
+    function renderSeries () {
+      const q = L.series;
+      const status = document.getElementById('series-status');
+      const chartEl = document.getElementById('series-chart');
+      document.getElementById('series-title').textContent = `${state.metrics.map((n) => metricByName[n].label).join(', ')} by ${state.grain}`;
+      const st = qStatus(q, 'No finished matches in range.');
+      status.innerHTML = st || '';
+      chartEl.style.display = st ? 'none' : 'block';
+      if (st) return;
+      const rows = q.result.rows;
+      if (!seriesChart) seriesChart = echarts.init(chartEl, null, { renderer: 'canvas' });
+      const multiScale = state.metrics.length > 1 && state.metrics.some((n) => RATE.test(n)) && state.metrics.some((n) => !RATE.test(n));
+      seriesChart.setOption({
+        animation: false,
+        color: ['#1b7ce4', '#e36a01', '#259b6c'],
+        grid: { left: 48, right: multiScale ? 56 : 16, top: 24, bottom: 28 },
+        tooltip: { trigger: 'axis', valueFormatter: (v) => (v == null ? '–' : Number(v).toLocaleString('en-GB', { maximumFractionDigits: 3 })) },
+        legend: { show: state.metrics.length > 1, top: 0, textStyle: { color: '#505157', fontSize: 12 } },
+        xAxis: { type: 'category', data: rows.map((r) => fmtPeriod(r.period, state.grain)), axisLabel: { color: '#727685', fontSize: 11 }, axisLine: { lineStyle: { color: '#e3e7ed' } }, axisTick: { show: false } },
+        yAxis: multiScale ? [{ type: 'value', splitLine: { lineStyle: { color: '#edf1f5' } }, axisLabel: { color: '#727685', fontSize: 11 } }, { type: 'value', splitLine: { show: false }, axisLabel: { color: '#727685', fontSize: 11 } }]
+                           : { type: 'value', splitLine: { lineStyle: { color: '#edf1f5' } }, axisLabel: { color: '#727685', fontSize: 11 } },
+        series: state.metrics.map((n, i) => ({ name: metricByName[n].label, type: 'line', smooth: false, symbolSize: 5, yAxisIndex: multiScale && RATE.test(n) ? 1 : 0, data: rows.map((r) => num(r[`m${i}`])) })),
+      }, true);
+    }
+    window.addEventListener('resize', () => seriesChart && seriesChart.resize());
+
+    // ---------- go ----------
+    renderRail();
+    renderDefn();
+    buildLayout();
+  </script>
+</body>
+</html>

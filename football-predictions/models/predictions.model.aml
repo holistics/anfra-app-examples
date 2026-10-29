@@ -1,0 +1,150 @@
+Model predictions {
+  type: 'query'
+  label: 'Predictions'
+  description: 'The latest prediction per match from scripts/predict.py. Confidence = top outcome probability plus half its lead over the second.'
+  data_source_name: 'football'
+  query: @sql
+    SELECT p.*, pt.name AS pick_team_name, ks.name AS key_scorer_name,
+           CASE WHEN p.confidence < 45 THEN 'Low' WHEN p.confidence < 55 THEN 'Moderate' WHEN p.confidence < 65 THEN 'High' ELSE 'Very high' END AS confidence_label
+    FROM raw_predictions p
+    LEFT JOIN raw_teams pt ON pt.id = p.pick_team_id
+    LEFT JOIN raw_players ks ON ks.id = p.key_scorer_player_id
+  ;;
+
+  dimension match_id {
+    label: 'Match ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.match_id }};;
+  }
+  dimension model_version {
+    label: 'Model version'
+    type: 'text'
+    definition: @sql {{ #SOURCE.model_version }};;
+  }
+  dimension generated_at {
+    label: 'Generated at'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.generated_at }};;
+  }
+  dimension league_avg {
+    label: 'League goals per team per match'
+    type: 'number'
+    definition: @sql {{ #SOURCE.league_avg }};;
+  }
+  dimension lambda_home {
+    label: 'Expected goals home'
+    type: 'number'
+    definition: @sql {{ #SOURCE.lambda_home }};;
+  }
+  dimension lambda_away {
+    label: 'Expected goals away'
+    type: 'number'
+    definition: @sql {{ #SOURCE.lambda_away }};;
+  }
+  dimension pred_home {
+    label: 'Predicted home goals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pred_home }};;
+  }
+  dimension pred_away {
+    label: 'Predicted away goals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pred_away }};;
+  }
+  dimension p_top_score {
+    label: 'P(predicted score)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_top_score }};;
+  }
+  dimension pred_ht_home {
+    label: 'Predicted HT home'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pred_ht_home }};;
+  }
+  dimension pred_ht_away {
+    label: 'Predicted HT away'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pred_ht_away }};;
+  }
+  dimension p_home {
+    label: 'P(home)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_home }};;
+  }
+  dimension p_draw {
+    label: 'P(draw)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_draw }};;
+  }
+  dimension p_away {
+    label: 'P(away)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_away }};;
+  }
+  dimension p_over25 {
+    label: 'P(over 2.5)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_over25 }};;
+  }
+  dimension p_btts {
+    label: 'P(both score)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_btts }};;
+  }
+  dimension exp_corners_home {
+    label: 'Expected corners home'
+    type: 'number'
+    definition: @sql {{ #SOURCE.exp_corners_home }};;
+  }
+  dimension exp_corners_away {
+    label: 'Expected corners away'
+    type: 'number'
+    definition: @sql {{ #SOURCE.exp_corners_away }};;
+  }
+  dimension p_corners_over95 {
+    label: 'P(corners over 9.5)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p_corners_over95 }};;
+  }
+  dimension confidence {
+    label: 'Confidence'
+    type: 'number'
+    definition: @sql {{ #SOURCE.confidence }};;
+  }
+  dimension signals {
+    label: 'Signals'
+    type: 'number'
+    definition: @sql {{ #SOURCE.signals }};;
+  }
+  dimension pick_team_id {
+    label: 'Pick team ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pick_team_id }};;
+  }
+  dimension key_scorer_player_id {
+    label: 'Key scorer ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.key_scorer_player_id }};;
+  }
+  dimension insight_text {
+    label: 'Insight'
+    type: 'text'
+    definition: @sql {{ #SOURCE.insight_text }};;
+  }
+  dimension pick_team_name {
+    label: 'AI pick'
+    type: 'text'
+    definition: @sql {{ #SOURCE.pick_team_name }};;
+  }
+  dimension key_scorer_name {
+    label: 'Key scorer'
+    type: 'text'
+    definition: @sql {{ #SOURCE.key_scorer_name }};;
+  }
+  dimension confidence_label {
+    label: 'Confidence label'
+    type: 'text'
+    definition: @sql {{ #SOURCE.confidence_label }};;
+  }
+}

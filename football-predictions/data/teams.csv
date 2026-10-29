@@ -1,0 +1,70 @@
+id,league_id,name,short_name,crest_url,primary_color,coach,formation,venue
+42,39,Arsenal,ARS,https://media.api-sports.io/football/teams/42.png,#6f493a,,4-4-2,Emirates Stadium
+66,39,Aston Villa,AST,https://media.api-sports.io/football/teams/66.png,#76ac54,,4-4-2,Villa Park
+35,39,Bournemouth,BOU,https://media.api-sports.io/football/teams/35.png,#345655,,4-4-2,Vitality Stadium
+55,39,Brentford,BRE,https://media.api-sports.io/football/teams/55.png,#742153,,,Gtech Community Stadium
+51,39,Brighton,BRI,https://media.api-sports.io/football/teams/51.png,#2da4a8,,,American Express Stadium
+44,39,Burnley,BUR,https://media.api-sports.io/football/teams/44.png,#4f3331,,,Turf Moor
+49,39,Chelsea,CHE,https://media.api-sports.io/football/teams/49.png,#a0765f,,3-5-2,Stamford Bridge
+52,39,Crystal Palace,CRY,https://media.api-sports.io/football/teams/52.png,#709489,,4-4-2,Selhurst Park
+45,39,Everton,EVE,https://media.api-sports.io/football/teams/45.png,#843426,,,Hill Dickinson Stadium
+36,39,Fulham,FUL,https://media.api-sports.io/football/teams/36.png,#ac5569,,3-5-2,Craven Cottage
+57,39,Ipswich,IPS,https://media.api-sports.io/football/teams/57.png,#64765b,,,Portman Road
+46,39,Leicester,LEI,https://media.api-sports.io/football/teams/46.png,#208380,,,King Power Stadium
+40,39,Liverpool,LIV,https://media.api-sports.io/football/teams/40.png,#2f4ea4,,3-5-2,Anfield
+1359,39,Luton,LUT,https://media.api-sports.io/football/teams/1359.png,#406e7d,,,Kenilworth Road
+50,39,Manchester City,MCI,https://media.api-sports.io/football/teams/50.png,#6b7252,,,Etihad Stadium
+33,39,Manchester United,MUN,https://media.api-sports.io/football/teams/33.png,#bf74a5,,3-5-2,Old Trafford
+34,39,Newcastle,NEW,https://media.api-sports.io/football/teams/34.png,#986946,,,St. James' Park
+65,39,Nottingham Forest,NOT,https://media.api-sports.io/football/teams/65.png,#b9593b,,,The City Ground
+62,39,Sheffield Utd,SHE,https://media.api-sports.io/football/teams/62.png,#49713e,,,Bramall Lane
+41,39,Southampton,SOU,https://media.api-sports.io/football/teams/41.png,#7aa864,,,St. Mary's Stadium
+47,39,Tottenham,TOT,https://media.api-sports.io/football/teams/47.png,#8e5a7b,,4-2-3-1,Tottenham Hotspur Stadium
+48,39,West Ham,WES,https://media.api-sports.io/football/teams/48.png,#4c4834,,4-1-4-1,London Stadium
+39,39,Wolves,WOL,https://media.api-sports.io/football/teams/39.png,#51736c,,,Molineux Stadium
+489,135,AC Milan,MIL,https://media.api-sports.io/football/teams/489.png,#28ad7f,,,Stadio Giuseppe Meazza
+497,135,AS Roma,ROM,https://media.api-sports.io/football/teams/497.png,#6ba588,,,Stadio Olimpico
+499,135,Atalanta,ATA,https://media.api-sports.io/football/teams/499.png,#636140,,,Gewiss Stadium
+500,135,Bologna,BOL,https://media.api-sports.io/football/teams/500.png,#903450,,,Stadio Renato Dall'Ara
+490,135,Cagliari,CAG,https://media.api-sports.io/football/teams/490.png,#5c7d9a,,,Unipol Domus
+895,135,Como,COM,https://media.api-sports.io/football/teams/895.png,#32316c,,,Stadio Giuseppe Sinigaglia
+511,135,Empoli,EMP,https://media.api-sports.io/football/teams/511.png,#23642b,,,Stadio Carlo Castellani – Computer Gross Arena
+502,135,Fiorentina,FIO,https://media.api-sports.io/football/teams/502.png,#b6a232,,,Stadio Artemio Franchi
+512,135,Frosinone,FRO,https://media.api-sports.io/football/teams/512.png,#545420,,,Stadio Benito Stirpe
+495,135,Genoa,GEN,https://media.api-sports.io/football/teams/495.png,#7e7924,,,Stadio Comunale Luigi Ferraris
+504,135,Hellas Verona,VER,https://media.api-sports.io/football/teams/504.png,#5926b4,,,Stadio Marc'Antonio Bentegodi
+505,135,Inter,INT,https://media.api-sports.io/football/teams/505.png,#5b6185,,4-1-4-1,Stadio Giuseppe Meazza
+496,135,Juventus,JUV,https://media.api-sports.io/football/teams/496.png,#7d3436,,4-2-3-1,Allianz Stadium
+487,135,Lazio,LAZ,https://media.api-sports.io/football/teams/487.png,#a45064,,,Stadio Olimpico
+867,135,Lecce,LEC,https://media.api-sports.io/football/teams/867.png,#9c2367,,,Stadio Comunale Via del Mare
+1579,135,Monza,MON,https://media.api-sports.io/football/teams/1579.png,#79be31,,,U-Power Stadium
+492,135,Napoli,NAP,https://media.api-sports.io/football/teams/492.png,#462040,,,Stadio Diego Armando Maradona
+523,135,Parma,PAR,https://media.api-sports.io/football/teams/523.png,#a53f71,,,Stadio Ennio Tardini
+514,135,Salernitana,SAL,https://media.api-sports.io/football/teams/514.png,#7f247a,,,Stadio Arechi
+488,135,Sassuolo,SAS,https://media.api-sports.io/football/teams/488.png,#6366b7,,,MAPEI Stadium - Città del Tricolore
+503,135,Torino,TOR,https://media.api-sports.io/football/teams/503.png,#952e66,,,Stadio Olimpico Grande Torino
+494,135,Udinese,UDI,https://media.api-sports.io/football/teams/494.png,#ad2fa5,,,Bluenergy Stadium
+517,135,Venezia,VEN,https://media.api-sports.io/football/teams/517.png,#2f337c,,,Stadio Pierluigi Penzo
+542,140,Alaves,ALA,https://media.api-sports.io/football/teams/542.png,#624351,,,Estadio de Mendizorroza
+723,140,Almeria,ALM,https://media.api-sports.io/football/teams/723.png,#389248,,,Power Horse Stadium – Estadio de los Juegos Mediterráneos
+531,140,Athletic Club,BIL,https://media.api-sports.io/football/teams/531.png,#25a775,,,San Mamés Barria
+530,140,Atletico Madrid,ATM,https://media.api-sports.io/football/teams/530.png,#4185a4,,,Estádio Cívitas Metropolitano
+529,140,Barcelona,BAR,https://media.api-sports.io/football/teams/529.png,#752d25,,4-3-3,Camp Nou
+724,140,Cadiz,CAD,https://media.api-sports.io/football/teams/724.png,#2b8141,,,JP Financial Estadio
+538,140,Celta Vigo,CEL,https://media.api-sports.io/football/teams/538.png,#9227b5,,4-4-2,Estadio Abanca-Balaídos
+540,140,Espanyol,ESP,https://media.api-sports.io/football/teams/540.png,#508967,,,Stage Front Stadium
+546,140,Getafe,GET,https://media.api-sports.io/football/teams/546.png,#929328,,,Estadio Coliseum
+547,140,Girona,GIR,https://media.api-sports.io/football/teams/547.png,#716aa6,,,Estadi Municipal de Montilivi
+715,140,Granada CF,GRA,https://media.api-sports.io/football/teams/715.png,#a08b2c,,,Estadio Nuevo Los Cármenes
+534,140,Las Palmas,PAL,https://media.api-sports.io/football/teams/534.png,#b77a76,,,Estadio de Gran Canaria
+537,140,Leganes,LEG,https://media.api-sports.io/football/teams/537.png,#225d4c,,,Estadio Municipal de Butarque
+798,140,Mallorca,MAL,https://media.api-sports.io/football/teams/798.png,#2e2791,,,Estadi Mallorca Son Moix
+727,140,Osasuna,OSA,https://media.api-sports.io/football/teams/727.png,#a3bb42,,,Estadio El Sadar
+728,140,Rayo Vallecano,RAY,https://media.api-sports.io/football/teams/728.png,#243551,,,Estadio de Vallecas
+543,140,Real Betis,BET,https://media.api-sports.io/football/teams/543.png,#9c8337,,,Estadio La Cartuja de Sevilla
+541,140,Real Madrid,REA,https://media.api-sports.io/football/teams/541.png,#b3532b,,4-3-3,Estadio Santiago Bernabéu
+548,140,Real Sociedad,RSO,https://media.api-sports.io/football/teams/548.png,#984266,,,Reale Arena
+536,140,Sevilla,SEV,https://media.api-sports.io/football/teams/536.png,#3231ad,,4-4-2,Estadio Ramón Sánchez Pizjuán
+532,140,Valencia,VAL,https://media.api-sports.io/football/teams/532.png,#3d5f4d,,,Estadio de Mestalla
+720,140,Valladolid,VAL,https://media.api-sports.io/football/teams/720.png,#293f5c,,,Estadio Municipal José Zorrilla
+533,140,Villarreal,VIL,https://media.api-sports.io/football/teams/533.png,#472c87,,,Estadio de la Cerámica

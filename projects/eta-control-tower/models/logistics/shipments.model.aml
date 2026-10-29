@@ -1,0 +1,69 @@
+Model shipments {
+  type: 'table'
+  label: 'Shipments'
+  description: 'One row per freight order. Sample data: timestamps move with the clock (db/logistics.sql).'
+  data_source_name: 'warehouse'
+  table_name: '"logistics"."v_shipments"'
+
+  dimension id { label: 'Shipment id' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.id }};; }
+  dimension order_ref { label: 'Order' type: 'text' definition: @sql {{ #SOURCE.order_ref }};; }
+  dimension customer_id { label: 'Customer id' type: 'number' hidden: true definition: @sql {{ #SOURCE.customer_id }};; }
+  dimension mode { label: 'Mode' type: 'text' definition: @sql {{ #SOURCE.mode }};; }
+  dimension carrier { label: 'Carrier' type: 'text' definition: @sql {{ #SOURCE.carrier }};; }
+  dimension origin_port { label: 'Origin port code' type: 'text' hidden: true definition: @sql {{ #SOURCE.origin_port }};; }
+  dimension dest_port { label: 'Destination port code' type: 'text' hidden: true definition: @sql {{ #SOURCE.dest_port }};; }
+  dimension goods_value_usd { label: 'Goods value (USD)' type: 'number' definition: @sql {{ #SOURCE.goods_value_usd }};; }
+  dimension booked_at { label: 'Booked' type: 'datetime' definition: @sql {{ #SOURCE.booked_at }};; }
+  dimension promised_at { label: 'Promised delivery' type: 'datetime' definition: @sql {{ #SOURCE.promised_at }};; }
+  dimension original_eta { label: 'Original ETA' type: 'datetime' definition: @sql {{ #SOURCE.original_eta }};; }
+  dimension current_eta { label: 'Current ETA' type: 'datetime' definition: @sql {{ #SOURCE.current_eta }};; }
+  dimension current_stage { label: 'Current stage' type: 'text' definition: @sql {{ #SOURCE.current_stage }};; }
+  dimension current_stage_seq { label: 'Current stage order' type: 'number' hidden: true definition: @sql {{ #SOURCE.current_stage_seq }};; }
+  dimension delivered_at { label: 'Delivered' type: 'datetime' definition: @sql {{ #SOURCE.delivered_at }};; }
+  dimension delivered_weeks_ago {
+    label: 'Delivered, weeks ago'
+    type: 'number'
+    description: 'Whole weeks between delivery and now: 0 is the last 7 days.'
+    definition: @sql {{ #SOURCE.delivered_weeks_ago }};;
+  }
+  dimension delay_stage {
+    label: 'Delay stage'
+    type: 'text'
+    description: "The stage of the order's largest ETA slip (the latest one on a tie). An order's value at risk counts under this one stage."
+    definition: @sql {{ #SOURCE.delay_stage }};;
+  }
+  dimension delay_stage_seq { label: 'Delay stage order' type: 'number' hidden: true definition: @sql {{ #SOURCE.delay_stage_seq }};; }
+  dimension stage_entered_at { label: 'Entered current stage' type: 'datetime' definition: @sql {{ #SOURCE.stage_entered_at }};; }
+  dimension stage_progress {
+    label: 'Progress through current stage'
+    type: 'number'
+    description: 'Time in the current stage over its nominal hours for the mode, from 0 to 1 (capped). Empty once delivered.'
+    definition: @sql {{ #SOURCE.stage_progress }};;
+  }
+
+  dimension is_active { label: 'Active' type: 'truefalse' description: 'Not delivered yet.' definition: @sql {{ #SOURCE.delivered_at }} IS NULL;; }
+  dimension is_delayed {
+    label: 'Delayed'
+    type: 'truefalse'
+    description: 'The current ETA is later than the promised delivery date.'
+    definition: @sql {{ #SOURCE.current_eta }} > {{ #SOURCE.promised_at }};;
+  }
+  dimension is_on_time {
+    label: 'Delivered on time'
+    type: 'truefalse'
+    description: 'Delivered no later than the promised date. Empty while the order is active.'
+    definition: @sql {{ #SOURCE.delivered_at }} <= {{ #SOURCE.promised_at }};;
+  }
+  dimension delay_hours {
+    label: 'Hours late'
+    type: 'number'
+    description: 'Current ETA minus the promised date, in hours. Negative means time to spare.'
+    definition: @sql EXTRACT(EPOCH FROM ({{ #SOURCE.current_eta }} - {{ #SOURCE.promised_at }})) / 3600.0;;
+  }
+  dimension buffer_hours {
+    label: 'Buffer (hours)'
+    type: 'number'
+    description: 'Promised date minus the current ETA, in hours: how much slip the order can take and still be on time.'
+    definition: @sql EXTRACT(EPOCH FROM ({{ #SOURCE.promised_at }} - {{ #SOURCE.current_eta }})) / 3600.0;;
+  }
+}

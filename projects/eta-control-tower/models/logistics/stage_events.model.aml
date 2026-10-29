@@ -1,0 +1,14 @@
+Model stage_events {
+  type: 'table'
+  label: 'Stage events'
+  description: 'One row per stage a shipment has entered. Exited is empty for the stage it is in now.'
+  data_source_name: 'warehouse'
+  table_name: '"logistics"."v_stage_events"'
+
+  dimension id { label: 'Stage event id' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.id }};; }
+  dimension shipment_id { label: 'Shipment id' type: 'number' hidden: true definition: @sql {{ #SOURCE.shipment_id }};; }
+  dimension stage { label: 'Stage' type: 'text' definition: @sql {{ #SOURCE.stage }};; }
+  dimension stage_seq { label: 'Stage order' type: 'number' definition: @sql {{ #SOURCE.stage_seq }};; }
+  dimension entered_at { label: 'Entered' type: 'datetime' definition: @sql {{ #SOURCE.entered_at }};; }
+  dimension exited_at { label: 'Exited' type: 'datetime' definition: @sql {{ #SOURCE.exited_at }};; }
+}

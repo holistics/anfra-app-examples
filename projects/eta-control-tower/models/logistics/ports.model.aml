@@ -1,0 +1,29 @@
+Model origin_ports {
+  type: 'table'
+  label: 'Origin ports'
+  description: 'Where a shipment leaves from.'
+  data_source_name: 'warehouse'
+  table_name: '"logistics"."v_origin_ports"'
+
+  dimension code { label: 'Origin port code' type: 'text' primary_key: true definition: @sql {{ #SOURCE.code }};; }
+  dimension name { label: 'Origin port' type: 'text' definition: @sql {{ #SOURCE.name }};; }
+  dimension country { label: 'Origin country' type: 'text' definition: @sql {{ #SOURCE.country }};; }
+  dimension region { label: 'Origin region' type: 'text' definition: @sql {{ #SOURCE.region }};; }
+  dimension lat { label: 'Origin latitude' type: 'number' hidden: true definition: @sql {{ #SOURCE.lat }};; }
+  dimension lon { label: 'Origin longitude' type: 'number' hidden: true definition: @sql {{ #SOURCE.lon }};; }
+}
+
+Model dest_ports {
+  type: 'table'
+  label: 'Destination ports'
+  description: 'Where a shipment arrives.'
+  data_source_name: 'warehouse'
+  table_name: '"logistics"."v_dest_ports"'
+
+  dimension code { label: 'Destination port code' type: 'text' primary_key: true definition: @sql {{ #SOURCE.code }};; }
+  dimension name { label: 'Destination port' type: 'text' definition: @sql {{ #SOURCE.name }};; }
+  dimension country { label: 'Destination country' type: 'text' definition: @sql {{ #SOURCE.country }};; }
+  dimension region { label: 'Destination region' type: 'text' definition: @sql {{ #SOURCE.region }};; }
+  dimension lat { label: 'Destination latitude' type: 'number' hidden: true definition: @sql {{ #SOURCE.lat }};; }
+  dimension lon { label: 'Destination longitude' type: 'number' hidden: true definition: @sql {{ #SOURCE.lon }};; }
+}

@@ -1,0 +1,142 @@
+Dataset shipment_risk {
+  label: 'ETA Risk · Shipments'
+  description: 'Freight orders, their stages and the risk events that move their ETAs. Sample data. Value at risk counts active orders whose current ETA is past the promised date.'
+  data_source_name: 'warehouse'
+  models: [shipments, customers, origin_ports, dest_ports, stage_events, risk_events]
+  relationships: [
+    relationship(shipments.customer_id > customers.id, true),
+    relationship(shipments.origin_port > origin_ports.code, true),
+    relationship(shipments.dest_port > dest_ports.code, true),
+    relationship(stage_events.shipment_id > shipments.id, true),
+    relationship(risk_events.shipment_id > shipments.id, true),
+  ]
+
+  dimension hist_events {
+    model: risk_events
+    label: 'Past events like this'
+    type: 'number'
+    description: 'Risk events with the same stage and risk factor on delivered shipments: the history behind the risk score.'
+    definition: @aql count(risk_events.id) | where(shipments.is_active == false) | dimensionalize(risk_events.stage, risk_events.risk_factor);;
+  }
+  dimension hist_slips {
+    model: risk_events
+    label: 'Past slips like this'
+    type: 'number'
+    definition: @aql count(risk_events.id) | where(shipments.is_active == false and risk_events.is_slip == true) | dimensionalize(risk_events.stage, risk_events.risk_factor);;
+  }
+  dimension hist_slip_hours {
+    model: risk_events
+    label: 'Past slip hours like this'
+    type: 'number'
+    definition: @aql sum(risk_events.slip_hours) | where(shipments.is_active == false) | dimensionalize(risk_events.stage, risk_events.risk_factor);;
+  }
+  dimension hist_slip_rate {
+    model: risk_events
+    label: 'Chance of a slip'
+    type: 'number'
+    description: 'How often past events with the same stage and risk factor moved the ETA (delivered shipments only).'
+    definition: @aql safe_divide(coalesce(risk_events.hist_slips, 0) * 1.0, risk_events.hist_events);;
+  }
+  dimension expected_slip_hours {
+    model: risk_events
+    label: 'Expected slip (hours)'
+    type: 'number'
+    description: 'Chance of a slip × average slip when slipped, which equals past slip hours / past events.'
+    definition: @aql safe_divide(coalesce(risk_events.hist_slip_hours, 0) * 1.0, risk_events.hist_events);;
+  }
+  dimension will_breach {
+    model: risk_events
+    label: 'Will breach'
+    type: 'truefalse'
+    description: "The expected slip is larger than the order's buffer before its promised date."
+    definition: @aql risk_events.expected_slip_hours > shipments.buffer_hours;;
+  }
+  dimension value_likely_at_risk {
+    model: risk_events
+    label: 'Value likely at risk'
+    type: 'number'
+    description: 'Goods value × chance of a slip. The watchlist ranks by it.'
+    definition: @aql shipments.goods_value_usd * risk_events.hist_slip_rate;;
+  }
+
+  metric active_shipments {
+    label: 'Active shipments'
+    type: 'number'
+    definition: @aql coalesce(count(shipments.id) | where(shipments.is_active == true), 0);;
+  }
+  metric delayed_orders {
+    label: 'Delayed orders'
+    type: 'number'
+    description: 'Active orders whose current ETA is past the promised date.'
+    definition: @aql coalesce(count(shipments.id) | where(shipments.is_active == true and shipments.is_delayed == true), 0);;
+  }
+  metric value_at_risk {
+    label: 'Value at risk'
+    type: 'number'
+    description: 'Goods value of active orders whose current ETA is past the promised date.'
+    definition: @aql coalesce(sum(shipments.goods_value_usd) | where(shipments.is_active == true and shipments.is_delayed == true), 0);;
+  }
+  metric avg_delay_hours {
+    label: 'Average delay (hours)'
+    type: 'number'
+    description: 'Average hours late, over delayed active orders.'
+    definition: @aql avg(shipments.delay_hours) | where(shipments.is_active == true and shipments.is_delayed == true);;
+  }
+  metric on_time_rate {
+    label: 'On-time rate'
+    type: 'number'
+    description: 'Delivered orders that arrived by the promised date / delivered orders.'
+    definition: @aql safe_divide((count(shipments.id) | where(shipments.is_on_time == true)) * 1.0, count(shipments.id) | where(shipments.is_active == false));;
+  }
+  metric on_time_rate_4w {
+    label: 'On-time rate, last 4 weeks'
+    type: 'number'
+    description: 'On-time rate of orders delivered in the last 4 weeks.'
+    definition: @aql safe_divide((count(shipments.id) | where(shipments.is_on_time == true and shipments.delivered_weeks_ago < 4)) * 1.0,
+      count(shipments.id) | where(shipments.delivered_weeks_ago < 4));;
+  }
+  metric on_time_rate_prev_4w {
+    label: 'On-time rate, the 4 weeks before'
+    type: 'number'
+    description: 'On-time rate of orders delivered 4 to 8 weeks ago.'
+    definition: @aql safe_divide((count(shipments.id) | where(shipments.is_on_time == true and shipments.delivered_weeks_ago >= 4 and shipments.delivered_weeks_ago < 8)) * 1.0,
+      count(shipments.id) | where(shipments.delivered_weeks_ago >= 4 and shipments.delivered_weeks_ago < 8));;
+  }
+  metric risk_events_count {
+    label: 'Risk events'
+    type: 'number'
+    definition: @aql coalesce(count(risk_events.id), 0);;
+  }
+  metric slip_events {
+    label: 'ETA slips'
+    type: 'number'
+    description: 'Risk events that moved the ETA.'
+    definition: @aql coalesce(count(risk_events.id) | where(risk_events.is_slip == true), 0);;
+  }
+  metric slip_events_4w {
+    label: 'ETA slips, last 4 weeks'
+    type: 'number'
+    definition: @aql coalesce(count(risk_events.id) | where(risk_events.is_slip == true and risk_events.weeks_ago < 4), 0);;
+  }
+  metric slip_events_prev_4w {
+    label: 'ETA slips, the 4 weeks before'
+    type: 'number'
+    definition: @aql coalesce(count(risk_events.id) | where(risk_events.is_slip == true and risk_events.weeks_ago >= 4 and risk_events.weeks_ago < 8), 0);;
+  }
+  metric slip_hours_total {
+    label: 'Slip hours'
+    type: 'number'
+    definition: @aql coalesce(sum(risk_events.slip_hours), 0);;
+  }
+  metric slip_rate {
+    label: 'Slip rate'
+    type: 'number'
+    description: 'ETA slips / risk events: how often a risk moves the ETA.'
+    definition: @aql safe_divide(slip_events * 1.0, risk_events_count);;
+  }
+  metric avg_slip_when_slipped {
+    label: 'Average slip when slipped (hours)'
+    type: 'number'
+    definition: @aql safe_divide(slip_hours_total * 1.0, slip_events);;
+  }
+}

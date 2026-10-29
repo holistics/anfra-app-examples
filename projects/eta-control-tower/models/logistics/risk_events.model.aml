@@ -1,0 +1,30 @@
+Model risk_events {
+  type: 'table'
+  label: 'Risk events'
+  description: 'One row per risk factor raised on a shipment, with the ETA before and after. Slip hours is 0 when the ETA did not move.'
+  data_source_name: 'warehouse'
+  table_name: '"logistics"."v_risk_events"'
+
+  dimension id { label: 'Risk event id' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.id }};; }
+  dimension shipment_id { label: 'Shipment id' type: 'number' hidden: true definition: @sql {{ #SOURCE.shipment_id }};; }
+  dimension raised_at { label: 'Raised' type: 'datetime' definition: @sql {{ #SOURCE.raised_at }};; }
+  dimension weeks_ago {
+    label: 'Raised, weeks ago'
+    type: 'number'
+    description: 'Whole weeks between the event and now: 0 is the last 7 days.'
+    definition: @sql {{ #SOURCE.weeks_ago }};;
+  }
+  dimension stage { label: 'Stage' type: 'text' description: 'The stage the shipment was in when the risk was raised.' definition: @sql {{ #SOURCE.stage }};; }
+  dimension stage_seq { label: 'Stage order' type: 'number' hidden: true definition: @sql {{ #SOURCE.stage_seq }};; }
+  dimension risk_factor { label: 'Risk factor' type: 'text' definition: @sql {{ #SOURCE.risk_factor }};; }
+  dimension previous_eta { label: 'ETA before' type: 'datetime' definition: @sql {{ #SOURCE.previous_eta }};; }
+  dimension new_eta { label: 'ETA after' type: 'datetime' definition: @sql {{ #SOURCE.new_eta }};; }
+  dimension slip_hours { label: 'Slip (hours)' type: 'number' description: 'How far this event moved the ETA. 0 if it did not move.' definition: @sql {{ #SOURCE.slip_hours }};; }
+  dimension is_slip { label: 'Moved the ETA' type: 'truefalse' definition: @sql {{ #SOURCE.slip_hours }} > 0;; }
+  dimension is_open {
+    label: 'Open risk'
+    type: 'truefalse'
+    description: "Raised at the shipment's current stage, on an active, on-time shipment, and the ETA has not moved yet."
+    definition: @sql {{ #SOURCE.is_open }};;
+  }
+}

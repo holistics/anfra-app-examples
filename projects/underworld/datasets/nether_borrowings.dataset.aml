@@ -1,0 +1,44 @@
+Dataset nether_borrowings {
+  label: 'The Book of Borrowings'
+  description: 'Every card issued, every copy shelved, every book carried out of a library and whether it came back. The library that issued a card and the library that shelves a copy are not always the same one.'
+  data_source_name: 'nether'
+
+  models: [
+    nether_person,
+    nether_library,
+    nether_library_card,
+    nether_book,
+    nether_book_copy,
+    nether_borrowing_record,
+  ]
+
+  relationships: [
+    relationship(nether_library_card.person_id > nether_person.person_id, true),
+    relationship(nether_library_card.library_id > nether_library.library_id, true),
+    relationship(nether_borrowing_record.card_id > nether_library_card.card_id, true),
+    relationship(nether_borrowing_record.copy_id > nether_book_copy.copy_id, true),
+    relationship(nether_book_copy.book_id > nether_book.book_id, true),
+    relationship(nether_book_copy.library_id > nether_library.library_id, false),
+  ]
+
+  metric books_borrowed {
+    label: 'Books borrowed'
+    type: 'number'
+    description: 'Borrowings recorded against this soul’s cards, counted once each.'
+    definition: @aql nether_borrowing_record | count(nether_borrowing_record.borrow_id) ;;
+  }
+
+  metric distinct_books_borrowed {
+    label: 'Distinct books borrowed'
+    type: 'number'
+    description: 'Separate titles carried out, however many times each was taken.'
+    definition: @aql count_distinct(nether_book.book_id) ;;
+  }
+
+  metric books_never_returned {
+    label: 'Books never returned'
+    type: 'number'
+    description: 'Borrowings with no return date. The library is still waiting.'
+    definition: @aql nether_borrowing_record | where(nether_borrowing_record.returned_on is null) | count(nether_borrowing_record.borrow_id) ;;
+  }
+}

@@ -1,0 +1,28 @@
+Model nether_estate {
+  type: 'table'
+  label: 'Estate'
+  data_source_name: 'nether'
+  table_name: 'estate'
+
+  dimension estate_id {
+    label: 'Estate Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.estate_id }} ;;
+  }
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }} ;;
+  }
+  dimension region {
+    label: 'Region'
+    type: 'text'
+    definition: @sql {{ #SOURCE.region }} ;;
+  }
+  dimension hectares {
+    label: 'Hectares'
+    type: 'number'
+    definition: @sql {{ #SOURCE.hectares }} ;;
+  }
+}

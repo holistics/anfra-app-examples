@@ -1,0 +1,31 @@
+Dataset nether_property {
+  label: 'The Book of Holdings'
+  description: 'What changed hands, when, for how much. A first registration has no seller.'
+  data_source_name: 'nether'
+
+  models: [
+    nether_person,
+    nether_asset,
+    nether_ownership_transaction,
+  ]
+
+  relationships: [
+    relationship(nether_ownership_transaction.buyer_person_id > nether_person.person_id, true),
+    relationship(nether_ownership_transaction.seller_person_id > nether_person.person_id, false),
+    relationship(nether_ownership_transaction.asset_id > nether_asset.asset_id, true),
+  ]
+
+  metric assets_acquired {
+    label: 'Assets acquired'
+    type: 'number'
+    description: 'Transactions in which this soul was the buyer.'
+    definition: @aql nether_ownership_transaction | count(nether_ownership_transaction.txn_id) ;;
+  }
+
+  metric total_paid {
+    label: 'Total paid'
+    type: 'number'
+    description: 'Sum of prices paid, at transaction grain.'
+    definition: @aql nether_ownership_transaction | sum(nether_ownership_transaction.price) ;;
+  }
+}

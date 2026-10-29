@@ -1,0 +1,33 @@
+Model nether_borrowing_record {
+  type: 'table'
+  label: 'Borrowing Record'
+  data_source_name: 'nether'
+  table_name: 'borrowing_record'
+
+  dimension borrow_id {
+    label: 'Borrow Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.borrow_id }} ;;
+  }
+  dimension card_id {
+    label: 'Card Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.card_id }} ;;
+  }
+  dimension copy_id {
+    label: 'Copy Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.copy_id }} ;;
+  }
+  dimension borrowed_on {
+    label: 'Borrowed On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.borrowed_on }} ;;
+  }
+  dimension returned_on {
+    label: 'Returned On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.returned_on }} ;;
+  }
+}

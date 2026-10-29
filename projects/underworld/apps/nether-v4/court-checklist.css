@@ -1,0 +1,47 @@
+/* A matte teal quill and a parchment checklist use the same ink as the papers. */
+.court-quill{position:absolute;right:14px;top:88px;z-index:3;display:grid;place-items:center;width:42px;height:65px;padding:0;border:0;border-radius:8px;background:none;cursor:pointer;color:#c5bb8d}
+.court-quill-art{display:block;width:34px;height:65px;pointer-events:none}
+.court-quill:hover{background:#bacb8115}
+.court-quill:focus-visible{outline:2px solid #c6b478;outline-offset:2px}
+.court-quill.is-needed{background:radial-gradient(ellipse,#bacb8125,transparent 75%)}
+.court-quill.is-complete::after{content:'✓';position:absolute;right:0;bottom:3px;font:700 11px var(--sans);color:#a8c99c}
+.soul-window:has(.court-quill) .soul-bell{top:5px;width:40px;height:80px;right:14px}
+.soul-window:has(.court-quill) .soul-bell-art{width:40px;height:70px}
+.judgment-checklist{width:min(480px,calc(100vw - 36px));max-height:calc(100dvh - 56px);color:#3c422f}
+.checklist-sheet{position:relative;display:flex;flex-direction:column;min-height:0;max-height:calc(100dvh - 56px);background:#dfd6b3;border:1px solid #9b9067;border-block:6px solid #777a55;border-radius:7px 3px 6px 3px;box-shadow:0 12px 40px #0007;font-family:var(--sans)}
+.checklist-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex:none;padding:21px 25px 14px;border-bottom:1px solid #9c946e66}
+.checklist-heading h2{margin:0;font:600 21px/1.2 var(--sans);color:#414a34}
+.checklist-heading p{margin:6px 0 0;font-size:11px;color:#6c6e51}
+.checklist-close{display:grid;place-items:center;width:28px;height:28px;background:none;color:#555f42;font:24px/1 var(--sans);border:1px solid #9c946e80;border-radius:3px;cursor:pointer}
+.checklist-content{min-height:0;overflow:auto;padding:16px 25px 5px;scrollbar-width:thin;scrollbar-color:#9c946e transparent}
+.checklist-questions{margin:0;padding:0 0 0 21px;display:grid;gap:21px;list-style:decimal}
+.checklist-questions li{padding-left:3px;font-size:13px;line-height:1.5}
+.checklist-questions label{display:block;margin:0 0 9px}
+.checklist-questions small{display:block;color:#767153;font-size:10px;margin:4px 0 6px}
+.checklist-questions input{box-sizing:border-box;width:100%;padding:10px 11px;border:1px solid #8b8d6680;border-radius:3px;background:#ece6ce;color:#333e2e;font:14px/1.2 ui-monospace,monospace}
+.checklist-questions input:focus{outline:2px solid #637b55;outline-offset:1px}
+.checklist-questions input[aria-invalid=true]{border-color:#a05945}
+.checklist-questions input:disabled{opacity:1;background:#d2d1af}
+.checklist-questions .is-right{color:#446844}.checklist-questions .is-wrong{color:#934e3c}
+.checklist-message{margin:15px 0 5px;color:#646046;font-size:11px;line-height:1.45;min-height:16px}
+.checklist-hints{margin:12px 0 8px;border-top:1px solid #9c946e66;padding-top:10px;color:#555f42;font-size:11px;line-height:1.5}
+.checklist-hints h3{margin:0 0 7px;font-size:12px}.checklist-hints p{margin:7px 0}
+.checklist-footer{display:flex;align-items:center;gap:11px;padding:14px 25px 17px;flex:none;border-top:1px solid #9c946e66}
+.checklist-hint{display:grid;place-items:center;width:28px;height:28px;border:1px solid #8b8d66;border-radius:50%;background:none;color:#5e6b49;font:600 15px var(--sans);cursor:pointer}
+.checklist-hint:hover{background:#71815d16}
+.checklist-attempts{margin-left:auto;color:#767153;font-size:11px}
+.checklist-footer .nui-btn--primary{background:#566d4d;border-color:#566d4d;color:#f1ebd3;font-size:12px;padding:9px 14px}
+.checklist-footer .nui-btn--primary:hover:not(:disabled){background:#435d3d}
+@media(max-height:760px) and (min-width:901px){.soul-window:has(.court-quill) .soul-bell{top:2px;width:31px;height:62px}.soul-window:has(.court-quill) .soul-bell-art{width:31px;height:57px}.court-quill{top:67px;height:49px}.court-quill-art{height:49px;width:28px}}
+@media(max-width:600px){.checklist-heading{padding:16px 17px 12px}.checklist-heading h2{font-size:19px}.checklist-content{padding:15px 17px 5px}.checklist-footer{padding:12px 17px}.checklist-questions{gap:16px}}
+body.court-quill-guide .court-quill{outline:2px solid #c6b478;outline-offset:2px;background:#bacb8125}
+/* Court guidance keeps Minos to the right of his speech at the bottom corner. */
+.court-checklist-onboarding.dialogue-scene{left:auto;top:auto;right:20px;bottom:20px;width:min(520px,calc(100vw - 32px));grid-template-columns:minmax(0,1fr) 112px;align-items:end}
+.court-checklist-onboarding .dialogue-portrait{grid-column:2;grid-row:1;height:150px}
+.court-checklist-onboarding .character-dialogue{grid-column:1;grid-row:1;margin-top:0}
+.court-checklist-onboarding .dialogue-actions{justify-content:flex-end}
+@media(max-width:700px){.court-checklist-onboarding.dialogue-scene{right:12px;bottom:12px;grid-template-columns:minmax(0,1fr) 76px}.court-checklist-onboarding .dialogue-portrait{height:110px}}
+/* A ready bell pulses until it is rung; the matte bell itself stays unchanged. */
+.soul-bell.is-ready::before{content:'';position:absolute;inset:0 -3px 4px;border:1px solid #cfca87;border-radius:8px;background:radial-gradient(ellipse,#b9cb8140,transparent 75%);pointer-events:none;animation:bell-call-attention 1.2s ease-in-out infinite}
+@keyframes bell-call-attention{0%,100%{opacity:1;box-shadow:0 0 12px #bacb8155}50%{opacity:.18;box-shadow:0 0 2px #bacb8111}}
+@media(prefers-reduced-motion:reduce){.soul-bell.is-ready::before{animation:none;opacity:1}}

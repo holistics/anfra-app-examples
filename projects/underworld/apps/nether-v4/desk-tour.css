@@ -1,0 +1,33 @@
+/* The desk tour: Charon bottom right, everything right-aligned; the spotlighted part of the desk stays lit. */
+.dtour{position:fixed;inset:0;z-index:2000;pointer-events:none;transition:opacity .25s}
+.dtour.is-leaving{opacity:0}
+.dtour-scrim{position:absolute;inset:0;width:100%;height:100%}
+.dtour-scrim[hidden]{display:none}
+.dtour-scrim path{fill:#040b0aa8;pointer-events:auto}
+.dtour-ring{position:fixed;box-sizing:border-box;border:2px solid #e1cea4;border-radius:10px;box-shadow:0 0 0 3px #c4aa7655,0 0 22px #c4aa7688;animation:dtour-pulse 1.4s ease-in-out infinite}
+.dtour-ring[hidden]{display:none}
+.dtour-ring.is-quiet{border-color:transparent;box-shadow:none;animation:none}
+.dtour-ring.is-block{pointer-events:auto}
+.dtour-ring.is-blink{animation:dtour-blink .9s ease-in-out infinite}
+@keyframes dtour-pulse{50%{box-shadow:0 0 0 6px #c4aa7633,0 0 30px #c4aa76aa}}
+@keyframes dtour-blink{0%,100%{opacity:1;box-shadow:0 0 0 5px #c4aa7677,0 0 30px #e1cea4cc}50%{opacity:.2;box-shadow:0 0 0 2px #c4aa7622,0 0 8px #c4aa7655}}
+.dtour-link{position:fixed;inset:0;width:100%;height:100%;overflow:visible;--link:#7fe0a0;filter:drop-shadow(0 0 6px var(--link))}
+.dtour-link[hidden]{display:none}
+.dtour-link[data-result=mismatch]{--link:#ff7a6e}
+.dtour-link-line{fill:none;stroke:var(--link);stroke-width:5;stroke-dasharray:1 9;stroke-linejoin:round;stroke-linecap:round}
+.dtour-link circle{fill:var(--link)}
+.dtour-link-pill{fill:#0b1511;stroke:var(--link);stroke-width:2}
+.dtour-link-text{fill:var(--link);font:700 12px var(--sans);letter-spacing:.1em}
+.dtour-hand{position:fixed;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:#e1cea4d9;border:2px solid #fff8;box-shadow:0 0 0 6px #c4aa7655,0 4px 14px #0007;pointer-events:none}
+.dtour-hand[hidden]{display:none}
+/* Charon on the right, his speech on the left; the text reads left-aligned and the buttons sit right. */
+.dtour .dtour-dialogue.dialogue-scene{position:fixed;right:20px;bottom:20px;width:min(520px,calc(100% - 32px));display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:10px;align-items:end;pointer-events:auto;animation:dtour-in .4s ease}
+.dtour[data-pos=tr] .dtour-dialogue.dialogue-scene{bottom:auto;top:76px;align-items:start}
+.dtour .dialogue-portrait{grid-column:2;grid-row:1;height:150px}
+.dtour .character-dialogue{grid-column:1;grid-row:1;padding:13px 16px;text-align:left}
+.dtour .dialogue-speaker{justify-content:flex-start}
+.dtour .dialogue-text{min-height:3.2em;margin-top:6px;font-size:15px;line-height:1.5}
+.dtour .dialogue-actions{justify-content:flex-end;margin-top:12px}
+@keyframes dtour-in{from{opacity:0;transform:translateY(14px)}}
+@media(max-width:700px){.dtour .dtour-dialogue.dialogue-scene{right:12px;bottom:12px;grid-template-columns:minmax(0,1fr) 76px}.dtour .dialogue-portrait{height:110px}.dtour .dialogue-text{font-size:14px}}
+@media(prefers-reduced-motion:reduce){.dtour-ring,.dtour .dtour-dialogue.dialogue-scene{animation:none}.dtour-hand{display:none}}

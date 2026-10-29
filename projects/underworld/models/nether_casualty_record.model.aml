@@ -1,0 +1,33 @@
+Model nether_casualty_record {
+  type: 'table'
+  label: 'Casualty Record'
+  data_source_name: 'nether'
+  table_name: 'casualty_record'
+
+  dimension casualty_id {
+    label: 'Casualty Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.casualty_id }} ;;
+  }
+  dimension campaign_id {
+    label: 'Campaign Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.campaign_id }} ;;
+  }
+  dimension killer_person_id {
+    label: 'Killer Person Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.killer_person_id }} ;;
+  }
+  dimension victim_person_id {
+    label: 'Victim Person Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.victim_person_id }} ;;
+  }
+  dimension context {
+    label: 'Context'
+    type: 'text'
+    definition: @sql {{ #SOURCE.context }} ;;
+  }
+}

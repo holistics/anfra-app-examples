@@ -2,7 +2,7 @@
 
 Finds the customers whose AI usage costs more than they pay, and tests the pricing rules that fix the margin.
 
-- Demo: https://ai-margin-radar.pages.holistics.dev/apps/ai-margin-radar (password protected)
+- Demo: https://ai-margin-radar.pages.holistics.dev/apps/ai-margin-radar
 - Video: Coming soon
 
 ## Run it

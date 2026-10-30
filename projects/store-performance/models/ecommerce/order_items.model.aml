@@ -1,0 +1,12 @@
+Model order_items {
+  type: 'table'
+  label: 'Order items'
+  description: 'One row per product in an order.'
+  data_source_name: 'warehouse'
+  table_name: '"ecommerce"."order_items"'
+
+  dimension id { label: 'Order item id' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.id }};; }
+  dimension order_id { label: 'Order id' type: 'number' hidden: true definition: @sql {{ #SOURCE.order_id }};; }
+  dimension product_id { label: 'Product id' type: 'number' hidden: true definition: @sql {{ #SOURCE.product_id }};; }
+  dimension quantity { label: 'Quantity' type: 'number' definition: @sql {{ #SOURCE.quantity }};; }
+}

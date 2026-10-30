@@ -1,0 +1,11 @@
+Model countries {
+  type: 'table'
+  label: 'Countries'
+  description: 'Where customers live. Sample data.'
+  data_source_name: 'warehouse'
+  table_name: '"ecommerce"."countries"'
+
+  dimension id { label: 'Country id' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.id }};; }
+  dimension name { label: 'Country' type: 'text' definition: @sql {{ #SOURCE.name }};; }
+  dimension code { label: 'Country code' type: 'text' definition: @sql {{ #SOURCE.code }};; }
+}

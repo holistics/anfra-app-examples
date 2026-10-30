@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Store performance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+  <script src="_lib/anfra-anomaly.js"></script>
+  <style>
+    :root {
+      --bg: #F6F7FB; --card: #FFFFFF; --ink: #0F172A; --muted: #64748B; --line: #E2E8F0;
+      --accent: #4F46E5; --accent-soft: #EEF2FF; --up: #059669; --down: #DC2626;
+      --shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 1px 1px rgba(15, 23, 42, .03);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    .page { max-width: 1320px; margin: 0 auto; padding: 56px 24px 24px; }
+    .top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+    h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+    .sub { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .seg { display: inline-flex; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+    .seg button { border: 0; background: transparent; font: inherit; font-size: 12.5px; padding: 5px 11px; border-radius: 999px; color: #475569; cursor: pointer; }
+    .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+    details.pill { position: relative; }
+    details.pill > summary { list-style: none; cursor: pointer; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 12.5px; white-space: nowrap; }
+    details.pill > summary::-webkit-details-marker { display: none; }
+    details.pill[open] > summary, details.pill.active > summary { border-color: #C7D2FE; color: #4338CA; background: var(--accent-soft); }
+    .menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(15, 23, 42, .12); padding: 6px; min-width: 210px; }
+    .menu label { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+    .menu label:hover { background: #F1F5F9; }
+    .menu button { width: 100%; margin-top: 4px; border: 0; background: transparent; color: var(--accent); font: inherit; font-size: 12.5px; padding: 6px; cursor: pointer; }
+    #magic-pill { position: absolute; top: 12px; right: 16px; z-index: 40; } /* the app's top-right corner */
+    #magic-pill > summary { border-color: #C7D2FE; color: #4338CA; background: var(--accent-soft); font-weight: 500; }
+    #magic-pill .menu { width: 400px; padding: 12px; }
+    .magic-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; }
+    .magic-head button { width: auto; margin: 0; padding: 2px 6px; color: var(--muted); font-size: 14px; }
+    .magic-help { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 4px 0 8px; }
+    .magic-code { position: relative; border: 1px solid var(--line); border-radius: 8px; background: #F8FAFC; padding: 10px 12px; padding-top: 34px; }
+    #magic-prompt { font-size: 12.5px; line-height: 1.55; color: var(--ink); white-space: pre-wrap; }
+    .menu .magic-copy { position: absolute; top: 6px; right: 6px; width: auto; margin: 0; display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: #475569; font-size: 12px; font-weight: 500; }
+    .menu .magic-copy:hover { background: #F1F5F9; }
+    .menu .magic-copy.copied { color: var(--up); border-color: #A7F3D0; background: #ECFDF5; }
+    .magic-copy svg { width: 14px; height: 14px; }
+    .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+    .card { background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: 16px; position: relative; min-width: 0; }
+    .kpi .label { color: var(--muted); font-size: 12px; font-weight: 500; }
+    .kpi .value { font-size: 24px; font-weight: 700; margin-top: 6px; letter-spacing: -.02em; }
+    .kpi .delta { font-size: 12px; margin-top: 6px; }
+    .up { color: var(--up); } .down { color: var(--down); } .flat { color: var(--muted); }
+    .row { display: grid; gap: 12px; margin-bottom: 12px; }
+    .r1 { grid-template-columns: 2fr 1fr; } .r2 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .r3 { grid-template-columns: 1fr 2fr; }
+    .card h2 { font-size: 14px; font-weight: 600; margin: 0; padding-right: 150px; }
+    .card .def { color: var(--muted); font-size: 12px; margin: 3px 0 8px; padding-right: 150px; }
+    .chart { height: 250px; } .chart.tall { height: 290px; } .chart.bars { height: 260px; }
+    .state { color: var(--muted); font-size: 12.5px; min-height: 1em; }
+    .state.error { color: var(--down); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+    td { padding: 8px; border-bottom: 1px solid #F1F5F9; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .tag { display: inline-block; background: var(--accent-soft); color: #4338CA; border-radius: 999px; padding: 2px 8px; font-size: 11.5px; }
+    .note { color: var(--muted); font-size: 11.5px; margin-top: 18px; }
+    .anfra-anomaly-button[data-state="idle"], .anfra-anomaly-button[data-state="error"] { border-color: var(--accent); color: #4338CA; font-weight: 600; }
+    .anfra-anomaly-button[data-state="idle"]:hover, .anfra-anomaly-button[data-state="error"]:hover { background: var(--accent-soft); border-color: var(--accent); color: #4338CA; }
+    .bd-panel { margin: 26px -8px 8px; padding: 16px 14px 14px; border-radius: 12px; background: var(--accent-soft); border: 1px solid #C7D2FE; }
+    .bd-title { margin: 0 0 6px; font-size: 15px; font-weight: 600; color: #312E81; }
+    .bd-help { color: #334155; font-size: 12.5px; line-height: 1.55; margin: 0 0 8px; }
+    .bd-help b { font-weight: 600; color: var(--ink); }
+    .bd-panel .bd-overall { background: #fff; }
+    .bd-panel .bd-dim { background: #fff; }
+    .bd-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .bd-run { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+    .bd-run:hover { background: #4338CA; border-color: #4338CA; }
+    .bd-run:disabled { opacity: .6; cursor: progress; }
+    .anfra-anomaly-run { background: #fff; color: #4338CA; border-color: #C7D2FE; }
+    .anfra-anomaly-run:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent); }
+    .bd-status { color: var(--muted); font-size: 12px; }
+    .bd-status.error { color: var(--down); }
+    .bd-overall { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: #F8FAFC; font-size: 13px; line-height: 1.5; }
+    .bd-dim { margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+    .bd-dim h5 { margin: 0 0 4px; font-size: 13px; font-weight: 600; }
+    .bd-chart { margin-top: 4px; }
+    .bd-dim p { margin: 6px 0 0; font-size: 12.5px; line-height: 1.55; color: #334155; }
+    .bd-dim ul { margin: 4px 0 0; padding-left: 18px; font-size: 12.5px; line-height: 1.6; }
+    .bd-flag { color: #92400E; }
+    .bd-table { width: 100%; margin-top: 6px; font-size: 12.5px; }
+    .bd-table td, .bd-table th { padding: 6px 4px; }
+    .bd-note { color: var(--muted); font-size: 11.5px; line-height: 1.5; margin-top: 8px; }
+    @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .r1, .r2, .r3 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main class="page" data-anfra-container="page" data-anfra-label="Store performance">
+  <details class="pill" id="magic-pill" data-anfra-block="copy-magic" data-anfra-label="Copy magic">
+    <summary>✨ Copy magic</summary>
+    <div class="menu">
+      <div class="magic-head">Get anomaly detection on your dashboards<button type="button" id="magic-close" aria-label="Close">✕</button></div>
+      <div class="magic-help">Paste this into Claude Code, Codex or Cursor in your anfra repo.</div>
+      <div class="magic-code">
+        <button type="button" class="magic-copy" id="magic-copy"></button>
+        <div id="magic-prompt">Make sure the anfra skills are installed and up to date: run `anfra skills install`. Then add anomaly detection to the time-series charts in my Data App (ask me which one if there are several): a Detect anomalies button on each trend chart that follows the page's filters, with the Explain drawer and Run this query, using the detect-anomaly skill.</div>
+      </div>
+    </div>
+  </details>
+  <header class="top" data-anfra-container="header" data-anfra-label="Header and filters">
+    <div>
+      <h1>Store performance</h1>
+      <div class="sub">Sample store data to 14 Oct 2026. Revenue = quantity × price after discount, excluding cancelled and refunded orders. USD.</div>
+    </div>
+    <div class="filters">
+      <div class="seg" id="range" data-anfra-block="range-picker" data-anfra-label="Date range" data-anfra-control="range range_signup">
+        <button data-range="30">Last 30 days</button><button data-range="90">Last 90 days</button>
+        <button data-range="365" aria-pressed="true">Last 12 months</button><button data-range="all">All time</button>
+      </div>
+      <details class="pill" id="category-pill" data-anfra-block="category-picker" data-anfra-label="Category" data-anfra-control="category">
+        <summary>All categories ▾</summary><div class="menu" id="category-menu"></div>
+      </details>
+      <details class="pill" id="country-pill" data-anfra-block="country-picker" data-anfra-label="Country" data-anfra-control="country">
+        <summary>All countries ▾</summary><div class="menu" id="country-menu"></div>
+      </details>
+      <div class="seg" id="grain" data-anfra-block="grain-picker" data-anfra-label="Grain" data-anfra-control="grain">
+        <button data-grain="day">Day</button><button data-grain="week" aria-pressed="true">Week</button><button data-grain="month">Month</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="kpis" data-anfra-container="kpis" data-anfra-label="KPIs">
+    <div class="card kpi" data-kpi="revenue" data-anfra-block="kpi-revenue" data-anfra-label="Revenue" data-anfra-query="kpis"><div class="label">Revenue</div><div class="value">—</div><div class="delta flat">Loading…</div></div>
+    <div class="card kpi" data-kpi="orders" data-anfra-block="kpi-orders" data-anfra-label="Orders" data-anfra-query="kpis"><div class="label">Orders</div><div class="value">—</div><div class="delta flat">Loading…</div></div>
+    <div class="card kpi" data-kpi="aov" data-anfra-block="kpi-aov" data-anfra-label="Avg order value" data-anfra-query="kpis"><div class="label">Avg order value</div><div class="value">—</div><div class="delta flat">Loading…</div></div>
+    <div class="card kpi" data-kpi="customers" data-anfra-block="kpi-customers" data-anfra-label="New customers" data-anfra-query="customers"><div class="label">New customers</div><div class="value">—</div><div class="delta flat">Loading…</div></div>
+    <div class="card kpi" data-kpi="margin" data-anfra-block="kpi-margin" data-anfra-label="Gross margin" data-anfra-query="kpis"><div class="label">Gross margin</div><div class="value">—</div><div class="delta flat">Loading…</div></div>
+  </section>
+
+  <section class="row r1" data-anfra-container="trends-1" data-anfra-label="Revenue and orders">
+    <div class="card" data-anfra-block="revenue-trend" data-anfra-label="Revenue over time">
+      <h2>Revenue over time</h2><div class="def">After discount, excluding cancelled and refunded orders.</div>
+      <div class="state" id="state-revenue"></div><div class="chart tall" id="chart-revenue" data-anfra-query="revenue"></div>
+    </div>
+    <div class="card" data-anfra-block="orders-trend" data-anfra-label="Orders over time">
+      <h2>Orders</h2><div class="def">Orders placed, excluding cancelled.</div>
+      <div class="state" id="state-orders"></div><div class="chart tall" id="chart-orders" data-anfra-query="orders"></div>
+    </div>
+  </section>
+
+  <section class="row r2" data-anfra-container="trends-2" data-anfra-label="Customers, cancellations, categories">
+    <div class="card" data-anfra-block="signups-trend" data-anfra-label="New customers">
+      <h2>New customers</h2><div class="def">Sign-ups. The category filter doesn't apply.</div>
+      <div class="state" id="state-signups"></div><div class="chart" id="chart-signups" data-anfra-query="signups"></div>
+    </div>
+    <div class="card" data-anfra-block="cancel-trend" data-anfra-label="Cancellation rate">
+      <h2>Cancellation rate</h2><div class="def">Cancelled orders / all orders placed.</div>
+      <div class="state" id="state-cancel"></div><div class="chart" id="chart-cancel" data-anfra-query="cancel"></div>
+    </div>
+    <div class="card" data-anfra-block="by-category" data-anfra-label="Revenue by category">
+      <h2>Revenue by category</h2><div class="def">Click a bar to filter the page.</div>
+      <div class="state" id="state-byCategory"></div><div class="chart bars" id="chart-byCategory" data-anfra-query="byCategory"></div>
+    </div>
+  </section>
+
+  <section class="row r3" data-anfra-container="breakdowns" data-anfra-label="Countries and products">
+    <div class="card" data-anfra-block="by-country" data-anfra-label="Revenue by country">
+      <h2>Revenue by country</h2><div class="def">Click a bar to filter the page.</div>
+      <div class="state" id="state-byCountry"></div><div class="chart bars" id="chart-byCountry" data-anfra-query="byCountry"></div>
+    </div>
+    <div class="card" data-anfra-block="top-products" data-anfra-label="Top products">
+      <h2>Top products</h2><div class="def">Top 10 by revenue in the selected range.</div>
+      <div class="state" id="state-top"></div>
+      <table data-anfra-query="top"><thead><tr><th>Product</th><th>Category</th><th class="num">Units</th><th class="num">Revenue</th><th class="num">Margin</th></tr></thead><tbody id="top-body"></tbody></table>
+    </div>
+  </section>
+  <div class="note">Generated sample data with five planted events, for the anomaly detection demo. Use Detect anomalies on any trend.</div>
+</main>
+<script>
+  const DATASET = 'ecommerce';
+  const app = Anfra.createApp({ title: 'Store performance', timezone: 'Etc/UTC' });
+  const $ = (id) => document.getElementById(id);
+  let rangeKey = '365'; // the date preset in use: '30', '90', '365' or 'all'
+
+  // ---------- formatting ----------
+  const num = (v) => (v === null || v === undefined ? null : Number(v));
+  const moneyShortFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
+  const moneyFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  const moneyCentsFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const intFmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+  const moneyShort = (n) => (n == null ? '—' : moneyShortFmt.format(n));
+  const money = (n) => (n == null ? '—' : moneyFmt.format(n));
+  const moneyCents = (n) => (n == null ? '—' : moneyCentsFmt.format(n));
+  const int = (n) => (n == null ? '—' : intFmt.format(n));
+  const pct = (n) => (n == null ? '—' : `${(n * 100).toFixed(1)}%`);
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  // ---------- queries ----------
+  const LY = (metric, time) => `${metric} | relative_period(${time}, interval(-1 year))`;
+  const trendAql = (metric, time) => `explore {
+  dimensions { period: ${time} | week() }
+  measures { value: ${metric} }
+  sorts { period asc }
+}`;
+  const q = {
+    kpis: app.createQuery('kpis', { dataset: DATASET, aql: `explore {
+  measures {
+    revenue_now: revenue, revenue_ly: ${LY('revenue', 'orders.created_at')},
+    orders_now: orders_count, orders_ly: ${LY('orders_count', 'orders.created_at')},
+    aov_now: aov, aov_ly: ${LY('aov', 'orders.created_at')},
+    margin_now: gross_margin, margin_ly: ${LY('gross_margin', 'orders.created_at')}
+  }
+}` }),
+    customers: app.createQuery('customers', { dataset: DATASET, aql: `explore {
+  measures { customers_now: new_customers, customers_ly: ${LY('new_customers', 'users.sign_up_at')} }
+}` }),
+    revenue: app.createQuery('revenue', { dataset: DATASET, aql: trendAql('revenue', 'orders.created_at') }),
+    orders: app.createQuery('orders', { dataset: DATASET, aql: trendAql('orders_count', 'orders.created_at') }),
+    signups: app.createQuery('signups', { dataset: DATASET, aql: trendAql('new_customers', 'users.sign_up_at') }),
+    cancel: app.createQuery('cancel', { dataset: DATASET, aql: trendAql('cancellation_rate', 'orders.created_at') }),
+    byCategory: app.createQuery('byCategory', { dataset: DATASET, aql: `explore {
+  dimensions { label: categories.name }
+  measures { value: revenue }
+  sorts { value desc }
+}` }),
+    byCountry: app.createQuery('byCountry', { dataset: DATASET, aql: `explore {
+  dimensions { label: countries.name }
+  measures { value: revenue }
+  sorts { value desc }
+}` }),
+    top: app.createQuery('top', { dataset: DATASET, pageSize: 10, aql: `explore {
+  dimensions { product: products.name, category: categories.name }
+  measures { units: units, value: revenue, margin: gross_margin }
+  sorts { value desc }
+}` }),
+  };
+
+  // ---------- controls ----------
+  const LAST_12 = { operator: 'matches', values: ['last 12 months'] };
+  const range = app.createFilter('range', { dataset: DATASET, field: 'orders.created_at', label: 'Date range', default: LAST_12 });
+  const rangeSignup = app.createFilter('range_signup', { dataset: DATASET, field: 'users.sign_up_at', label: 'Date range (sign-ups)', default: LAST_12 });
+  const category = app.createFilter('category', { dataset: DATASET, field: 'categories.name', label: 'Category' });
+  const country = app.createFilter('country', { dataset: DATASET, field: 'countries.name', label: 'Country' });
+  const grain = app.createDateDrill('grain', { default: 'week' });
+  // The trend charts take the same preset in whole buckets of their grain: a month-aligned range at week
+  // grain cuts the first and last weeks short, which reads as a cliff. Kept in step with
+  // tests/test_ecommerce_ranges.py, which checks every phrase gives whole buckets.
+  const TREND_RANGE = {
+    day: { 30: 'last 30 days', 90: 'last 90 days', 365: 'last 365 days' },
+    week: { 30: 'last 4 weeks', 90: 'last 13 weeks', 365: 'last 52 weeks' },
+    month: { 30: 'last 1 month', 90: 'last 3 months', 365: 'last 12 months' },
+  };
+  const LAST_52_WEEKS = { operator: 'matches', values: [TREND_RANGE.week[365]] };
+  const trendRange = app.createFilter('trend_range', { dataset: DATASET, field: 'orders.created_at', label: 'Trend range', default: LAST_52_WEEKS });
+  const trendRangeSignup = app.createFilter('trend_range_signup', { dataset: DATASET, field: 'users.sign_up_at', label: 'Trend range (sign-ups)', default: LAST_52_WEEKS });
+
+  // Each breakdown ignores its own filter, so its bars dim instead of disappearing when one is picked.
+  const ORDER_QUERIES = [q.kpis, q.revenue, q.orders, q.cancel, q.byCategory, q.byCountry, q.top];
+  const ORDER_TRENDS = [q.revenue, q.orders, q.cancel];
+  for (const query of ORDER_QUERIES) {
+    app.mapControl(ORDER_TRENDS.includes(query) ? trendRange : range, query, { field: 'orders.created_at' });
+    if (query !== q.byCountry) app.mapControl(country, query, { field: 'countries.name' });
+    if (query !== q.byCategory) app.mapControl(category, query, { field: 'categories.name' });
+  }
+  for (const query of [q.customers, q.signups]) {
+    app.mapControl(query === q.signups ? trendRangeSignup : rangeSignup, query, { field: 'users.sign_up_at' });
+    app.mapControl(country, query, { field: 'countries.name' });
+  }
+  function setTrendRange () {
+    // The grain the next execute() will run at (setGrain changes the pending condition, not the applied one).
+    const next = String(grain.condition.values[0]).replace('datetrunc ', '');
+    const condition = rangeKey === 'all' ? { operator: 'none' } : { operator: 'matches', values: [TREND_RANGE[next][rangeKey]] };
+    trendRange.setCondition(condition);
+    trendRangeSignup.setCondition(condition);
+  }
+  for (const query of [q.revenue, q.orders, q.cancel]) app.mapControl(grain, query, { field: 'orders.created_at' });
+  app.mapControl(grain, q.signups, { field: 'users.sign_up_at' });
+
+  // ---------- charts and the anomaly plugin ----------
+  const charts = {};
+  for (const key of ['revenue', 'orders', 'signups', 'cancel', 'byCategory', 'byCountry']) charts[key] = echarts.init($(`chart-${key}`));
+  window.addEventListener('resize', () => Object.values(charts).forEach((c) => c.resize()));
+
+  const COLORS = { band: '#A5B4FC', flag: '#EF4444' };
+  const TREND = {
+    revenue: { label: 'Revenue', kind: 'line', area: true, fmt: moneyShort, tip: money, color: '#4F46E5', measure: 'revenue', time: 'orders.created_at' },
+    orders: { label: 'Orders', kind: 'bar', fmt: int, tip: int, color: '#6366F1', measure: 'orders_count', time: 'orders.created_at' },
+    signups: { label: 'New customers', kind: 'line', area: true, fmt: int, tip: int, color: '#0EA5E9', measure: 'new_customers', time: 'users.sign_up_at' },
+    cancel: { label: 'Cancellation rate', kind: 'line', fmt: pct, tip: pct, color: '#F59E0B', measure: 'cancellation_rate', time: 'orders.created_at' },
+  };
+  const anomaly = {};
+  for (const [key, spec] of Object.entries(TREND)) {
+    const filters = [{ control: country, field: 'countries.name' }];
+    if (key !== 'signups') filters.push({ control: category, field: 'categories.name' });
+    anomaly[key] = AnfraAnomaly.attach(app, q[key], charts[key], {
+      measure: spec.measure, time: spec.time, drill: grain, label: spec.label,
+      format: spec.tip, filters, colors: COLORS, render: () => renderTrend(key, true),
+    });
+  }
+
+  // ---------- rendering ----------
+  function currentGrain () {
+    const c = grain.appliedCondition || grain.condition;
+    return c && c.values ? String(c.values[0]).replace('datetrunc ', '') : 'week';
+  }
+  function periodLabel (value) {
+    const [y, m, d] = String(value).slice(0, 10).split('-').map(Number);
+    return currentGrain() === 'month' ? `${MONTHS[m - 1]} ${String(y).slice(2)}` : `${d} ${MONTHS[m - 1]}`;
+  }
+  // Shows loading, error and empty in the block's state line. True when there are rows to draw.
+  function showState (key, emptyText) {
+    const query = q[key];
+    const el = $(`state-${key}`);
+    el.className = 'state';
+    if (query.state === 'error') { el.className = 'state error'; el.textContent = query.error.message; return false; }
+    if (!query.result) { el.textContent = 'Loading…'; return false; }
+    if (!query.result.rows.length) { el.textContent = emptyText; return false; }
+    el.textContent = query.state === 'executing' ? 'Updating…' : '';
+    return true;
+  }
+  const gradient = (hex) => new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: `${hex}33` }, { offset: 1, color: `${hex}00` }]);
+
+  function renderTrend (key) {
+    const spec = TREND[key];
+    const chart = charts[key];
+    if (!showState(key, 'No data in this range.')) { if (q[key].state !== 'executing') chart.clear(); return; }
+    const rows = q[key].result.rows;
+    let option = {
+      animationDuration: 300,
+      grid: { left: 4, right: 12, top: 12, bottom: 4, containLabel: true },
+      tooltip: { trigger: 'axis', valueFormatter: (v) => (v == null ? '-' : spec.tip(v)) },
+      xAxis: { type: 'category', data: rows.map((r) => periodLabel(r.period)), axisLine: { lineStyle: { color: '#E2E8F0' } }, axisTick: { show: false }, axisLabel: { color: '#64748B', fontSize: 11 } },
+      yAxis: { type: 'value', splitLine: { lineStyle: { color: '#F1F5F9' } }, axisLabel: { color: '#64748B', fontSize: 11, formatter: (v) => spec.fmt(v) } },
+      series: [{
+        id: 'main', name: spec.label, type: spec.kind, data: rows.map((r) => num(r.value)),
+        smooth: spec.kind === 'line' ? 0.25 : false, showSymbol: false, barMaxWidth: 18,
+        lineStyle: { width: 2.5, color: spec.color },
+        itemStyle: { color: spec.color, borderRadius: spec.kind === 'bar' ? [4, 4, 0, 0] : 0 },
+        areaStyle: spec.area ? { color: gradient(spec.color) } : undefined,
+      }],
+    };
+    option = anomaly[key].decorate(option);
+    chart.setOption(option, { replaceMerge: ['series'] });
+  }
+
+  const picked = { category: new Set(), country: new Set() };
+  function renderBars (key, kind) {
+    const chart = charts[key];
+    if (!showState(key, 'No revenue in this range.')) { if (q[key].state !== 'executing') chart.clear(); return; }
+    const rows = q[key].result.rows.slice().reverse(); // largest on top
+    const chosen = picked[kind];
+    chart.setOption({
+      animationDuration: 300,
+      grid: { left: 4, right: 64, top: 4, bottom: 4, containLabel: true },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: money },
+      xAxis: { type: 'value', show: false },
+      yAxis: { type: 'category', data: rows.map((r) => r.label), axisTick: { show: false }, axisLine: { show: false }, axisLabel: { color: '#334155', fontSize: 12 } },
+      series: [{
+        id: 'bars', type: 'bar', barMaxWidth: 16, cursor: 'pointer',
+        data: rows.map((r) => ({ value: num(r.value), itemStyle: { color: chosen.size === 0 || chosen.has(r.label) ? '#4F46E5' : '#C7D2FE', borderRadius: [0, 4, 4, 0] } })),
+        label: { show: true, position: 'right', color: '#64748B', fontSize: 11, formatter: (p) => moneyShort(p.value) },
+      }],
+    }, { replaceMerge: ['series'] });
+  }
+  charts.byCategory.on('click', (p) => togglePick('category', p.name));
+  charts.byCountry.on('click', (p) => togglePick('country', p.name));
+
+  function setKpi (id, now, ly, fmt, mode, query) {
+    const el = document.querySelector(`[data-kpi="${id}"]`);
+    const delta = el.querySelector('.delta');
+    if (query.state === 'error') { el.querySelector('.value').textContent = '—'; delta.className = 'delta down'; delta.textContent = query.error.message; return; }
+    if (!query.result) { delta.className = 'delta flat'; delta.textContent = 'Loading…'; return; }
+    el.querySelector('.value').textContent = now == null ? '—' : fmt(now);
+    if (rangeKey === 'all') { delta.className = 'delta flat'; delta.textContent = 'All time'; return; }
+    if (now == null || ly == null || ly === 0) { delta.className = 'delta flat'; delta.textContent = 'No data a year earlier'; return; }
+    const change = mode === 'pts' ? (now - ly) * 100 : (now / ly - 1) * 100;
+    delta.className = `delta ${Math.abs(change) < 0.05 ? 'flat' : change > 0 ? 'up' : 'down'}`;
+    delta.textContent = `${change >= 0 ? '▲' : '▼'} ${Math.abs(change).toFixed(1)}${mode === 'pts' ? ' pts' : '%'} vs a year earlier`;
+  }
+  function renderKpis () {
+    const k = q.kpis.result && q.kpis.result.rows[0];
+    const c = q.customers.result && q.customers.result.rows[0];
+    setKpi('revenue', k && num(k.revenue_now), k && num(k.revenue_ly), moneyShort, 'pct', q.kpis);
+    setKpi('orders', k && num(k.orders_now), k && num(k.orders_ly), int, 'pct', q.kpis);
+    setKpi('aov', k && num(k.aov_now), k && num(k.aov_ly), moneyCents, 'pct', q.kpis);
+    setKpi('margin', k && num(k.margin_now), k && num(k.margin_ly), pct, 'pts', q.kpis);
+    setKpi('customers', c && num(c.customers_now), c && num(c.customers_ly), int, 'pct', q.customers);
+  }
+
+  function renderTop () {
+    const body = $('top-body');
+    if (!showState('top', 'No sales in this range.')) { if (q.top.state !== 'executing') body.replaceChildren(); return; }
+    body.replaceChildren(...q.top.result.rows.map((r) => {
+      const tr = document.createElement('tr');
+      const cell = (text, cls) => { const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; return td; };
+      const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = r.category;
+      const catCell = document.createElement('td'); catCell.appendChild(tag);
+      tr.append(cell(r.product), catCell, cell(int(num(r.units)), 'num'), cell(money(num(r.value)), 'num'), cell(pct(num(r.margin)), 'num'));
+      return tr;
+    }));
+  }
+
+  // Re-draw a block only when its query's result or state changed, so charts don't replay their animation.
+  const seen = {};
+  function changed (key) {
+    const sig = [q[key].state, q[key].result];
+    const was = seen[key];
+    seen[key] = sig;
+    return !was || was[0] !== sig[0] || was[1] !== sig[1];
+  }
+  function renderAll () {
+    if (changed('kpis') | changed('customers')) renderKpis();
+    for (const key of Object.keys(TREND)) if (changed(key)) renderTrend(key);
+    if (changed('byCategory')) renderBars('byCategory', 'category');
+    if (changed('byCountry')) renderBars('byCountry', 'country');
+    if (changed('top')) renderTop();
+  }
+  app.subscribe(renderAll);
+
+  // ---------- filter wiring ----------
+  const RANGE = { 30: 'last 30 days', 90: 'last 90 days', 365: 'last 12 months' };
+  $('range').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-range]');
+    if (!b) return;
+    rangeKey = b.dataset.range;
+    for (const x of $('range').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+    const condition = rangeKey === 'all' ? { operator: 'none' } : { operator: 'matches', values: [RANGE[rangeKey]] };
+    range.setCondition(condition);
+    rangeSignup.setCondition(condition);
+    setTrendRange();
+    app.execute();
+  });
+  $('grain').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-grain]');
+    if (!b) return;
+    for (const x of $('grain').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+    grain.setGrain(b.dataset.grain);
+    setTrendRange();
+    app.execute();
+  });
+
+  const FILTER = { category, country };
+  const NOUN = { category: ['category', 'categories'], country: ['country', 'countries'] };
+  function applyPicks (kind) {
+    const values = [...picked[kind]];
+    FILTER[kind].setCondition(values.length ? { operator: 'is', values } : { operator: 'none' });
+    const pill = $(`${kind}-pill`);
+    pill.classList.toggle('active', values.length > 0);
+    pill.querySelector('summary').textContent = values.length === 0 ? `All ${NOUN[kind][1]} ▾`
+      : values.length === 1 ? `${values[0]} ▾` : `${values.length} ${NOUN[kind][1]} ▾`;
+    for (const box of $(`${kind}-menu`).querySelectorAll('input')) box.checked = picked[kind].has(box.value);
+    if (kind === 'category') { // sign-ups have no category, so that KPI ignores the filter: say so
+      document.querySelector('[data-kpi="customers"] .label').textContent = values.length ? 'New customers (all categories)' : 'New customers';
+    }
+    seen.byCategory = null; seen.byCountry = null; // re-shade the bars
+    renderAll();
+    app.execute();
+  }
+  function togglePick (kind, value) {
+    if (picked[kind].has(value)) picked[kind].delete(value); else picked[kind].add(value);
+    applyPicks(kind);
+  }
+  async function buildMenu (kind) {
+    await FILTER[kind].loadOptions();
+    const menu = $(`${kind}-menu`);
+    for (const value of FILTER[kind].options.map(String).sort()) {
+      const label = document.createElement('label');
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.value = value;
+      box.addEventListener('change', () => togglePick(kind, value));
+      label.append(box, document.createTextNode(value));
+      menu.appendChild(label);
+    }
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.textContent = `Clear ${NOUN[kind][0]} filter`;
+    clear.addEventListener('click', () => { picked[kind].clear(); applyPicks(kind); });
+    menu.appendChild(clear);
+  }
+  buildMenu('category');
+  buildMenu('country');
+  // A <details> menu doesn't close on its own when the reader clicks elsewhere.
+  document.addEventListener('click', (e) => {
+    for (const pill of document.querySelectorAll('details.pill[open]')) if (!pill.contains(e.target)) pill.open = false;
+  });
+
+  // ---------- break down a flagged point ----------
+  // The plugin's Explain drawer doesn't tell the app which point it shows, so a panel added to the
+  // drawer reads it from the drawer's subtitle ("Revenue · Week of 11 May 2026"). It compares that
+  // bucket with the one before, segment by segment, following the analyze-contribution method:
+  // delta = this bucket - the bucket before, contribution = segment delta / overall delta, where the
+  // overall delta is its own query with no segment. One query per dimension.
+  const BD_DIMS = {
+    country: { label: 'Country', field: 'countries.name', pick: 'country' },
+    category: { label: 'Category', field: 'categories.name', pick: 'category' },
+    merchant: { label: 'Merchant', field: 'merchants.name' },
+    gender: { label: 'Gender', field: 'users.gender' },
+    city: { label: 'City', field: 'cities.name' },
+  };
+  const BD_FOR = { revenue: ['country', 'category', 'merchant'], orders: ['country', 'category', 'merchant'], cancel: ['country', 'category', 'merchant'], signups: ['country', 'gender', 'city'] };
+  const BD_SHOWN = 8; // segments drawn per dimension
+  const bd = { run: 0, n: 0, id: null, ctx: null, charts: [] };
+
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const isoDate = (d) => `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
+  function shiftPeriod (date, grainName, n) {
+    const d = new Date(date.getTime());
+    if (grainName === 'month') d.setUTCMonth(d.getUTCMonth() + n);
+    else d.setUTCDate(d.getUTCDate() + n * (grainName === 'week' ? 7 : 1));
+    return d;
+  }
+  // "Week of 11 May 2026", "11 May 2026" or "May 2026" -> the first day of that bucket.
+  function bucketStart (text, grainName) {
+    const re = { week: /^Week of (\d+) (\w{3}) (\d{4})$/, day: /^(\d+) (\w{3}) (\d{4})$/, month: /^(\w{3}) (\d{4})$/ }[grainName];
+    const m = re && re.exec(text);
+    if (!m) return null;
+    const [day, mon, year] = grainName === 'month' ? [1, m[1], m[2]] : [m[1], m[2], m[3]];
+    const month = MONTHS.indexOf(mon);
+    return month < 0 ? null : new Date(Date.UTC(Number(year), month, Number(day)));
+  }
+  const signed = (n) => `${n < 0 ? '−' : '+'}`;
+  function deltaText (spec, d) {
+    return spec === TREND.cancel ? `${signed(d)}${(Math.abs(d) * 100).toFixed(1)} pts` : `${signed(d)}${spec.tip(Math.abs(d))}`;
+  }
+  function contributionText (c) {
+    return Math.abs(c) > 100 ? `${(Math.abs(c) / 100).toFixed(1)}× the net change` : `${c.toFixed(0)}%`;
+  }
+
+  function setupBreakdown () {
+    const aside = document.querySelector('.anfra-anomaly-drawer');
+    const before = aside && [...aside.querySelectorAll('h4')].find((h) => h.textContent === 'Check it yourself');
+    if (!before) return;
+    const mk = (tag, cls, parent, text) => {
+      const node = document.createElement(tag);
+      if (cls) node.className = cls;
+      if (text !== undefined) node.textContent = text;
+      if (parent) parent.appendChild(node);
+      return node;
+    };
+    const section = mk('section', 'bd-panel');
+    section.setAttribute('data-anfra-block', 'breakdown');
+    section.setAttribute('data-anfra-label', 'Break down this change');
+    mk('h3', 'bd-title', section, 'Where did it change?');
+    const help = mk('p', 'bd-help', section);
+    const bar = mk('div', 'bd-bar', section);
+    const button = mk('button', 'bd-run', bar, 'Break down this change');
+    button.type = 'button';
+    const status = mk('span', 'bd-status', bar);
+    const out = mk('div', '', section);
+    aside.insertBefore(section, before);
+
+    function reset () {
+      bd.run += 1; // a slow run for an earlier point is ignored
+      for (const c of bd.charts) c.dispose();
+      bd.charts = [];
+      out.replaceChildren();
+      status.textContent = '';
+      status.className = 'bd-status';
+      button.disabled = false;
+      button.textContent = 'Break down this change';
+      bd.ctx = null;
+      const [label, bucket] = (bd.id || '').split(' · ');
+      const key = Object.keys(TREND).find((k) => TREND[k].label === label);
+      const grainName = currentGrain();
+      const start = key && bucketStart(bucket, grainName);
+      section.hidden = !start;
+      if (!start) return;
+      const prev = shiftPeriod(start, grainName, -1);
+      bd.ctx = { key, grainName, bucket, start: isoDate(start), prev: isoDate(prev), end: isoDate(shiftPeriod(start, grainName, 1)),
+        prevLabel: AnfraAnomaly.bucketLabel(`${isoDate(prev)} 00:00:00`, grainName) };
+      help.replaceChildren(
+        document.createTextNode('The checks above show why this point is flagged: it sits outside the normal range. They do not say what caused it, and there are several ways to look for a cause. Here we use one: '),
+        Object.assign(document.createElement('b'), { textContent: 'break the change down by segment' }),
+        document.createTextNode(` to see where it happened most. We compare ${bucket} with ${bd.ctx.prevLabel}, by ${BD_FOR[key].map((id) => BD_DIMS[id].label.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1')}.`));
+    }
+
+    // The plugin sets its "Run this query" button's text itself: rename it to "Evaluate yourself".
+    const RUN_TEXT = { '▶ Run this query': 'Evaluate yourself', '▶ Run again': 'Evaluate again' };
+    function sync () {
+      const runButton = aside.querySelector('.anfra-anomaly-run');
+      if (runButton && RUN_TEXT[runButton.textContent]) runButton.textContent = RUN_TEXT[runButton.textContent];
+      const sub = aside.querySelector('.anfra-anomaly-drawer-sub');
+      const id = aside.dataset.open === 'true' && sub ? sub.textContent : null;
+      if (id === bd.id) return;
+      bd.id = id;
+      reset();
+    }
+    new MutationObserver(sync).observe(aside, { attributes: true, attributeFilter: ['data-open'], childList: true, subtree: true, characterData: true });
+
+    button.addEventListener('click', () => {
+      const ctx = bd.ctx;
+      if (!ctx) return;
+      const token = ++bd.run;
+      const spec = TREND[ctx.key];
+      const n = (bd.n += 1);
+      out.replaceChildren();
+      for (const c of bd.charts) c.dispose();
+      bd.charts = [];
+      button.disabled = true;
+      status.className = 'bd-status';
+      status.textContent = 'Comparing…';
+
+      const within = (from, to) => `${spec.time} >= @(${from}) and ${spec.time} < @(${to})`;
+      const locals = `metric bd_base = coalesce(${spec.measure} | where(${within(ctx.start, ctx.end)}), 0);\n`
+        + `metric bd_comp = coalesce(${spec.measure} | where(${within(ctx.prev, ctx.start)}), 0);\n`;
+      const declare = (name, field) => {
+        const aql = `${locals}explore {\n${field ? `  dimensions { seg: ${field} }\n` : ''}  measures { base: bd_base, comp: bd_comp, delta: bd_base - bd_comp }\n}`;
+        const query = app.createQuery(`bd${n}_${name}`, { dataset: DATASET, aql });
+        app.mapControl(country, query, { field: 'countries.name' });
+        if (ctx.key !== 'signups') app.mapControl(category, query, { field: 'categories.name' });
+        return query;
+      };
+      const overall = declare('overall');
+      const dims = BD_FOR[ctx.key].map((id) => {
+        const dim = BD_DIMS[id];
+        const chosen = dim.pick ? [...picked[dim.pick]] : [];
+        return chosen.length ? { id, dim, skipped: `the page is filtered to ${chosen.join(', ')}` } : { id, dim, query: declare(id, dim.field) };
+      });
+
+      app.execute().then(() => {
+        if (token !== bd.run) return;
+        button.disabled = false;
+        button.textContent = 'Break down again';
+        status.textContent = '';
+        if (overall.state !== 'success') {
+          status.className = 'bd-status error';
+          status.textContent = overall.error ? overall.error.message : 'The comparison did not finish.';
+          return;
+        }
+        const row = overall.result.rows[0] || {};
+        const base = num(row.base) || 0;
+        const comp = num(row.comp) || 0;
+        const total = base - comp;
+        const dropped = total < 0;
+        const box = mk('div', 'bd-overall', out);
+        if (total === 0) {
+          box.textContent = `${spec.label} did not change between ${ctx.prevLabel} and ${ctx.bucket}, so there is nothing to break down.`;
+          return;
+        }
+        const change = comp === 0 ? null : Math.abs(total) / Math.abs(comp) * 100;
+        box.textContent = `${spec.label} ${dropped ? 'dropped' : 'increased'}${change === null ? '' : ` ${change.toFixed(1)}%`}, from ${spec.tip(comp)} to ${spec.tip(base)} (${deltaText(spec, total)}) between ${ctx.prevLabel} and ${ctx.bucket}.`;
+        const verb = dropped ? 'drop' : 'increase';
+        const summary = [];
+        for (const { dim, query, skipped } of dims) {
+          if (skipped) { summary.push({ dim, note: `Skipped: ${skipped}` }); continue; }
+          if (query.state !== 'success' || !query.result.rows.length) {
+            summary.push({ dim, note: `Failed to analyze: ${query.error ? query.error.message : 'no rows'}` });
+            continue;
+          }
+          const segs = query.result.rows.map((r) => ({ name: String(r.seg), base: num(r.base) || 0, comp: num(r.comp) || 0, delta: num(r.delta) || 0 }))
+            .sort((a, b) => (dropped ? a.delta - b.delta : b.delta - a.delta));
+          for (const s of segs) s.contribution = s.delta / total * 100;
+          const drivers = segs.filter((s) => s.delta * total > 0);
+          const offsets = segs.filter((s) => s.delta * total < 0);
+          const top = drivers[0];
+          summary.push({ dim, top, spread: drivers.length > 0 && drivers.length === segs.length && top.contribution < 100 / segs.length * 2 });
+
+          const card = mk('div', 'bd-dim', out);
+          mk('h5', '', card, `${spec.label} by ${dim.label} · ${segs.length} segments`);
+          const chartEl = mk('div', 'bd-chart', card);
+          chartEl.style.height = `${40 + Math.min(segs.length, BD_SHOWN) * 26}px`;
+          chartEl.setAttribute('data-anfra-query', query.name);
+          const shown = segs.slice(0, BD_SHOWN).reverse(); // biggest mover on top
+          const chart = echarts.init(chartEl);
+          bd.charts.push(chart);
+          chart.setOption({
+            animation: false,
+            grid: { left: 4, right: 56, top: 4, bottom: 4, containLabel: true },
+            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true,
+              formatter: (p) => { const s = shown[p[0].dataIndex]; return `<b>${s.name}</b><br/>${spec.tip(s.comp)} → ${spec.tip(s.base)}<br/>${deltaText(spec, s.delta)} (${contributionText(s.contribution)} of the net ${verb})`; } },
+            xAxis: { type: 'value', show: false },
+            yAxis: { type: 'category', data: shown.map((s) => s.name), axisTick: { show: false }, axisLine: { show: false }, axisLabel: { color: '#334155', fontSize: 11 } },
+            series: [{ type: 'bar', barMaxWidth: 14,
+              data: shown.map((s) => ({ value: s.delta, itemStyle: { color: s.delta * total > 0 ? '#4F46E5' : '#CBD5E1' } })),
+              label: { show: true, position: 'right', color: '#64748B', fontSize: 11, formatter: (p) => deltaText(spec, p.value) } }],
+          });
+          if (segs.length > BD_SHOWN) mk('div', 'bd-note', card, `Showing the ${BD_SHOWN} biggest of ${segs.length} segments.`);
+
+          mk('p', '', card, drivers.length === 0 ? `No ${dim.label.toLowerCase()} moved in the direction of the ${verb}.`
+            : drivers.length === segs.length ? `Every ${dim.label.toLowerCase()} moved in the same direction as the ${verb}.`
+              : `${drivers.length} of ${segs.length} segments moved in the same direction as the ${verb}.`);
+          if (drivers.length) {
+            mk('p', '', card, 'The top drivers were:');
+            const list = mk('ul', '', card);
+            for (const s of drivers.slice(0, 3)) mk('li', '', list, `${s.name}: ${contributionText(s.contribution)} of the net ${verb} (${deltaText(spec, s.delta)})`);
+            if (drivers.length > 3) mk('p', '', card, `${drivers.slice(3, 6).map((s) => s.name).join(', ')}${drivers.length > 6 ? ' and others' : ''} also contributed.`);
+          }
+          if (offsets.length) mk('p', '', card, `${offsets.slice(0, 2).map((s) => s.name).join(' and ')} moved the other way, partly offsetting the ${verb}.`);
+          if (top && drivers.length === segs.length && top.contribution < 100 / segs.length * 2) mk('p', '', card, 'The change is spread broadly: no single segment dominates.');
+          for (const s of segs) {
+            if (s.comp === 0 && s.base !== 0) mk('p', 'bd-flag', card, `⚠ ${s.name} is new in ${ctx.bucket}: not a rate change.`);
+            if (s.base === 0 && s.comp !== 0) mk('p', 'bd-flag', card, `⚠ ${s.name} has no data in ${ctx.bucket}.`);
+            if (Math.abs(s.contribution) > 100 && s.delta * total > 0 && Math.abs(total) < Math.abs(s.comp) * 0.02) mk('p', 'bd-flag', card, `⚠ ${s.name} moved ${(Math.abs(s.contribution) / 100).toFixed(1)}× the net change: large moves in other segments offset it.`);
+          }
+        }
+
+        const done = summary.filter((s) => s.top).sort((a, b) => b.top.contribution - a.top.contribution);
+        const rest = summary.filter((s) => !s.top);
+        const card = mk('div', 'bd-dim', out);
+        mk('h5', '', card, 'Summary');
+        const table = mk('table', 'bd-table', card);
+        const head = mk('tr', '', mk('thead', '', table));
+        for (const h of ['Dimension', 'Top segment', 'Contribution']) mk('th', '', head, h).style.textAlign = 'left';
+        const body = mk('tbody', '', table);
+        for (const s of done) {
+          const tr = mk('tr', '', body);
+          mk('td', '', tr, s.dim.label);
+          mk('td', '', tr, s.spread ? `${s.top.name} (spread across segments)` : s.top.name);
+          mk('td', '', tr, contributionText(s.top.contribution));
+        }
+        for (const s of rest) {
+          const tr = mk('tr', '', body);
+          mk('td', '', tr, s.dim.label);
+          mk('td', '', tr, s.note).colSpan = 2;
+        }
+        if (ctx.key === 'cancel') mk('div', 'bd-note', card, 'Cancellation rate is a ratio, so segment contributions add up only approximately.');
+        mk('div', 'bd-note', card, 'Compared with the page filters (country, category) applied; the date range is not.');
+        box.after(card); // the summary comes first, under the overall change
+        card.scrollIntoView({ block: 'nearest' });
+      });
+    });
+    sync();
+    reset();
+    section.hidden = true;
+  }
+  setupBreakdown();
+
+  // Copy magic: a prompt the reader pastes to their agent to get the same anomaly detection. The
+  // copy button works like a code block's: its icon turns into a check and "Copied" for 2 seconds.
+  // The sandboxed frame may block the clipboard API: then copy through a hidden textarea.
+  const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  let copyReset = null;
+  function showCopy (state) {
+    const button = $('magic-copy');
+    button.classList.toggle('copied', state === 'copied');
+    button.innerHTML = state === 'copied' ? `${CHECK_ICON}Copied` : state === 'manual' ? `${COPY_ICON}Press ⌘C to copy` : `${COPY_ICON}Copy`;
+  }
+  async function copyText (text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (err) { /* try the older way */ }
+    const scratch = document.createElement('textarea');
+    scratch.value = text;
+    scratch.setAttribute('readonly', '');
+    scratch.style.cssText = 'position:fixed;top:0;left:-9999px;opacity:0';
+    document.body.appendChild(scratch);
+    scratch.select();
+    let copied = false;
+    try { copied = document.execCommand('copy'); } catch (err) { copied = false; }
+    scratch.remove();
+    return copied;
+  }
+  showCopy('idle');
+  $('magic-close').addEventListener('click', () => { $('magic-pill').open = false; });
+  $('magic-pill').addEventListener('toggle', () => { clearTimeout(copyReset); showCopy('idle'); });
+  $('magic-copy').addEventListener('click', async () => {
+    clearTimeout(copyReset);
+    if (await copyText($('magic-prompt').textContent)) {
+      showCopy('copied');
+      copyReset = setTimeout(() => showCopy('idle'), 2000);
+    } else { // nothing could reach the clipboard: select the prompt for the reader to copy
+      const range = document.createRange();
+      range.selectNodeContents($('magic-prompt'));
+      document.getSelection().removeAllRanges();
+      document.getSelection().addRange(range);
+      showCopy('manual');
+    }
+  });
+
+  app.execute().then(() => {
+    for (const key of Object.keys(q)) {
+      const r = q[key].result;
+      if (r) console.log(key, r.columns.map((c) => c.name), r.rows[0], r.debug && r.debug.executedAql);
+    }
+  });
+</script>
+</body>
+</html>

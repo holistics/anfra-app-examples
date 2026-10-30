@@ -1,0 +1,10 @@
+# A local Postgres for the sample data. Load it with scripts/load_data.sh.
+services:
+  db:
+    image: postgres:16
+    environment: { POSTGRES_USER: store, POSTGRES_PASSWORD: store, POSTGRES_DB: store }
+    ports: ["127.0.0.1:5441:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U store -d store"], interval: 2s, retries: 30 }
+volumes:
+  pgdata: {}

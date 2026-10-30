@@ -1,0 +1,14 @@
+Model orders {
+  type: 'table'
+  label: 'Orders'
+  description: 'One row per order. Status is processing, shipped, delivered, cancelled or refunded.'
+  data_source_name: 'warehouse'
+  table_name: '"ecommerce"."orders"'
+
+  dimension id { label: 'Order id' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.id }};; }
+  dimension status { label: 'Status' type: 'text' definition: @sql {{ #SOURCE.status }};; }
+  dimension created_at { label: 'Ordered at' type: 'datetime' definition: @sql {{ #SOURCE.created_at }};; }
+  dimension user_id { label: 'Customer id' type: 'number' hidden: true definition: @sql {{ #SOURCE.user_id }};; }
+  dimension discount { label: 'Discount' type: 'number' description: 'Share of the list price taken off the whole order, 0 to 0.3.' definition: @sql {{ #SOURCE.discount }};; }
+  dimension delivery_attempts { label: 'Delivery attempts' type: 'number' definition: @sql {{ #SOURCE.delivery_attempts }};; }
+}

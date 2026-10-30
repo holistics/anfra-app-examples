@@ -1,0 +1,75 @@
+Dataset ecommerce {
+  label: 'Store performance'
+  description: 'An online store: customers, orders, the products in them. Sample data, Nov 2024 to 14 Oct 2026, with five planted events for the anomaly demo. Revenue excludes cancelled and refunded orders and is after discount.'
+  data_source_name: 'warehouse'
+  models: [order_items, orders, products, categories, merchants, users, cities, countries]
+  relationships: [
+    relationship(order_items.order_id > orders.id, true),
+    relationship(order_items.product_id > products.id, true),
+    relationship(products.category_id > categories.id, true),
+    relationship(products.merchant_id > merchants.id, true),
+    relationship(orders.user_id > users.id, true),
+    relationship(users.city_id > cities.id, true),
+    relationship(cities.country_id > countries.id, true),
+  ]
+
+  metric revenue {
+    label: 'Revenue'
+    type: 'number'
+    description: 'Quantity × price × (1 − order discount), over orders not cancelled or refunded. USD.'
+    definition: @aql sum(order_items, order_items.quantity * products.price * (1 - orders.discount)) | where(orders.status != 'cancelled' and orders.status != 'refunded');;
+  }
+  metric product_cost {
+    label: 'Cost of goods'
+    type: 'number'
+    description: 'Quantity × unit cost, over the same orders as revenue.'
+    definition: @aql sum(order_items, order_items.quantity * products.cost) | where(orders.status != 'cancelled' and orders.status != 'refunded');;
+  }
+  metric gross_margin {
+    label: 'Gross margin'
+    type: 'number'
+    description: '(Revenue − cost of goods) / revenue.'
+    definition: @aql safe_divide(revenue - product_cost, revenue);;
+  }
+  metric units {
+    label: 'Units sold'
+    type: 'number'
+    description: 'Quantity, over orders not cancelled or refunded.'
+    definition: @aql sum(order_items.quantity) | where(orders.status != 'cancelled' and orders.status != 'refunded');;
+  }
+  metric orders_count {
+    label: 'Orders'
+    type: 'number'
+    description: 'Orders placed, not counting cancelled ones.'
+    definition: @aql coalesce(count_distinct(orders.id) | where(orders.status != 'cancelled'), 0);;
+  }
+  metric all_orders {
+    label: 'All orders'
+    type: 'number'
+    description: 'Orders placed, including cancelled ones.'
+    definition: @aql count_distinct(orders.id);;
+  }
+  metric cancelled_orders {
+    label: 'Cancelled orders'
+    type: 'number'
+    definition: @aql coalesce(count_distinct(orders.id) | where(orders.status == 'cancelled'), 0);;
+  }
+  metric cancellation_rate {
+    label: 'Cancellation rate'
+    type: 'number'
+    description: 'Cancelled orders / all orders placed.'
+    definition: @aql safe_divide(cancelled_orders * 1.0, all_orders);;
+  }
+  metric aov {
+    label: 'Avg order value'
+    type: 'number'
+    description: 'Revenue / orders.'
+    definition: @aql safe_divide(revenue, orders_count);;
+  }
+  metric new_customers {
+    label: 'New customers'
+    type: 'number'
+    description: 'Customers who signed up, counted on their sign-up date.'
+    definition: @aql count_distinct(users.id);;
+  }
+}

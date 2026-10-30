@@ -1,0 +1,74 @@
+Model employees {
+  type: 'table'
+  label: 'Employees'
+  description: 'One row per person on the team since before Apr 1, 2026 or hired since (synthetic, invented). As of Oct 19, 2026.'
+  data_source_name: 'hiring_duckdb'
+  table_name: 'main.employees'
+
+  dimension employee_id {
+    label: 'Employee ID'
+    type: 'text'
+    primary_key: true
+    description: 'Surrogate key, e.g. E-12.'
+  }
+  dimension department {
+    label: 'Department'
+    type: 'text'
+    description: 'The team they belong to. Joins the headcount plan.'
+  }
+  dimension start_date {
+    label: 'Start date'
+    type: 'datetime'
+    description: 'First day. After Oct 19 means signed, not started.'
+  }
+  dimension end_date {
+    label: 'End date'
+    type: 'datetime'
+    description: 'Last day, when they have left.'
+  }
+  dimension leave_reason {
+    label: 'Leave reason'
+    type: 'text'
+    description: 'Voluntary or Involuntary, for leavers.'
+  }
+  dimension from_hire {
+    label: 'Hired this year'
+    type: 'truefalse'
+    description: 'Joined through the Hiring Board pipeline (a candidate who accepted).'
+  }
+  dimension candidate_id {
+    label: 'Candidate ID'
+    type: 'text'
+    description: 'The candidate they were, for hires.'
+  }
+  dimension position_id {
+    label: 'Position ID'
+    type: 'text'
+    description: 'The role they were hired into, for hires.'
+  }
+  dimension is_backfill {
+    label: 'Backfill'
+    type: 'truefalse'
+    description: 'The hire filled a seat that replaces a leaver: a role\'s first hires fill its backfill seats.'
+  }
+  dimension is_active {
+    label: 'On the team'
+    type: 'truefalse'
+    description: 'Started and not left, on Oct 19, 2026.'
+  }
+  dimension is_signed {
+    label: 'Signed, not started'
+    type: 'truefalse'
+    description: 'Accepted an offer; the start date is still ahead.'
+  }
+  dimension active_apr1 {
+    label: 'On the team Apr 1'
+    type: 'truefalse'
+    description: 'Started and not left on Apr 1, 2026: the start of the attrition window.'
+  }
+  dimension left_since_apr1 {
+    label: 'Left since Apr 1'
+    type: 'truefalse'
+    description: 'Last day between Apr 1 and Oct 19, 2026.'
+  }
+}

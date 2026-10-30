@@ -1,0 +1,348 @@
+Dataset hiring_board {
+  label: 'Hiring Board'
+  description: '''
+Candidates for 12 open roles and their interview rounds (synthetic, invented people). Applications Apr 22 - Oct 18, 2026. Now is Oct 19, 2026: day counts and "last 30 days" use that date.
+
+- **Candidate model.** `stage` is where a candidate is (Applied → Screening → Technical → Culture → Final → Offer). While open they have a `status` (To do, Scheduled, Awaiting decision); once closed an `outcome` (Hired, Rejected, Withdrawn). Never both. Withdrawn at Offer means they declined.
+- **Funnel.** Each step counts candidates who got there: had that interview (no-shows do not count), were sent an offer, or accepted. `candidates.furthest_step` is the last step reached.
+- **Qualified** means reached the Final stage. Qualification rates divide by decided candidates (qualified, or closed before Final), so people still in process are left out until decided.
+- **Rounds.** `interview_rounds` has one row per round a candidate got to, including withdrawals before the interview. Pass rates count only Pass and Fail.
+- **Gender** is self-reported and optional, used only to check the process treats people equally.
+- **Headcount.** `employees` (the team since Apr 1, plus hires as they join), `headcount_plan` (approved headcount per department), `expected_hires` (the pipeline's expected hires by Dec 31) and `headcount_series` (actual, forecast and plan over time) all join on department through `headcount_plan`. Filter them by `headcount_plan.department`; the candidate filters don't apply.
+'''
+  data_source_name: 'hiring_duckdb'
+
+  models: [
+    positions,
+    candidates,
+    interview_rounds,
+    candidate_notes,
+    employees,
+    headcount_plan,
+    expected_hires,
+    headcount_series,
+  ]
+
+  relationships: [
+    relationship(candidates.position_id > positions.position_id, true),
+    relationship(interview_rounds.candidate_id > candidates.candidate_id, true),
+    relationship(candidate_notes.candidate_id > candidates.candidate_id, true),
+    relationship(employees.department > headcount_plan.department, true),
+    relationship(expected_hires.department > headcount_plan.department, true),
+    relationship(headcount_series.department > headcount_plan.department, true),
+  ]
+
+  // Candidates and the funnel
+  metric applicants {
+    label: 'Applicants'
+    type: 'number'
+    description: 'Applications: funnel step 1.'
+    definition: @aql candidates | count(candidates.candidate_id) ;;
+    format: '#,##0'
+  }
+  metric step_screening {
+    label: 'Had screening'
+    type: 'number'
+    description: 'Candidates whose screening interview was held.'
+    definition: @aql applicants | where(candidates.reached_screening is true) ;;
+    format: '#,##0'
+  }
+  metric step_technical {
+    label: 'Had technical'
+    type: 'number'
+    description: 'Candidates whose technical interview was held.'
+    definition: @aql applicants | where(candidates.reached_technical is true) ;;
+    format: '#,##0'
+  }
+  metric step_culture {
+    label: 'Had culture'
+    type: 'number'
+    description: 'Candidates whose culture interview was held.'
+    definition: @aql applicants | where(candidates.reached_culture is true) ;;
+    format: '#,##0'
+  }
+  metric step_final {
+    label: 'Had final'
+    type: 'number'
+    description: 'Candidates whose final interview was held.'
+    definition: @aql applicants | where(candidates.reached_final is true) ;;
+    format: '#,##0'
+  }
+  metric step_offer {
+    label: 'Offers sent'
+    type: 'number'
+    description: 'Candidates who were sent an offer.'
+    definition: @aql applicants | where(candidates.offer_sent is true) ;;
+    format: '#,##0'
+  }
+  metric hires {
+    label: 'Hires'
+    type: 'number'
+    description: 'Candidates who accepted an offer.'
+    definition: @aql applicants | where(candidates.hired is true) ;;
+    format: '#,##0'
+  }
+  metric open_candidates {
+    label: 'Open candidates'
+    type: 'number'
+    description: 'Candidates with no outcome yet.'
+    definition: @aql applicants | where(candidates.is_open is true) ;;
+    format: '#,##0'
+  }
+  metric stuck_candidates {
+    label: 'Stuck over 7 days'
+    type: 'number'
+    description: 'Open candidates in the same status for more than 7 days.'
+    definition: @aql applicants | where(candidates.stuck is true) ;;
+    format: '#,##0'
+  }
+  metric offers_30d {
+    label: 'Offers, last 30 days'
+    type: 'number'
+    description: 'Offers sent Sep 19 - Oct 19, 2026.'
+    definition: @aql applicants | where(candidates.offer_sent_at >= @2026-09-19) ;;
+    format: '#,##0'
+  }
+  metric offers_30d_accepted {
+    label: 'Offers accepted, last 30 days'
+    type: 'number'
+    description: 'Of the offers sent in the last 30 days, how many were accepted.'
+    definition: @aql applicants | where(candidates.offer_sent_at >= @2026-09-19, candidates.hired is true) ;;
+    format: '#,##0'
+  }
+  metric median_days_to_hire {
+    label: 'Days to hire'
+    type: 'number'
+    description: 'Median days from application to accepting the offer, over hired candidates.'
+    definition: @aql candidates | median(candidates.days_to_hire) ;;
+    format: '#,##0'
+  }
+
+  // Quality
+  metric qualified {
+    label: 'Qualified'
+    type: 'number'
+    description: 'Candidates who reached the Final stage.'
+    definition: @aql applicants | where(candidates.is_qualified is true) ;;
+    format: '#,##0'
+  }
+  metric decided {
+    label: 'Decided'
+    type: 'number'
+    description: 'Qualified, or closed before reaching Final: the denominator of the qualification rate.'
+    definition: @aql applicants | where(candidates.is_decided is true) ;;
+    format: '#,##0'
+  }
+  metric qualified_rate {
+    label: 'Qualification rate'
+    type: 'number'
+    description: 'Qualified ÷ decided.'
+    definition: @aql safe_divide(qualified * 1.0, decided) ;;
+    format: '0%'
+  }
+
+  // Roles
+  metric roles {
+    label: 'Roles'
+    type: 'number'
+    definition: @aql positions | count(positions.position_id) ;;
+    format: '#,##0'
+  }
+  metric open_roles {
+    label: 'Open roles'
+    type: 'number'
+    description: 'Roles with fewer hires than headcount.'
+    definition: @aql roles | where(positions.is_open_role is true) ;;
+    format: '#,##0'
+  }
+  metric seats {
+    label: 'Seats'
+    type: 'number'
+    description: 'Headcount across roles.'
+    definition: @aql positions | sum(positions.headcount) ;;
+    format: '#,##0'
+  }
+  metric seats_filled {
+    label: 'Seats filled'
+    type: 'number'
+    definition: @aql positions | sum(positions.seats_filled) ;;
+    format: '#,##0'
+  }
+
+  // Interview rounds
+  metric rounds_decided {
+    label: 'Rounds decided'
+    type: 'number'
+    description: 'Interviews that ended in Pass or Fail.'
+    definition: @aql interview_rounds | count(interview_rounds.round_id) | where(interview_rounds.result in ['Pass', 'Fail']) ;;
+    format: '#,##0'
+  }
+  metric rounds_passed {
+    label: 'Rounds passed'
+    type: 'number'
+    definition: @aql interview_rounds | count(interview_rounds.round_id) | where(interview_rounds.result == 'Pass') ;;
+    format: '#,##0'
+  }
+  metric pass_rate {
+    label: 'Pass rate'
+    type: 'number'
+    description: 'Rounds passed ÷ rounds decided.'
+    definition: @aql safe_divide(rounds_passed * 1.0, rounds_decided) ;;
+    format: '0%'
+  }
+  metric avg_score {
+    label: 'Average score'
+    type: 'number'
+    description: 'Average interview score, 1 to 5.'
+    definition: @aql interview_rounds | avg(interview_rounds.score) ;;
+    format: '0.0'
+  }
+  metric median_feedback_days {
+    label: 'Feedback days'
+    type: 'number'
+    description: 'Median days from an interview to its decision.'
+    definition: @aql interview_rounds | median(interview_rounds.feedback_days) ;;
+    format: '0'
+  }
+  metric rounds_held_30d {
+    label: 'Rounds, last 30 days'
+    type: 'number'
+    description: 'Interviews held Sep 19 - Oct 19, 2026: interviewer load.'
+    definition: @aql interview_rounds | count(interview_rounds.round_id) | where(interview_rounds.held_at >= @2026-09-19) ;;
+    format: '#,##0'
+  }
+  metric waits {
+    label: 'Waits'
+    type: 'number'
+    description: 'Finished waits for an interview: each ended in the interview or a withdrawal.'
+    definition: @aql interview_rounds | count(interview_rounds.round_id) ;;
+    format: '#,##0'
+  }
+  metric withdrawals {
+    label: 'Withdrawals while waiting'
+    type: 'number'
+    definition: @aql waits | where(interview_rounds.withdrew is true) ;;
+    format: '#,##0'
+  }
+  metric withdrawal_rate {
+    label: 'Withdrawal rate'
+    type: 'number'
+    description: 'Waits that ended in a withdrawal ÷ all finished waits.'
+    definition: @aql safe_divide(withdrawals * 1.0, waits) ;;
+    format: '0%'
+  }
+  metric median_wait_days {
+    label: 'Days between rounds'
+    type: 'number'
+    description: 'Median days from the previous step to an interview, over waits that ended in the interview.'
+    definition: @aql interview_rounds | median(interview_rounds.wait_days) | where(interview_rounds.withdrew is false) ;;
+    format: '0'
+  }
+
+  // Headcount
+  metric on_team {
+    label: 'On the team'
+    type: 'number'
+    description: 'Employees who have started and not left, on Oct 19, 2026.'
+    definition: @aql employees | count(employees.employee_id) | where(employees.is_active is true) ;;
+    format: '#,##0'
+  }
+  metric signed_not_started {
+    label: 'Signed, not started'
+    type: 'number'
+    description: 'Hires who accepted and start after Oct 19, 2026.'
+    definition: @aql employees | count(employees.employee_id) | where(employees.is_signed is true) ;;
+    format: '#,##0'
+  }
+  metric on_team_apr1 {
+    label: 'On the team, Apr 1'
+    type: 'number'
+    description: 'Employees on the team on Apr 1, 2026: the start of the attrition window.'
+    definition: @aql employees | count(employees.employee_id) | where(employees.active_apr1 is true) ;;
+    format: '#,##0'
+  }
+  metric leavers {
+    label: 'Leavers since Apr 1'
+    type: 'number'
+    description: 'Employees whose last day was between Apr 1 and Oct 19, 2026.'
+    definition: @aql employees | count(employees.employee_id) | where(employees.left_since_apr1 is true) ;;
+    format: '#,##0'
+  }
+  metric voluntary_leavers {
+    label: 'Voluntary leavers'
+    type: 'number'
+    description: 'Leavers since Apr 1 who chose to go.'
+    definition: @aql leavers | where(employees.leave_reason == 'Voluntary') ;;
+    format: '#,##0'
+  }
+  metric attrition_rate {
+    label: 'Attrition'
+    type: 'number'
+    description: 'Leavers since Apr 1 ÷ average headcount over that time (Apr 1 and Oct 19), scaled to a year (×365 ÷ 201 days).'
+    definition: @aql safe_divide(leavers * 2.0, on_team_apr1 + on_team) * 365 / 201 ;;
+    format: '0%'
+  }
+  metric hires_backfill {
+    label: 'Hires replacing leavers'
+    type: 'number'
+    description: 'Hires this year who fill a backfill seat.'
+    definition: @aql employees | count(employees.employee_id) | where(employees.from_hire is true, employees.is_backfill is true) ;;
+    format: '#,##0'
+  }
+  metric hires_growth {
+    label: 'Hires into new seats'
+    type: 'number'
+    description: 'Hires this year who add to the team.'
+    definition: @aql employees | count(employees.employee_id) | where(employees.from_hire is true, employees.is_backfill is false) ;;
+    format: '#,##0'
+  }
+  metric planned_headcount {
+    label: 'Plan, Dec 31'
+    type: 'number'
+    description: 'Approved headcount for Dec 31, 2026.'
+    definition: @aql headcount_plan | sum(headcount_plan.plan_dec31) ;;
+    format: '#,##0'
+  }
+  metric seats_role_open {
+    label: 'Seats with a role open'
+    type: 'number'
+    description: 'Planned seats that open roles are recruiting for.'
+    definition: @aql headcount_plan | sum(headcount_plan.open_seats) ;;
+    format: '#,##0'
+  }
+  metric seats_no_role {
+    label: 'Seats with no role open'
+    type: 'number'
+    description: 'Planned seats nobody is recruiting for yet.'
+    definition: @aql headcount_plan | sum(headcount_plan.unopened_seats) ;;
+    format: '#,##0'
+  }
+  metric to_hire {
+    label: 'Still to hire'
+    type: 'number'
+    description: 'Plan for Dec 31 − on the team − signed, not started.'
+    definition: @aql planned_headcount - coalesce(on_team, 0) - coalesce(signed_not_started, 0) ;;
+    format: '#,##0'
+  }
+  metric expected_hires_dec31 {
+    label: 'Expected hires by Dec 31'
+    type: 'number'
+    description: 'What the pipeline is expected to give by Dec 31, capped at the seats with a role open.'
+    definition: @aql expected_hires | sum(expected_hires.expected) ;;
+    format: '0.0'
+  }
+  metric series_headcount {
+    label: 'Headcount'
+    type: 'number'
+    description: 'Headcount over time, summed over departments. Group by headcount_series.series and as_of.'
+    definition: @aql headcount_series | sum(headcount_series.headcount) ;;
+    format: '#,##0'
+  }
+  metric forecast_dec31 {
+    label: 'Forecast, Dec 31'
+    type: 'number'
+    description: 'Where the team is expected to be on Dec 31, 2026: on the team + signed + expected hires − expected leavers.'
+    definition: @aql series_headcount | where(headcount_series.series == 'Forecast', headcount_series.as_of == @2026-12-31) ;;
+    format: '#,##0'
+  }
+}

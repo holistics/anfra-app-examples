@@ -1,0 +1,44 @@
+Model people {
+  type: 'table'
+  label: 'People'
+  description: 'One row per employee (synthetic). Used for counts and departments only: the app never ranks or quotes a person from chatter.'
+  data_source_name: 'holynews_duckdb'
+  table_name: 'main.people'
+
+  dimension person_id {
+    label: 'Person ID'
+    type: 'number'
+    primary_key: true
+    description: 'Surrogate key.'
+  }
+  dimension display_name {
+    label: 'Name'
+    type: 'text'
+    description: 'Display name. Shown only in Welcome Aboard.'
+  }
+  dimension team {
+    label: 'Department'
+    type: 'text'
+    description: 'Engineering, Product, Customer Success, Sales, Data, Design, Marketing, Finance, People Ops or Leadership.'
+  }
+  dimension office {
+    label: 'Office'
+    type: 'text'
+    description: 'Hanoi, Ho Chi Minh City, Singapore or Remote.'
+  }
+  dimension joined_at {
+    label: 'Joined on'
+    type: 'date'
+    description: 'First day at the company. A joiner in an edition has joined_at inside it.'
+  }
+  dimension avatar_url {
+    label: 'Avatar'
+    type: 'text'
+    description: 'Photo URL; empty means show initials.'
+  }
+  dimension avatar_color {
+    label: 'Avatar color'
+    type: 'text'
+    description: 'Background color for the initials.'
+  }
+}

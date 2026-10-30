@@ -1,0 +1,44 @@
+Model headcount_plan {
+  type: 'table'
+  label: 'Headcount plan'
+  description: 'One row per department: the approved headcount for 2026 quarter ends and how many planned seats have a role open.'
+  data_source_name: 'hiring_duckdb'
+  table_name: 'main.headcount_plan'
+
+  dimension department {
+    label: 'Department'
+    type: 'text'
+    primary_key: true
+    description: 'The team. The Department filter on the Headcount tab.'
+  }
+  dimension dept_order {
+    label: 'Department order'
+    type: 'number'
+    description: 'For sorting departments as the app lists them.'
+  }
+  dimension plan_q2 {
+    label: 'Plan, Jun 30'
+    type: 'number'
+    description: 'Approved headcount for Jun 30, 2026.'
+  }
+  dimension plan_q3 {
+    label: 'Plan, Sep 30'
+    type: 'number'
+    description: 'Approved headcount for Sep 30, 2026.'
+  }
+  dimension plan_dec31 {
+    label: 'Plan, Dec 31'
+    type: 'number'
+    description: 'Approved headcount for Dec 31, 2026.'
+  }
+  dimension open_seats {
+    label: 'Seats with a role open'
+    type: 'number'
+    description: 'Seats still to fill on the department\'s open roles: headcount minus hires.'
+  }
+  dimension unopened_seats {
+    label: 'Seats with no role open'
+    type: 'number'
+    description: 'Planned seats nobody is recruiting for yet.'
+  }
+}

@@ -1,0 +1,32 @@
+Model review_themes {
+  type: 'table'
+  label: 'Review themes'
+  description: 'One row per review and theme it mentions (1-3 per review), tagged when the review was written. A review can mention several themes, so count distinct reviews, not rows.'
+  data_source_name: 'arcfield_duckdb'
+  table_name: 'main.review_themes'
+
+  dimension review_theme_id {
+    label: 'Review theme ID'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    description: 'Review ID and theme, e.g. "17|Support". The table has no key of its own.'
+    definition: @sql cast({{ #SOURCE.review_id }} as varchar) || '|' || {{ #SOURCE.theme }} ;;
+  }
+  dimension review_id {
+    label: 'Theme review ID'
+    type: 'number'
+    hidden: true
+    description: 'Links to Reviews.'
+  }
+  dimension theme {
+    label: 'Theme'
+    type: 'text'
+    description: 'One of 9: Ease of use, Reporting, Integrations, Support, Onboarding, Pricing, Performance, Language & localization, Mobile.'
+  }
+  dimension sentiment {
+    label: 'Sentiment'
+    type: 'text'
+    description: 'positive or negative: whether the review praises or complains about this theme.'
+  }
+}

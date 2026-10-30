@@ -1,0 +1,38 @@
+Model polls {
+  type: 'table'
+  label: 'Polls'
+  description: 'One row per poll option in #bonding-film: the current vote and past picks.'
+  data_source_name: 'holynews_duckdb'
+  table_name: 'main.polls'
+
+  dimension poll_id {
+    label: 'Poll ID'
+    type: 'number'
+    description: 'The poll. Poll 1 is the current one.'
+  }
+  dimension channel_id {
+    label: 'Channel ID'
+    type: 'text'
+    description: 'Channel it ran in.'
+  }
+  dimension question {
+    label: 'Question'
+    type: 'text'
+    description: 'The poll question.'
+  }
+  dimension option {
+    label: 'Option'
+    type: 'text'
+    description: 'A film.'
+  }
+  dimension votes {
+    label: 'Votes'
+    type: 'number'
+    description: 'Votes for the option.'
+  }
+  dimension closed_on {
+    label: 'Closes on'
+    type: 'date'
+    description: 'Day the vote closes (or closed).'
+  }
+}

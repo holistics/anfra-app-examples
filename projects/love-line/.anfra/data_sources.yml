@@ -1,0 +1,5 @@
+data_sources:
+  loveline_duckdb:
+    type: duckdb
+    connection:
+      path: data/loveline.duckdb?access_mode=read_only

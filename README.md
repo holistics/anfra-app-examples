@@ -24,6 +24,10 @@ Every app lives in its own folder under `projects/`.
 | [an-eat-het](projects/an-eat-het) | Run a kitchen that tracks menu health, revenue, guests and every kg of food from farm to plate, to make better calls for the kitchen and the planet | [Demo](https://anfra-uwu.pages.holistics.dev/apps/kitchen) | Kaia Nguyen |
 | [metric-log](projects/metric-log) | A plugin for Metric Tree & Decompose that keeps a running history for each metric: decisions logged next to it, and every definition change in plain language | [Demo](https://anfra-metric-log-demo.pages.holistics.dev/) | Kaia Nguyen |
 | [mouka](projects/mouka) | A personal-finance tracker: where the money went, what's coming up, how the investments are doing and where net worth is heading, every number traceable to its metric | [Demo](https://mouka.pages.holistics.dev/apps/mouka/app) | Nhi Tran |
+| [white-space-globe](projects/white-space-globe) | A 3D globe of a SaaS company's customers against each market's size: where it is strong, where the untapped revenue is, and what stands in the way | [Demo](https://anfra-heidi.pages.holistics.dev/apps/DIY/coverage-globe) | Di Hoang |
+| [hiring-board](projects/hiring-board) | Every hiring question on one page: where each candidate is, where good candidates come from, which interview steps are slow, and whether headcount lands on plan | [Demo](https://anfra-heidi.pages.holistics.dev/apps/DIY/hiring-board) | Di Hoang |
+| [love-line](projects/love-line) | A dating app's funnel as a metro line: of every 1,000 profiles members see, how many lead to a date, and why riders get off at each stop | [Demo](https://anfra-heidi.pages.holistics.dev/apps/DIY/love-line) | Di Hoang |
+| [holynews](projects/holynews) | A company's Slack as a newspaper: what everyone applauded, what is heating up, what blew over, and how the office feels | Coming soon | Di Hoang |
 
 Apps ship without data source credentials, so some need setup before they run. Each app README says which sample data it uses.
 

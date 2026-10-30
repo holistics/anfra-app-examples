@@ -1,0 +1,5 @@
+data_sources:
+  arcfield_duckdb:
+    type: duckdb
+    connection:
+      path: data/arcfield.duckdb?access_mode=read_only

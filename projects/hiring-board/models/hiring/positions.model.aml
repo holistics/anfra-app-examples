@@ -1,0 +1,59 @@
+Model positions {
+  type: 'table'
+  label: 'Positions'
+  description: 'One row per open role (requisition). Seats filled and Open role count hires against headcount, across all candidates.'
+  data_source_name: 'hiring_duckdb'
+  table_name: 'main.positions'
+
+  dimension position_id {
+    label: 'Position ID'
+    type: 'text'
+    primary_key: true
+    description: 'Requisition ID, e.g. REQ-2041.'
+  }
+  dimension title {
+    label: 'Position'
+    type: 'text'
+    description: 'Job title. The Position filter.'
+  }
+  dimension department {
+    label: 'Department'
+    type: 'text'
+    description: 'Engineering, Product, Sales, Customer Success, Marketing, Finance or People. The Department filter.'
+  }
+  dimension location {
+    label: 'Location'
+    type: 'text'
+    description: 'Where the role is based, or Remote.'
+  }
+  dimension hiring_manager {
+    label: 'Hiring manager'
+    type: 'text'
+    description: 'Runs the Final round.'
+  }
+  dimension opened_at {
+    label: 'Opened at'
+    type: 'datetime'
+    description: 'When the role opened.'
+  }
+  dimension headcount {
+    label: 'Headcount'
+    type: 'number'
+    description: 'Seats to fill.'
+  }
+  dimension seats_filled {
+    label: 'Seats filled'
+    type: 'number'
+    description: 'Hires so far, capped at headcount.'
+  }
+  dimension is_open_role {
+    label: 'Open role'
+    type: 'truefalse'
+    description: 'Fewer hires than headcount.'
+  }
+  dimension backfill_seats {
+    label: 'Backfill seats'
+    type: 'number'
+    description: 'How many of the role\'s seats replace someone who left. Its first hires fill them.'
+  }
+}

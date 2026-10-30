@@ -1,0 +1,54 @@
+Model geo_countries {
+  type: 'table'
+  label: 'Countries'
+  description: 'One row per country Arcfield sells in or could sell in (59, including 15 not entered yet). Countries reach accounts through their cities and reach market size directly.'
+  data_source_name: 'arcfield_duckdb'
+  table_name: 'main.geo_countries'
+
+  dimension country_code {
+    label: 'Country code'
+    type: 'text'
+    primary_key: true
+    description: 'ISO 3166-1 alpha-3 code, e.g. USA, DEU, JPN.'
+  }
+  dimension iso_n3 {
+    label: 'ISO numeric code'
+    type: 'text'
+    description: 'ISO 3166-1 numeric code as text with leading zeros (e.g. 840). Joins the world-atlas map borders.'
+  }
+  dimension name {
+    label: 'Country'
+    type: 'text'
+    description: 'English short name, e.g. United States.'
+  }
+  dimension region {
+    label: 'Region'
+    type: 'text'
+    description: 'UN M49 region: Africa, Americas, Asia, Europe, Oceania.'
+  }
+  dimension sub_region {
+    label: 'Sub-region'
+    type: 'text'
+    description: 'UN M49 sub-region, e.g. Northern Europe, South-eastern Asia.'
+  }
+  dimension lat {
+    label: 'Latitude'
+    type: 'number'
+    description: 'Label point latitude (degrees) for the globe.'
+  }
+  dimension lon {
+    label: 'Longitude'
+    type: 'number'
+    description: 'Label point longitude (degrees) for the globe.'
+  }
+  dimension gdp_per_capita_usd {
+    label: 'GDP per capita (USD)'
+    type: 'number'
+    description: 'World Bank GDP per capita, current USD, 2023. Input to the price index.'
+  }
+  dimension price_index {
+    label: 'Price index'
+    type: 'number'
+    description: 'Arcfield price level relative to US list prices: square root of (GDP per capita / US GDP per capita), clamped to 0.35-1.1. The US is 1.0. Used to estimate ARR per customer in markets with no customers yet.'
+  }
+}

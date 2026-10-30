@@ -1,0 +1,314 @@
+Dataset global_sales {
+  label: 'Arcfield global sales'
+  description: '''
+Where Arcfield (fictional B2B SaaS) is strong, where the untapped revenue is, and why.
+
+- **Point in time:** customer and ARR metrics read Account snapshots (one row per active account per month-end) and take
+  the **last month-end inside the date range** (filter `account_snapshots.snapshot_at`; no filter = the data cut-off).
+  Grouping by `account_snapshots.snapshot_at | year()` gives each year's last month-end. Compare periods with
+  `relative_period(account_snapshots.snapshot_at, interval(-1 year))`.
+- **Market size** is public (Eurostat SBS, OECD SDBS, or an estimate from GDP) and covers all industries, so penetration
+  and white space do not apply under an industry filter. The US is the sum of its states.
+- **Geography:** one route only: account > HQ city > market (US state, or country elsewhere) > country and state.
+  Market size is both the denominator of penetration and the hub of the geography. Penetration and white space exist
+  at world, region, country and US-state level, not city level.
+- **Reviews** are synthetic events: filter `reviews.created_at` with the same date range. The link to accounts is one-way, so a
+  review-date filter narrows review metrics only, never customers. Count reviews, never review-theme rows.
+'''
+  data_source_name: 'arcfield_duckdb'
+
+  models: [
+    geo_countries,
+    geo_states,
+    geo_cities,
+    market_size,
+    accounts,
+    subscriptions,
+    account_snapshots,
+    reviews,
+    review_themes,
+  ]
+
+  relationships: [
+    relationship(accounts.hq_city_id > geo_cities.city_id, true),
+    relationship(geo_cities.market_id > market_size.market_id, true, 'one_way'),
+    relationship(market_size.country_code > geo_countries.country_code, true),
+    relationship(market_size.state_code > geo_states.state_code, true),
+    relationship(subscriptions.account_id > accounts.account_id, true),
+    relationship(account_snapshots.account_id > accounts.account_id, true, 'one_way'),
+    relationship(reviews.account_id > accounts.account_id, true, 'one_way'),
+    relationship(review_themes.review_id > reviews.review_id, true),
+  ]
+
+  // ---------------------------------------------------------------- account lifecycle (one definition)
+
+  dimension first_paid_at {
+    model: accounts
+    label: 'First paid at'
+    type: 'datetime'
+    description: 'Start of the first subscription. "New customers in 2024" means first_paid_at in 2024.'
+    definition: @aql subscriptions | min(subscriptions.started_at) | dimensionalize(accounts.account_id) ;;
+  }
+
+  dimension churned_at {
+    model: accounts
+    label: 'Churned at'
+    type: 'datetime'
+    description: 'End of the last subscription when no subscription is running; empty for active accounts. Churned accounts never come back.'
+    definition: @aql case(
+      when: (subscriptions | count_if(subscriptions.ended_at is null) | dimensionalize(accounts.account_id)) == 0,
+      then: subscriptions | max(subscriptions.ended_at) | dimensionalize(accounts.account_id)
+    ) ;;
+  }
+
+  // ---------------------------------------------------------------- price level for white space
+
+  dimension arr_per_customer_latest {
+    model: geo_countries
+    label: 'ARR per customer today'
+    type: 'number'
+    description: 'The country ARR per customer at the data cut-off, whatever date range is selected. Empty where there are no customers yet.'
+    definition: @aql arr_per_customer | where(account_snapshots.is_latest is true) | dimensionalize(geo_countries.country_code) ;;
+    format: '[$$]#,##0'
+  }
+
+  dimension us_arr_per_customer_latest {
+    model: geo_countries
+    label: 'US ARR per customer today'
+    type: 'number'
+    hidden: true
+    description: 'ARR per customer in the US (price index 1.0) at the latest period: the list-price reference.'
+    definition: @aql arr_per_customer
+      | where(account_snapshots.is_latest is true)
+      | where(geo_countries.country_code == 'USA')
+      | dimensionalize() ;;
+    format: '[$$]#,##0'
+  }
+
+  dimension expected_arr_per_customer {
+    model: geo_countries
+    label: 'Expected ARR per customer'
+    type: 'number'
+    description: 'What a new customer is worth in this country: ARR per customer today, or, with no customers yet, US ARR per customer x the price index. Values white space; US states use the US figure.'
+    definition: @aql coalesce(
+      geo_countries.arr_per_customer_latest,
+      geo_countries.price_index * geo_countries.us_arr_per_customer_latest
+    ) ;;
+    format: '[$$]#,##0'
+  }
+
+  // ---------------------------------------------------------------- customers and revenue (Account snapshots)
+
+  metric snapshot_end {
+    label: 'End of range'
+    type: 'datetime'
+    hidden: true
+    description: 'The last month-end inside the date range: the moment point-in-time metrics describe. One moment for the whole query (not per place or account group), so a place whose customers all left shows 0, not its last month. Grouped by time (snapshot_at | year() etc.), one per period, and relative_period shifts it.'
+    definition: @aql max(account_snapshots.snapshot_at)
+      | of_all(geo_countries, geo_states, geo_cities, market_size, accounts, subscriptions, reviews, review_themes, keep_filters: true) ;;
+  }
+
+  metric customers {
+    label: 'Customers'
+    type: 'number'
+    description: 'Accounts with a subscription running at the end of the date range. The end is the last month-end inside the range, or the data cut-off without one. Source: Arcfield CRM.'
+    definition: @aql count_distinct(account_snapshots.account_id) | where(account_snapshots.snapshot_at == snapshot_end) ;;
+    format: '#,##0'
+  }
+
+  metric arr {
+    label: 'ARR'
+    type: 'number'
+    description: 'Annual recurring revenue at the end of the date range. Running MRR x 12, in USD. Source: Arcfield CRM.'
+    definition: @aql (sum(account_snapshots.mrr_usd) | where(account_snapshots.snapshot_at == snapshot_end)) * 12 ;;
+    format: '[$$]#,##0'
+  }
+
+  metric arr_per_customer {
+    label: 'ARR per customer'
+    type: 'number'
+    description: 'Average annual recurring revenue per customer. ARR / Customers.'
+    definition: @aql safe_divide(arr, customers) ;;
+    format: '[$$]#,##0'
+  }
+
+  // ---------------------------------------------------------------- market size and penetration
+
+  metric addressable_companies {
+    label: 'Addressable companies'
+    type: 'number'
+    description: 'Companies with 50+ employees, all industries. Source per market: Eurostat SBS, OECD SDBS, or an estimate from GDP (see Market size source). A public figure: it ignores filters and groupings on CRM data (date, industry, segment, reviews), so markets with no customers keep their size.'
+    definition: @aql sum(market_size.addressable_companies) ;;
+    format: '#,##0'
+  }
+
+  metric penetration {
+    label: 'Penetration'
+    type: 'number'
+    description: 'Share of the companies that could buy Arcfield that already do. Customers / Addressable companies. Defined for world, region, country and US state. Not for cities: market size has no city level, so a city would be divided by its whole market.'
+    definition: @aql safe_divide(customers, addressable_companies) ;;
+    format: '#,##0.00%'
+  }
+
+  metric share_of_global_arr {
+    label: 'Share of global ARR'
+    type: 'number'
+    description: 'ARR here / ARR of the whole world at the same moment.'
+    definition: @aql safe_divide(arr, arr | of_all(geo_countries, geo_states, geo_cities, market_size)) ;;
+    format: '#,##0.0%'
+  }
+
+  // ---------------------------------------------------------------- benchmark and white space
+
+  metric benchmark_penetration {
+    label: 'Benchmark penetration'
+    type: 'number'
+    description: 'What good looks like: the top-quartile (75th percentile) penetration among mature markets (countries with 100+ customers) at the latest period. One global number: it ignores the selected place, date range and filters. Compare with Target penetration (RevOps), 2.1%.'
+    definition: @aql unique(geo_countries.country_code)
+      | filter(customers > 99)
+      | percentile_disc(penetration, 0.75)
+      | where(account_snapshots.is_latest is true)
+      | keep_grains() ;;
+    format: '#,##0.00%'
+  }
+
+  metric untapped_accounts {
+    label: 'Untapped accounts'
+    type: 'number'
+    description: 'Customers we would add if each country reached the benchmark: max(0, Benchmark penetration x Addressable companies - Customers), per country, summed. In the US drill, per state.'
+    definition: @aql unique(geo_countries.country_code)
+      | select(v: case(
+          when: benchmark_penetration * addressable_companies - coalesce(customers, 0) > 0,
+          then: benchmark_penetration * addressable_companies - coalesce(customers, 0),
+          else: 0
+        ))
+      | sum(v) ;;
+    format: '#,##0'
+  }
+
+  metric untapped_arr {
+    label: 'White space (ARR)'
+    type: 'number'
+    description: 'ARR we would add if every market reached the benchmark penetration. Untapped accounts x Expected ARR per customer, per country, summed.'
+    definition: @aql unique(geo_countries.country_code, geo_countries.expected_arr_per_customer)
+      | select(v: untapped_accounts * geo_countries.expected_arr_per_customer)
+      | sum(v) ;;
+    format: '[$$]#,##0'
+  }
+
+  // ---------------------------------------------------------------- reviews and themes
+
+  metric review_count {
+    label: 'Reviews'
+    type: 'number'
+    description: 'Number of reviews written in the date range (all time without one). The app hides the rating below 10 reviews. Source: Arcfield reviews (synthetic).'
+    definition: @aql count(reviews.review_id) ;;
+    format: '#,##0'
+  }
+
+  metric avg_rating {
+    label: 'Rating'
+    type: 'number'
+    description: 'Average review score (1-5) of the reviews written in the date range. Unreliable below 10 reviews. Source: Arcfield reviews (synthetic).'
+    definition: @aql avg(reviews.score) ;;
+    format: '#,##0.00'
+  }
+
+  metric theme_reviews {
+    label: 'Reviews mentioning theme'
+    type: 'number'
+    description: 'Distinct reviews that mention the theme (a review can mention up to 3 themes, so never count theme rows).'
+    definition: @aql count_distinct(review_themes.review_id) ;;
+    format: '#,##0'
+  }
+
+  metric theme_share {
+    label: 'Theme share'
+    type: 'number'
+    description: 'Share of reviews here that mention the theme: Reviews mentioning theme / Reviews. Shares add up to more than 100%.'
+    definition: @aql safe_divide(theme_reviews, review_count | of_all(review_themes.theme)) ;;
+    format: '#,##0%'
+  }
+
+  metric theme_vs_global {
+    label: 'Theme vs global'
+    type: 'number'
+    description: 'Theme share here / theme share worldwide ("2.3x global"). Only meaningful with 3+ mentions.'
+    definition: @aql safe_divide(theme_share, theme_share | of_all(geo_countries, geo_states, geo_cities, market_size)) ;;
+    format: '#,##0.0"x"'
+  }
+
+  metric complaint_reviews {
+    label: 'Reviews complaining about theme'
+    type: 'number'
+    description: 'Distinct reviews that mention the theme negatively.'
+    definition: @aql theme_reviews | where(review_themes.sentiment == 'negative') ;;
+    format: '#,##0'
+  }
+
+  metric negative_share {
+    label: 'Negative share'
+    type: 'number'
+    description: 'Share of the theme mentions that are complaints: Reviews complaining about theme / Reviews mentioning theme.'
+    definition: @aql safe_divide(complaint_reviews, theme_reviews) ;;
+    format: '#,##0%'
+  }
+
+  metric complaint_share {
+    label: 'Complaint share'
+    type: 'number'
+    description: 'Share of reviews here that complain about the theme: Reviews complaining about theme / Reviews.'
+    definition: @aql safe_divide(complaint_reviews, review_count | of_all(review_themes.theme)) ;;
+    format: '#,##0%'
+  }
+
+  metric complaint_vs_global {
+    label: 'Complaint vs global'
+    type: 'number'
+    description: 'Complaint share here / complaint share worldwide. Ranks what to fix in a market ("Language 6.3x global"). Only meaningful with 3+ complaints.'
+    definition: @aql safe_divide(complaint_share, complaint_share | of_all(geo_countries, geo_states, geo_cities, market_size)) ;;
+    format: '#,##0.0"x"'
+  }
+
+  metric praise_reviews {
+    label: 'Reviews praising theme'
+    type: 'number'
+    description: 'Distinct reviews that mention the theme positively.'
+    definition: @aql theme_reviews | where(review_themes.sentiment == 'positive') ;;
+    format: '#,##0'
+  }
+
+  metric praise_share {
+    label: 'Praise share'
+    type: 'number'
+    description: 'Share of reviews here that praise the theme: Reviews praising theme / Reviews.'
+    definition: @aql safe_divide(praise_reviews, review_count | of_all(review_themes.theme)) ;;
+    format: '#,##0%'
+  }
+
+  metric praise_vs_global {
+    label: 'Praise vs global'
+    type: 'number'
+    description: 'Praise share here / praise share worldwide. Ranks what a market values most ("Support 1.8x global"). Only meaningful with 3+ mentions.'
+    definition: @aql safe_divide(praise_share, praise_share | of_all(geo_countries, geo_states, geo_cities, market_size)) ;;
+    format: '#,##0.0"x"'
+  }
+
+  // ---------------------------------------------------------------- quotes
+
+  dimension theme_count {
+    model: reviews
+    label: 'Themes in review'
+    type: 'number'
+    description: 'How many themes the review mentions (1-3). A review with one theme is about that theme only: the cleanest quote for it.'
+    definition: @aql count(review_themes.review_theme_id) | dimensionalize(reviews.review_id) ;;
+  }
+
+  dimension themes {
+    model: reviews
+    label: 'Themes'
+    type: 'text'
+    description: 'Every theme the review mentions, A to Z, comma-separated, whatever the query filters on review_themes. Shows what else a review in a theme drill is about.'
+    definition: @aql string_agg(review_themes.theme, sep: ', ', distinct: true, order: 'asc') | dimensionalize(reviews.review_id) ;;
+  }
+}

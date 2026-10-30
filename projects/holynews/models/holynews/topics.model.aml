@@ -1,0 +1,29 @@
+Model topics {
+  type: 'table'
+  label: 'Topics'
+  description: 'One row per discussion topic that messages are tagged with (stands in for a nightly topic classifier).'
+  data_source_name: 'holynews_duckdb'
+  table_name: 'main.topics'
+
+  dimension topic_id {
+    label: 'Topic ID'
+    type: 'text'
+    primary_key: true
+    description: 'Short key, e.g. pricing.'
+  }
+  dimension name {
+    label: 'Topic'
+    type: 'text'
+    description: 'Topic name, e.g. New pricing tiers.'
+  }
+  dimension section {
+    label: 'Section'
+    type: 'text'
+    description: 'Product, Customers, Ops or Company.'
+  }
+  dimension is_always_on {
+    label: 'Always on'
+    type: 'truefalse'
+    description: 'True for routine high-volume topics (standups, deploys, review requests): busy every day, never news, so never ranked.'
+  }
+}

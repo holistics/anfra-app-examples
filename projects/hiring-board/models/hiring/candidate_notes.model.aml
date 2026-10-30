@@ -1,0 +1,34 @@
+Model candidate_notes {
+  type: 'table'
+  label: 'HR notes'
+  description: 'Notes HR left on a candidate. Write-back will add rows here.'
+  data_source_name: 'hiring_duckdb'
+  table_name: 'main.candidate_notes'
+
+  dimension note_id {
+    label: 'Note ID'
+    type: 'number'
+    primary_key: true
+    description: 'Surrogate key.'
+  }
+  dimension candidate_id {
+    label: 'Candidate ID'
+    type: 'text'
+    description: 'Who the note is about.'
+  }
+  dimension author {
+    label: 'Author'
+    type: 'text'
+    description: 'Who wrote it.'
+  }
+  dimension created_at {
+    label: 'Written at'
+    type: 'datetime'
+    description: 'When it was written.'
+  }
+  dimension note {
+    label: 'Note'
+    type: 'text'
+    description: 'The note.'
+  }
+}

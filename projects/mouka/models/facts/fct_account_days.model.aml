@@ -1,0 +1,87 @@
+// Every account on every day: the source of net worth.
+Model fct_account_days {
+  type: 'table'
+  label: 'Account days'
+  description: '''
+**Grain:** account × local day, from the first data day to the data as-of date. `value_vnd`
+is the account's value at the end of the day:
+- **Securities accounts (SSI, gold):** cash from activities + positions at market (fct_position_days).
+- **Term deposits and USD:** cash from activities; USD at the latest rate on or before the day.
+- **TCB debit and Timo:** the running balance after the day's last movement, carried forward.
+- **Credit cards:** minus the outstanding debt. TCB Visa = card rows that are not bill payments − bill payments from TCB debit and Timo (flow settlement), so a payment counts on the day the bank sends it, not when the next statement shows it. MAX VIB = non-reversed purchases − points cash-outs − repayments from TCB (flow othercard).
+
+`net_flow_vnd` is money from outside into the account (deposits − withdrawals, opening state
+excluded); `income_vnd` is dividends + interest; `price_gain_vnd` is the market move on positions.
+'''
+  data_source_name: 'finance'
+  table_name: 'mat_account_days'   // precomputed by db/materialize.py from db/sql/fct_account_days.sql (see there for the logic)
+
+  dimension account_day_key {
+    label: 'Account day'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.account_day_key }};;
+  }
+  dimension account_id {
+    label: 'Account ID'
+    type: 'text'
+    hidden: true
+    definition: @sql {{ #SOURCE.account_id }};;
+  }
+  dimension date_key {
+    label: 'Date'
+    type: 'date'
+    hidden: true
+    definition: @sql {{ #SOURCE.date_key }};;
+  }
+  dimension value_vnd {
+    label: 'Value (VND)'
+    type: 'number'
+    description: 'End-of-day value; a credit card is negative (what is owed).'
+    definition: @sql {{ #SOURCE.value_vnd }};;
+  }
+  dimension cash_vnd {
+    label: 'Cash (VND)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cash_vnd }};;
+  }
+  dimension holdings_vnd {
+    label: 'Holdings (VND)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.holdings_vnd }};;
+  }
+  dimension book_cost_vnd {
+    label: 'Book cost (VND)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.book_cost_vnd }};;
+  }
+  dimension net_flow_vnd {
+    label: 'Net contribution (VND)'
+    type: 'number'
+    description: 'Deposits − withdrawals that day; the opening state is not a flow.'
+    definition: @sql {{ #SOURCE.net_flow_vnd }};;
+  }
+  dimension income_vnd {
+    label: 'Income (VND)'
+    type: 'number'
+    description: 'Dividends + interest that day.'
+    definition: @sql {{ #SOURCE.income_vnd }};;
+  }
+  dimension price_gain_vnd {
+    label: 'Price gain (VND)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.price_gain_vnd }};;
+  }
+  dimension open_positions {
+    label: 'Open positions'
+    type: 'number'
+    description: 'Positions with quantity > 0 in the account that day.'
+    definition: @sql {{ #SOURCE.open_positions }};;
+  }
+  dimension is_as_of {
+    label: 'Is as-of day'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_as_of }};;
+  }
+}

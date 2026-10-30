@@ -1,0 +1,93 @@
+Model dim_categories {
+  type: 'query'
+  label: 'Categories'
+  description: '''
+The 11-tag taxonomy (cspipeline taxonomy.TAGS) plus '(chưa phân loại)' for untagged lines,
+so untagged spend shows as its own bar instead of disappearing.
+
+- `category_group` is an analyst grouping for top-level views: Essentials, Lifestyle,
+  Saving & investing, Other, Untagged. It is not part of cspipeline.
+- `color` is the governed chart colour, so every app paints a category the same.
+- `chart_color` is the calmer palette for Wealth v3: equal perceived lightness (OKLCH L 0.72, C 0.12), no hue near
+  the chart blue, greys for Other and Untagged. Additive: the other looks keep `color`.
+- `is_spend_category` is false for Savings and Investing: those tags mark money set
+  aside, and their lines are never spend.
+- `has_category_budget` is true when an active category budget exists for the tag (cspipeline `budgets`), so
+  "spend against the budget" can be read from the ledger without mixing in tags that have no budget (Bills).
+'''
+  data_source_name: 'finance'
+  query: @sql
+    SELECT c.*,
+           EXISTS (SELECT 1 FROM budgets b WHERE b.active AND b.scope_type = 'category' AND b.scope_value = c.category) AS has_category_budget
+    FROM (VALUES
+      ('Ăn uống',          'Food & drinks', 'Essentials',         true,  false, '#F59E0B', '#D49648', 1),
+      ('Đi lại',           'Transport',     'Essentials',         true,  false, '#10B981', '#72B875', 2),
+      ('Hoá đơn',          'Bills',         'Essentials',         true,  false, '#6366F1', '#A497EA', 3),
+      ('Mèo',              'Cat',           'Essentials',         true,  true,  '#EC4899', '#DF84A8', 4),
+      ('Well-being',       'Well-being',    'Lifestyle',          true,  false, '#14B8A6', '#26BDAE', 5),
+      ('Shopee',           'Shopee',        'Lifestyle',          true,  false, '#EE4D2D', '#E58870', 6),
+      ('Subscription',     'Subscriptions', 'Lifestyle',          true,  false, '#3B82F6', '#1DB8CE', 7),
+      ('Học tập',          'Learning',      'Lifestyle',          true,  false, '#8B5CF6', '#C68BD3', 8),
+      ('Khác',             'Other',         'Other',              true,  false, '#94A3B8', '#9FA5AC', 9),
+      ('Tiết kiệm',        'Savings',       'Saving & investing', false, true,  '#22C55E', '#9BB054', 10),
+      ('Đầu tư',           'Investing',     'Saving & investing', false, true,  '#EAB308', '#BCA341', 11),
+      ('(chưa phân loại)', 'Untagged',      'Untagged',           true,  false, '#CBD5E1', '#CDD1D6', 12)
+    ) AS c(category, label_en, category_group, is_spend_category, is_user_only, color, chart_color, sort_order)
+  ;;
+
+  dimension category {
+    label: 'Category'
+    type: 'text'
+    primary_key: true
+    description: 'The tag key as cspipeline stores it (in Vietnamese; label_en is its English name), or \'(chưa phân loại)\' for untagged.'
+    definition: @sql {{ #SOURCE.category }};;
+  }
+  dimension label_en {
+    label: 'Category (English)'
+    type: 'text'
+    description: 'English label for the tag.'
+    definition: @sql {{ #SOURCE.label_en }};;
+  }
+  dimension category_group {
+    label: 'Category group'
+    type: 'text'
+    description: 'Essentials · Lifestyle · Saving & investing · Other · Untagged. An analyst grouping, not a cspipeline field.'
+    definition: @sql {{ #SOURCE.category_group }};;
+  }
+  dimension is_spend_category {
+    label: 'Is spend category'
+    type: 'truefalse'
+    description: 'False for the Savings and Investing tags.'
+    definition: @sql {{ #SOURCE.is_spend_category }};;
+  }
+  dimension has_category_budget {
+    label: 'Has a category budget'
+    type: 'truefalse'
+    description: 'True when an active monthly category budget exists for this tag. Bills, Well-being and Learning have none: their spend is real spend but sits outside every category budget.'
+    definition: @sql {{ #SOURCE.has_category_budget }};;
+  }
+  dimension is_user_only {
+    label: 'Is user-only tag'
+    type: 'truefalse'
+    description: 'Only set by hand, never by the auto-tagger (Cat, Savings, Investing).'
+    definition: @sql {{ #SOURCE.is_user_only }};;
+  }
+  dimension color {
+    label: 'Colour'
+    type: 'text'
+    description: 'Hex colour every chart uses for this category.'
+    definition: @sql {{ #SOURCE.color }};;
+  }
+  dimension chart_color {
+    label: 'Chart colour (equal lightness)'
+    type: 'text'
+    description: 'Hex colour from an equal-lightness OKLCH palette (L 0.72, C 0.12), one hue per category and none near the chart blue; Other and Untagged are greys. Wealth v3 paints categories with it.'
+    definition: @sql {{ #SOURCE.chart_color }};;
+  }
+  dimension sort_order {
+    label: 'Sort order'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.sort_order }};;
+  }
+}

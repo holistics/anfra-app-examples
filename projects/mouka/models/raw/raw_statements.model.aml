@@ -1,0 +1,95 @@
+// Raw source table, 1:1 with the cspipeline replica (db/schema.duckdb.sql). For audit and lineage;
+// analysis goes through personal_finance.
+Model raw_statements {
+  type: 'table'
+  label: 'Raw · statements'
+  description: '''
+Source table `statements`: one card statement. TCB rows are real monthly PDF statements;
+VIB rows are synthetic calendar-month containers for email alerts (`synthetic` = true, NULL balances).
+'''
+  data_source_name: 'finance'
+  table_name: 'statements'
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension gmail_msg_id {
+    label: 'Gmail message ID'
+    type: 'text'
+    description: 'Unique. synthetic:vib_email:<last4>:YYYY-MM for VIB containers.'
+    definition: @sql {{ #SOURCE.gmail_msg_id }};;
+  }
+  dimension bank {
+    label: 'Bank'
+    type: 'text'
+    description: 'TCB or VIB.'
+    definition: @sql {{ #SOURCE.bank }};;
+  }
+  dimension card_last4 {
+    label: 'Card last 4'
+    type: 'text'
+    definition: @sql {{ #SOURCE.card_last4 }};;
+  }
+  dimension period_start {
+    label: 'Period start'
+    type: 'date'
+    definition: @sql {{ #SOURCE.period_start }};;
+  }
+  dimension period_end {
+    label: 'Period end'
+    type: 'date'
+    description: 'Statement close date.'
+    definition: @sql {{ #SOURCE.period_end }};;
+  }
+  dimension pdf_path {
+    label: 'PDF path'
+    type: 'text'
+    description: 'synthetic://email-alerts for VIB.'
+    definition: @sql {{ #SOURCE.pdf_path }};;
+  }
+  dimension fetched_at {
+    label: 'Fetched at'
+    type: 'datetime'
+    description: 'TIMESTAMPTZ.'
+    definition: @sql {{ #SOURCE.fetched_at }};;
+  }
+  dimension parsed_at {
+    label: 'Parsed at'
+    type: 'datetime'
+    description: 'TIMESTAMPTZ.'
+    definition: @sql {{ #SOURCE.parsed_at }};;
+  }
+  dimension outstanding_balance_minor {
+    label: 'Outstanding balance (minor)'
+    type: 'number'
+    description: 'VND. NULL on synthetic rows.'
+    definition: @sql {{ #SOURCE.outstanding_balance_minor }};;
+  }
+  dimension min_payment_minor {
+    label: 'Minimum payment (minor)'
+    type: 'number'
+    description: 'VND. NULL on synthetic rows.'
+    definition: @sql {{ #SOURCE.min_payment_minor }};;
+  }
+  dimension payment_due_date {
+    label: 'Payment due date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.payment_due_date }};;
+  }
+  dimension synthetic {
+    label: 'Synthetic'
+    type: 'truefalse'
+    description: 'True for VIB email-alert containers.'
+    definition: @sql {{ #SOURCE.synthetic }};;
+  }
+
+  measure row_count {
+    label: 'Rows'
+    type: 'number'
+    description: 'Number of rows.'
+    definition: @aql count(raw_statements.id) ;;
+  }
+}

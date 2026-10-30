@@ -1,0 +1,135 @@
+// Raw source table, 1:1 with the cspipeline replica (db/schema.duckdb.sql). For audit and lineage;
+// analysis goes through personal_finance.
+Model raw_transactions {
+  type: 'table'
+  label: 'Raw · transactions'
+  description: '''
+Source table `transactions`: one card line. `amount_minor` is in the native currency's minor
+unit: + is spend, − is a refund, a bill payment or a points cash-out. `source` NULL = TCB PDF,
+`vib_email` = a MAX VIB alert, `vib_reward` = a points cash-out. Includes reversed rows,
+which every spend view drops.
+'''
+  data_source_name: 'finance'
+  table_name: 'transactions'
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension statement_id {
+    label: 'Statement ID'
+    type: 'number'
+    description: '→ statements.id.'
+    definition: @sql {{ #SOURCE.statement_id }};;
+  }
+  dimension row_hash {
+    label: 'Row hash'
+    type: 'text'
+    description: 'sha256 of the line; unique within a statement.'
+    definition: @sql {{ #SOURCE.row_hash }};;
+  }
+  dimension card_key {
+    label: 'Annotation key'
+    type: 'text'
+    hidden: true
+    description: 'statement_id:row_hash, the key annotations use.'
+    definition: @sql CAST({{ #SOURCE.statement_id }} AS VARCHAR) || ':' || {{ #SOURCE.row_hash }};;
+  }
+  dimension txn_date {
+    label: 'Transaction date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.txn_date }};;
+  }
+  dimension posted_date {
+    label: 'Posted date'
+    type: 'date'
+    description: 'TCB PDF lines only.'
+    definition: @sql {{ #SOURCE.posted_date }};;
+  }
+  dimension description {
+    label: 'Description'
+    type: 'text'
+    definition: @sql {{ #SOURCE.description }};;
+  }
+  dimension merchant {
+    label: 'Merchant'
+    type: 'text'
+    definition: @sql {{ #SOURCE.merchant }};;
+  }
+  dimension amount_minor {
+    label: 'Amount (minor)'
+    type: 'number'
+    description: 'Native minor units; + spend, − credit.'
+    definition: @sql {{ #SOURCE.amount_minor }};;
+  }
+  dimension currency {
+    label: 'Currency'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency }};;
+  }
+  dimension amount_vnd_minor {
+    label: 'Amount in VND (minor)'
+    type: 'number'
+    description: 'Non-VND lines only.'
+    definition: @sql {{ #SOURCE.amount_vnd_minor }};;
+  }
+  dimension fx_rate {
+    label: 'FX rate'
+    type: 'number'
+    definition: @sql {{ #SOURCE.fx_rate }};;
+  }
+  dimension fx_rate_date {
+    label: 'FX rate date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.fx_rate_date }};;
+  }
+  dimension category {
+    label: 'Legacy category'
+    type: 'text'
+    description: 'The old 12-value auto category. The taxonomy tag lives in annotations.'
+    definition: @sql {{ #SOURCE.category }};;
+  }
+  dimension category_source {
+    label: 'Legacy category source'
+    type: 'text'
+    definition: @sql {{ #SOURCE.category_source }};;
+  }
+  dimension categorized_at {
+    label: 'Categorized at'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.categorized_at }};;
+  }
+  dimension source {
+    label: 'Source'
+    type: 'text'
+    description: 'NULL = TCB PDF · vib_email · vib_reward.'
+    definition: @sql {{ #SOURCE.source }};;
+  }
+  dimension external_id {
+    label: 'External ID'
+    type: 'text'
+    description: 'Email message id for VIB lines.'
+    definition: @sql {{ #SOURCE.external_id }};;
+  }
+  dimension occurred_at {
+    label: 'Occurred at'
+    type: 'datetime'
+    description: 'VIB lines only. TIMESTAMPTZ.'
+    definition: @sql {{ #SOURCE.occurred_at }};;
+  }
+
+  measure row_count {
+    label: 'Rows'
+    type: 'number'
+    description: 'Number of rows.'
+    definition: @aql count(raw_transactions.id) ;;
+  }
+  measure sum_amount_minor {
+    label: 'Sum of native amounts'
+    type: 'number'
+    description: 'Native minor units: do not add across currencies.'
+    definition: @aql sum(raw_transactions.amount_minor) ;;
+  }
+}

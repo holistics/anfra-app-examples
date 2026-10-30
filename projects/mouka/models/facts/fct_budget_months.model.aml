@@ -1,0 +1,228 @@
+Model fct_budget_months {
+  type: 'query'
+  label: 'Budget months'
+  description: '''
+**Grain:** one active budget × one calendar month, from the first data month to the as-of
+month. A SQL port of cspipeline `store.budget_progress`, so a budget here reads exactly as
+on the cspipeline Budgets page.
+
+"Spent" uses the governed spend definition: card purchases plus real account spend.
+- `category` budgets count spend with that tag.
+- `source` budgets count spend on that card or account.
+
+**Envelope overflow:** when exactly one category budget is the buffer (`is_buffer`), every
+other category budget caps at its limit and its excess moves into the buffer's spent.
+Source budgets never overflow.
+
+`category` and `src` are filled only for their own scope type, so a category
+breakdown shows category budgets only. Filter on `scope_type` when mixing scopes.
+'''
+  data_source_name: 'finance'
+  query: @sql
+    WITH latest AS (
+      SELECT max(d) AS as_of FROM (
+        SELECT txn_date AS d FROM transactions
+        UNION ALL
+        SELECT CAST(occurred_at AT TIME ZONE 'Asia/Ho_Chi_Minh' AS DATE) FROM bank_movements
+      ) x
+    ),
+    bounds AS (
+      SELECT min(d) AS lo FROM (
+        SELECT txn_date AS d FROM transactions
+        UNION ALL
+        SELECT CAST(occurred_at AT TIME ZONE 'Asia/Ho_Chi_Minh' AS DATE) FROM bank_movements
+      ) x
+    ),
+    months AS (
+      SELECT CAST(unnest(generate_series(
+               CAST(date_trunc('month', b.lo) AS TIMESTAMP),
+               CAST(date_trunc('month', a.as_of) AS TIMESTAMP),
+               INTERVAL 1 MONTH)) AS DATE) AS month_start
+      FROM bounds b CROSS JOIN latest a
+    ),
+    spend AS (
+      SELECT CAST(date_trunc('month', txn_date) AS DATE) AS m,
+             CASE bank WHEN 'TCB' THEN 'credit' WHEN 'VIB' THEN 'vib_credit' ELSE bank END AS src,
+             coalesce(category, '(chưa phân loại)') AS category,
+             amount_minor AS amt
+      FROM card_transactions_tagged
+      WHERE amount_minor > 0
+      UNION ALL
+      SELECT CAST(date_trunc('month', occurred_at AT TIME ZONE 'Asia/Ho_Chi_Minh') AS DATE),
+             src, coalesce(category, '(chưa phân loại)'), amount_minor
+      FROM account_movements_resolved
+      WHERE is_spend
+    ),
+    b AS (SELECT * FROM budgets WHERE active),
+    buffer AS (
+      SELECT count(*) = 1 AS has_buffer FROM b WHERE scope_type = 'category' AND overflow_buffer
+    ),
+    raw AS (
+      SELECT b.id AS budget_id, mo.month_start, b.scope_type, b.scope_value, b.period,
+             b.limit_minor, b.warn_pct, b.overflow_buffer,
+             coalesce(sum(s.amt), 0) AS raw_spent
+      FROM b
+      CROSS JOIN months mo
+      LEFT JOIN spend s
+        ON s.m = mo.month_start
+       AND (   (b.scope_type = 'category' AND s.category = b.scope_value)
+            OR (b.scope_type = 'source'   AND s.src = b.scope_value))
+      GROUP BY ALL
+    ),
+    over AS (
+      SELECT r.*,
+             CASE WHEN f.has_buffer AND r.scope_type = 'category' AND NOT r.overflow_buffer
+                  THEN greatest(r.raw_spent - r.limit_minor, 0) ELSE 0 END AS over_to_buffer
+      FROM raw r CROSS JOIN buffer f
+    ),
+    final AS (
+      SELECT o.*,
+             CASE WHEN o.scope_type = 'category' AND o.overflow_buffer
+                    THEN o.raw_spent + sum(o.over_to_buffer) OVER (PARTITION BY o.month_start)
+                  WHEN o.over_to_buffer > 0 THEN o.limit_minor
+                  ELSE o.raw_spent END AS spent
+      FROM over o
+    )
+    SELECT
+      budget_id || ':' || strftime(month_start, '%Y-%m')                    AS budget_month_key,
+      budget_id,
+      month_start,
+      scope_type,
+      scope_value,
+      CASE scope_type WHEN 'category' THEN 'Category · ' WHEN 'source' THEN 'Source · '
+                      ELSE scope_type || ' · ' END || scope_value                AS scope_label,
+      CASE WHEN scope_type = 'category' THEN scope_value END                AS category,
+      CASE WHEN scope_type = 'source'   THEN scope_value END                AS src,
+      period,
+      limit_minor                                                           AS limit_vnd,
+      warn_pct,
+      overflow_buffer                                                       AS is_buffer,
+      raw_spent                                                             AS raw_spent_vnd,
+      over_to_buffer                                                        AS over_to_buffer_vnd,
+      spent                                                                 AS spent_vnd,
+      limit_minor - spent                                                   AS remaining_vnd,
+      CASE WHEN limit_minor > 0 THEN CAST(round(spent * 100.0 / limit_minor) AS INTEGER) ELSE 0 END AS used_pct,
+      CASE WHEN spent > limit_minor THEN 'over'
+           WHEN limit_minor > 0 AND spent * 100.0 / limit_minor >= warn_pct THEN 'warning'
+           ELSE 'ok' END                                                    AS status,
+      month_start = CAST(date_trunc('month', (SELECT as_of FROM latest)) AS DATE) AS is_as_of_month
+    FROM final
+  ;;
+
+  dimension budget_month_key {
+    label: 'Budget month key'
+    type: 'text'
+    primary_key: true
+    description: 'budget_id:YYYY-MM.'
+    definition: @sql {{ #SOURCE.budget_month_key }};;
+  }
+  dimension budget_id {
+    label: 'Budget ID'
+    type: 'number'
+    definition: @sql {{ #SOURCE.budget_id }};;
+  }
+  dimension month_start {
+    label: 'Month'
+    type: 'date'
+    hidden: true
+    description: 'First day of the budget month. Joins dim_dates.'
+    definition: @sql {{ #SOURCE.month_start }};;
+  }
+  dimension scope_type {
+    label: 'Scope type'
+    type: 'text'
+    description: 'category · source.'
+    definition: @sql {{ #SOURCE.scope_type }};;
+  }
+  dimension scope_value {
+    label: 'Scope value'
+    type: 'text'
+    description: 'The category tag or src key the budget covers.'
+    definition: @sql {{ #SOURCE.scope_value }};;
+  }
+  dimension scope_label {
+    label: 'Budget'
+    type: 'text'
+    description: 'e.g. Category · Shopee.'
+    definition: @sql {{ #SOURCE.scope_label }};;
+  }
+  dimension category {
+    label: 'Budget category'
+    type: 'text'
+    hidden: true
+    description: 'Category budgets only. Joins dim_categories.'
+    definition: @sql {{ #SOURCE.category }};;
+  }
+  dimension src {
+    label: 'Budget source'
+    type: 'text'
+    hidden: true
+    description: 'Source budgets only. Joins dim_sources.'
+    definition: @sql {{ #SOURCE.src }};;
+  }
+  dimension period {
+    label: 'Period'
+    type: 'text'
+    description: 'monthly.'
+    definition: @sql {{ #SOURCE.period }};;
+  }
+  dimension limit_vnd {
+    label: 'Limit (VND)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.limit_vnd }};;
+  }
+  dimension warn_pct {
+    label: 'Warn at %'
+    type: 'number'
+    description: 'The budget turns to warning at this share of its limit.'
+    definition: @sql {{ #SOURCE.warn_pct }};;
+  }
+  dimension is_buffer {
+    label: 'Is overflow buffer'
+    type: 'truefalse'
+    description: 'The single category budget that absorbs other categories\' excess.'
+    definition: @sql {{ #SOURCE.is_buffer }};;
+  }
+  dimension raw_spent_vnd {
+    label: 'Raw spent (VND)'
+    type: 'number'
+    description: 'Spend in scope before any overflow.'
+    definition: @sql {{ #SOURCE.raw_spent_vnd }};;
+  }
+  dimension over_to_buffer_vnd {
+    label: 'Moved to buffer (VND)'
+    type: 'number'
+    description: 'Excess above the limit moved into the buffer (category budgets only).'
+    definition: @sql {{ #SOURCE.over_to_buffer_vnd }};;
+  }
+  dimension spent_vnd {
+    label: 'Spent (VND)'
+    type: 'number'
+    description: 'After overflow: a capped category shows its limit, and the buffer shows its own spend plus every overflow.'
+    definition: @sql {{ #SOURCE.spent_vnd }};;
+  }
+  dimension remaining_vnd {
+    label: 'Remaining (VND)'
+    type: 'number'
+    description: 'limit − spent. Negative when over.'
+    definition: @sql {{ #SOURCE.remaining_vnd }};;
+  }
+  dimension used_pct {
+    label: 'Used %'
+    type: 'number'
+    description: 'round(spent / limit × 100), as cspipeline reports it.'
+    definition: @sql {{ #SOURCE.used_pct }};;
+  }
+  dimension status {
+    label: 'Status'
+    type: 'text'
+    description: 'ok · warning (used ≥ warn %) · over (spent > limit).'
+    definition: @sql {{ #SOURCE.status }};;
+  }
+  dimension is_as_of_month {
+    label: 'Is as-of month'
+    type: 'truefalse'
+    description: 'The month in progress.'
+    definition: @sql {{ #SOURCE.is_as_of_month }};;
+  }
+}

@@ -1,0 +1,56 @@
+// Raw source table of the investment layer (db/invest.py).
+Model raw_activities {
+  type: 'table'
+  label: 'Raw · activities'
+  description: '''
+Source table `activities`: Wealthfolio-style activities. `source_movement_id` names the bank
+movement that funded or received a deposit or withdrawal; `is_opening` marks the state on the
+first data day.
+'''
+  data_source_name: 'finance'
+  table_name: 'activities'
+
+  dimension id {
+    label: 'ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension account_id {
+    label: 'Account'
+    type: 'text'
+    definition: @sql {{ #SOURCE.account_id }};;
+  }
+  dimension symbol {
+    label: 'Symbol'
+    type: 'text'
+    definition: @sql {{ #SOURCE.symbol }};;
+  }
+  dimension activity_type {
+    label: 'Type'
+    type: 'text'
+    definition: @sql {{ #SOURCE.activity_type }};;
+  }
+  dimension activity_date {
+    label: 'Time'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.activity_date }};;
+  }
+  dimension amount_minor {
+    label: 'Amount (minor units)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.amount_minor }};;
+  }
+  dimension source_movement_id {
+    label: 'Bank movement'
+    type: 'number'
+    definition: @sql {{ #SOURCE.source_movement_id }};;
+  }
+
+  measure row_count {
+    label: 'Rows'
+    type: 'number'
+    description: 'Number of rows.'
+    definition: @aql count(raw_activities.id) ;;
+  }
+}

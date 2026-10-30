@@ -1,0 +1,103 @@
+// Every position on every day from its first activity to the data as-of date.
+Model fct_position_days {
+  type: 'table'
+  label: 'Position days'
+  description: '''
+**Grain:** account × symbol × local day, from the position's first activity to the data as-of
+date. Quantity is the running sum of BUY, ADD_HOLDING and SELL; price is the latest close on
+or before the day (weekends carry Friday). Book cost is the sum of what the open position cost
+(a SELL always closes a whole position, an invariant), so it is exact.
+
+`price_gain_vnd` is yesterday's quantity × today's price move: the part of a day's value change
+that came from the market, not from buying.
+'''
+  data_source_name: 'finance'
+  table_name: 'mat_position_days'   // precomputed by db/materialize.py from db/sql/fct_position_days.sql (see there for the logic)
+
+  dimension position_day_key {
+    label: 'Position day'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.position_day_key }};;
+  }
+  dimension account_id {
+    label: 'Account ID'
+    type: 'text'
+    description: 'The link to dim_accounts is inactive; every holdings metric switches it on, so filter by dim_accounts.account_id.'
+    definition: @sql {{ #SOURCE.account_id }};;
+  }
+  dimension symbol {
+    label: 'Symbol'
+    type: 'text'
+    hidden: true
+    definition: @sql {{ #SOURCE.symbol }};;
+  }
+  dimension date_key {
+    label: 'Date'
+    type: 'date'
+    hidden: true
+    definition: @sql {{ #SOURCE.date_key }};;
+  }
+  dimension quantity {
+    label: 'Quantity'
+    type: 'number'
+    definition: @sql {{ #SOURCE.quantity }};;
+  }
+  dimension price {
+    label: 'Price'
+    type: 'number'
+    description: 'Latest close on or before the day, VND.'
+    definition: @sql {{ #SOURCE.price }};;
+  }
+  dimension market_value_vnd {
+    label: 'Market value (VND)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.market_value_vnd }};;
+  }
+  dimension book_cost_vnd {
+    label: 'Book cost (VND)'
+    type: 'number'
+    description: 'What the open position cost, fees included. 0 once closed.'
+    definition: @sql {{ #SOURCE.book_cost_vnd }};;
+  }
+  dimension cost_basis_vnd {
+    label: 'Cost basis (VND)'
+    type: 'number'
+    description: 'Everything ever paid for the position, kept after it closes. The return % divides by it.'
+    definition: @sql {{ #SOURCE.cost_basis_vnd }};;
+  }
+  dimension unrealized_pnl_vnd {
+    label: 'Unrealized P&L (VND)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.unrealized_pnl_vnd }};;
+  }
+  dimension realized_pnl_vnd {
+    label: 'Realized P&L (VND)'
+    type: 'number'
+    description: 'Sale proceeds net of fees − cost, once the position is closed.'
+    definition: @sql {{ #SOURCE.realized_pnl_vnd }};;
+  }
+  dimension price_gain_vnd {
+    label: 'Price gain (VND)'
+    type: 'number'
+    description: 'Yesterday\'s quantity × today\'s price change.'
+    definition: @sql {{ #SOURCE.price_gain_vnd }};;
+  }
+  dimension day_change_pct {
+    label: 'Day change'
+    type: 'number'
+    description: 'Price change vs the previous calendar day (a Monday compares with Friday\'s close).'
+    definition: @sql {{ #SOURCE.day_change_pct }};;
+  }
+  dimension is_open {
+    label: 'Is open'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_open }};;
+  }
+  dimension is_as_of {
+    label: 'Is as-of day'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_as_of }};;
+  }
+}

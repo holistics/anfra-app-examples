@@ -1,0 +1,75 @@
+[
+ {
+  "viewport": [
+   1600,
+   1000
+  ]
+ },
+ {
+  "waitFor": "() => !!document.getElementById('presets') && !!document.getElementById('breakpoints')"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "the gallery has the new sections: Saved looks, Breakpoints, Layouts (row grammar)",
+  "assert": "() => ['presets', 'colour', 'cards', 'controls', 'lists', 'breakpoints', 'layouts', 'pages'].every((id) => document.getElementById(id))"
+ },
+ {
+  "name": "Breakpoints: five, the current one marked, readout = DS.bp()",
+  "assert": "() => document.querySelectorAll('.gal-bp').length === 5 && document.querySelector('.gal-bp.on').dataset.bp === DS.bp() && document.getElementById('gal-bp-k').textContent === DS.bp()"
+ },
+ {
+  "name": "Page config draws the Home tabs from js/pages.js",
+  "assert": "() => ['home/networth', 'home/spending', 'home/invest'].every((k) => [...document.querySelectorAll('#pages .gal-name')].some((n) => n.textContent === k))"
+ },
+ {
+  "name": "Saved looks: the empty state explains Save + the helper",
+  "assert": "() => /ds_save\\.py/.test(document.getElementById('presets').textContent)"
+ },
+ {
+  "click": ".gal-nav [data-ds-panel]"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "eval": "() => { const el = document.querySelector('.ds-panel input[data-colour=\"--chart\"]'); el.value = '#e8590c'; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return true; }"
+ },
+ {
+  "allow": "127\\.0\\.0\\.1:7879|ERR_CONNECTION_REFUSED"
+ },
+ {
+  "eval": "() => { document.querySelector('[data-preset-name]').value = 'Orange charts'; document.querySelector('[data-preset-save]').click(); return true; }"
+ },
+ {
+  "waitFor": "() => DS.PRESETS.some((p) => p.slug === 'orange-charts')"
+ },
+ {
+  "wait": 500
+ },
+ {
+  "name": "a saved look shows on the gallery page (name, active badge, its swatch and token diff)",
+  "assert": "() => { const c = [...document.querySelectorAll('.gal-preset')].find((x) => /Orange charts/.test(x.textContent)); return !!c && /active/.test(c.textContent) && /--chart/.test(c.textContent) && !!c.querySelector('.chipbox'); }"
+ },
+ {
+  "name": "the gallery header names the active look",
+  "assert": "() => /Orange charts/.test(document.querySelector('.gal-active')?.textContent ?? '')"
+ },
+ {
+  "click": "[data-dsp-reset]"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "click": "[data-gal-preset='orange-charts']"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "Apply on the gallery card restores the look (undoable in the panel)",
+  "assert": "() => DS.overrides()['--chart'] === '#e8590c' && DS.history.steps.at(-1).label === 'Preset “Orange charts”'"
+ }
+]

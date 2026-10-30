@@ -1,0 +1,30 @@
+// The source schema as it is: one model per replicated cspipeline table, no business rules.
+// For audit, lineage and reconciliation. Analysis and apps use personal_finance.
+Dataset finance_raw {
+  label: 'Finance · raw source tables'
+  description: '''
+The 11 source tables of the synthetic cspipeline replica, one model each, every column
+documented and nothing derived. Amounts are in minor units of the native currency (whole
+VND; USD cents on foreign MAX VIB lines) and keep the source's sign conventions:
+card lines + = spend, account movements positive with a D/C direction.
+
+Use it to audit a number from personal_finance back to its rows. tests/check_semantic.py
+reconciles the two.
+'''
+  data_source_name: 'finance'
+  owner: 'hoang.do@holistics.io'
+
+  models: [
+    raw_statements, raw_transactions, raw_bank_movements, raw_annotations,
+    raw_budgets, raw_cashback_milestones, raw_fx_rates,
+    raw_accounts, raw_assets, raw_quotes, raw_activities,
+  ]
+  relationships: [
+    relationship(raw_transactions.statement_id > raw_statements.id, true),
+    relationship(raw_annotations.card_key - raw_transactions.card_key, true),
+    relationship(raw_annotations.account_key - raw_bank_movements.account_key, true),
+    relationship(raw_activities.account_id > raw_accounts.id, true),
+    relationship(raw_activities.symbol > raw_assets.symbol, true),
+    relationship(raw_quotes.symbol > raw_assets.symbol, true),
+  ]
+}

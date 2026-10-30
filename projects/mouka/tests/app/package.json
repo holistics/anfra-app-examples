@@ -1,0 +1,7 @@
+{
+  "name": "wealthfolio-app-checks",
+  "private": true,
+  "type": "module",
+  "description": "Headless browser checks for apps/wealthfolio. Needs `anfra serve` running. npm install, then ./gate.sh t3 t4 ... (see README in tests/app).",
+  "dependencies": { "playwright-core": "1.56.1" }
+}

@@ -1,0 +1,177 @@
+/* ★ mouka design tokens: THE file to edit.
+   Every colour, size, radius, shadow, space, motion and layout value in apps/mouka comes from here (CSS and the
+   ECharts code via DS.token). Themes (ds/themes.css) override the semantic tokens only. The live panel (press \ in the
+   app, or the Design button in the sidebar) exports a :root block of changed tokens to paste below.
+   Rules: colours that charts read (--chart*, --heat-*, --pos, --neg, --ink*, --tip-*, --cat-fallback) must stay
+   6-digit hex, because the area fade appends an alpha byte. Media-query breakpoints can't be variables: the four
+   breakpoints (frame widths 1280 / 1024 / 900 / 600 → xl lg md sm xs) live in ds/layout.css, which swaps the *-lg / *-sm /
+   *-xs tokens below in per breakpoint. */
+:root {
+  /* ---------- 1 · type */
+  --sans: Inter, 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'Roboto Mono', ui-monospace, monospace;
+  --serif: Newsreader, Georgia, serif;
+  --fs-label: 12px;       /* the micro size: chart axes, calendar weekdays, badges */
+  --fs-2: 13px;           /* secondary text, buttons */
+  --fs-body: 15px;
+  --fs-row: 14px;         /* list rows: categories, Latest, Holdings, Budget (17 Oct: one size for every list) */        /* body, list rows, table cells */
+  --fs-card-hero: 22px;   /* card heroes, serif lines */
+  --fs-page-title: 24px;
+  --fs-greeting: 28px;    /* the Ask AI greeting: the one line on an empty page, a step over the page title */  /* the page title (.head h1): a step under the hero, so the hero leads */
+  --fs-heading: 15px;     /* group rows and the inspector title: sentence case, medium (card titles: --fs-card-title) */
+  --fs-page-hero: 36px;   /* the one page hero per view */
+  --fs-code: 12px;        /* AML / AQL in popovers and Definitions */
+  --fw-regular: 400; --fw-medium: 500;
+  --fw-delta: 500;            /* the delta pill's arrow, amount and % (17 Oct: pill on a tint replaced the 600 bold) */
+  --lh-tight: 1.15; --lh-body: 1.45;
+  --ls-label: .08em;      /* mono caps tracking */
+  --ls-tight: -.01em;     /* heroes, titles */
+  --ls-hero: -.025em;     /* the page hero */
+  /* type roles: which family and weight each role uses (themes swap them; mouka sets serif titles and heroes) */
+  --font-title: var(--sans);   --fw-title: var(--fw-medium);      /* page title (.head h1) */
+  --font-hero: var(--sans);    --fw-hero: var(--fw-regular);      /* card heroes (.hero) */
+  --fw-hero-page: var(--fw-medium);                               /* the page hero (.hero.page) */
+  --font-label: var(--mono);                                      /* tooling labels (the design panel, the gallery) */
+  --font-heading: var(--sans); --fw-heading: var(--fw-medium);   /* group rows (.disc) and the inspector title */
+  /* the card title: a quiet uppercase label (16 Oct, Nhi: the archived mouka-v2 label, a bit bigger and darker) */
+  --fs-card-title: 13px; --fw-card-title: 400; --ls-card-title: var(--ls-label); --ink-card-title: var(--ink-3);
+
+  /* ---------- 2 · colour (semantic; what themes override) */
+  /* surfaces */
+  --page: #f9faf7;
+  --surface: #ffffff;
+  --tint: #f6f7f4;          /* inner boxes: kpis, boxed lists, calendars */
+  --fill-subtle: #f3f4f1;   /* hover, active tab, pills */
+  --fill-active: #e5e5e5;
+  --seg-track: var(--fill-active);
+  --nav-toggle-ink: var(--ink-3);
+  --nav-active: var(--fill-active);   /* the current page in the sidebar (17 Oct: one step darker, like the header circles) */
+  --cat-icon: var(--on-ink);          /* the icon on a solid category tile */   /* the sidebar collapse icon (no square behind it): ≥ 3:1 on --page */   /* the segmented-control track (page tabs, icon + text segments): one step darker than --fill-subtle */
+  --fill-circle: #eeeeec;   /* header circle buttons */
+  --fill-initial: #ecebe8;  /* initials avatars */
+  --row-hover: #fbfbfa;
+  --stripe: #fafaf8;        /* future calendar days */
+  --knob: #ffffff;          /* switch knobs */
+  /* lines */
+  --border: #e8e8e8;
+  --border-strong: #dadada;
+  --rule: #efefef;
+  --rule-soft: #ececec;
+  /* ink */
+  --ink: #0a0a0a;
+  --ink-2: #4d4d4d;
+  --ink-3: #696969;        /* ≥ 4.5:1 on every surface and tint (small text): meta, captions, axes */
+  --date-ink: var(--ink-2);   /* a due date in its own column (Recurring › Coming up, 18 Oct) */
+  --ink-meta: var(--ink-3);   /* the info line under a hero (18 Oct, Nhi: regular weight, a lighter ink); ≥ 4.5:1 on --surface */
+  --on-ink: #ffffff;        /* text and icons on ink or coloured fills */
+  --chip-ink: var(--on-ink); /* icons on category chips (pastel palettes need dark ink) */
+  /* the sidebar brand: wordmark ink + the mark (calm: an ink ring; mouka: a filled beige tile) */
+  --brand-ink: var(--ink); --brand-mark: var(--ink); --brand-mark-fill: transparent; --brand-mark-radius: var(--r-sm);
+  /* status */
+  --pos: #1e9a6c;   --pos-tint: #e6f5ee;   --pos-ink: #12734f;   /* --pos / --neg = fills, bars, chart strokes; *-ink = TEXT (≥ 4.5:1) */
+  --neg: #d4483b;   --neg-tint: #fcebe9;   --neg-border: #f3c4bf;   --neg-ink: #b23126;
+  --warn: #e0a33a;  --warn-tint: #fff4e5;  --warn-ring: #fbeed7;  --warn-ink: #a3620a;  --warn-ink-strong: #8a5a09;
+  --info-ink: #1572c4; --info-tint: #e8f3fe;
+  --budget: #598e00;
+  /* ✦ AI / trace */
+  --ai: #6a66f0;            /* the ✦ icon: ≥ 3:1 (non-text) */  --ai-ink: #4b47b8;  --ai-tint: #efeeff;  --ai-border: #d9d8ff;  --ai-wash: #fbfbff;
+  /* the payday card and the gift button */
+  --note-tint: #f2f6fb;  --note-border: #e3ebf5;
+  --gift-from: #7cc6f7;  --gift-to: #8a94f5;
+  /* overlays */
+  --overlay: rgb(10 10 10 / .38);
+
+  /* ---------- 3 · charts (ECharts reads these through DS.token) */
+  --chart: #219ff9;          /* "this period": the one chart blue (fills, areas) */
+  --chart-line: #1a7fd0;     /* its stroke + end dot: ≥ 3:1 on the surface */
+  --chart-soft: #88cdfe;
+  --chart-on: #0b3a66;       /* text on a chart-blue fill */
+  --chart-done: #9fd0fb;
+  --chart-pace: #bfe2fd;     /* projected part of the rewards ring */
+  --chart-track: #f1f1ef;    /* empty part of rings and gauges */
+  --chart-grid: var(--rule-soft);
+  --chart-ref: #b5b5b5;      /* dashed reference lines */
+  --chart-compare: #9a9a9a;  /* dashed comparison series */
+  --chart-rest: #dcdbd7;
+  --chart-bar: var(--chart);   /* small bar charts (OG.miniBars: drill-downs, Ask AI answers) */
+  --flow-out: var(--chart);     /* money out (spending bars in Cash flow) */
+  --flow-in: var(--tone-cash);   /* money in (income bars, sources, payday): never the same hue as --chart (money out) */     /* "the rest" in a stacked chart: a neutral that never reads as a category */
+  --chart-hist: #a3a7ad;     /* forecast history */
+  --chart-past: #c9ccc4;     /* earlier periods */
+  --chart-past-2: #e4e6e0;
+  --chart-area-alpha: 59;    /* area fill opacity at the top, a hex byte (59 ≈ 35%); themes may add --chart-area-end (6-digit hex) */
+    --area-line: var(--chart-line);   /* the area charts (hero history, account curves): stroke + end dot, ≥ 3:1 */
+    --area-fill: var(--chart);        /* …and the fill at the top, at --chart-area-alpha */
+  --heat-1: #f4f9fe; --heat-2: #bfe2fd; --heat-3: var(--chart); --heat-4: #0d6fbf;
+  /* the account groups' tones (OG.groupTone): one per group, shared by the Summary, the bars and the Investments tab */
+  --tone-invest: var(--chart); --tone-cash: var(--chart-soft); --tone-liab: var(--neg);
+  --card-tcb: var(--flow-out); --card-vib: var(--tone-invest);   /* the two credit cards in Credit's spending chart (18 Oct) */
+  --mascot-ink: #000000; --mascot-fill: #ffffff; --mascot-blush: #d3d3d3;   /* Ask AI's cat (js/cat.js), as Nhi's reference draws it (19 Oct); no theme overrides it */
+  --mascot-bill: #cfeedd; --mascot-coin: #f7c75b;   /* its money rain */
+  --line-up: var(--pos); --line-down: var(--neg);   /* a line that changes colour with its sign (19 Oct, Nhi: Return, the what-if) */
+  --race-you: var(--chart-line); --race-ix: var(--chart-ref);   /* You vs the VN-Index's two bars */
+  --net-line: var(--ink);   /* Cash flow's Net line (19 Oct: brown in terracotta) */
+  --soon-bg: var(--fill-subtle); --soon-ink: var(--ink-2);   /* the Coming soon tag (19 Oct, Nhi: beige / grey, not info blue) */
+  --gain-fill: var(--pos);   /* a gain drawn as a bar (Winners and drags): the theme may soften it (terracotta: mint) */
+  --tone-bonus: var(--tone-invest);   /* income › Bonus (Cash flow › This period) */
+  --tone-interest: #f5c56b;   /* income › Interest (18 Oct, Nhi: a warm yellow) */
+  /* Invest (18 Oct): the four kinds of holding, in the series order (stocks · ETFs · bond fund · gold), and the two accounts */
+  --inv-stock: var(--tone-invest); --inv-etf: var(--chart-soft); --inv-bond: var(--tone-bonus); --inv-gold: var(--tone-interest);
+  --inv-acct-ssi: var(--inv-stock); --inv-acct-gold: var(--inv-gold);
+  /* Forecast (18 Oct): the what-if line; the projection itself wears --chart-line, the history --chart-hist */
+  --fc-whatif: var(--info-ink);
+  --fc-line: var(--chart-line); --fc-hist: var(--chart-hist); --fc-band: var(--chart-line);   /* Forecast's chart: the projections, the history, the band between the paces */
+  --cat-fallback: #9fa5ac;   /* category colour before dim_categories.chart_color loads */
+  /* category groups (Cash flow › This period, 18 Oct): each wears its biggest member's themed colour */
+  --grp-essentials: var(--cat-food-drinks, var(--cat-fallback)); --grp-lifestyle: var(--cat-shopee, var(--cat-fallback)); --grp-other: var(--cat-other, var(--cat-fallback)); --grp-untagged: var(--cat-untagged, var(--chart-rest));
+  --tip-bg: var(--surface); --tip-border: var(--border); --tip-ink: var(--ink);
+  --tip-shadow: 0 10px 28px rgb(0 0 0 / .1);
+
+  /* ---------- 4 · shape, space, elevation, motion */
+  --r-sm: 6px; --r-md: 10px; --r-lg: 16px;
+  --r-card: var(--r-lg); --r-ctl: var(--r-md); --r-pill: var(--r-sm);
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --shadow-card: 0 1px 2px rgb(16 24 40 / .04), 0 1px 3px rgb(16 24 40 / .03);
+  --shadow-pop: 0 12px 32px rgb(0 0 0 / .12), 0 2px 6px rgb(0 0 0 / .06);
+  --knob-shadow: 0 1px 2px rgb(0 0 0 / .2);
+  /* Ask AI composer: a white card inside a soft halo of its own surface (the reference's double edge), lifted off the page */
+  --composer-radius: 24px;
+  --composer-shadow: 0 0 0 6px color-mix(in srgb, var(--surface) 55%, transparent), 0 14px 36px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
+  --ease-out: cubic-bezier(.23, 1, .32, 1); --dur-fast: 150ms; --dur: 220ms;
+  --ease-drawer: cubic-bezier(.32, .72, 0, 1); --dur-sheet: 360ms;
+  --ease-in-out: cubic-bezier(.77, 0, .175, 1); --dur-slide: 240ms;   /* something moving on screen: a segmented control's pill (19 Oct) */   /* sheets that slide in from an edge (iOS drawer curve; 19 Oct) */
+  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px rgb(33 159 249 / .55);
+  --focus-border: rgb(33 159 249);  --focus-halo: 0 0 0 3px rgb(33 159 249 / .18);   /* text fields: one coloured border + a soft halo, not the button ring */
+
+  /* ---------- 5 · components */
+  --card-radius: var(--r-card);
+  --card-pad-xl: 20px;     --card-pad-xs: 16px;   --card-pad: var(--card-pad-xl);
+  --card-head-h: 52px;      /* eyebrow label + at most one control + ✦ + ⋮ */
+  --ctl-h: 36px;            /* buttons, square icon buttons, tabs */
+  --nav-item-h: 34px;
+  --table-head-h: 56px;
+  --table-row-h: 52px;
+  --tile: 28px;             /* the leading circle of a list row (icon tile or initials) */
+  --row-h: 56px;            /* list rows */
+  --chart-h-xl: 280px;      --chart-h-sm: 220px;   --chart-h-xs: 200px;   --chart-h: var(--chart-h-xl);   /* the hero chart frame */
+
+  /* ---------- 6 · layout (pages are arranged in js/pages.js on a 12-column grid; ds/layout.css swaps the -lg/-sm values in) */
+  --grid-cols: 12;
+  --content-max: 1880px;    /* pages stay left-aligned up to this width (20 Oct: 1360 left a wide empty strip on big screens) */
+  --nav-w-xl: 248px;        --nav-w-lg: 224px;     --nav-rail-w: 64px;   /* sidebar (xl), (lg), icon rail (md, sm) */
+  --gap-xl: 20px;           --gap-lg: 16px;        --gap-sm: 12px;       /* between cards */
+  --page-pad-x-xl: 32px;    --page-pad-x-lg: 24px; --page-pad-x-sm: 16px;
+  --page-pad-bottom: 40px;
+  --head-h-xl: 76px;        --head-h-xs: 60px;     /* page title row */
+  /* the values in use right now: the widest breakpoint's; ds/layout.css points them at the -lg / -sm / -xs tokens per
+     breakpoint. Edit the suffixed tokens (the panel does too), not these. */
+  --nav-w: var(--nav-w-xl); --gap: var(--gap-xl); --page-pad-x: var(--page-pad-x-xl); --head-h: var(--head-h-xl);
+  --tabbar-h: 64px;         /* the bottom tab bar (xs) */
+  --inspector-w: 380px;     /* the right inspector column a drill-down opens */
+
+  /* ---------- aliases read by the shared core (js/core/charts.js, trace.js) */
+  --tx: var(--ink); --tx-2: var(--ink-2); --tx-3: var(--ink-3); --bg: var(--surface); --ui: var(--rule); --ui-3: var(--border-strong);
+  --gr: var(--chart); --c1: var(--chart); --chart-font: var(--mono);
+  --sp3-past: var(--chart-past); --sp3-past-2: var(--chart-past-2);
+  --spb-past: var(--chart-past); --spb-warn-bar: var(--warn); --spb-warn-ink: var(--warn-ink);
+}

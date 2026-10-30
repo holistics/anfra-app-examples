@@ -1,0 +1,66 @@
+/* The live theme panel (js/ds/panel.js) and its sidebar entry. Tooling, not product: <html data-ds-tools="off"> hides it.
+   It is styled with the same tokens, so it changes with them. */
+/* a quiet footer link, not a nav item: the sidebar stays the four pages + Trust (C15) */
+.ds-entry { margin-top: auto; display: flex; align-items: center; gap: var(--sp-2); width: 100%; padding: var(--sp-2) var(--sp-4); border-radius: var(--r-pill); color: var(--ink-3); font-size: var(--fs-label); text-align: left; }
+.ds-entry:hover { color: var(--ink); background: var(--fill-subtle); }
+.ds-entry .i { width: 14px; height: 14px; }
+html[data-ds-tools="off"] .ds-entry { display: none; }
+@media (min-width: 1280px) { html.ds-panel-open .shell { margin-right: 360px; } }   /* xl frames make room; narrower ones overlay */
+.ds-panel { position: fixed; top: 0; right: 0; bottom: 0; z-index: 90; width: 360px; display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--border); box-shadow: var(--shadow-pop); font-size: var(--fs-2); color: var(--ink-2); }
+.ds-panel .dsp-head { display: flex; align-items: center; gap: var(--sp-2); height: var(--card-head-h); padding: 0 var(--sp-3) 0 var(--sp-4); border-bottom: 1px solid var(--rule); }
+.ds-panel .dsp-head .grow, .ds-panel .dsp-foot .grow { flex: 1; }
+.ds-panel .dsp-note { margin: var(--sp-3) var(--sp-4) 0; font-size: var(--fs-label); color: var(--ink-3); line-height: 1.5; }
+.ds-panel .dsp-note code, .ds-panel .dsp-k code { font: var(--fs-label) var(--mono); color: var(--ink-3); }
+.ds-panel .dsp-scroll { flex: 1; overflow: auto; padding: var(--sp-3) var(--sp-4) var(--sp-4); }
+.ds-panel .dsp-themes { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--sp-1); padding: var(--sp-1); border-radius: var(--r-md); background: var(--tint); margin-bottom: var(--sp-3); }
+.ds-panel .dsp-themes button { height: 30px; border-radius: var(--r-sm); color: var(--ink-2); text-transform: capitalize; }
+.ds-panel .dsp-themes button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-card); }
+.ds-panel .dsp-sec { border-top: 1px solid var(--rule); }
+.ds-panel .dsp-sec summary { cursor: pointer; padding: var(--sp-3) 0; font: 400 var(--fs-label)/1 var(--font-label); letter-spacing: var(--ls-label); text-transform: uppercase; color: var(--ink); }
+.ds-panel .dsp-body { display: grid; gap: var(--sp-2); padding-bottom: var(--sp-4); }
+.ds-panel .dsp-g { margin-top: var(--sp-2); font-size: var(--fs-label); color: var(--ink-3); }
+.ds-panel .dsp-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-2); align-items: center; }
+.ds-panel .dsp-k { display: flex; align-items: baseline; gap: 6px; min-width: 0; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ds-panel .dsp-ctl { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.ds-panel .dsp-v, .ds-panel .dsp-hex { min-width: 52px; text-align: right; font: var(--fs-label) var(--mono); color: var(--ink-2); }
+.ds-panel input[type="range"] { width: 120px; accent-color: var(--ink); }
+.ds-panel input[type="color"] { width: 28px; height: 22px; padding: 0; border: 1px solid var(--border); border-radius: var(--r-sm); background: none; cursor: pointer; }
+.ds-panel select { height: 28px; max-width: 150px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: var(--fs-2); }
+.ds-panel .dsp-dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--chart); flex: none; align-self: center; }
+.ds-panel .dsp-dot::after { content: ''; position: absolute; inset: -6px; }   /* a bigger hit area than the dot */
+.ds-panel .dsp-dot:hover { background: var(--neg); }
+.ds-panel .dsp-export { margin-top: var(--sp-3); display: grid; gap: var(--sp-2); }
+.ds-panel .dsp-export textarea { width: 100%; resize: vertical; padding: var(--sp-2); border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--tint); color: var(--ink); font: var(--fs-label)/1.5 var(--mono); }
+.ds-panel .dsp-copied { font-size: var(--fs-label); color: var(--pos); }
+.ds-panel .dsp-foot { display: flex; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--rule); }
+
+/* undo / redo in the head */
+.ds-panel .dsp-head .sq[disabled] { color: var(--ink-3); opacity: .45; cursor: default; }
+.ds-panel .dsp-note.dsp-flush { margin: 0; }
+/* saved looks (presets) */
+.ds-panel .dsp-active { font-size: var(--fs-2); color: var(--ink); }
+.ds-panel .dsp-presets { display: grid; gap: var(--sp-1); }
+.ds-panel .dsp-preset { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--sp-1); padding: var(--sp-1); border: 1px solid var(--border); border-radius: var(--r-md); }
+.ds-panel .dsp-preset.on { border-color: var(--ink-3); background: var(--tint); }
+.ds-panel .dsp-pname { display: grid; gap: 2px; padding: var(--sp-1) var(--sp-2); text-align: left; min-width: 0; }
+.ds-panel .dsp-pname .t { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ds-panel .dsp-pname .muted { font-size: var(--fs-label); }
+.ds-panel .dsp-pdel { height: 28px; min-width: 28px; padding: 0 var(--sp-2); display: grid; place-items: center; border-radius: var(--r-sm); color: var(--ink-3); font-size: var(--fs-label); }
+.ds-panel .dsp-pdel:hover { background: var(--fill-subtle); color: var(--ink); }
+.ds-panel .dsp-pdel.armed { background: var(--neg-tint); color: var(--neg); }
+.ds-panel .dsp-save { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-2); }
+.ds-panel .dsp-save input { height: var(--ctl-h); min-width: 0; padding: 0 var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-ctl); background: var(--surface); color: var(--ink); font-size: var(--fs-2); }
+.ds-panel .dsp-save input:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ds-panel .dsp-update { justify-self: start; font-size: var(--fs-2); }
+.ds-panel .dsp-msg { font-size: var(--fs-label); color: var(--ink-2); line-height: 1.5; }
+.ds-panel .dsp-msg:empty { display: none; }
+/* history */
+.ds-panel .dsp-hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 240px; overflow: auto; }
+.ds-panel .dsp-hist button { display: flex; justify-content: space-between; gap: var(--sp-2); width: 100%; padding: 6px var(--sp-2); border-radius: var(--r-sm); text-align: left; color: var(--ink); font-size: var(--fs-2); }
+.ds-panel .dsp-hist button .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); font-size: var(--fs-label); }
+.ds-panel .dsp-hist button .muted { flex: none; font-size: var(--fs-label); }
+.ds-panel .dsp-hist button:hover { background: var(--fill-subtle); }
+.ds-panel .dsp-hist button.on { background: var(--fill-active); }
+.ds-panel .dsp-hist button.ahead { color: var(--ink-3); }
+/* phones: the panel is a full-screen sheet */
+@media (max-width: 599px) { .ds-panel { width: 100%; border-left: 0; } }

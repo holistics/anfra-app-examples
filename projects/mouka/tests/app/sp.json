@@ -1,0 +1,574 @@
+[
+ {
+  "viewport": [
+   1600,
+   1000
+  ]
+ },
+ {
+  "waitFor": "() => !!WF.current && !!WF.asOf"
+ },
+ {
+  "click": ".sidebar [data-nav=spending]"
+ },
+ {
+  "waitFor": "() => ['og6_cf_kpi','og6_cf_flow','og6_cf_inc','og6_cf_cats'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "name": "Cash flow (the page, was Spending) opens on In & out (18 Oct): four tabs in order (In & out · Transactions · Recurring · Credit), one page hero (data-own net-flow)",
+  "assert": "() => WF.current.id === 'spending/cashflow' && [...document.querySelectorAll('.view:not([hidden]) .tabs .tab')].map((t) => t.textContent.trim()).join('|') === 'In & out|Transactions|Recurring|Credit' && document.querySelectorAll('.view:not([hidden]) .hero.page').length === 1 && !!document.querySelector('[data-own=net-flow]')"
+ },
+ {
+  "click": ".view:not([hidden]) .tabs [data-go='spending/transactions']"
+ },
+ {
+  "waitFor": "() => ['og6_tx_list','og6_tx_list_kpi','og6_tx_cats','og6_tx_merch'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "name": "Transactions: one page hero (data-own spend-range), a date range picker instead of range pills",
+  "assert": "() => WF.current.id === 'spending/transactions' && document.querySelectorAll('.view:not([hidden]) .hero.page').length === 1 && !!document.querySelector('[data-own=spend-range]') && !document.querySelector('.view:not([hidden]) .ranges') && document.querySelector('#tx-range .t').textContent === 'Past 3 months'"
+ },
+ {
+  "name": "one number: hero = the list's spend = the sum of the category rows (3M); the rail's card holds the categories and the top 5 merchants",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const sp = N(one('og6_tx_list_kpi').sp), cats = rows('og6_tx_cats').reduce((a, r) => a + N(r.v), 0); return sp > 0 && document.getElementById('tx-hero').textContent === OG.money(sp) && Math.abs(cats - sp) < 1 && document.querySelectorAll('#sp-cat-rows [data-cat]').length >= 5 && document.querySelectorAll('#sp-merch-rows [data-merch]').length === 5 && document.querySelectorAll('#sp-tx-list [data-tx]').length === 30; }"
+ },
+ {
+  "name": "summary strip under the hero: Total transactions · Date range · Total income · Between accounts, from og6_tx_list_kpi; no delta line",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const k = one('og6_tx_list_kpi'), t = document.getElementById('tx-sum').textContent; return [...document.querySelectorAll('#tx-sum .ts-i .k')].map((x) => x.textContent).join('|') === 'Total transactions|Date range|Total income|Between accounts' && t.includes(N(k.n).toLocaleString('en-US')) && t.includes(OG.money(N(k.inc))) && t.includes(OG.money(N(k.mv))) && document.getElementById('tx-hero-delta').hidden; }"
+ },
+ {
+  "eval": "() => { scrollTo(0, 800); return true; }"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "desktop (18 Oct, round 10): the page scrolls as one (no pinned Transactions head, no own-scroll rail); the rail is sticky like every page",
+  "assert": "() => { const h = document.querySelector('[data-anfra-block=sp-tx] > .card-head'), r = document.querySelector('[data-anfra-container=tx-rail]'); return scrollY > 0 && getComputedStyle(h).position !== 'sticky' && getComputedStyle(r).overflowY !== 'auto' && getComputedStyle(r).position === 'sticky'; }"
+ },
+ {
+  "eval": "() => { scrollTo(0, 0); return true; }"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "transfers (18 Oct): not dimmed, their account line reads from → to",
+  "assert": "() => { const rs = [...document.querySelectorAll('#sp-tx-list .tx-row.between')]; return rs.length > 0 && rs.every((r) => !r.classList.contains('dim') && / → /.test(r.querySelector('.lrow-main .s').textContent)); }"
+ },
+ {
+  "name": "the % switch starts off (18 Oct, round 10): no shares on Accounts",
+  "assert": "() => document.querySelectorAll('[data-pct][aria-pressed=false]').length === 1 && !!document.querySelector('.view:not([hidden]).hide-pct') && [...document.querySelectorAll('#sp-acct-rows .lline .a')].every((a) => !a.offsetParent)"
+ },
+ {
+  "click": "[data-anfra-block=sp-break] [data-pct]"
+ },
+ {
+  "name": "one click shows Accounts' shares",
+  "assert": "() => document.querySelectorAll('[data-pct][aria-pressed=true]').length === 1 && [...document.querySelectorAll('#sp-acct-rows .lline .a')].every((a) => a.offsetParent && /%$/.test(a.textContent.trim()))"
+ },
+ {
+  "click": "#sp-brk [data-k=cats]"
+ },
+ {
+  "name": "the icon switch opens Categories in the same card: its title follows, Accounts steps aside, the shares stay on",
+  "assert": "() => document.querySelector('[data-anfra-block=sp-break] .card-title').textContent === 'Categories' && !document.querySelector('#sp-acct-rows').offsetParent && [...document.querySelectorAll('#sp-cat-rows .lline .a .sh')].every((a) => a.offsetParent && /%$/.test(a.textContent.trim()))"
+ },
+ {
+  "click": "#sp-brk [data-k=merch]"
+ },
+ {
+  "name": "...and Merchants: the top 5, no % switch there",
+  "assert": "() => document.querySelector('[data-anfra-block=sp-break] .card-title').textContent === 'Merchants' && document.querySelectorAll('#sp-merch-rows [data-merch]').length === 5 && !!document.querySelector('#sp-merch-rows').offsetParent && getComputedStyle(document.querySelector('[data-anfra-block=sp-break] [data-pct]')).visibility === 'hidden'"
+ },
+ {
+  "click": "#sp-brk [data-k=cats]"
+ },
+ {
+  "click": "[data-anfra-block=sp-break] [data-pct]"
+ },
+ {
+  "name": "% off again: the shares hide and the amounts stay flush right",
+  "assert": "() => { const c = [...document.querySelectorAll('#sp-cat-rows .lline .v')].map((e) => Math.round(e.getBoundingClientRect().right)); return document.querySelectorAll('[data-pct][aria-pressed=false]').length === 1 && [...document.querySelectorAll('#sp-cat-rows .lline .a')].every((x) => !x.offsetParent) && new Set(c).size === 1; }"
+ },
+ {
+  "click": "#tx-filter"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "the filter opens: Categories (every category as a chip with its icon dot), Merchants (search + checklist), Amount (min / max + 3 presets), Reset, Cancel / Apply",
+  "assert": "() => { const p = document.querySelector('.filter-pop'); return !!p && [...p.querySelectorAll('.fp-h > span:first-child')].map((x) => x.textContent).join('|') === 'Categories|Merchants|Amount' && p.querySelectorAll('[data-fcat] .tx-ic').length >= 10 && p.querySelectorAll('[data-fm]').length >= 5 && !!p.querySelector('[data-msearch]') && !!p.querySelector('[data-min]') && !!p.querySelector('[data-max]') && p.querySelectorAll('[data-preset]').length === 3 && !!p.querySelector('[data-reset]') && !!p.querySelector('[data-apply]'); }"
+ },
+ {
+  "eval": "() => { const p = document.querySelector('.filter-pop'); p.querySelector('[data-fcat=\"Ăn uống\"]').click(); p.querySelector('[data-fcat=\"Đi lại\"]').click(); const mn = p.querySelector('[data-min]'); mn.value = '20k'; mn.dispatchEvent(new Event('change', { bubbles: true })); const mx = p.querySelector('[data-max]'); mx.value = '100,000'; mx.dispatchEvent(new Event('change', { bubbles: true })); return true; }"
+ },
+ {
+  "name": "picks stay a draft: two categories pressed, the amount reads ₫20K – ₫100K, the list hasn't moved yet",
+  "assert": "() => { const p = document.querySelector('.filter-pop'); return p.querySelectorAll('[data-fcat][aria-pressed=true]').length === 2 && p.querySelectorAll('.fp-n')[2].textContent === `${OG.approx(20000)} – ${OG.approx(100000)}` && !document.querySelector('#sp-chips [data-chip]'); }"
+ },
+ {
+  "click": ".filter-pop [data-apply]"
+ },
+ {
+  "waitFor": "() => ['og6_tx_list','og6_tx_list_kpi'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "Apply: three chips (2 categories + the amount), a 3 badge on the filter icon, every listed row is one of them and within ₫20K–₫100K, the hero follows",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const rs = rows('og6_tx_list'); return document.querySelectorAll('#sp-chips [data-chip]').length === 3 && document.getElementById('tx-fbadge').textContent === '3' && rs.length > 0 && rs.every((r) => ['Ăn uống', 'Đi lại'].includes(r.cat) && Math.abs(N(r.amt)) >= 20000 && Math.abs(N(r.amt)) <= 100000) && document.getElementById('tx-hero').textContent === OG.money(N(one('og6_tx_list_kpi').sp)); }"
+ },
+ {
+  "click": "#sp-chips [data-chip=amt]"
+ },
+ {
+  "waitFor": "() => ['og6_tx_list','og6_tx_list_kpi'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "name": "removing the amount chip keeps the two categories",
+  "assert": "() => document.querySelectorAll('#sp-chips [data-chip]').length === 2 && document.getElementById('tx-fbadge').textContent === '2'"
+ },
+ {
+  "eval": "() => { WF.views.get('spending/transactions').clearFilters(); return true; }"
+ },
+ {
+  "waitFor": "() => ['og6_tx_list','og6_tx_list_kpi'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "name": "cleared: no chips, no badge",
+  "assert": "() => !document.querySelector('#sp-chips [data-chip]') && document.getElementById('tx-fbadge').hidden"
+ },
+ {
+  "name": "head: the date range picker is the one head control, the search is an icon (the field folded away); rows: merchant first, then a tag (the category's icon on its colour, as in Categories), then the amount without a minus; categories show their share (18 Oct), no +/- change",
+  "assert": "() => { const h = document.querySelector('[data-anfra-block=sp-tx] .card-head'); return h.querySelectorAll('.head-ctl').length === 1 && !!h.querySelector('.head-ctl #tx-range') && !!h.querySelector('.tx-search-btn') && !h.querySelector('.tx-search.open') && !h.querySelector('.head-search').offsetParent && [...document.querySelectorAll('#sp-tx-list [data-tx]')].every((r) => r.firstElementChild.classList.contains('lrow-main') && !!r.querySelector('.lrow-end .tx-tag .tx-ic svg, .lrow-end .tx-tag .tx-ic .i') && !r.querySelector('.tile') && !/^-/.test(r.querySelector('.amt').textContent.trim())) && [...document.querySelectorAll('#sp-cat-rows .lline .a')].every((a) => /^\\d+(\\.\\d)?%$/.test(a.textContent.trim())); }"
+ },
+ {
+  "name": "moves between your own accounts are listed as from → to with their flow tag, and never count in the hero",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const tr = [...document.querySelectorAll('#sp-tx-list [data-tx].between')]; return tr.length > 0 && tr.every((r) => / → /.test(r.textContent) && !!r.querySelector('.tx-tag') && ['transfer', 'save_invest'].includes(r.dataset.flow)) && document.getElementById('tx-hero').textContent === OG.money(N(one('og6_tx_list_kpi').sp)); }"
+ },
+ {
+  "click": ".tx-search-btn"
+ },
+ {
+  "name": "the search icon expands into the field and focuses it",
+  "assert": "() => document.querySelector('#tx-search').classList.contains('open') && document.activeElement === document.getElementById('sp-q') && document.querySelector('.tx-search-btn').offsetParent === null"
+ },
+ {
+  "press": "Escape"
+ },
+ {
+  "name": "Escape folds the empty field back to the icon",
+  "assert": "() => !document.querySelector('#tx-search').classList.contains('open')"
+ },
+ {
+  "click": "#tx-range"
+ },
+ {
+  "name": "the picker opens (18 Oct, the wireframe): 8 presets + Custom on the left (the current one pressed), a calendar with named day buttons (days after the data are off, one tabbable), Range selected From → To, Cancel + Apply dates",
+  "assert": "() => { const p = document.querySelector('.range-pop'); const ds = [...p.querySelectorAll('.rp-d')]; return !!p && p.querySelectorAll('.opt').length === 8 && p.querySelector('.opt[aria-pressed=true]').dataset.k === '3M' && !!p.querySelector('[data-custom][aria-pressed=false]') && ds.length >= 28 && ds.every((b) => /\\d{4}/.test(b.getAttribute('aria-label'))) && ds.filter((b) => b.tabIndex === 0).length === 1 && ds.filter((b) => b.dataset.d > WF.asOf).every((b) => b.disabled) && p.querySelectorAll('.rp-d.on').length >= 1 && p.querySelectorAll('.rp-c.in').length > 20 && p.querySelectorAll('input[type=date]').length === 2 && !!p.querySelector('[data-cancel]') && !p.querySelector('[data-apply]').disabled; }"
+ },
+ {
+  "click": ".range-pop .opt[data-k='1M']"
+ },
+ {
+  "waitFor": "() => document.querySelector('#tx-range .t').textContent === 'Past month' && !document.querySelector('.range-pop')"
+ },
+ {
+  "waitFor": "() => ['og6_tx_list','og6_tx_list_kpi','og6_tx_cats','og6_tx_merch'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "a preset moves every card: 1M hero = its categories' sum",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const sp = N(one('og6_tx_list_kpi').sp), cats = rows('og6_tx_cats').reduce((a, r) => a + N(r.v), 0); return document.getElementById('tx-hero').textContent === OG.money(sp) && Math.abs(cats - sp) < 1; }"
+ },
+ {
+  "click": "#tx-range"
+ },
+ {
+  "eval": "() => { const p = document.querySelector('.range-pop'); p.querySelector('[data-from]').value = '2026-09-01'; p.querySelector('[data-to]').value = '2026-09-30'; p.querySelector('[data-apply]').click(); return true; }"
+ },
+ {
+  "waitFor": "() => ['og6_tx_list','og6_tx_list_kpi','og6_tx_cats','og6_tx_merch'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "custom dates: the button names them, every listed row falls inside",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const rs = rows('og6_tx_list'); return document.querySelector('#tx-range .t').textContent === 'Sep 1 – Sep 30' && rs.length > 0 && rs.every((r) => { const d = String(r.d).slice(0, 10); return d >= '2026-09-01' && d <= '2026-09-30'; }); }"
+ },
+ {
+  "click": "#tx-range"
+ },
+ {
+  "click": ".range-pop .rp-d[data-d='2026-09-08']"
+ },
+ {
+  "name": "a first day click starts a new range: only the start is set, Apply waits for the end, From shows it",
+  "assert": "() => { const p = document.querySelector('.range-pop'); return p.querySelector('[data-from]').value === '2026-09-08' && p.querySelector('[data-to]').value === '' && p.querySelector('[data-apply]').disabled && !!p.querySelector('[data-custom][aria-pressed=true]'); }"
+ },
+ {
+  "click": ".range-pop .rp-d[data-d='2026-09-20']"
+ },
+ {
+  "name": "the second click sets the end: the band runs between them",
+  "assert": "() => { const p = document.querySelector('.range-pop'); return p.querySelector('[data-to]').value === '2026-09-20' && p.querySelectorAll('.rp-c.in').length === 13 && !p.querySelector('[data-apply]').disabled; }"
+ },
+ {
+  "click": ".range-pop [data-apply]"
+ },
+ {
+  "waitFor": "() => ['og6_tx_list','og6_tx_list_kpi','og6_tx_cats','og6_tx_merch','og6_tx_accts'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "calendar dates apply: the button names them, every listed row falls inside",
+  "assert": "() => { const rs = WF.registry.get('og6_tx_list').query.result.rows; return document.querySelector('#tx-range .t').textContent === 'Sep 8 – Sep 20' && !document.querySelector('.range-pop') && rs.length > 0 && rs.every((r) => { const d = String(r.d).slice(0, 10); return d >= '2026-09-08' && d <= '2026-09-20'; }); }"
+ },
+ {
+  "eval": "() => { WF.views.get('spending/transactions').setRange('3M'); return true; }"
+ },
+ {
+  "waitFor": "() => ['og6_tx_list','og6_tx_list_kpi','og6_tx_cats','og6_tx_merch'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 1000
+ },
+ {
+  "click": "#sp-brk [data-k=accts]"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "the rail is ONE card (18 Oct) whose title is its switch: three icons, the active one named (Accounts); it opens on Accounts: what each account spent, which adds up to the categories and the hero",
+  "assert": "() => { const rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const rail = [...document.querySelectorAll('[data-anfra-container=tx-rail] [data-anfra-block]')].map((c) => c.dataset.anfraBlock); const a = rows('og6_tx_accts').reduce((s, r) => s + N(r.v), 0), c = rows('og6_tx_cats').reduce((s, r) => s + N(r.v), 0), sp = N(WF.registry.get('og6_tx_list_kpi').query.result.rows[0].sp); return rail.join('|') === 'sp-break' && document.querySelectorAll('#sp-brk [data-k]').length === 3 && document.querySelector('#sp-brk .active').dataset.k === 'accts' && document.querySelector('[data-anfra-block=sp-break] .card-title').textContent === 'Accounts' && document.querySelector('[data-anfra-block=sp-break] .card-title').getBoundingClientRect().width < 2 && document.querySelector('#sp-brk .active .seg-l').textContent === 'Accounts' && !document.querySelector('#sp-brk button:not(.active) .seg-l').offsetParent && !!document.querySelector('#sp-acct-rows').offsetParent && document.querySelectorAll('#sp-acct-rows [data-acct]').length === rows('og6_tx_accts').length && Math.abs(a - c) < 1 && Math.abs(a - sp) < 1; }"
+ },
+ {
+  "click": "#sp-acct-rows [data-acct]"
+ },
+ {
+  "waitFor": "() => ['og6_tx_list','og6_tx_list_kpi','og6_tx_cats','og6_tx_merch','og6_tx_accts'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "an account row filters the list to that account: a chip, the row pressed, the others dim, every listed row is that account",
+  "assert": "() => { const r0 = document.querySelector('#sp-acct-rows [data-acct]'), src = r0.dataset.acct, rs = WF.registry.get('og6_tx_list').query.result.rows; return !!document.querySelector('#sp-chips [data-chip=src]') && r0.getAttribute('aria-pressed') === 'true' && document.querySelectorAll('#sp-acct-rows .dim').length === document.querySelectorAll('#sp-acct-rows [data-acct]').length - 1 && rs.length > 0 && rs.every((r) => r.src === src); }"
+ },
+ {
+  "click": "#sp-acct-rows [data-acct]"
+ },
+ {
+  "waitFor": "() => ['og6_tx_list','og6_tx_list_kpi','og6_tx_cats','og6_tx_merch','og6_tx_accts'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "a second click clears it",
+  "assert": "() => !document.querySelector('#sp-chips [data-chip=src]') && !document.querySelector('#sp-acct-rows .dim') && !document.querySelector('#sp-acct-rows [aria-pressed=true]')"
+ },
+ {
+  "click": "#sp-brk [data-k=cats]"
+ },
+ {
+  "click": "#sp-cat-rows [data-cat]"
+ },
+ {
+  "waitFor": "() => !!document.querySelector('[data-anfra-container=tx-rail] .inspector:not([hidden]) #sp-insp .hero')"
+ },
+ {
+  "name": "a category opens in the rail (‹ Back to Categories), the rail's card steps aside, its spend = its row; the drill-down reads hero · three facts · past year · top merchants",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const d = document.querySelector('[data-anfra-container=tx-rail] .inspector:not([hidden])'), first = rows('og6_tx_cats').find((r) => N(r.v) > 0); return d.querySelector('.dh .back').getAttribute('aria-label') === 'Back to Categories' && !document.querySelector('[data-anfra-block=sp-break]').offsetParent && d.querySelector('#sp-insp .hero').textContent === OG.money(first.v) && !!d.querySelector('#sp-insp-chart') && d.querySelectorAll('.ins-kpis > div').length === 3 && [...d.querySelectorAll('.ins-h')].map((x) => x.textContent.trim()).join('|') === 'Past year, by month|Top merchants'; }"
+ },
+ {
+  "click": "[data-anfra-container=tx-rail] .inspector:not([hidden]) [data-only]"
+ },
+ {
+  "waitFor": "() => ['og6_tx_list','og6_tx_list_kpi'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "Show transactions: a category chip, the rail's card is back, every listed row is that category, the hero follows the filter",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const first = rows('og6_tx_cats').find((r) => N(r.v) > 0), rs = rows('og6_tx_list'); return !!document.querySelector('#sp-chips [data-chip^=\"cat|\"]') && !!document.querySelector('[data-anfra-block=sp-break]').offsetParent && rs.length > 0 && rs.every((r) => r.cat === first.cat) && document.getElementById('tx-hero').textContent === OG.money(first.v); }"
+ },
+ {
+  "eval": "() => { const i = document.getElementById('sp-q'); i.value = 'Mo'; i.dispatchEvent(new Event('input', { bubbles: true })); return true; }"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "waitFor": "() => ['og6_tx_list','og6_tx_list_kpi'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "name": "search narrows the list (merchant contains) on top of the category; two chips + Clear all",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const rs = rows('og6_tx_list'); return document.querySelectorAll('#sp-chips [data-chip]').length === 2 && !!document.querySelector('[data-chip-clear]') && rs.length > 0 && rs.every((r) => String(r.md).includes('Mo')); }"
+ },
+ {
+  "click": "[data-chip-clear]"
+ },
+ {
+  "waitFor": "() => ['og6_tx_list','og6_tx_list_kpi'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "Clear all restores the whole window's list (= the categories' 3M total)",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; return !document.querySelector('#sp-chips [data-chip]') && document.getElementById('sp-q').value === '' && Math.abs(N(one('og6_tx_list_kpi').sp) - rows('og6_tx_cats').reduce((a, r) => a + N(r.v), 0)) < 1; }"
+ },
+ {
+  "click": "#sp-more"
+ },
+ {
+  "waitFor": "() => document.querySelectorAll('#sp-tx-list [data-tx]').length > 30"
+ },
+ {
+  "click": "#sp-tx-list [data-tx]"
+ },
+ {
+  "name": "a transaction opens in the rail: amount, merchant, bank text, category, account, what it counts as",
+  "assert": "() => { const d = document.querySelector('[data-anfra-container=tx-rail] .inspector:not([hidden])'); return !!d && d.querySelectorAll('.sp-facts > div').length === 5 && /Counts as|not income/.test(d.textContent) && !!document.querySelector('#sp-tx-list [data-tx].active'); }"
+ },
+ {
+  "press": "Escape"
+ },
+ {
+  "eval": "() => { OG.openTx({ cat: 'Ăn uống', date: 'this_month' }); return true; }"
+ },
+ {
+  "waitFor": "() => ['og6_tx_list','og6_tx_list_kpi'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "a deep link (OG.openTx) lands on Transactions: the picker says This month, the category chip, only that category",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const rs = rows('og6_tx_list'); return WF.current.id === 'spending/transactions' && document.querySelector('#tx-range .t').textContent === 'This month' && !!document.querySelector('#sp-chips [data-chip^=\"cat|\"]') && rs.every((r) => r.cat === 'Ăn uống'); }"
+ },
+ {
+  "eval": "() => { const v = WF.views.get('spending/transactions'); v.clearFilters(); v.setRange('3M'); return true; }"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "click": ".view:not([hidden]) .tabs [data-go='spending/recurring']"
+ },
+ {
+  "waitFor": "() => ['og6_rc_due','og6_rc_series','og6_rc_kpi','og6_rc_subs','og6_rc_commit'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "Recurring: hero = recurring_due_30d = the bills due in the next 30 days in the list; the payday row is there",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const amt = N(one('og6_rc_due').amt), due = rows('og6_rc_series').filter((r) => r.k !== 'income' && N(r.dd) >= 0 && N(r.dd) <= 30).reduce((a, r) => a + N(r.amt), 0); return document.querySelectorAll('.view:not([hidden]) .hero.page').length === 1 && document.getElementById('rc-hero').textContent === OG.money(amt) && Math.abs(due - amt) < 1 && [...document.querySelectorAll('#rc-list .tx-tag')].some((t) => t.textContent.trim() === 'Payday'); }"
+ },
+ {
+  "name": "Coming up (18 Oct) in the Transactions list's style under This week / Next 30 days / Later (no totals on the heads), two-line rows (name over the account), a tag, the due date in its own column, the amount; Payday's tag",
+  "assert": "() => { const rs = [...document.querySelectorAll('#rc-list .tx-row')], hs = [...document.querySelectorAll('#rc-list .day-head')]; return rs.length >= 5 && hs.length >= 2 && hs.every((h) => ['Late or not loaded', 'This week', 'Next 30 days', 'Later'].includes(h.querySelector('.t').textContent)) && new Set(rs.map((r) => Math.round(r.querySelector('.rc-when').getBoundingClientRect().right))).size === 1 && rs.every((r) => !!r.querySelector('.lrow-end .rc-when') && !!r.querySelector('.lrow-main .s') && !!r.querySelector('.lrow-end .tx-tag') && !!r.querySelector('.lrow-end .amt')) && hs.every((h) => !h.querySelector('.v')) && [...document.querySelectorAll('#rc-list .tx-tag')].some((t) => t.textContent.trim() === 'Payday') && !document.querySelector('#rc-list .rc-line'); }"
+ },
+ {
+  "name": "Monthly commitments (18 Oct, compact) is in the rail: 8px from its label to the total, total = bills + subscriptions, split bar, two group lines that start folded, Subscriptions flags 1 missed; the cards moved out",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const k = one('og6_rc_kpi'); const c = document.querySelector('[data-anfra-container=rc-rail] #rc-commit-c'); return !!c && !document.querySelector('[data-anfra-container=rc-main-col] #rc-commit-c') && document.getElementById('rc-commit-hero').textContent === OG.money(k.total) && Math.abs(N(k.bills) + N(k.subs) - N(k.total)) < 1 && c.querySelectorAll('.nw-split > div').length === 2 && c.querySelectorAll('[data-toggle][aria-expanded=false]').length === 2 && [...c.querySelectorAll('[data-under]')].every((r) => r.hidden) && /1 missed/.test(c.querySelector('[data-toggle=Subscriptions]').closest('.lline').textContent) && Math.round(document.getElementById('rc-commit-hero').getBoundingClientRect().top - document.getElementById('rc-commit-label').getBoundingClientRect().bottom) >= 6 && !document.getElementById('rc-cards-c') && !document.getElementById('rc-cb-c'); }"
+ },
+ {
+  "name": "group lines have no divider (18 Oct: like Net worth); Payday (18 Oct) sits under the commitments: next payday and its amount from og6_rc_due, a progress bar (19 Oct: no knob, it is not a slider) and the days gone in words",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const k = one('og6_rc_due'), dd = OG.daysBetween(WF.asOf, String(k.pay).slice(0, 10)), p = document.getElementById('rc-pay-c'); const rail = [...document.querySelectorAll('[data-anfra-container=rc-rail] [data-anfra-block]')].map((c) => c.dataset.anfraBlock); return [...document.querySelectorAll('#rc-commit-c .rc-gline')].every((l) => getComputedStyle(l).borderBottomStyle === 'none') && rail.indexOf('rc-pay') === rail.indexOf('rc-commit') + 1 && p.querySelector('.dpill').textContent === `+${OG.approx(k.inc)}` && p.textContent.includes(`${dd} days`) && !p.querySelector('.rc-track .dot') && !!p.querySelector('.rc-track[role=progressbar]') && /of \\d+ days/.test(p.querySelector('.rc-track-k').textContent); }"
+ },
+ {
+  "click": "#rc-commit-c [data-toggle='Subscriptions']"
+ },
+ {
+  "name": "unfolding Subscriptions shows its lines, which add up to the group; OpenAI is flagged Missed",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const k = one('og6_rc_kpi'), rs = [...document.querySelectorAll('#rc-commit-c .rc-sub[data-under=Subscriptions]')]; const sum = rs.reduce((a, r) => a + N((r.querySelector('.rc-sub-v .amt')?.textContent ?? '').replace(/[^0-9]/g, '')), 0); return rs.length >= 8 && rs.every((r) => !r.hidden) && Math.abs(sum - N(k.subs)) < 2 && rs.some((r) => /OpenAI/.test(r.textContent) && !!r.querySelector('.rc-flag.miss')) && [...document.querySelectorAll('#rc-commit-c [data-under=Bills]')].every((r) => r.hidden); }"
+ },
+ {
+  "click": "#rc-commit-c [data-toggle='Subscriptions']"
+ },
+ {
+  "click": "#rc-mode [data-k=cal]"
+ },
+ {
+  "name": "the calendar view shows 5 weeks",
+  "assert": "() => document.querySelectorAll('#rc-cal .week .c').length === 35 && document.getElementById('rc-list').hidden"
+ },
+ {
+  "click": "#rc-mode [data-k=list]"
+ },
+ {
+  "click": "#rc-list [data-series]"
+ },
+ {
+  "waitFor": "() => !!document.querySelector('[data-anfra-container=rc-rail] .inspector:not([hidden]) #rc-insp-chart')"
+ },
+ {
+  "name": "a series opens in the rail with its last 6 months and Show transactions",
+  "assert": "() => { const d = document.querySelector('[data-anfra-container=rc-rail] .inspector:not([hidden])'); return d.querySelector('.dh .back').getAttribute('aria-label') === 'Back to Recurring' && !!d.querySelector('[data-rc-tx]'); }"
+ },
+ {
+  "press": "Escape"
+ },
+ {
+  "click": ".view:not([hidden]) .tabs [data-go='spending/credit']"
+ },
+ {
+  "waitFor": "() => ['og_card_bill','og6_rc_vib_owed','og6_rc_vib_paid','og_vib','og6_cr_spend','og6_cr_stmts','og6_cr_pays','og6_cr_vpays','og6_cr_cycles','og6_cr_monthly'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "Credit (18 Oct, round 10): the main card is Card spending = the owed hero (each card's spend over the range on its right) + what went on each card by month (2 series, 1Y, summing to card_spend); the cards (one line each, details folded) and Cashback in the rail",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const bal = N(one('og_card_bill').bal), owed = Math.abs(N(one('og6_rc_vib_owed').v)), cs = [...document.querySelectorAll('#cr-cards-c .cr-card')]; const ch = echarts.getInstanceByDom(document.getElementById('cr-chart')), s = ch?.getOption().series ?? []; const tot = rows('og6_cr_monthly').reduce((a, r) => a + N(r.v), 0), drawn = s.reduce((a, x) => a + x.data.reduce((b, p) => b + N(p.value ?? p), 0), 0); const main = [...document.querySelectorAll('[data-anfra-container=cr-main-col] [data-anfra-block]')].map((c) => c.dataset.anfraBlock), rail = [...document.querySelectorAll('[data-anfra-container=cr-rail] [data-anfra-block]')].map((c) => c.dataset.anfraBlock); return document.querySelectorAll('.view:not([hidden]) .hero.page').length === 1 && !!document.querySelector('[data-anfra-block=cr-spend] [data-own=card-owed]') && document.getElementById('cr-hero').textContent === OG.money(bal + owed) && s.length === 2 && s.map((x) => x.name).join('|') === 'TCB Visa|MAX VIB' && tot > 0 && Math.abs(drawn - tot) < 1 && document.querySelector('#cr-ranges .active').dataset.k === '1Y' && [...document.querySelectorAll('#cr-tot > div')].map((x) => x.querySelector('.v').textContent).join('|') === s.map((x) => OG.approx(x.data.reduce((a, p) => a + (Number(p.value ?? p) || 0), 0))).join('|') && main.join('|') === 'cr-spend' && rail.join('|') === 'cr-cards|cr-cashback' && cs.length === 2 && cs.every((c) => !!c.querySelector('.cr-line .rc-due') && !!c.querySelector('.cr-quiet') && c.querySelector('.cr-more').hidden) && cs[1].querySelector('.cr-line .v').textContent === OG.money(owed) && !!cs[1].querySelector('.rc-due.ok') && cs.every((c) => { const t = c.querySelector('.cr-line .t'); return t.scrollWidth <= t.clientWidth + 1; }); }"
+ },
+ {
+  "click": "#cr-cards-c [data-toggle=tcb]"
+ },
+ {
+  "name": "TCB Visa's Details: the facts, then every statement with a status (the latest Due, the closed ones Paid in full); the quiet line counts them",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const st = rows('og6_cr_stmts').filter((r) => r.bal != null), c = document.querySelector('#cr-cards-c .cr-card'), tcb = [...c.querySelectorAll('.cr-st')]; return !c.querySelector('.cr-more').hidden && tcb.length === st.length && tcb.every((r) => !!r.querySelector('.rc-due')) && /Due/.test(tcb[0].textContent) && tcb.slice(1).every((r) => /Paid in full/.test(r.textContent)) && /Paid in full \\d+ of \\d+ statements/.test(c.querySelector('.cr-quiet').textContent); }"
+ },
+ {
+  "click": "#cr-cards-c [data-toggle=tcb]"
+ },
+ {
+  "name": "Cashback: the current cycle, a strip of the past cycles (one bar each, green when maxed) with the count; All cycles folded",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const cy = rows('og6_cr_cycles'), past = cy.filter((r) => !(r.cur === true || r.cur === 'true')), maxed = past.filter((r) => r.st === 'maxed').length; return document.querySelector('#cr-cb-c .rc-big [data-trace]').textContent === OG.money(one('og_vib').pts) && document.querySelectorAll('#cr-cb-c .cr-strip > span').length === past.length && document.querySelectorAll('#cr-cb-c .cr-strip > span.max').length === maxed && document.querySelector('.cr-strip-k').textContent.startsWith(`Maxed ${maxed} of ${past.length}`) && document.querySelector('#cr-cb-c .cr-more').hidden; }"
+ },
+ {
+  "click": ".view:not([hidden]) .tabs [data-go='spending/cashflow']"
+ },
+ {
+  "waitFor": "() => ['og6_cf_kpi','og6_cf_flow','og6_cf_inc','og6_cf_cats','og6_cf_other'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "In & out: hero = net = income − spending, the kept % pill; the flow bars sum to the same",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const k = one('og6_cf_kpi'), fl = rows('og6_cf_flow'); const inc = fl.reduce((a, r) => a + N(r.inc), 0), sp = fl.reduce((a, r) => a + N(r.sp), 0); return document.getElementById('cf-hero').textContent === OG.money(k.net, true) && Math.abs(N(k.inc) - N(k.sp) - N(k.net)) < 1 && Math.abs(inc - N(k.inc)) < 1 && Math.abs(sp - N(k.sp)) < 1 && !!document.querySelector('#cf-hero-delta .dpill'); }"
+ },
+ {
+  "name": "...the sankey balances: what flows in = categories + kept (+ from savings), and the income sources sum to income",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const k = one('og6_cf_kpi'), inc = N(k.inc), sp = N(k.sp), cats = rows('og6_cf_cats').filter((r) => N(r.v) > 0).reduce((a, r) => a + N(r.v), 0), src = rows('og6_cf_inc').reduce((a, r) => a + N(r.v), 0); return Math.abs(cats - sp) < 1 && Math.abs(src - inc) < 1 && !!echarts.getInstanceByDom(document.getElementById('cf-sk')); }"
+ },
+ {
+  "name": "This period: two sides with group lines only (no items under them), each adding up to its total; no ratio box in the card; the Money in card is gone; the group lines read like Net worth's child rows (regular, 30px pitch)",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const k = one('og6_cf_kpi'); const side = (s) => document.querySelector(`#cf-sum-rows [data-sum=${s}]`); const inc = rows('og6_cf_inc').reduce((a, r) => a + N(r.v), 0), sp = rows('og6_cf_cats').filter((r) => N(r.v) > 0).reduce((a, r) => a + N(r.v), 0); return side('inc').querySelector('.nw-sum-hd .amt').textContent === OG.approx(k.inc) && side('sp').querySelector('.nw-sum-hd .amt').textContent === OG.approx(k.sp) && side('inc').querySelectorAll('.nw-sum-gline').length >= 2 && side('sp').querySelectorAll('.nw-sum-gline').length >= 3 && !document.querySelector('#cf-sum-rows .nw-sum-line, #cf-sum-rows [data-toggle], #cf-sum-rows .cf-ratios') && Math.abs(inc - N(k.inc)) < 1 && Math.abs(sp - N(k.sp)) < 1 && !document.querySelector('[data-anfra-block=cf-sources]') && [...document.querySelectorAll('#cf-sum-rows .nw-sum-gline')].every((l) => getComputedStyle(l.querySelector('.t')).fontWeight === '400' && l.getBoundingClientRect().height <= 31) && document.querySelector('[data-hc=cf-ratios] svg') && !document.querySelector('[data-hc=cf-ratios] [data-icon=formula]'); }"
+ },
+ {
+  "eval": "() => { OG.hcOpen(document.querySelector('[data-hc=cf-ratios]'), { pin: true }); return true; }"
+ },
+ {
+  "name": "the head's gauge button (18 Oct: was ƒ, the trace icon) opens the kept-and-ratios hover card: Kept, Kept of income, Savings rate, Came in not income",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, N = (v) => Number(v) || 0; const h = document.getElementById('hc'); return !h.hidden && h.querySelectorAll('.cf-ratio').length === 4 && h.textContent.includes(OG.approx(one('og6_cf_kpi').net, true)); }"
+ },
+ {
+  "eval": "() => { OG.hcClose(); return true; }"
+ },
+ {
+  "eval": "() => { WF.views.get('spending/cashflow').inspect(0); return true; }"
+ },
+ {
+  "waitFor": "() => !!document.querySelector('[data-anfra-container=cf-rail] .inspector:not([hidden]) #cf-insp .hero')"
+ },
+ {
+  "name": "a bar opens its month in the rail: net, income, spending, top categories, Show transactions",
+  "assert": "() => { const d = document.querySelector('[data-anfra-container=cf-rail] .inspector:not([hidden])'); return /Net/.test(d.textContent) && !!d.querySelector('[data-cf-tx]') && d.querySelector('.dh .back').getAttribute('aria-label') === 'Back to This period'; }"
+ },
+ {
+  "press": "Escape"
+ },
+ {
+  "click": ".sidebar [data-nav=home]"
+ },
+ {
+  "click": ".sidebar [data-nav=spending]"
+ },
+ {
+  "name": "the nav remembers the last Spending tab",
+  "assert": "() => WF.current.id === 'spending/cashflow'"
+ },
+ {
+  "viewport": [
+   390,
+   900
+  ]
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "xs In & out: no horizontal overflow",
+  "assert": "() => document.documentElement.scrollWidth <= innerWidth + 1"
+ },
+ {
+  "click": ".view:not([hidden]) .tabs [data-go='spending/transactions']"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "click": ".tx-search-btn"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "xs Transactions: no overflow; the opened search drops under the title (title not truncated)",
+  "assert": "() => { if (WF.current.id !== 'spending/transactions') return false; const t = document.querySelector('[data-anfra-block=sp-tx] .card-title'), s = document.querySelector('[data-anfra-block=sp-tx] .head-search'); return document.documentElement.scrollWidth <= innerWidth + 1 && t.scrollWidth <= t.clientWidth + 1 && !!s.offsetParent && s.getBoundingClientRect().top > t.getBoundingClientRect().bottom - 2; }"
+ },
+ {
+  "click": ".view:not([hidden]) .tabs [data-go='spending/recurring']"
+ },
+ {
+  "wait": 1200
+ },
+ {
+  "name": "xs Recurring: no horizontal overflow",
+  "assert": "() => document.documentElement.scrollWidth <= innerWidth + 1"
+ },
+ {
+  "name": "xs: the four tabs fit the row",
+  "assert": "() => { const t = document.querySelector('.view:not([hidden]) .tabs'); return t.scrollWidth <= t.clientWidth + 1 && [...t.querySelectorAll('.tab')].every((b) => b.scrollWidth <= b.clientWidth + 1); }"
+ },
+ {
+  "click": ".view:not([hidden]) .tabs [data-go='spending/credit']"
+ },
+ {
+  "wait": 1200
+ },
+ {
+  "name": "xs Credit: no horizontal overflow; the rail's cards stack under the chart, one card line per card",
+  "assert": "() => document.documentElement.scrollWidth <= innerWidth + 1 && document.querySelectorAll('#cr-cards-c .cr-card').length === 2 && document.querySelector('[data-anfra-block=cr-spend]').getBoundingClientRect().bottom <= document.querySelector('[data-anfra-block=cr-cards]').getBoundingClientRect().top + 1"
+ }
+]

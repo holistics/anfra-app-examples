@@ -1,0 +1,402 @@
+[
+ {
+  "viewport": [
+   1600,
+   1000
+  ]
+ },
+ {
+  "waitFor": "() => !!WF.current && !!WF.asOf"
+ },
+ {
+  "click": ".sidebar [data-nav=invest]"
+ },
+ {
+  "waitFor": "() => ['og7_inv_perf','og7_inv_curve','og7_inv_bridge','og7_inv_pg_sym','og7_inv_inc','og7_inv_inc_m'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "name": "Invest opens on Performance: two tabs in order (Performance · Holdings), one page hero (data-own portfolio_gain_loss), no placeholder",
+  "assert": "() => WF.current.id === 'invest/performance' && [...document.querySelector('.view:not([hidden])').querySelectorAll('.tabs .tab')].map((t) => t.textContent).join('|') === 'Performance|Holdings' && document.querySelector('.view:not([hidden])').querySelectorAll('.hero.page').length === 1 && !!document.querySelector('.view:not([hidden])').querySelector('.hero.page[data-own=portfolio_gain_loss]') && !document.querySelector('[data-anfra-block=next-invest]') && !document.querySelector('.view:not([hidden])').querySelector('.ds-missing')"
+ },
+ {
+  "name": "hero = the governed gain over 1Y, exact; the pill = twr; the range is 1Y",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); const k = one('og7_inv_perf'); return digits(document.querySelector('#inv-hero').textContent) === Math.round(num(k.g)) && document.querySelector('#inv-hero-delta [data-trace=\"og7_inv_perf:twr\"]') && document.querySelector('#inv-ranges [data-k=\"1Y\"]').classList.contains('active'); }"
+ },
+ {
+  "name": "race: two lanes, the %s traced to perf twr / b, the gap in points with its word; no chart key",
+  "assert": "() => { const k = WF.registry.get('og7_inv_perf').query.result.rows[0], you = Number(k.twr), ix = Number(k.b); const r = WF.views.get('invest/performance').race(you, ix); const g = document.querySelector('#inv-race-gap').textContent; return !!document.querySelector('#inv-race .inv-lane[data-k=you] .pct[data-trace=\"og7_inv_perf:twr\"]') && !!document.querySelector('#inv-race .inv-lane[data-k=ix] .pct[data-trace=\"og7_inv_perf:b\"]') && (r.word === 'level' ? /level/.test(g) : g.includes(Math.abs(r.gap).toFixed(1) + ' pts ' + r.word)) && /VN-Index/.test(document.querySelector('#inv-race').getAttribute('aria-label')) && !document.querySelector('#inv-key') && !!document.querySelector('#inv-race .inv-zero') === r.zero; }"
+ },
+ {
+  "name": "race(): behind, negative and level cases",
+  "assert": "() => { const v = WF.views.get('invest/performance'); const a = v.race(-0.02, 0.05), b = v.race(0.0631, 0.063), c = v.race(0.154, 0.063); return a.word === 'behind' && a.zero && a.lo === -0.02 && a.hi === 0.05 && b.word === 'level' && c.word === 'ahead' && Math.abs(c.gap - 9.1) < 1e-9 && !c.zero; }"
+ },
+ {
+  "name": "What moved it closes to the đồng: start + money added + your gain = end, and your gain = price moves + dividends + fees & other (Fees & other only when it isn't 0)",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); const k = one('og7_inv_perf'), b = one('og7_inv_bridge'); const rest = num(k.g) - num(b.pg) - num(b.dv); const sum = num(k.s) + num(k.f) + num(b.pg) + num(b.dv) + rest; const shown = !!document.querySelector('#inv-br-rows [data-part=rest]'); return Math.abs(sum - num(k.e)) < 1 && shown === (Math.abs(rest) >= 1) && document.querySelectorAll('#inv-br-rows .inv-br-row').length === (shown ? 3 : 2) && !document.querySelector('#inv-br-rows [data-part=f]'); }"
+ },
+ {
+  "name": "19 Oct: What moved it reads as one sum (Invested + You added + Your gain = Invested now), every term traced; Your gain = the hero",
+  "assert": "() => { const t = (k) => document.querySelector(`#inv-br-lead [data-part=${k}] .v`); const tr = ['s','f','g','e'].map((k) => t(k)?.dataset.trace); return tr.join('|') === 'og7_inv_perf:s|og7_inv_perf:f|og7_inv_perf:g|og7_inv_perf:e' && [...document.querySelectorAll('#inv-br-lead .op')].map((o) => o.textContent).length === 3 && document.querySelector('#inv-br-lead [data-part=e] .op').textContent === '='; }"
+ },
+ {
+  "name": "19 Oct: the race has its own card (You vs the VN-Index), right under Return; the Return card holds no race",
+  "assert": "() => { const vs = document.querySelector('[data-anfra-block=inv-vs]'), ret = document.querySelector('[data-anfra-block=inv-ret]'); return !!vs && vs.contains(document.querySelector('#inv-race')) && !ret.querySelector('#inv-race') && ret.nextElementSibling === vs; }"
+ },
+ {
+  "name": "19 Oct: every Worth knowing note says what it is based on",
+  "assert": "() => { const ns = [...document.querySelectorAll('#inv-notes-list .note')]; return ns.length > 0 && ns.every((n) => n.querySelector('.note-why')?.textContent.trim().length > 0); }"
+ },
+ {
+  "name": "Winners and drags: one row per holding with a price move, best first, summing to Price moves; traced; Price moves no longer folds",
+  "assert": "() => { const rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0; const want = rows('og7_inv_pg_sym').filter((r) => num(r.pg) !== 0); const ls = [...document.querySelectorAll('#inv-movers-list .inv-mv')]; const vals = want.map((r) => num(r.pg)).sort((a, b) => b - a); return ls.length === (want.length > 8 ? 7 : want.length) && ls.every((l) => l.querySelector('.amt[data-trace=\"og7_inv_pg_sym:pg\"]')) && (want.length > 8 || ls.every((l, i) => !!l.querySelector('.inv-mv-bar.neg') === (vals[i] < 0))) && Math.abs(want.reduce((a, r) => a + num(r.pg), 0) - num(WF.registry.get('og7_inv_bridge').query.result.rows[0].pg)) < 1 && !document.querySelector('#inv-br-rows [data-toggle=pm]') && !document.querySelector('.inv-pm'); }"
+ },
+ {
+  "name": "a loss bar never runs into its label; each value clears its bar and its symbol and stays inside the card",
+  "assert": "() => { const c = document.querySelector('[data-anfra-block=inv-movers]').getBoundingClientRect(), apart = (p, q) => p.right <= q.left + 0.5 || q.right <= p.left + 0.5; return [...document.querySelectorAll('#inv-movers-list .inv-mv')].every((l) => { const s = l.querySelector('.s').getBoundingClientRect(), b = l.querySelector('.inv-mv-bar').getBoundingClientRect(), a = l.querySelector('.amt').getBoundingClientRect(); return s.right <= b.left + 0.5 && apart(a, b) && apart(a, s) && a.left >= c.left && a.right <= c.right; }); }"
+ },
+ {
+  "name": "movers(): >8 caps to top 4 + bottom 3 with 'more'; zero moves drop",
+  "assert": "() => { const r = Array.from({ length: 10 }, (_, i) => ({ s: 'S' + i, pg: 9 - i * 2 })).concat([{ s: 'Z', pg: 0 }]); const m = WF.views.get('invest/performance').movers(r); return m.shown.length === 7 && m.more === 3 && m.shown[0].s === 'S0' && m.shown.at(-1).s === 'S9' && !m.shown.some((x) => x.s === 'Z'); }"
+ },
+ {
+  "name": "Winners and drags with only zero moves: the empty line survives a second render and the group drops its sentence",
+  "assert": "() => { const v = WF.views.get('invest/performance'), real = v.pgSym; try { v.pgSym = { name: real.name, state: real.state, result: { rows: [{ s: 'A', n: 'A', pg: '0' }, { s: 'B', n: 'B', pg: 0 }] } }; v.render(); v.render(); const st = document.querySelector('#inv-mv-state'), el = document.querySelector('#inv-movers-list'); return !st.hidden && /No price moves in this range/.test(st.textContent) && !el.querySelector('.inv-mv') && !el.hasAttribute('aria-label'); } finally { v.pgSym = real; v.mvSig = null; v.render(); } }"
+ },
+ {
+  "name": "…and the real rows come back after it",
+  "assert": "() => document.querySelectorAll('#inv-movers-list .inv-mv').length > 0 && document.querySelector('#inv-mv-state').hidden && /best first/.test(document.querySelector('#inv-movers-list').getAttribute('aria-label'))"
+ },
+ {
+  "eval": "() => { document.querySelector('#inv-movers-list .inv-mv').scrollIntoView({ block: 'center' }); return true; }"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "eval": "() => { document.querySelector('#inv-movers-list .inv-mv').focus({ preventScroll: true }); return true; }"
+ },
+ {
+  "wait": 100
+ },
+ {
+  "name": "Winners and drags: focusing a row opens its hover card (symbol, the exact signed price move traced to pg_sym, Opens on Holdings); no native title, no data-hc on the row",
+  "assert": "() => { const row = document.querySelector('#inv-movers-list .inv-mv'), h = document.getElementById('hc'); const r = WF.registry.get('og7_inv_pg_sym').query.result.rows.find((x) => x.s === row.dataset.sym); const v = h.querySelector('[data-trace=\"og7_inv_pg_sym:pg\"]'); return !h.hidden && !!r && h.querySelector('.tp-title').textContent.includes(r.s) && !!v && v.textContent === OG.money(r.pg, true) && /Opens on Holdings/.test(h.textContent) && !row.hasAttribute('title') && !row.hasAttribute('data-hc') && row.dataset.hcHover === 'inv-mv'; }"
+ },
+ {
+  "eval": "() => { document.querySelectorAll('#inv-movers-list .inv-mv')[1]?.focus({ preventScroll: true }); return true; }"
+ },
+ {
+  "wait": 100
+ },
+ {
+  "name": "…the next row's focus moves the card to that row; leaving the list closes it",
+  "assert": "() => { const rows = document.querySelectorAll('#inv-movers-list .inv-mv'), h = document.getElementById('hc'); if (rows.length < 2) return true; const ok = !h.hidden && h.querySelector('.tp-title').textContent.includes(rows[1].dataset.sym); rows[1].blur(); return ok && h.hidden; }"
+ },
+ {
+  "name": "Worth knowing (Performance): 2-4 notes, the first is the gap to the VN-Index in points",
+  "assert": "() => { const ns = [...document.querySelectorAll('#inv-notes-list .note')]; return ns.length >= 2 && ns.length <= 4 && /(Ahead of|Behind) the VN-Index by [0-9.]+ pts/.test(ns[0].textContent); }"
+ },
+ {
+  "name": "Risk: the dip — number traced to max_drawdown, the curve's lowest point is drop().trough, back date or not back, volatility traced",
+  "assert": "() => { const v = WF.views.get('invest/performance'), dr = v.drop(); const kOk = !!document.querySelector('#inv-risk-k.hero [data-trace=\"og7_inv_perf:dd\"]') && !!document.querySelector('#inv-risk-vol [data-trace=\"og7_inv_perf:vol\"]'); if (!dr) return kOk && document.querySelector('#inv-dip').hidden && /No drop/.test(document.querySelector('#inv-risk-sub').textContent); const s = echarts.getInstanceByDom(document.querySelector('#inv-dip')).getOption().series.find((x) => x.name === 'Dip'); const lo = s.data.reduce((m, x) => (x[1] < m[1] ? x : m)); return kOk && lo[0] === dr.trough.d && (dr.back ? new RegExp('back in ' + OG.daysBetween(dr.trough.d, dr.back) + ' days?').test(document.querySelector('#inv-risk-sub').textContent) : /not back yet/.test(document.querySelector('#inv-risk-sub').textContent)); }"
+ },
+ {
+  "name": "Income: the total = dividends + interest; a bar for every month of the range (12 or 13 for 1Y)",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); const k = one('og7_inv_inc'); const bars = echarts.getInstanceByDom(document.querySelector('#inv-inc-chart')).getOption().series[0].data.length; return Math.abs(num(k.t) - num(k.d) - num(k.i)) < 1 && digits(document.querySelector('#inv-inc-v').textContent) === Math.round(num(k.t)) && bars >= 12 && bars <= 13; }"
+ },
+ {
+  "name": "fix: the notes' governed figures are traced (price move by holding, worst drop)",
+  "assert": "() => !!document.querySelector('#inv-notes-list [data-trace=\"og7_inv_pg_sym:pg\"]') && !!document.querySelector('#inv-notes-list [data-trace=\"og7_inv_perf:dd\"]')"
+ },
+ {
+  "name": "fix: over 1Y the invested-value dates carry their years (Oct 15, 2025 → Oct 14, 2026)",
+  "assert": "() => /2025/.test(document.querySelector('#inv-br-lead').textContent) && /2026/.test(document.querySelector('#inv-br-lead').textContent)"
+ },
+ {
+  "click": "#inv-ranges [data-k='1M']"
+ },
+ {
+  "waitFor": "() => ['og7_inv_inc','og7_inv_perf'].every((n) => WF.registry.get(n).query.state !== 'executing') && /past month/.test(document.querySelector('#inv-inc-word').textContent) && WF.registry.get('og7_inv_curve').query.state !== 'executing'"
+ },
+ {
+  "name": "Risk follows the range (1M)",
+  "assert": "() => { const v = WF.views.get('invest/performance'), dr = v.drop(); const kOk = !!document.querySelector('#inv-risk-k.hero [data-trace=\"og7_inv_perf:dd\"]') && !!document.querySelector('#inv-risk-vol [data-trace=\"og7_inv_perf:vol\"]'); if (!dr) return kOk && document.querySelector('#inv-dip').hidden && /No drop/.test(document.querySelector('#inv-risk-sub').textContent); const s = echarts.getInstanceByDom(document.querySelector('#inv-dip')).getOption().series.find((x) => x.name === 'Dip'); const lo = s.data.reduce((m, x) => (x[1] < m[1] ? x : m)); return kOk && lo[0] === dr.trough.d && (dr.back ? new RegExp('back in ' + OG.daysBetween(dr.trough.d, dr.back) + ' days?').test(document.querySelector('#inv-risk-sub').textContent) : /not back yet/.test(document.querySelector('#inv-risk-sub').textContent)); }"
+ },
+ {
+  "name": "fix: 1M Income has no '—' (no interest this month reads ₫0)",
+  "assert": "() => !/—/.test(document.querySelector('#inv-inc-k').textContent + document.querySelector('#inv-inc-v').textContent)"
+ },
+ {
+  "click": "#inv-ranges [data-k='1Y']"
+ },
+ {
+  "waitFor": "() => WF.registry.get('og7_inv_perf').query.state !== 'executing' && /past year/.test(document.querySelector('#inv-inc-word').textContent)"
+ },
+ {
+  "eval": "() => { window.__g = document.querySelector('#inv-hero').textContent; return window.__g; }"
+ },
+ {
+  "click": "#inv-ranges [data-k=ALL]"
+ },
+ {
+  "waitFor": "() => { const q = WF.registry.get('og7_inv_perf').query; return q.state !== 'executing' && document.querySelector('#inv-hero').textContent !== window.__g; }"
+ },
+ {
+  "name": "one range drives the tab: ALL updates the hero, the notes' wording and the income line",
+  "assert": "() => document.querySelector('#inv-ranges [data-k=ALL]').classList.contains('active') && /all time/.test(document.querySelector('#inv-notes-list').textContent) && /all time/.test(document.querySelector('#inv-inc-word').textContent)"
+ },
+ {
+  "name": "race follows the range (ALL)",
+  "assert": "() => { const k = WF.registry.get('og7_inv_perf').query.result.rows[0], you = Number(k.twr), ix = Number(k.b); const r = WF.views.get('invest/performance').race(you, ix); const g = document.querySelector('#inv-race-gap').textContent; return !!document.querySelector('#inv-race .inv-lane[data-k=you] .pct[data-trace=\"og7_inv_perf:twr\"]') && !!document.querySelector('#inv-race .inv-lane[data-k=ix] .pct[data-trace=\"og7_inv_perf:b\"]') && (r.word === 'level' ? /level/.test(g) : g.includes(Math.abs(r.gap).toFixed(1) + ' pts ' + r.word)) && /VN-Index/.test(document.querySelector('#inv-race').getAttribute('aria-label')) && !document.querySelector('#inv-key') && !!document.querySelector('#inv-race .inv-zero') === r.zero; }"
+ },
+ {
+  "eval": "() => { const row = document.querySelector('#inv-movers-list .inv-mv'), h = document.getElementById('hc'); row.focus({ preventScroll: true }); const open = !h.hidden; row.click(); window.__hcAfterClick = h.hidden; return [open, h.hidden]; }"
+ },
+ {
+  "waitFor": "() => ['og7_inv_hold','og7_inv_tot','og7_inv_cash','og7_inv_acc','og7_inv_sales','og7_inv_px','og7_inv_act','og7_inv_div'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 500
+ },
+ {
+  "name": "a Winners and drags row opens that holding on Holdings, in the rail (‹ back), with only its own activity",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); const d = document.querySelector('.view:not([hidden]) .inspector:not([hidden])'); const sym = d?.querySelector('.dh .card-title').textContent; return WF.current.id === 'invest/holdings' && !!sym && !!d.querySelector('.dh .back') && rows('og7_inv_act').length > 0 && rows('og7_inv_act').every((r) => r.s === sym) && !!echarts.getInstanceByDom(d.querySelector('#inv-insp-chart')); }"
+ },
+ {
+  "name": "…and the row's hover card closes with the click (no card left on the hidden Performance row)",
+  "assert": "() => { const h = document.getElementById('hc'); return window.__hcAfterClick === true && (h.hidden || !/Opens on Holdings/.test(h.textContent)); }"
+ },
+ {
+  "click": ".view:not([hidden]) .inspector .dh .back"
+ },
+ {
+  "name": "‹ back brings the rail cards back",
+  "assert": "() => !document.querySelector('.view:not([hidden])').querySelector('.inspector:not([hidden])') && !!document.querySelector('.view:not([hidden])').querySelector('[data-anfra-block=inv-alloc]').offsetParent"
+ },
+ {
+  "name": "Holdings: one page hero (data-own holdings_value) = the governed holdings value, exact = the sum of the open rows",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); const t = one('og7_inv_tot'); const open = rows('og7_inv_hold').filter((r) => num(r.q) > 0); return document.querySelector('.view:not([hidden])').querySelectorAll('.hero.page').length === 1 && !!document.querySelector('.hero.page[data-own=holdings_value]') && digits(document.querySelector('#inv-h-hero').textContent) === Math.round(num(t.v)) && Math.abs(open.reduce((a, r) => a + num(r.v), 0) - num(t.v)) < 1 && document.querySelectorAll('#inv-list .inv-row').length === open.length; }"
+ },
+ {
+  "name": "fix: the holdings count beside the pill is traced; the best-since-bought note's return is traced",
+  "assert": "() => !!document.querySelector('#inv-h-hero-delta [data-trace=\"og7_inv_tot:n\"]') && !!document.querySelector('#inv-h-notes [data-trace=\"og7_inv_hold:retp\"]')"
+ },
+ {
+  "eval": "() => { WF.views.get('invest/holdings').openHolding('FPT'); return true; }"
+ },
+ {
+  "waitFor": "() => ['og7_inv_px','og7_inv_act','og7_inv_div'].every((n) => WF.registry.get(n).query.state === 'success') && /FPT/.test(document.querySelector('.view:not([hidden]) .inspector:not([hidden]) .dh')?.textContent ?? '')"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "fix: switching holdings never shows the previous holding's activity while the new one loads",
+  "assert": "() => { WF.views.get('invest/holdings').openHolding('MWG'); const d = document.querySelector('.view:not([hidden]) .inspector:not([hidden])'); const busy = WF.registry.get('og7_inv_act').query.state === 'executing'; return d.querySelector('.dh .card-title').textContent === 'MWG' && (!busy || d.querySelectorAll('.inv-acts .lline').length === 0); }"
+ },
+ {
+  "waitFor": "() => ['og7_inv_px','og7_inv_act','og7_inv_div'].every((n) => WF.registry.get(n).query.state === 'success')"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "fix: the drawer key names only what is on the chart (MWG was never sold: no 'Sold')",
+  "assert": "() => { const k = document.querySelector('.view:not([hidden]) .inspector:not([hidden])').querySelector('.inv-insp-key').textContent; return /Bought/.test(k) && !/Sold/.test(k); }"
+ },
+ {
+  "click": ".view:not([hidden]) .inspector .dh .back"
+ },
+ {
+  "name": "positions + the cash waiting in SSI = the invested value on Home (one number, one home)",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); return Math.abs(num(one('og7_inv_tot').v) + num(one('og7_inv_cash').c) - num(one('og7_inv_cash').v)) < 1 && !!document.querySelector('#inv-cash [data-go=\"home/invest\"]'); }"
+ },
+ {
+  "name": "groups by kind, biggest first; Closed · 1 starts folded (HPG hidden)",
+  "assert": "() => { const vs = [...document.querySelectorAll('#inv-list .inv-gline .v')].map((v) => v.textContent); const hpg = document.querySelector('#inv-closed [data-sym=HPG]'); return vs.length === 4 && /Closed · 1/.test(document.querySelector('#inv-closed').textContent) && hpg && hpg.hidden; }"
+ },
+ {
+  "name": "19 Oct: the sort is a dropdown that says what it sorts by (Sort Value), not an icon switch",
+  "assert": "() => { const b = document.querySelector('.view:not([hidden]) [data-anfra-block=inv-hold] .pick-btn'); return !!b && /Sort/.test(b.textContent) && /Value/.test(b.textContent) && !document.querySelector('.view:not([hidden]) .segicons#inv-sort') && document.querySelector('#inv-sort').hidden; }"
+ },
+ {
+  "click": ".view:not([hidden]) [data-anfra-block=inv-hold] .pick-btn"
+ },
+ {
+  "click": "#inv-sort [data-k=ret]"
+ },
+ {
+  "name": "…picking Return since bought closes the list, ticks it and the trigger says so",
+  "assert": "() => document.querySelector('#inv-sort').hidden && document.querySelector('#inv-sort [data-k=ret]').getAttribute('aria-checked') === 'true' && /Return since bought/.test(document.querySelector('#inv-sort-v').textContent)"
+ },
+ {
+  "name": "sort by return: inside each group the rows run from best to worst return",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); const by = new Map(rows('og7_inv_hold').map((r) => [r.s, num(r.retp)])); return [...document.querySelectorAll('#inv-list .inv-grp')].every((g) => { const r = [...g.querySelectorAll('.inv-row')].map((x) => by.get(x.dataset.sym)); return r.every((v, i) => i === 0 || r[i - 1] >= v); }); }"
+ },
+ {
+  "name": "the % switch starts off: no weights",
+  "assert": "() => document.querySelector('#inv-pct').getAttribute('aria-pressed') === 'false' && [...document.querySelectorAll('#inv-list .inv-w')].every((w) => !w.offsetParent)"
+ },
+ {
+  "click": "#inv-pct"
+ },
+ {
+  "name": "% on: every holding shows its share, and the shares add up to 100%",
+  "assert": "() => { const ws = [...document.querySelectorAll('#inv-list .inv-w')].filter((w) => w.offsetParent).map((w) => parseFloat(w.textContent.replace(/[^0-9.]/g, ''))); return ws.length > 0 && Math.abs(ws.reduce((a, b) => a + b, 0) - 100) < 0.6; }"
+ },
+ {
+  "name": "Worth knowing (Holdings): concentration, best since bought, below cost, the HPG sale",
+  "assert": "() => { const t = [...document.querySelectorAll('#inv-h-notes .note')].map((n) => n.dataset.k); return ['conc', 'best', 'under', 'sold:HPG'].every((k) => t.includes(k)); }"
+ },
+ {
+  "click": "#inv-h-notes [data-k='sold:HPG']"
+ },
+ {
+  "waitFor": "() => /Since you sold/.test(document.querySelector('.view:not([hidden]) .inspector:not([hidden])')?.textContent ?? '') && WF.registry.get('og7_inv_act').query.state !== 'executing'"
+ },
+ {
+  "name": "a closed holding opens its closed variant: realised, sold when and at what, since you sold",
+  "assert": "() => { const d = document.querySelector('.view:not([hidden]) .inspector:not([hidden])'); return d.querySelector('.dh .card-title').textContent === 'HPG' && /Sold/.test(d.textContent) && /Realised/.test(d.textContent); }"
+ },
+ {
+  "press": "Escape"
+ },
+ {
+  "name": "19 Oct: Allocation's switch has words (By kind · By account) and fits inside the card",
+  "assert": "() => { const s = document.querySelector('#inv-by'), c = s.closest('.card').getBoundingClientRect(), r = s.getBoundingClientRect(); return s.classList.contains('seg-btns') && /By kind/.test(s.textContent) && /By account/.test(s.textContent) && r.right <= c.right - 8 && r.left >= c.left + 8; }"
+ },
+ {
+  "click": "#inv-by [data-k=acct]"
+ },
+ {
+  "name": "Allocation by account: SSI Securities and Gold, summing to the holdings value",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); const s = rows('og7_inv_acc').reduce((a, r) => a + num(r.h), 0); return document.querySelectorAll('#inv-alloc-list .inv-al').length === 2 && Math.abs(s - num(one('og7_inv_tot').v)) < 1; }"
+ },
+ {
+  "eval": "() => { WF.go('home/invest'); return true; }"
+ },
+ {
+  "waitFor": "() => WF.current.id === 'home/invest'"
+ },
+ {
+  "click": ".view:not([hidden]) [data-anfra-block=hi-hold] .card-title [data-go]"
+ },
+ {
+  "name": "Home › Investments › Holdings › opens Invest › Holdings",
+  "assert": "() => WF.current.id === 'invest/holdings'"
+ },
+ {
+  "viewport": [
+   1545,
+   900
+  ]
+ },
+ {
+  "wait": 700
+ },
+ {
+  "name": "1280px window: nothing wider than the page on Holdings",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "eval": "() => { WF.go('invest/performance'); return true; }"
+ },
+ {
+  "wait": 700
+ },
+ {
+  "name": "1280px window: nothing wider than the page on Performance",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "eval": "() => { WF.go('invest/holdings'); return true; }"
+ },
+ {
+  "viewport": [
+   1365,
+   900
+  ]
+ },
+ {
+  "wait": 700
+ },
+ {
+  "name": "1100px window: nothing wider than the page on Holdings",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "eval": "() => { WF.go('invest/performance'); return true; }"
+ },
+ {
+  "wait": 700
+ },
+ {
+  "name": "1100px window: nothing wider than the page on Performance",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "eval": "() => { WF.go('invest/holdings'); return true; }"
+ },
+ {
+  "viewport": [
+   1033,
+   900
+  ]
+ },
+ {
+  "wait": 700
+ },
+ {
+  "name": "768px window: nothing wider than the page on Holdings",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "eval": "() => { WF.go('invest/performance'); return true; }"
+ },
+ {
+  "wait": 700
+ },
+ {
+  "name": "768px window: nothing wider than the page on Performance",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "eval": "() => { WF.go('invest/holdings'); return true; }"
+ },
+ {
+  "viewport": [
+   390,
+   900
+  ]
+ },
+ {
+  "wait": 700
+ },
+ {
+  "name": "390px window: nothing wider than the page on Holdings",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "eval": "() => { WF.go('invest/performance'); return true; }"
+ },
+ {
+  "wait": 700
+ },
+ {
+  "name": "390px window: nothing wider than the page on Performance",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "eval": "() => { WF.go('invest/holdings'); return true; }"
+ },
+ {
+  "wait": 1500
+ },
+ {
+  "name": "19 Oct (round 3): the Return line is mint at or above 0% and terracotta under it; the race has no knobs; What moved it sits on the beige tint; Holdings says it matches Home",
+  "assert": "() => { const o = echarts.getInstanceByDom(document.querySelector('#inv-chart')).getOption(), c = o.series[0].lineStyle.color, up = DS.token('--line-up').toLowerCase(); const ok = typeof c === 'string' ? c.toLowerCase() === up : c.colorStops.some((s) => s.color.toLowerCase() === up); return ok && !document.querySelector('#inv-race .knob') && getComputedStyle(document.getElementById('inv-br-lead')).backgroundColor !== 'rgba(0, 0, 0, 0)' && /Matches Investments on Home/.test(document.querySelector('.inv-cash-foot')?.textContent ?? ''); }"
+ }
+]

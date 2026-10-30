@@ -1,0 +1,190 @@
+[
+ {
+  "viewport": [
+   1600,
+   1000
+  ]
+ },
+ {
+  "waitFor": "() => !!WF.current && !!WF.asOf && WF.current.id === 'home/networth'"
+ },
+ {
+  "name": "the app still opens on Home; Ask AI sits above Home in the sidebar",
+  "assert": "() => document.querySelector('.sidebar .nav-item').dataset.nav === 'ask' && document.querySelector('.sidebar [data-nav=home]').getAttribute('aria-current') === 'page'"
+ },
+ {
+  "click": ".sidebar [data-nav=ask]"
+ },
+ {
+  "waitFor": "() => WF.current.id === 'ask' && !!document.getElementById('ask-c-in')"
+ },
+ {
+  "name": "empty state: the greeting, the switched-off composer (Coming soon: no scope pill, send disabled), 5 nudges, no thread",
+  "assert": "() => document.querySelector('.ask-hello').textContent.trim() === \"Hey Ha, what's on your mind today?\" && document.getElementById('ask-c-send').disabled && document.querySelectorAll('#ask-nudges .nudge').length === 5 && !document.querySelector('#ask-nudges [data-k=networth]') && !document.getElementById('ask-c-scope') && document.getElementById('ask-c-in').disabled && document.getElementById('ask-c').classList.contains('off') && document.getElementById('ask-new').hidden && !document.querySelector('.ask-thread').children.length"
+ },
+ {
+  "name": "19 Oct: opening Ask AI makes it rain (₫ notes and coins over the page, no clicks blocked); the halo is gone",
+  "assert": "() => { const r = document.querySelector('.money-rain'); return !document.getElementById('ask-halo') && !!r && r.querySelectorAll('.mr-p').length >= 8 && getComputedStyle(r).pointerEvents === 'none'; }"
+ },
+ {
+  "name": "19 Oct: the cat sleeps above the greeting (Nhi's reference drawing): both eyes shut, the bubble hidden, z's drifting",
+  "assert": "() => { const c = document.getElementById('ask-cat'), h = document.querySelector('.ask-hello'); return !!c && c.tagName === 'BUTTON' && c.nextElementSibling === h && !c.classList.contains('awake') && getComputedStyle(c.querySelector('.c-eye-r .open')).opacity === '0' && getComputedStyle(document.getElementById('ask-cat-say')).opacity === '0' && !!c.getAttribute('aria-label'); }"
+ },
+ {
+  "eval": "() => { document.getElementById('ask-cat').focus(); return true; }"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "…focus wakes it: one eye opens, the bubble says hi",
+  "assert": "() => { const c = document.getElementById('ask-cat'); return c.classList.contains('awake') && getComputedStyle(c.querySelector('.c-eye-r .open')).opacity === '1' && getComputedStyle(document.getElementById('ask-cat-say')).opacity === '1' && OG.cat.SAYS.includes(document.getElementById('ask-cat-say').textContent); }"
+ },
+ {
+  "eval": "() => { document.getElementById('ask-cat').click(); return true; }"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "…a click makes ₫ notes and coins rain over the page (no clicks blocked) and the bubble says so",
+  "assert": "() => { const r = document.querySelector('.money-rain'); return OG.cat.RAIN_SAYS.includes(document.getElementById('ask-cat-say').textContent) && !!r && r.querySelectorAll('.mr-p').length >= 8 && !!r.querySelector('.mr-p.coin') && !!r.querySelector('.mr-p:not(.coin)') && getComputedStyle(r).pointerEvents === 'none'; }"
+ },
+ {
+  "wait": 3600
+ },
+ {
+  "name": "…the rain clears itself up",
+  "assert": "() => !document.querySelector('.money-rain')"
+ },
+ {
+  "eval": "() => { document.getElementById('ask-cat').blur(); return true; }"
+ },
+ {
+  "wait": 500
+ },
+ {
+  "name": "…and blur puts it back to sleep",
+  "assert": "() => !document.getElementById('ask-cat').classList.contains('awake') && getComputedStyle(document.getElementById('ask-cat-say')).opacity === '0'"
+ },
+ {
+  "name": "19 Oct: Ask AI is coming soon: a tag by the title and in the sidebar, the note under the composer, and text never enables send",
+  "assert": "() => { const t = document.getElementById('ask-c-in'), s = document.getElementById('ask-c-send'); t.value = 'hi'; t.dispatchEvent(new Event('input', { bubbles: true })); const off = s.disabled; t.value = ''; t.dispatchEvent(new Event('input', { bubbles: true })); return off && s.disabled && document.querySelector('.view:not([hidden]) .head h1 + .soon-tag .soon-l')?.textContent === 'Coming soon' && !!document.querySelector('.sidebar [data-nav=ask] .soon-tag') && document.getElementById('ask-soon').textContent.includes(\"isn't live yet\"); }"
+ },
+ {
+  "name": "routing: a typed question goes to the closest use case (EN and VN, accents ignored); anything else to none",
+  "assert": "() => { const r = (t) => OG.askRoute(t)?.key ?? null; return r('How much did I spend this month?') === 'spend' && r('chi tiêu tháng này') === 'spend' && r('am I over budget') === 'budget' && r('tiết kiệm được bao nhiêu') === 'savings' && r('my MAX VIB points') === 'vib' && r('where is my net worth heading') === 'networth' && r('write a monthly report') === 'report' && r('which subscriptions renew soon') === 'recurring' && r('how is my portfolio') === 'invest' && r('asdf qwerty') === null; }"
+ },
+ {
+  "click": "#ask-nudges .nudge[data-k=spend]"
+ },
+ {
+  "waitFor": "() => { const t = [...document.querySelectorAll('.ask-turn.ai')].pop(); return !!t && !!t.querySelector('.ask-src, .ask-follow, .state.error'); }"
+ },
+ {
+  "name": "a nudge asks its question: the bubble, then a governed answer (traced numbers, a figure, the source line, 3 follow-ups); the greeting and nudges step out, New chat shows",
+  "assert": "() => { const t = [...document.querySelectorAll('.ask-turn.ai')].pop(); return document.querySelector('.ask-turn.me .bubble').textContent === 'Analyze my spending' && document.getElementById('ask').classList.contains('has-thread') && getComputedStyle(document.querySelector('.ask-hello')).display === 'none' && getComputedStyle(document.getElementById('ask-cat')).display === 'none' && !document.getElementById('ask-new').hidden && t.querySelectorAll('[data-trace]').length >= 4 && !!t.querySelector('.ask-chart') && t.querySelector('.ask-src').textContent.includes('governed metrics') && t.querySelectorAll('.ask-follow .nudge').length === 3; }"
+ },
+ {
+  "name": "the spending answer's total = sp_kpi_1m.spent, exact (the Spending tab's hero query)",
+  "assert": "() => { const t = [...document.querySelectorAll('.ask-turn.ai')].pop(), q = WF.registry.get('sp_kpi_1m').query; window.__askSpent = t.querySelector('[data-trace=\"sp_kpi_1m:spent\"]').textContent; return window.__askSpent === OG.money(WF.one(q).spent); }"
+ },
+ {
+  "eval": "() => { WF.go('home/spending'); return true; }"
+ },
+ {
+  "waitFor": "() => document.getElementById('hs-hero')?.textContent.length > 4"
+ },
+ {
+  "name": "...and it reads the same as Home › Spending's hero",
+  "assert": "() => document.getElementById('hs-hero').textContent === window.__askSpent"
+ },
+ {
+  "click": ".sidebar [data-nav=ask]"
+ },
+ {
+  "name": "the thread survives a page switch",
+  "assert": "() => WF.current.id === 'ask' && document.querySelectorAll('.ask-turn').length === 2"
+ },
+ {
+  "eval": "() => { WF.views.get('ask').ask(OG.askRoute('Where is my net worth heading?'), 'Where is my net worth heading?'); return document.querySelectorAll('.ask-turn.me').length; }"
+ },
+ {
+  "waitFor": "() => document.querySelectorAll('.ask-turn.ai').length === 2 && !![...document.querySelectorAll('.ask-turn.ai')].pop().querySelector('.ask-src')"
+ },
+ {
+  "name": "a routed question (typing is off, so asked directly) goes to net worth",
+  "assert": "() => { const t = [...document.querySelectorAll('.ask-turn.ai')].pop(); window.__askNw = t.querySelector('[data-trace=\"ask_nw:nw\"]')?.textContent; return window.__askNw === OG.money(WF.one(WF.registry.get('ask_nw').query).nw) && t.textContent.includes('estimate'); }"
+ },
+ {
+  "eval": "() => { WF.go('home/networth'); return true; }"
+ },
+ {
+  "waitFor": "() => document.getElementById('hn-hero')?.textContent.length > 4"
+ },
+ {
+  "name": "...the net worth answer = Home › Net worth's hero (nw_kpi)",
+  "assert": "() => document.getElementById('hn-hero').textContent === window.__askNw"
+ },
+ {
+  "click": ".sidebar [data-nav=ask]"
+ },
+ {
+  "eval": "() => { WF.views.get('ask').ask(OG.askRoute('asdf qwerty'), 'asdf qwerty'); return document.querySelectorAll('.ask-turn.me').length; }"
+ },
+ {
+  "waitFor": "() => { const t = [...document.querySelectorAll('.ask-turn.ai')].pop(); return !!t && !!t.querySelector('.ask-src, .ask-follow, .state.error'); }"
+ },
+ {
+  "name": "an unknown question gets the honest fallback with all 8 nudges, and no numbers",
+  "assert": "() => { const t = [...document.querySelectorAll('.ask-turn.ai')].pop(); return t.textContent.includes('governed numbers only') && t.querySelectorAll('.ask-follow .nudge').length === 8 && !t.querySelector('[data-trace]'); }"
+ },
+ {
+  "name": "every use case answers from the fallback's chips: traced numbers + the source line, no error",
+  "assert": "async () => { const fb = [...document.querySelectorAll('.ask-turn.ai')].pop(), out = []; for (const b of [...fb.querySelectorAll('.nudge')]) { const n0 = document.querySelectorAll('.ask-turn.ai').length; b.click(); const t0 = Date.now(); let t; while (Date.now() - t0 < 20000) { t = [...document.querySelectorAll('.ask-turn.ai')].pop(); if (document.querySelectorAll('.ask-turn.ai').length > n0 && t.querySelector('.ask-src, .state.error')) break; await new Promise((r) => setTimeout(r, 200)); } out.push(!!t.querySelector('.ask-src') && !t.querySelector('.state.error') && t.querySelectorAll('[data-trace]').length >= 2 && !/undefined|NaN/.test(t.textContent)); } window.__askAll = out; return out.length === 8 && out.every(Boolean); }"
+ },
+ {
+  "name": "the MAX VIB answer's ₫/day = og_vib.need",
+  "assert": "() => { const t = [...document.querySelectorAll('.ask-turn.ai')].find((x) => x.querySelector('[data-trace=\"og_vib:need\"]')); return !!t && t.querySelector('[data-trace=\"og_vib:need\"]').textContent === OG.money(WF.one(WF.registry.get('og_vib').query).need); }"
+ },
+ {
+  "name": "the report adds up: income − spending (net) = saved",
+  "assert": "() => { const q = WF.one(WF.registry.get('ask_rep').query); return Math.abs(Number(q.inc) - Number(q.ns) - Number(q.sur)) < 1; }"
+ },
+ {
+  "click": "#ask-new"
+ },
+ {
+  "name": "New chat clears the thread and brings the greeting and nudges back",
+  "assert": "() => !document.querySelectorAll('.ask-turn').length && !document.getElementById('ask').classList.contains('has-thread') && getComputedStyle(document.querySelector('.ask-hello')).display !== 'none' && document.getElementById('ask-new').hidden"
+ },
+ {
+  "viewport": [
+   390,
+   900
+  ]
+ },
+ {
+  "wait": 500
+ },
+ {
+  "name": "xs: Ask AI leads the tab bar (5 buttons), Forecast moved into More; no horizontal overflow",
+  "assert": "() => { const b = [...document.querySelectorAll('.tabbar > button')]; return b.length === 5 && b[0].dataset.nav === 'ask' && b[0].classList.contains('active') && !document.querySelector('.tabbar [data-nav=forecast]') && !!document.querySelector('.more-sheet [data-nav=forecast]') && document.documentElement.scrollWidth <= innerWidth + 1; }"
+ },
+ {
+  "click": "#ask-nudges .nudge[data-k=budget]"
+ },
+ {
+  "waitFor": "() => { const t = [...document.querySelectorAll('.ask-turn.ai')].pop(); return !!t && !!t.querySelector('.ask-src, .ask-follow, .state.error'); }"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "name": "xs thread: the docked composer sits above the tab bar, fully on screen; no overflow",
+  "assert": "() => { const d = document.querySelector('.ask-dock .composer').getBoundingClientRect(), tb = document.querySelector('.tabbar').getBoundingClientRect(); return d.bottom <= tb.top + 1 && d.top > 0 && document.documentElement.scrollWidth <= innerWidth + 1; }"
+ },
+ {
+  "shot": "ask-390"
+ }
+]

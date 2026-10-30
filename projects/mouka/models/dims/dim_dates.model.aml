@@ -1,0 +1,148 @@
+// Calendar, one row per local (Asia/Ho_Chi_Minh) day. Data-driven bounds: from
+// 1 Jan of the first data year to 31 Dec of the year after the last data year.
+Model dim_dates {
+  type: 'query'
+  label: 'Dates'
+  description: '''
+One row per calendar day in Vietnam time. Every fact's date joins here, so a month
+or weekday means the same thing across cards, accounts and budgets.
+
+`as_of_date` is the last day the data has a money line (the build date), and
+`is_elapsed` marks days up to it. Pace and per-day averages divide by elapsed days,
+never by the wall clock, so a dashboard opened a week after a rebuild stays right.
+'''
+  data_source_name: 'finance'
+  query: @sql
+    WITH bounds AS (
+      SELECT min(d) AS lo, max(d) AS hi FROM (
+        SELECT txn_date AS d FROM transactions
+        UNION ALL
+        SELECT CAST(occurred_at AT TIME ZONE 'Asia/Ho_Chi_Minh' AS DATE) FROM bank_movements
+      ) x
+    ),
+    days AS (
+      SELECT CAST(unnest(generate_series(
+               CAST(date_trunc('year', lo) AS TIMESTAMP),
+               CAST(date_trunc('year', hi) + INTERVAL 2 YEAR - INTERVAL 1 DAY AS TIMESTAMP),
+               INTERVAL 1 DAY)) AS DATE) AS date_key,
+             hi AS as_of_date
+      FROM bounds
+    )
+    SELECT
+      date_key,
+      as_of_date,
+      year(date_key)                                        AS year,
+      quarter(date_key)                                     AS quarter,
+      strftime(date_key, '%Y') || '-Q' || quarter(date_key) AS quarter_label,
+      CAST(date_trunc('month', date_key) AS DATE)           AS month_start,
+      month(date_key)                                       AS month_num,
+      strftime(date_key, '%Y-%m')                           AS month_key,
+      strftime(date_key, '%b %Y')                           AS month_label,
+      day(date_key)                                         AS day_of_month,
+      isodow(date_key)                                      AS weekday_num,
+      strftime(date_key, '%a')                              AS weekday_name,
+      isodow(date_key) IN (6, 7)                            AS is_weekend,
+      CAST(date_trunc('week', date_key) AS DATE)            AS week_start,
+      day(last_day(date_key))                               AS days_in_month,
+      date_key <= as_of_date                                AS is_elapsed,
+      date_trunc('month', date_key) = date_trunc('month', as_of_date) AS is_as_of_month
+    FROM days
+  ;;
+
+  dimension date_key {
+    label: 'Date'
+    type: 'date'
+    primary_key: true
+    description: 'Local calendar day (Asia/Ho_Chi_Minh).'
+    definition: @sql {{ #SOURCE.date_key }};;
+  }
+  dimension as_of_date {
+    label: 'Data as of'
+    type: 'date'
+    description: 'Last day with any money line. The same value on every row.'
+    definition: @sql {{ #SOURCE.as_of_date }};;
+  }
+  dimension year {
+    label: 'Year'
+    type: 'number'
+    definition: @sql {{ #SOURCE.year }};;
+  }
+  dimension quarter {
+    label: 'Quarter'
+    type: 'number'
+    definition: @sql {{ #SOURCE.quarter }};;
+  }
+  dimension quarter_label {
+    label: 'Quarter label'
+    type: 'text'
+    description: 'e.g. 2026-Q4.'
+    definition: @sql {{ #SOURCE.quarter_label }};;
+  }
+  dimension month_start {
+    label: 'Month'
+    type: 'date'
+    description: 'First day of the month. Use this (or date_key | month()) to group by month.'
+    definition: @sql {{ #SOURCE.month_start }};;
+  }
+  dimension month_num {
+    label: 'Month number'
+    type: 'number'
+    definition: @sql {{ #SOURCE.month_num }};;
+  }
+  dimension month_key {
+    label: 'Month key'
+    type: 'text'
+    description: 'YYYY-MM, the month label cspipeline uses (?month=2026-10).'
+    definition: @sql {{ #SOURCE.month_key }};;
+  }
+  dimension month_label {
+    label: 'Month label'
+    type: 'text'
+    description: 'e.g. Oct 2026.'
+    definition: @sql {{ #SOURCE.month_label }};;
+  }
+  dimension day_of_month {
+    label: 'Day of month'
+    type: 'number'
+    definition: @sql {{ #SOURCE.day_of_month }};;
+  }
+  dimension weekday_num {
+    label: 'Weekday number'
+    type: 'number'
+    description: 'ISO weekday: 1 = Monday … 7 = Sunday.'
+    definition: @sql {{ #SOURCE.weekday_num }};;
+  }
+  dimension weekday_name {
+    label: 'Weekday'
+    type: 'text'
+    description: 'Mon … Sun. Sort by weekday_num.'
+    definition: @sql {{ #SOURCE.weekday_name }};;
+  }
+  dimension is_weekend {
+    label: 'Is weekend'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_weekend }};;
+  }
+  dimension week_start {
+    label: 'Week (Monday)'
+    type: 'date'
+    definition: @sql {{ #SOURCE.week_start }};;
+  }
+  dimension days_in_month {
+    label: 'Days in month'
+    type: 'number'
+    definition: @sql {{ #SOURCE.days_in_month }};;
+  }
+  dimension is_elapsed {
+    label: 'Is elapsed'
+    type: 'truefalse'
+    description: 'The day is on or before the data as-of date.'
+    definition: @sql {{ #SOURCE.is_elapsed }};;
+  }
+  dimension is_as_of_month {
+    label: 'Is as-of month'
+    type: 'truefalse'
+    description: 'The day falls in the month of the data as-of date (the month in progress).'
+    definition: @sql {{ #SOURCE.is_as_of_month }};;
+  }
+}

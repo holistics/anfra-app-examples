@@ -1,0 +1,142 @@
+/* Ask AI (js/views/ask.js): the empty state (greeting · composer · nudges, centred in the page) and the thread (turns,
+   the composer docked at the bottom). Tokens only (ds-lint); the composer and the nudge chip are components
+   (ds/components.css: OG.composer, OG.nudge). */
+.ask { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-6); max-width: 760px;
+  min-height: calc(100dvh - 200px); margin: 0 auto; padding-bottom: 8vh; }
+.ask-hello { margin: 0; text-align: center; font: var(--fw-title) var(--fs-greeting)/1.25 var(--font-title); letter-spacing: var(--ls-tight); color: var(--ink); text-wrap: balance; }
+.ask-dock { width: 100%; }
+/* the Ask AI page fades from the page colour at the top to white at the bottom (19 Oct, Nhi); fixed to the viewport, so the
+   bottom of the screen is always white and the docked composer's fade below matches it */
+main#views:has(> .view[data-anfra-container="ask"]:not([hidden])) { background: linear-gradient(to bottom, var(--page), var(--surface)) fixed; }
+/* Ask AI is coming soon (19 Oct): one quiet line under the switched-off composer says so and points at the nudges */
+.ask-soon { display: flex; align-items: center; justify-content: center; gap: var(--sp-2); margin: var(--sp-3) 0 0; font-size: var(--fs-2); line-height: 1.5; color: var(--ink-2); text-align: center; }
+.ask.has-thread .ask-soon { display: none; }   /* in a thread the placeholder and the tag say it; "pick a question below" no longer fits */
+@media (max-width: 599px) { .ask-new { width: var(--ctl-h); padding: 0; justify-content: center; } .ask-new span { display: none; } }   /* xs: the Coming soon tag needs the room */
+.ask-soon .i { flex: none; width: 14px; height: 14px; color: var(--info-ink); }
+.ask-nudges { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2) var(--sp-3); margin-top: calc(-1 * var(--sp-2)); }
+/* 19 Oct (Emil's stagger recipe): each time the page opens, the nudges rise in one after another, 40ms apart; clickable throughout */
+.ask-nudges .nudge { animation: ask-rise 300ms var(--ease-out) backwards; }   /* backwards: nothing held after, so the press scale still works */
+.ask-nudges .nudge:nth-child(2) { animation-delay: 40ms; } .ask-nudges .nudge:nth-child(3) { animation-delay: 80ms; }
+.ask-nudges .nudge:nth-child(4) { animation-delay: 120ms; } .ask-nudges .nudge:nth-child(5) { animation-delay: 160ms; }
+.ask-nudges .nudge:nth-child(n+6) { animation-delay: 200ms; }
+@keyframes ask-rise { from { opacity: 0; transform: translateY(8px); } }
+
+/* the thread: the greeting and the nudges step out, the composer docks at the bottom over a fade of the page */
+.ask.has-thread { justify-content: flex-start; padding-bottom: 0; }
+.ask.has-thread .ask-hello, .ask.has-thread .ask-nudges, .ask.has-thread .ask-cat { display: none; }
+.ask.has-thread .ask-dock { position: sticky; bottom: 0; z-index: 5; margin-top: auto; padding: var(--sp-6) 0 var(--sp-4); background: linear-gradient(to bottom, transparent, var(--surface) 45%); }
+@media (max-width: 599px) { .ask.has-thread .ask-dock { bottom: var(--tabbar-h); } }
+.ask-thread { width: 100%; display: grid; gap: var(--sp-6); padding-top: var(--sp-2); }
+.ask-thread:empty { display: none; }
+
+/* a question: a tinted bubble on the right */
+.ask-turn { scroll-margin-top: var(--sp-6); animation: v3-pop var(--dur) var(--ease-out); }
+/* 19 Oct (Emil's animation skills): a turn rises in once when it's added (from its own side), and the answer fades in over the
+   reading line instead of jumping in */
+.ask-turn.me { transform-origin: bottom right; } .ask-turn.ai { transform-origin: top left; }
+.ask-body > :not(.ask-reading) { animation: v3-fade var(--dur) var(--ease-out); }
+.ask-turn.me { display: flex; justify-content: flex-end; }
+.ask-turn.me .bubble { max-width: 80%; padding: var(--sp-2) var(--sp-4); border-radius: 18px; background: var(--fill-subtle); font-size: var(--fs-body); line-height: 1.5; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* an answer: the ✦ mark, then the text, an optional figure, the source line and follow-ups */
+.ask-turn.ai { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--sp-3); align-items: start; }
+.ask-mark { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--ai-tint); color: var(--ai); }
+.ask-body { display: grid; gap: var(--sp-4); min-width: 0; padding-top: 2px; font-size: var(--fs-body); line-height: 1.65; color: var(--ink); }
+.ask-body p { margin: 0; }
+.ask-body b { font-weight: var(--fw-medium); }   /* emphasis is medium, never bold (DESIGN.md) */
+.ask-body .num { font-variant-numeric: tabular-nums; }
+.ask-body .pos { color: var(--pos-ink); } .ask-body .neg { color: var(--neg-ink); }
+.ask-note { font-size: var(--fs-2); }
+.ask-reading { width: max-content; color: var(--ink-3); background: linear-gradient(90deg, var(--ink-3) 30%, var(--ink) 50%, var(--ink-3) 70%) 0 0 / 300% 100%;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: ask-shimmer 1.6s linear infinite; }
+@keyframes ask-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .ask-reading { animation: none; -webkit-text-fill-color: currentColor; } }
+
+/* the monthly report: label · value rows in one hairline box */
+.ask-rep { border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
+.ask-rep-row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); }
+.ask-rep-row + .ask-rep-row { border-top: 1px solid var(--rule); }
+.ask-rep-row .k { color: var(--ink-2); }
+@container views (max-width: 520px) { .ask-rep-row { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+/* lists (budgets, recurring), the points meter and a figure share the same hairline box */
+.ask-list, .ask-fig, .ask-meter { border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
+.ask-list { padding: 0 var(--sp-4); }
+.ask-list .lrow:last-child { border-bottom: 0; }
+.ask-meter { padding: var(--sp-4); }
+.ask-meter .sub { display: flex; justify-content: space-between; margin-top: var(--sp-2); }
+.ask-fig { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
+.ask-fig .label { margin-bottom: var(--sp-1); }
+.ask-fig .key { margin: 0 0 var(--sp-1); }
+.chart.ask-chart { height: 170px; }
+
+.ask-src { font-size: var(--fs-2); line-height: 1.5; color: var(--ink-3); }
+.ask-src button { display: inline-flex; align-items: center; gap: 2px; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+.ask-src button:hover { color: var(--ink); }
+.ask-follow { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.ask-follow .nudge { height: 34px; padding: 0 var(--sp-3); font-size: var(--fs-2); }
+
+/* ---------- the cat (js/cat.js; 19 Oct, Nhi): asleep above the greeting, drawn as her reference (black line, white body, grey
+   blush). Asleep: the body and head breathe, z's drift up. Awake (.awake, set on hover / focus by js/cat.js): the head lifts and
+   tilts at the neck, the body stretches a touch, the tail's tip flicks (js/cat.js bends its path), the right eye opens (and blinks once), the z's stop and a
+   bubble pops. A click makes ₫ notes and coins rain over the page. Transform and opacity only; the parts pivot in viewBox
+   units (transform-box: view-box). */
+.ask-cat { --spring: cubic-bezier(.34, 1.56, .64, 1); position: relative; display: block; width: 132px; margin: 0 0 calc(-1 * var(--sp-4)); padding: 0;
+  border: 0; border-radius: var(--r-md); background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.ask-cat:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ask-cat-svg { display: block; width: 100%; overflow: visible; }
+.ask-cat-svg g, .ask-cat-svg path, .ask-cat-svg ellipse, .ask-cat-svg circle { transform-box: view-box; }
+.ask-cat-svg .ln { fill: var(--mascot-fill); stroke: var(--mascot-ink); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+.ask-cat-svg .ln.no-fill { fill: none; }
+.ask-cat-svg .ln.thin { stroke-width: 2.4; }
+.ask-cat-svg .fill { fill: var(--mascot-fill); }
+.ask-cat-svg .c-blush { fill: var(--mascot-blush); }
+.ask-cat-svg .nose, .ask-cat-svg .pupil { fill: var(--mascot-ink); }
+.ask-cat-svg .glint { fill: var(--mascot-fill); }
+.ask-cat-svg .c-z text { font: 500 14px/1 var(--sans); fill: var(--ink-3); opacity: 0; animation: cat-z 3.6s ease-out infinite; }
+.ask-cat-svg .c-z text:nth-child(2) { font-size: 12px; animation-delay: 1.2s; }
+.ask-cat-svg .c-z text:nth-child(3) { font-size: 10px; animation-delay: 2.4s; }
+.ask-cat-svg .c-torso { transform-origin: 112px 116px; animation: cat-breathe 3.6s ease-in-out infinite; }
+.ask-cat-svg .c-head { transform-origin: 62px 96px; transition: transform .3s ease-in-out .08s; animation: cat-head-breathe 3.6s ease-in-out .4s infinite; }   /* the delay lets it ease back from awake before breathing again */
+.ask-cat-svg .c-eye-r .shut { transition: opacity .12s; }
+.ask-cat-svg .c-eye-r .open { opacity: 0; transform: scaleY(.1); transform-box: fill-box; transform-origin: center; transition: opacity .1s, transform .12s var(--ease-out); }
+.ask-cat-say { position: absolute; left: 66%; bottom: 92%; padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); box-shadow: var(--shadow-card);
+  font-size: var(--fs-2); font-weight: var(--fw-medium); color: var(--ink); white-space: nowrap; pointer-events: none;
+  opacity: 0; transform: translateY(4px) scale(.8); transform-origin: 0 100%; transition: opacity .15s, transform .2s var(--ease-out); }
+.ask-cat-say::after { content: ''; position: absolute; left: 10px; bottom: -5px; width: 8px; height: 8px; background: var(--surface); border: solid var(--border); border-width: 0 1px 1px 0; transform: rotate(45deg); }
+/* awake */
+.ask-cat.awake .c-torso { animation: cat-stretch .5s var(--spring) both; }
+.ask-cat.awake .c-head { animation: none; transform: translate(0, -4px) rotate(-6deg); transition: transform .45s var(--spring); }
+.ask-cat.awake .c-eye-r .shut { opacity: 0; transition-delay: .12s; }
+.ask-cat.awake .c-eye-r .open { opacity: 1; transform: scaleY(1); transition: opacity .1s .12s, transform .25s var(--spring) .12s; animation: cat-blink .22s ease-in-out 1.6s 1; }
+.ask-cat.awake .c-z text { animation: none; opacity: 0; }
+.ask-cat.awake .ask-cat-say { opacity: 1; transform: none; transition: opacity .15s .18s, transform .4s var(--spring) .18s; }
+.ask-cat.awake .ask-cat-say.pop { animation: cat-say .38s var(--spring) both; }   /* a click changes the line: it bounces again */
+@keyframes cat-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.008, 1.025); } }
+@keyframes cat-head-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
+@keyframes cat-stretch { 0% { transform: scale(1, 1); } 60% { transform: scale(1.04, .98); } 100% { transform: scale(1.02, 1); } }
+@keyframes cat-blink { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(.1); } }
+@keyframes cat-z { 0% { opacity: 0; transform: translate(0, 4px); } 20% { opacity: .9; } 100% { opacity: 0; transform: translate(6px, -10px); } }
+@keyframes cat-say { 0% { transform: scale(.85); } 100% { transform: none; } }
+/* money rain: fixed over the page, never in the way of a click */
+.money-rain { position: fixed; inset: 0; z-index: 80; overflow: hidden; pointer-events: none; }
+.mr-p { position: absolute; top: 0; width: 50px; animation: mr-fall var(--d) cubic-bezier(.4, 0, .9, .6) var(--delay) both; }
+.mr-p.coin { width: 28px; }
+.mr-p > i { display: block; scale: var(--k, 1); animation: mr-sway calc(var(--d) / 2.4) ease-in-out var(--delay) infinite alternate; }
+.mr-p svg { display: block; width: 100%; overflow: visible; }
+.mr-p .mr-note { fill: var(--mascot-bill); stroke: var(--mascot-ink); stroke-width: 1.6; }
+.mr-p .mr-coin { fill: var(--mascot-coin); stroke: var(--mascot-ink); stroke-width: 1.6; }
+.mr-p .mr-ln { fill: none; stroke: var(--mascot-ink); stroke-width: 1.2; }
+.mr-p text { font: 500 9px/1 var(--sans); fill: var(--mascot-ink); text-anchor: middle; }
+.mr-p.coin text { font-size: 9.5px; }
+.mr-p.calm { animation: mr-fade 1.4s ease-in-out var(--delay) both; }
+.mr-p.calm > i { animation: none; }
+@keyframes mr-fall { from { transform: translateY(-12vh) rotate(0); } to { transform: translateY(112vh) rotate(var(--r)); } }
+@keyframes mr-sway { from { translate: calc(var(--s) * -1) 0; } to { translate: var(--s) 0; } }
+@keyframes mr-fade { 0%, 100% { opacity: 0; } 30%, 70% { opacity: 1; } }
+@media (max-width: 599px) { .ask-cat { width: 104px; } }
+@media (prefers-reduced-motion: reduce) {
+  .ask-cat-svg .c-torso, .ask-cat-svg .c-head, .ask-cat-svg .c-z text, .ask-cat.awake .c-torso, .ask-cat.awake .c-eye-r .open, .ask-cat-say.pop { animation: none !important; }
+  .ask-cat.awake .c-head { transform: none; }
+  .ask-cat-svg .c-z text { opacity: 0; }
+  .ask-cat-say, .ask-cat.awake .ask-cat-say { transform: none; }
+}

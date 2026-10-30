@@ -1,0 +1,85 @@
+// Raw source table, 1:1 with the cspipeline replica (db/schema.duckdb.sql). For audit and lineage;
+// analysis goes through personal_finance.
+Model raw_cashback_milestones {
+  type: 'table'
+  label: 'Raw · cashback milestones'
+  description: '''
+Source table `cashback_milestones`: a card's reward ladder. `accrual` 'rate' pays reward/threshold of
+every VND up to the reward (one rung); 'step' pays a rung's reward once reached. Inactive rows are
+history.
+'''
+  data_source_name: 'finance'
+  table_name: 'cashback_milestones'
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension src {
+    label: 'Card'
+    type: 'text'
+    definition: @sql {{ #SOURCE.src }};;
+  }
+  dimension ordinal {
+    label: 'Ordinal'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ordinal }};;
+  }
+  dimension threshold_minor {
+    label: 'Threshold (minor)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.threshold_minor }};;
+  }
+  dimension reward_minor {
+    label: 'Reward (minor)'
+    type: 'number'
+    description: 'TOTAL reward at this rung.'
+    definition: @sql {{ #SOURCE.reward_minor }};;
+  }
+  dimension period {
+    label: 'Period'
+    type: 'text'
+    definition: @sql {{ #SOURCE.period }};;
+  }
+  dimension active {
+    label: 'Active'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.active }};;
+  }
+  dimension created_at {
+    label: 'Created at'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.created_at }};;
+  }
+  dimension cycle_close_day {
+    label: 'Cycle close day'
+    type: 'number'
+    description: '1–28; NULL = calendar month.'
+    definition: @sql {{ #SOURCE.cycle_close_day }};;
+  }
+  dimension accrual {
+    label: 'Accrual'
+    type: 'text'
+    description: 'step or rate.'
+    definition: @sql {{ #SOURCE.accrual }};;
+  }
+  dimension valid_through {
+    label: 'Valid through'
+    type: 'date'
+    definition: @sql {{ #SOURCE.valid_through }};;
+  }
+  dimension plan_name {
+    label: 'Plan'
+    type: 'text'
+    definition: @sql {{ #SOURCE.plan_name }};;
+  }
+
+  measure row_count {
+    label: 'Rows'
+    type: 'number'
+    description: 'Number of rows.'
+    definition: @aql count(raw_cashback_milestones.id) ;;
+  }
+}

@@ -1,0 +1,55 @@
+// The four money sources, keyed by the `src` wire key cspipeline uses everywhere
+// (store.CARD_SRC_BY_BANK / ACCOUNT_SRC_BY_SOURCE, budgets.scope_value).
+Model dim_sources {
+  type: 'query'
+  label: 'Sources'
+  description: '''
+One row per money source: two credit cards and two bank accounts.
+`src` is the key every fact and budget speaks.
+'''
+  data_source_name: 'finance'
+  query: @sql
+    SELECT * FROM (VALUES
+      ('credit',     'TCB Visa',  'TCB', 'credit_card',  false, 1),
+      ('vib_credit', 'MAX VIB',   'VIB', 'credit_card',  false, 2),
+      ('tcb_debit',  'TCB debit', 'TCB', 'bank_account', true,  3),
+      ('timo',       'Timo',      'Timo','bank_account', true,  4)
+    ) AS s(src, label, bank, instrument, has_running_balance, sort_order)
+  ;;
+
+  dimension src {
+    label: 'Source'
+    type: 'text'
+    primary_key: true
+    description: 'Wire key: credit (TCB card), vib_credit (MAX VIB card), tcb_debit, timo.'
+    definition: @sql {{ #SOURCE.src }};;
+  }
+  dimension label {
+    label: 'Source name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.label }};;
+  }
+  dimension bank {
+    label: 'Bank'
+    type: 'text'
+    definition: @sql {{ #SOURCE.bank }};;
+  }
+  dimension instrument {
+    label: 'Instrument'
+    type: 'text'
+    description: 'credit_card or bank_account.'
+    definition: @sql {{ #SOURCE.instrument }};;
+  }
+  dimension has_running_balance {
+    label: 'Has running balance'
+    type: 'truefalse'
+    description: 'Bank accounts report a balance after every movement; cards do not.'
+    definition: @sql {{ #SOURCE.has_running_balance }};;
+  }
+  dimension sort_order {
+    label: 'Sort order'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.sort_order }};;
+  }
+}

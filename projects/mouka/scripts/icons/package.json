@@ -1,0 +1,9 @@
+{
+  "name": "mouka-icons",
+  "private": true,
+  "description": "Build-time only: the icon libraries scripts/gen_icons.py reads. npm install here, then python3 -I scripts/gen_icons.py. Nothing in node_modules ships.",
+  "dependencies": {
+    "lucide-static": "1.59.0",
+    "@tabler/icons": "3.49.0"
+  }
+}

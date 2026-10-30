@@ -1,0 +1,114 @@
+Model fct_recurring {
+  type: 'query'
+  label: 'Recurring series'
+  description: '''
+**Grain:** one recurring series = one raw merchant (bank text) on one source, seen at least twice in the
+3 months before the data as-of date. Salary series group by the readable payer name instead, since the bank text
+names the month.
+
+- **Bills:** spend lines tagged Subscriptions or Bills (the same rule as the apps' "recurring" lists).
+- **Income:** salary lines (`flow_type = salary`), one series per payer.
+
+`next_due` projects the series forward: the first date after the as-of date with the same day of month as the
+latest charge (clamped to the month's last day). It is an expectation from history, not a bill the bank sent:
+the data has no recurrence model. `expected_vnd` is the latest charge's amount.
+'''
+  data_source_name: 'finance'
+  models: [fct_ledger]
+  query: @sql
+    WITH l AS (SELECT * FROM {{ #fct_ledger }}),
+    as_of_d AS (SELECT max(line_date) AS d FROM l),
+    lines AS (
+      -- a payer's salary line carries the month in its text (…TRA LUONG T09/2026), so income groups by the readable name
+      SELECT l.*, CASE WHEN l.flow_type = 'salary' THEN 'income' ELSE 'bill' END AS kind,
+             CASE WHEN l.flow_type = 'salary' THEN l.merchant_display ELSE l.merchant END AS series_merchant
+      FROM l CROSS JOIN as_of_d a
+      WHERE l.line_date > a.d - INTERVAL 3 MONTH
+        AND ((l.is_spend AND l.category IN ('Subscription', 'Hoá đơn')) OR l.flow_type = 'salary')
+    ),
+    series AS (
+      SELECT kind, series_merchant AS merchant, src,
+             max_by(merchant_display, line_date) AS merchant_display,
+             max_by(category, line_date)         AS category,
+             max(line_date)                      AS last_date,
+             max_by(amount_vnd, line_date)       AS expected_vnd,
+             count(*)                            AS charges
+      FROM lines
+      GROUP BY kind, series_merchant, src
+      HAVING count(*) >= 2
+    ),
+    proj AS (
+      SELECT s.*, a.d AS as_of_date,
+             (SELECT min(c) FROM (
+                SELECT least(CAST(m + to_days(day(s.last_date) - 1) AS DATE), last_day(m)) AS c   -- a 31st into a 30-day month clamps (make_date would throw)
+                FROM (SELECT CAST(date_trunc('month', a.d) + to_months(k) AS DATE) AS m FROM range(0, 3) t(k)) mm
+              ) cc WHERE c > a.d) AS next_due
+      FROM series s CROSS JOIN as_of_d a
+    )
+    SELECT kind || ' · ' || src || ' · ' || merchant AS series_key, *,
+           datediff('day', as_of_date, next_due) AS days_to_due
+    FROM proj
+  ;;
+
+  dimension series_key {
+    label: 'Series'
+    type: 'text'
+    primary_key: true
+    description: 'kind · source · raw merchant.'
+    definition: @sql {{ #SOURCE.series_key }};;
+  }
+  dimension kind {
+    label: 'Kind'
+    type: 'text'
+    description: 'bill (Subscriptions / Bills spend) or income (salary).'
+    definition: @sql {{ #SOURCE.kind }};;
+  }
+  dimension merchant {
+    label: 'Merchant (raw)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.merchant }};;
+  }
+  dimension merchant_display {
+    label: 'Merchant'
+    type: 'text'
+    description: 'The readable name (fct_ledger.merchant_display) of the latest charge.'
+    definition: @sql {{ #SOURCE.merchant_display }};;
+  }
+  dimension src {
+    label: 'Source'
+    type: 'text'
+    definition: @sql {{ #SOURCE.src }};;
+  }
+  dimension category {
+    label: 'Category'
+    type: 'text'
+    definition: @sql {{ #SOURCE.category }};;
+  }
+  dimension last_date {
+    label: 'Latest charge'
+    type: 'date'
+    definition: @sql {{ #SOURCE.last_date }};;
+  }
+  dimension next_due {
+    label: 'Next expected'
+    type: 'date'
+    description: 'The first date after the as-of date on the latest charge\'s day of month.'
+    definition: @sql {{ #SOURCE.next_due }};;
+  }
+  dimension days_to_due {
+    label: 'Days to next expected'
+    type: 'number'
+    definition: @sql {{ #SOURCE.days_to_due }};;
+  }
+  dimension expected_vnd {
+    label: 'Expected amount'
+    type: 'number'
+    description: 'The latest charge\'s amount, carried forward.'
+    definition: @sql {{ #SOURCE.expected_vnd }};;
+  }
+  dimension charges {
+    label: 'Charges in 3 months'
+    type: 'number'
+    definition: @sql {{ #SOURCE.charges }};;
+  }
+}

@@ -1,0 +1,68 @@
+// Raw source table, 1:1 with the cspipeline replica (db/schema.duckdb.sql). For audit and lineage;
+// analysis goes through personal_finance.
+Model raw_budgets {
+  type: 'table'
+  label: 'Raw · budgets'
+  description: '''
+Source table `budgets`: monthly limits by category or source. Exactly one category budget is
+the overflow buffer.
+'''
+  data_source_name: 'finance'
+  table_name: 'budgets'
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension scope_type {
+    label: 'Scope type'
+    type: 'text'
+    description: 'category · source.'
+    definition: @sql {{ #SOURCE.scope_type }};;
+  }
+  dimension scope_value {
+    label: 'Scope value'
+    type: 'text'
+    definition: @sql {{ #SOURCE.scope_value }};;
+  }
+  dimension period {
+    label: 'Period'
+    type: 'text'
+    definition: @sql {{ #SOURCE.period }};;
+  }
+  dimension limit_minor {
+    label: 'Limit (minor)'
+    type: 'number'
+    description: 'VND.'
+    definition: @sql {{ #SOURCE.limit_minor }};;
+  }
+  dimension warn_pct {
+    label: 'Warn %'
+    type: 'number'
+    definition: @sql {{ #SOURCE.warn_pct }};;
+  }
+  dimension active {
+    label: 'Active'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.active }};;
+  }
+  dimension created_at {
+    label: 'Created at'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.created_at }};;
+  }
+  dimension overflow_buffer {
+    label: 'Overflow buffer'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.overflow_buffer }};;
+  }
+
+  measure row_count {
+    label: 'Rows'
+    type: 'number'
+    description: 'Number of rows.'
+    definition: @aql count(raw_budgets.id) ;;
+  }
+}

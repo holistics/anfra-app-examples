@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en" data-theme="terracotta">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mouka design system</title>
+  <link rel="icon" href="img/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Roboto+Mono:wght@400&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap">
+  <!-- the same design system as app.html (tokens → themes → base → layout → components), plus the gallery's own frame -->
+  <link rel="stylesheet" href="ds/tokens.css">
+  <link rel="stylesheet" href="ds/themes.css">
+  <link rel="stylesheet" href="ds/base.css">
+  <link rel="stylesheet" href="ds/layout.css">
+  <link rel="stylesheet" href="ds/components.css">
+  <link rel="stylesheet" href="ds/panel.css">
+  <link rel="stylesheet" href="ds/gallery.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+</head>
+<body data-app-title="mouka design system">
+  <div class="shell">
+    <nav class="sidebar gal-nav" data-anfra-container="gal-nav" data-anfra-label="Sections">
+      <div class="brand"><img class="logo" src="img/logo.png" alt="">mouka</div>
+      <div class="nav-group first">Your looks</div>
+      <a class="nav-item" href="#presets">Saved looks</a>
+      <div class="nav-group">Foundations</div>
+      <a class="nav-item" href="#colour">Colour</a>
+      <a class="nav-item" href="#type">Type</a>
+      <a class="nav-item" href="#shape">Shape &amp; elevation</a>
+      <a class="nav-item" href="#space">Space &amp; motion</a>
+      <div class="nav-group">Components</div>
+      <a class="nav-item" href="#cards">Cards</a>
+      <a class="nav-item" href="#numbers">Numbers</a>
+      <a class="nav-item" href="#controls">Buttons &amp; controls</a>
+      <a class="nav-item" href="#pills">Chips &amp; pills</a>
+      <a class="nav-item" href="#lists">Lists &amp; tables</a>
+      <a class="nav-item" href="#calendars">Calendars</a>
+      <a class="nav-item" href="#overlays">Overlays</a>
+      <a class="nav-item" href="#charts">Charts</a>
+      <div class="nav-group">Pages</div>
+      <a class="nav-item" href="#breakpoints">Breakpoints</a>
+      <a class="nav-item" href="#layouts">Layouts</a>
+      <a class="nav-item" href="#pages">Page config</a>
+      <button class="ds-entry" type="button" data-ds-panel title="Design system panel (\)">
+        <svg class="i" viewBox="0 0 24 24" data-icon="palette"></svg>Edit tokens</button>
+    </nav>
+    <main id="gallery" class="gal" data-anfra-container="gallery" data-anfra-label="Gallery"></main>
+  </div>
+  <div id="trace-pop" class="trace-pop" hidden data-anfra-render="skip"></div>
+  <div id="hc" class="hc" hidden data-anfra-render="skip"></div>
+
+  <script src="js/core/format.js"></script>
+  <script src="js/core/core.js"></script>
+  <script src="js/core/charts.js"></script>
+  <script src="js/core/definitions.js"></script>
+  <script src="js/core/trace.js"></script>
+  <script src="ds/presets.js"></script>
+  <script src="js/ds/tokens.js"></script>
+  <script src="js/ds/history.js"></script>
+  <script src="js/ds/icons.js"></script>
+  <script src="js/ds/components.js"></script>
+  <script src="js/ds/layout.js"></script>
+  <script src="js/origin.js"></script>
+  <script src="js/shared.js"></script>
+  <script src="js/pages.js"></script>
+  <script src="js/ds/panel.js"></script>
+  <script src="js/ds/gallery.js"></script>
+</body>
+</html>

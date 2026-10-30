@@ -1,0 +1,59 @@
+// Every account, as Wealthfolio lists them. account_group is the Net Worth side.
+Model dim_accounts {
+  type: 'query'
+  label: 'Accounts'
+  description: '''
+One row per account: the SSI securities account, physical gold, the term-deposit book, USD
+cash, TCB debit, Timo and the two credit cards. `account_group` is the Net Worth side
+(Investments, Cash, Liabilities). A credit card's value is its outstanding debt, negative.
+'''
+  data_source_name: 'finance'
+  query: @sql
+    SELECT id AS account_id, name, account_type, account_group, currency,
+           account_type = 'CREDIT_CARD' AS is_liability,
+           CASE account_group WHEN 'Investments' THEN 1 WHEN 'Cash' THEN 2 ELSE 3 END AS group_order
+    FROM accounts
+  ;;
+
+  dimension account_id {
+    label: 'Account ID'
+    type: 'text'
+    primary_key: true
+    description: 'ssi · gold · deposits · usd · tcb_debit · timo · credit · vib_credit.'
+    definition: @sql {{ #SOURCE.account_id }};;
+  }
+  dimension name {
+    label: 'Account'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension account_type {
+    label: 'Account type'
+    type: 'text'
+    description: 'CASH · SECURITIES · CREDIT_CARD.'
+    definition: @sql {{ #SOURCE.account_type }};;
+  }
+  dimension account_group {
+    label: 'Group'
+    type: 'text'
+    description: 'Investments · Cash · Liabilities.'
+    definition: @sql {{ #SOURCE.account_group }};;
+  }
+  dimension currency {
+    label: 'Currency'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency }};;
+  }
+  dimension is_liability {
+    label: 'Is liability'
+    type: 'truefalse'
+    description: 'Credit cards. Their value is negative: what is owed.'
+    definition: @sql {{ #SOURCE.is_liability }};;
+  }
+  dimension group_order {
+    label: 'Group order'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.group_order }};;
+  }
+}

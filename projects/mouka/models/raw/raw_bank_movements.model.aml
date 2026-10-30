@@ -1,0 +1,123 @@
+// Raw source table, 1:1 with the cspipeline replica (db/schema.duckdb.sql). For audit and lineage;
+// analysis goes through personal_finance.
+Model raw_bank_movements {
+  type: 'table'
+  label: 'Raw · bank movements'
+  description: '''
+Source table `bank_movements`: one account event parsed from a TCB SMS (`tcb_sms`) or a Timo
+email (`timo_email`). `amount_minor` is always positive; `direction` D (debit) / C (credit) gives
+the sign. `running_balance_minor` chains exactly per account.
+'''
+  data_source_name: 'finance'
+  table_name: 'bank_movements'
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension source {
+    label: 'Source'
+    type: 'text'
+    description: 'tcb_sms or timo_email.'
+    definition: @sql {{ #SOURCE.source }};;
+  }
+  dimension external_id {
+    label: 'External ID'
+    type: 'text'
+    description: 'Unique per source.'
+    definition: @sql {{ #SOURCE.external_id }};;
+  }
+  dimension account_key {
+    label: 'Annotation key'
+    type: 'text'
+    hidden: true
+    description: 'source:external_id, the key annotations use.'
+    definition: @sql {{ #SOURCE.source }} || ':' || {{ #SOURCE.external_id }};;
+  }
+  dimension account_ref {
+    label: 'Account ref'
+    type: 'text'
+    definition: @sql {{ #SOURCE.account_ref }};;
+  }
+  dimension occurred_at {
+    label: 'Occurred at'
+    type: 'datetime'
+    description: 'TIMESTAMPTZ.'
+    definition: @sql {{ #SOURCE.occurred_at }};;
+  }
+  dimension direction {
+    label: 'Direction'
+    type: 'text'
+    description: 'D (debit) or C (credit).'
+    definition: @sql {{ #SOURCE.direction }};;
+  }
+  dimension amount_minor {
+    label: 'Amount (minor)'
+    type: 'number'
+    description: 'Always positive, VND.'
+    definition: @sql {{ #SOURCE.amount_minor }};;
+  }
+  dimension currency {
+    label: 'Currency'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency }};;
+  }
+  dimension running_balance_minor {
+    label: 'Running balance (minor)'
+    type: 'number'
+    description: 'Balance after the movement.'
+    definition: @sql {{ #SOURCE.running_balance_minor }};;
+  }
+  dimension counterparty {
+    label: 'Counterparty'
+    type: 'text'
+    definition: @sql {{ #SOURCE.counterparty }};;
+  }
+  dimension description {
+    label: 'Description'
+    type: 'text'
+    definition: @sql {{ #SOURCE.description }};;
+  }
+  dimension raw_body {
+    label: 'Raw body'
+    type: 'text'
+    hidden: true
+    description: 'The SMS / email text the parser read.'
+    definition: @sql {{ #SOURCE.raw_body }};;
+  }
+  dimension parser_version {
+    label: 'Parser version'
+    type: 'text'
+    definition: @sql {{ #SOURCE.parser_version }};;
+  }
+  dimension category {
+    label: 'Legacy category'
+    type: 'text'
+    definition: @sql {{ #SOURCE.category }};;
+  }
+  dimension category_source {
+    label: 'Legacy category source'
+    type: 'text'
+    definition: @sql {{ #SOURCE.category_source }};;
+  }
+  dimension categorized_at {
+    label: 'Categorized at'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.categorized_at }};;
+  }
+
+  measure row_count {
+    label: 'Rows'
+    type: 'number'
+    description: 'Number of rows.'
+    definition: @aql count(raw_bank_movements.id) ;;
+  }
+  measure sum_amount_minor {
+    label: 'Sum of amounts'
+    type: 'number'
+    description: 'Ignores direction: debits and credits both add.'
+    definition: @aql sum(raw_bank_movements.amount_minor) ;;
+  }
+}

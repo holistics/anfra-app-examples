@@ -1,0 +1,99 @@
+// Raw source table, 1:1 with the cspipeline replica (db/schema.duckdb.sql). For audit and lineage;
+// analysis goes through personal_finance.
+Model raw_annotations {
+  type: 'table'
+  label: 'Raw · annotations'
+  description: '''
+Source table `annotations`: the user layer over card lines and account movements. At most one
+per target. `category` is the 11-tag taxonomy, or 'Đã hoàn' ("reversed") for a VIB charge the bank reversed.
+`flow` is a manual account flow tag.
+'''
+  data_source_name: 'finance'
+  table_name: 'annotations'
+
+  dimension id {
+    label: 'ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension target_kind {
+    label: 'Target kind'
+    type: 'text'
+    description: 'card or account.'
+    definition: @sql {{ #SOURCE.target_kind }};;
+  }
+  dimension statement_id {
+    label: 'Statement ID'
+    type: 'number'
+    description: 'Card targets.'
+    definition: @sql {{ #SOURCE.statement_id }};;
+  }
+  dimension row_hash {
+    label: 'Row hash'
+    type: 'text'
+    description: 'Card targets.'
+    definition: @sql {{ #SOURCE.row_hash }};;
+  }
+  dimension card_key {
+    label: 'Card key'
+    type: 'text'
+    hidden: true
+    description: 'statement_id:row_hash for card targets, else NULL.'
+    definition: @sql CAST({{ #SOURCE.statement_id }} AS VARCHAR) || ':' || {{ #SOURCE.row_hash }};;
+  }
+  dimension source {
+    label: 'Source'
+    type: 'text'
+    description: 'Account targets.'
+    definition: @sql {{ #SOURCE.source }};;
+  }
+  dimension external_id {
+    label: 'External ID'
+    type: 'text'
+    description: 'Account targets.'
+    definition: @sql {{ #SOURCE.external_id }};;
+  }
+  dimension account_key {
+    label: 'Account key'
+    type: 'text'
+    hidden: true
+    description: 'source:external_id for account targets, else NULL.'
+    definition: @sql {{ #SOURCE.source }} || ':' || {{ #SOURCE.external_id }};;
+  }
+  dimension flow {
+    label: 'Flow tag'
+    type: 'text'
+    description: 'Manual account flow: othercard, savings, investment…'
+    definition: @sql {{ #SOURCE.flow }};;
+  }
+  dimension note {
+    label: 'Note'
+    type: 'text'
+    definition: @sql {{ #SOURCE.note }};;
+  }
+  dimension updated_at {
+    label: 'Updated at'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.updated_at }};;
+  }
+  dimension category {
+    label: 'Category'
+    type: 'text'
+    description: 'Taxonomy tag, or Đã hoàn (reversed).'
+    definition: @sql {{ #SOURCE.category }};;
+  }
+  dimension category_source {
+    label: 'Category source'
+    type: 'text'
+    description: 'auto · user · wf.'
+    definition: @sql {{ #SOURCE.category_source }};;
+  }
+
+  measure row_count {
+    label: 'Rows'
+    type: 'number'
+    description: 'Number of rows.'
+    definition: @aql count(raw_annotations.id) ;;
+  }
+}

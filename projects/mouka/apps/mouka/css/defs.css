@@ -1,0 +1,24 @@
+/* Definitions page (js/views/defs.js): every governed metric, grouped by page. Tokens only (ds-lint). */
+.defs-wrap { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.defs-index { position: sticky; top: var(--sp-4); display: grid; gap: var(--sp-1); padding-top: var(--sp-2); }
+.defs-index .label { margin-bottom: var(--sp-2); }
+.defs-index button { display: flex; justify-content: space-between; padding: var(--sp-1) var(--sp-2); border-radius: var(--r-sm); color: var(--ink-2); text-align: left; }
+.defs-index button:hover { background: var(--fill-subtle); color: var(--ink); }
+.defs-index .defs-count { margin-top: var(--sp-3); font-size: var(--fs-2); padding: 0 var(--sp-2); }
+.defs-top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-4) var(--sp-5); background: var(--surface); border-radius: var(--r-lg) var(--r-lg) 0 0; border-bottom: 1px solid var(--rule); }
+.defs-top .sub { flex: 1; }
+.defs-list { padding: 0 var(--sp-5) var(--sp-5); }
+.defs-group { padding-top: var(--sp-5); scroll-margin-top: 80px; }
+.defs-group > .label { margin-bottom: var(--sp-2); }
+.defs-list .def { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-1); padding: var(--sp-3) 0; border-top: 1px solid var(--rule); }
+.defs-list .def .name { font-size: var(--fs-body); font-weight: var(--fw-medium); }
+.defs-list .def .id { font: var(--fs-code) var(--mono); color: var(--ink-3); }
+.defs-list .def .desc { color: var(--ink-2); font-size: var(--fs-2); max-width: 72ch; }
+.defs-list .def pre { margin: 8px 0 0; font: var(--fs-code)/1.5 var(--mono); white-space: pre-wrap; color: var(--ink-2); background: var(--fill-subtle); padding: 8px 8px; border-radius: var(--r-sm); }
+.defs-list .def .where { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin-top: var(--sp-1); }
+.defs-list .def .where button { padding: 2px var(--sp-2); border-radius: var(--r-sm); background: var(--fill-subtle); font-size: var(--fs-label); color: var(--ink-2); }
+.defs-list .aml summary { cursor: pointer; font-size: var(--fs-label); color: var(--ink-3); width: max-content; }
+.defs-list .aml .mono { font-family: var(--mono); }
+.defs-list .aml pre { margin: var(--sp-2) 0 0; font: var(--fs-label)/1.5 var(--mono); white-space: pre-wrap; color: var(--ink-2); background: var(--fill-subtle); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); }
+
+@media (max-width: 899px) { .defs-wrap { grid-template-columns: minmax(0, 1fr); } .defs-index { display: none; } }

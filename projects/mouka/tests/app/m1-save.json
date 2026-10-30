@@ -1,0 +1,69 @@
+[
+ {
+  "viewport": [
+   1600,
+   1000
+  ]
+ },
+ {
+  "waitFor": "() => WF.current && WF.asOf && document.querySelector('#hn-hero')?.textContent.length > 4"
+ },
+ {
+  "name": "the save helper is running (python3 -I scripts/ds_save.py)",
+  "assert": "async () => { try { return (await (await fetch('http://127.0.0.1:7879/health')).json()).ok; } catch { return false; } }"
+ },
+ {
+  "eval": "() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '\\\\', bubbles: true })); return true; }"
+ },
+ {
+  "eval": "() => { const el = document.querySelector('.ds-panel input[data-colour=\"--chart\"]'); el.value = '#e8590c'; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return DS.token('--chart'); }"
+ },
+ {
+  "eval": "() => { const el = document.querySelector('.ds-panel input[data-t=\"--r-lg\"]'); for (const v of [4]) { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); } el.dispatchEvent(new Event('change', { bubbles: true })); return DS.token('--r-lg'); }"
+ },
+ {
+  "eval": "() => { const i = document.querySelector('[data-preset-name]'); i.value = 'Gate test'; document.querySelector('[data-preset-save]').click(); return true; }"
+ },
+ {
+  "waitFor": "() => DS.PRESETS.some((p) => p.slug === 'gate-test' && !p.session)"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "Save writes ds/presets.js through the helper (not a session preset)",
+  "assert": "async () => { const j = await (await fetch('http://127.0.0.1:7879/presets')).json(); const p = j.presets.find((x) => x.slug === 'gate-test'); return !!p && p.overrides['--chart'] === '#e8590c' && p.overrides['--r-lg'] === '4px' && p.theme === 'mouka' && /Saved “Gate test”/.test(document.querySelector('.dsp-msg').textContent); }"
+ },
+ {
+  "eval": "() => { const el = document.querySelector('.ds-panel input[data-t=\"--r-lg\"]'); for (const v of [8]) { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); } el.dispatchEvent(new Event('change', { bubbles: true })); return DS.token('--r-lg'); }"
+ },
+ {
+  "wait": 150
+ },
+ {
+  "eval": "() => { WF.renderAll(); document.querySelector('.ds-panel [data-preset-update]')?.click(); return !!document.querySelector('.ds-panel [data-preset-update]'); }"
+ },
+ {
+  "waitFor": "async () => { const j = await (await fetch('http://127.0.0.1:7879/presets')).json(); return j.presets.find((x) => x.slug === 'gate-test')?.overrides['--r-lg'] === '8px'; }"
+ },
+ {
+  "name": "Update rewrites the same preset",
+  "assert": "() => /Updated “Gate test”/.test(document.querySelector('.dsp-msg').textContent) && !DS.presetModified()"
+ },
+ {
+  "click": "[data-preset-del='gate-test']"
+ },
+ {
+  "click": "[data-preset-del='gate-test']"
+ },
+ {
+  "waitFor": "async () => !(await (await fetch('http://127.0.0.1:7879/presets')).json()).presets.some((x) => x.slug === 'gate-test')"
+ },
+ {
+  "name": "Delete removes it from the file",
+  "assert": "() => !DS.PRESETS.some((p) => p.slug === 'gate-test')"
+ },
+ {
+  "click": "[data-dsp-reset]"
+ }
+]

@@ -1,0 +1,62 @@
+Model invoices {
+  type: 'table'
+  label: 'Invoices'
+  description: 'Stripe-style invoices, one per paid customer per billing month (billed on the signup anniversary day).'
+  data_source_name: 'inkwell'
+  table_name: 'invoices'
+
+  dimension invoice_id {
+    label: 'Invoice ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.invoice_id }};;
+  }
+  dimension customer_id {
+    label: 'Customer ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.customer_id }};;
+  }
+  dimension invoiced_on {
+    label: 'Invoiced On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.invoiced_on }};;
+  }
+  dimension status {
+    label: 'Status'
+    type: 'text'
+    description: 'paid, failed (card declined, nothing collected) or refunded (collected, then returned).'
+    definition: @sql {{ #SOURCE.status }};;
+  }
+  dimension coupon_code {
+    label: 'Coupon Applied'
+    type: 'text'
+    definition: @sql {{ #SOURCE.coupon_code }};;
+  }
+  dimension gross_amount_usd {
+    label: 'List Price (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.gross_amount_usd }};;
+  }
+  dimension discount_usd {
+    label: 'Discount (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.discount_usd }};;
+  }
+  dimension amount_paid_usd {
+    label: 'Amount Collected (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.amount_paid_usd }};;
+  }
+  dimension refunded_usd {
+    label: 'Refunded (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.refunded_usd }};;
+  }
+  dimension stripe_fee_usd {
+    label: 'Stripe Fee (USD)'
+    type: 'number'
+    description: '2.9% + $0.30 per successful charge. Stripe keeps it when you refund.'
+    definition: @sql {{ #SOURCE.stripe_fee_usd }};;
+  }
+}

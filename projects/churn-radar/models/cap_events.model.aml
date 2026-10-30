@@ -1,0 +1,31 @@
+Model cap_events {
+  type: 'table'
+  label: 'Cap Events'
+  description: 'Days a Team customer hit the 50 Agent runs per month cap, with the runs that were blocked.'
+  data_source_name: 'inkwell'
+  table_name: 'cap_events'
+
+  dimension cap_event_id {
+    label: 'Cap Event ID'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql cast({{ #SOURCE.customer_id }} as varchar) || '-' || strftime({{ #SOURCE.event_date }}, '%Y%m%d');;
+  }
+  dimension customer_id {
+    label: 'Customer ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.customer_id }};;
+  }
+  dimension event_date {
+    label: 'Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.event_date }};;
+  }
+  dimension blocked_runs {
+    label: 'Agent Runs Refused by the Cap'
+    type: 'number'
+    definition: @sql {{ #SOURCE.blocked_runs }};;
+  }
+}

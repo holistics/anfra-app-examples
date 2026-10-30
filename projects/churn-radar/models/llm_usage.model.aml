@@ -1,0 +1,53 @@
+Model llm_usage {
+  type: 'table'
+  label: 'LLM Usage'
+  description: 'Token usage per customer, per day, per feature. Each feature runs on one model.'
+  data_source_name: 'inkwell'
+  table_name: 'llm_usage'
+
+  dimension usage_id {
+    label: 'Usage ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.usage_id }};;
+  }
+  dimension customer_id {
+    label: 'Customer ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.customer_id }};;
+  }
+  dimension model_id {
+    label: 'Model ID'
+    type: 'text'
+    hidden: true
+    definition: @sql {{ #SOURCE.model_id }};;
+  }
+  dimension used_on {
+    label: 'Used On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.used_on }};;
+  }
+  dimension feature {
+    label: 'Feature'
+    type: 'text'
+    description: 'rewrite and summarize run on Mini, chat on Standard, agent (launched 2026-06-01) on Frontier.'
+    definition: @sql {{ #SOURCE.feature }};;
+  }
+  dimension requests {
+    label: 'Requests'
+    type: 'number'
+    definition: @sql {{ #SOURCE.requests }};;
+  }
+  dimension input_tokens {
+    label: 'Input Tokens'
+    type: 'number'
+    definition: @sql {{ #SOURCE.input_tokens }};;
+  }
+  dimension output_tokens {
+    label: 'Output Tokens'
+    type: 'number'
+    definition: @sql {{ #SOURCE.output_tokens }};;
+  }
+}

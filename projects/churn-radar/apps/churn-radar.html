@@ -1,0 +1,1112 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Churn Radar</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      --bg: #f6f7f9; --card: #ffffff; --ink: #14181f; --muted: #5f6b7a; --line: #e3e7ec;
+      --rev: #3b6fd8; --lost: #c8312c; --rule: #b5305c; --other: #e9a3a0; --saved: #138a5b; --good: #138a5b; --bad: #c8312c;
+      --watch: #c98a12; --accent: #4b3fd8;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 1320px; margin: 0 auto; padding: 20px 20px 40px; }
+    header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+    .logo { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, #c8312c, #f08a5d); display: grid; place-items: center; color: #fff; font-weight: 700; }
+    .brand h1 { font-size: 19px; margin: 0; }
+    .brand p { margin: 0; color: var(--muted); font-size: 12.5px; }
+    .asof { font-size: 13px; color: var(--muted); background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; }
+    .asof b { color: var(--ink); }
+
+    .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+    .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-height: 104px; }
+    .kpi .label { color: var(--muted); font-size: 12.5px; }
+    .kpi .value { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin: 2px 0; font-variant-numeric: tabular-nums; }
+    .kpi .delta { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .kpi.alert { border-color: #f1c4c2; background: linear-gradient(180deg, #fff7f6, #fff); }
+    .kpi.alert .value { color: var(--bad); }
+    .kpi.win .value { color: var(--good); }
+    .up-bad { color: var(--bad) !important; } .up-good { color: var(--good) !important; }
+
+    .grid { display: grid; gap: 14px; margin-bottom: 14px; }
+    .change { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.2fr); gap: 18px; align-items: start; }
+    .change h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 6px; }
+    .change > div { min-width: 0; }
+    .change table { table-layout: auto; }
+    .change table td, .change table th { padding: 6px 8px; cursor: default; white-space: normal; }
+    .change table td.l:first-child { width: 30%; }
+    .change td.before, .change td.after { white-space: nowrap; }
+    .change tbody tr { cursor: default; } .change tbody tr:hover { background: none; }
+    .change td.arrow { color: var(--muted); text-align: center; width: 24px; }
+    .change td.before { color: var(--muted); }
+    .change td.after { font-weight: 700; }
+    .change .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-left: 6px; }
+    .change .tag.good { background: #def5ea; color: var(--good); } .change .tag.bad { background: #fde3e1; color: var(--bad); }
+    .g-2-1 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+    .g-1-1 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; position: relative; min-width: 0; }
+    .panel h2 { font-size: 14.5px; margin: 0; }
+    .panel .sub { color: var(--muted); font-size: 12.5px; margin: 2px 0 8px; }
+    .chart { height: 300px; }
+    .status { position: absolute; inset: 56px 16px 16px; display: none; align-items: center; justify-content: center; text-align: center; background: rgb(255 255 255 / 0.75); color: var(--muted); border-radius: 8px; z-index: 2; }
+    .status.visible { display: flex; }
+    .status.error { color: var(--bad); }
+
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    th { text-align: right; font-weight: 600; color: var(--muted); font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    td { text-align: right; padding: 7px 8px; border-bottom: 1px solid #f0f2f5; white-space: nowrap; vertical-align: middle; }
+    th.l, td.l { text-align: left; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: #f8f8ff; }
+    tbody tr.picked { background: #ece9ff; }
+    .badge { display: inline-block; min-width: 46px; text-align: center; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+    .badge.High { background: #fde3e1; color: var(--bad); }
+    .badge.Watch { background: #fdf1d8; color: #8a5a00; }
+    .neg { color: var(--bad); font-weight: 600; } .pos { color: var(--good); font-weight: 600; }
+    .table-wrap { overflow-x: auto; max-height: 470px; overflow-y: auto; }
+    select.play { font: inherit; font-size: 12.5px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; max-width: 170px; }
+    select.play.on { border-color: var(--accent); background: #f0eeff; color: var(--accent); font-weight: 600; }
+
+    .card-head { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; margin: 2px 0 6px; }
+    .card-head b { font-variant-numeric: tabular-nums; }
+    .events { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+    .events li { margin: 2px 0; }
+
+    .plays { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 20px; }
+    .lever { margin-bottom: 12px; }
+    .lever .row { display: flex; justify-content: space-between; gap: 10px; }
+    .lever .row b { color: var(--accent); font-variant-numeric: tabular-nums; }
+    .lever p { margin: 2px 0 4px; color: var(--muted); font-size: 12.5px; }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+    .outcome { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-content: start; }
+    .out { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+    .out .label { color: var(--muted); font-size: 12px; }
+    .out .vals { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .headline { grid-column: 1 / -1; background: linear-gradient(135deg, #f0eeff, #fff); border-color: #d9d4ff; }
+    .headline .vals { font-size: 24px; color: var(--accent); }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .confirm { margin-top: 10px; padding: 10px 12px; border: 1px solid #d9d4ff; background: #f6f5ff; border-radius: 10px; font-size: 13px; }
+    .confirm .btn-row { margin-top: 8px; }
+    .sent { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--good); background: #def5ea; border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+    .sent.pending { color: #8a5a00; background: #fdf1d8; }
+    .activity { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; }
+    .act-item { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; }
+    .act-item .who { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; font-size: 13px; }
+    .act-item ul { margin: 4px 0 0; padding-left: 0; list-style: none; }
+    .act-item li { color: var(--muted); }
+    .act-item li.done { color: var(--ink); }
+    .act-item li::before { content: '○ '; color: var(--muted); }
+    .act-item li.done::before { content: '✓ '; color: var(--good); font-weight: 700; }
+    .act-item details { margin-top: 4px; }
+    .act-item summary { cursor: pointer; color: var(--accent); }
+    .act-item blockquote { margin: 6px 0 0; padding: 6px 10px; border-left: 3px solid var(--accent); background: #f6f5ff; border-radius: 6px; white-space: pre-wrap; color: var(--ink); }
+    .empty { color: var(--muted); font-size: 13px; }
+    .btn { border: 1px solid #d9d4ff; background: #f6f5ff; color: var(--accent); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .note { color: var(--muted); font-size: 12px; margin-top: 8px; }
+
+    footer { color: var(--muted); font-size: 12.5px; }
+    footer dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 8px 0 0; }
+    footer dt { font-weight: 600; color: var(--ink); }
+    footer dd { margin: 0; }
+
+    /* copilot */
+    #ai-fab { position: fixed; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 20; border: 0; border-radius: 999px; padding: 12px 18px;
+              background: linear-gradient(135deg, var(--accent), #8b5cf6); color: #fff; font: 600 14px system-ui, sans-serif; cursor: pointer; box-shadow: 0 8px 24px rgb(75 63 216 / 0.35); }
+    #ai-panel { position: fixed; right: 20px; bottom: 20px; z-index: 21; width: min(500px, calc(100vw - 40px)); height: min(720px, calc(100vh - 40px));
+                background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 16px 48px rgb(20 24 31 / 0.18); display: flex; flex-direction: column; overflow: hidden; }
+    #ai-panel header { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+    #ai-panel header b { font-size: 14.5px; }
+    #ai-status { font-size: 12px; color: var(--muted); margin-right: auto; }
+    #ai-status.ok::before { content: '●'; color: var(--good); margin-right: 4px; }
+    #ai-status.off::before { content: '●'; color: var(--bad); margin-right: 4px; }
+    #ai-panel header button { border: 0; background: none; font-size: 18px; color: var(--muted); cursor: pointer; }
+    #ai-log { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+    .msg { max-width: 94%; padding: 9px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; }
+    .msg.user { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; white-space: pre-wrap; }
+    .msg.bot { align-self: flex-start; background: #f3f4f7; border-bottom-left-radius: 4px; }
+    .msg.bot p { margin: 0 0 6px; } .msg.bot p:last-child { margin-bottom: 0; }
+    .msg.bot ul { margin: 4px 0 6px; padding-left: 18px; }
+    .msg.bot table { font-size: 12px; margin: 6px 0; background: #fff; border-radius: 6px; }
+    .msg.bot th, .msg.bot td { padding: 4px 6px; text-align: left; white-space: normal; }
+    .msg.bot tbody tr { cursor: default; }
+    .msg.bot blockquote { margin: 6px 0; padding: 8px 10px; background: #fff; border-left: 3px solid var(--accent); border-radius: 6px; white-space: pre-wrap; }
+    .msg.err { align-self: stretch; background: #fff1f0; color: var(--bad); font-size: 12.5px; }
+    .act { align-self: flex-start; font-size: 12px; color: var(--muted); padding-left: 4px; }
+    .act::before { content: '↳ '; color: var(--accent); }
+    .typing { align-self: flex-start; color: var(--muted); font-size: 12.5px; }
+    #ai-suggest { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 10px; }
+    #ai-suggest button { border: 1px solid #d9d4ff; background: #f6f5ff; color: var(--accent); border-radius: 999px; padding: 5px 10px; font: 12.5px system-ui, sans-serif; cursor: pointer; text-align: left; }
+    .ai-input { display: flex; gap: 8px; padding: 10px 14px 14px; border-top: 1px solid var(--line); }
+    .ai-input textarea { flex: 1; resize: none; font: 13.5px system-ui, sans-serif; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+    .ai-input button { border: 0; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 600; padding: 0 14px; cursor: pointer; }
+    .ai-input button:disabled { opacity: 0.5; cursor: default; }
+    .ai-off { padding: 10px 12px; margin: 0 14px 10px; border-radius: 10px; background: #fff7e6; color: #7a5200; font-size: 12.5px; }
+
+    @media (max-width: 1000px) {
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .g-2-1, .g-1-1, .plays { grid-template-columns: minmax(0, 1fr); }
+    }
+  </style>
+</head>
+<body>
+<main data-anfra-container="page" data-anfra-label="Churn Radar">
+  <header class="top" data-anfra-container="header" data-anfra-label="Header">
+    <div class="brand">
+      <div class="logo">↓</div>
+      <div>
+        <h1>Churn Radar</h1>
+        <p>Inkwell (synthetic data), three months after the October pricing rules</p>
+      </div>
+    </div>
+    <span class="asof" data-anfra-block="asof" data-anfra-query="health">Rules live since <b>1 Oct 2026</b> · data as of <b id="asof">…</b></span>
+  </header>
+
+  <section class="panel" style="margin-bottom:14px" data-anfra-block="change" data-anfra-label="What changed on 1 Oct" data-anfra-query="rulesQ kpiNow kpiBefore">
+    <h2>What changed on <span id="rules-date">1 Oct 2026</span></h2>
+    <div class="sub">The pricing rules the margin copilot picked, and what they did. Before = September 2026, after = December 2026.</div>
+    <div class="change">
+      <div>
+        <h3>The rules</h3>
+        <table><thead><tr><th class="l"></th><th class="l">Before</th><th></th><th class="l">After</th></tr></thead><tbody id="rules-body"></tbody></table>
+      </div>
+      <div>
+        <h3>The results</h3>
+        <table><thead><tr><th class="l"></th><th class="l">September</th><th></th><th class="l">December</th><th class="l">Change</th></tr></thead><tbody id="results-body"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section class="kpis" data-anfra-container="kpis" data-anfra-label="Headline numbers">
+    <div class="kpi win" data-anfra-block="kpi-margin" data-anfra-label="Gross margin" data-anfra-query="kpiNow kpiBefore"><div class="label">Gross margin, December</div><div class="value" id="k-margin">–</div><div class="delta" id="d-margin"></div></div>
+    <div class="kpi alert" data-anfra-block="kpi-churn" data-anfra-label="Churn rate" data-anfra-query="kpiNow kpiBefore"><div class="label">Churn, December</div><div class="value" id="k-churn">–</div><div class="delta" id="d-churn"></div></div>
+    <div class="kpi alert" data-anfra-block="kpi-lost" data-anfra-label="MRR lost to the rules" data-anfra-query="sinceRules"><div class="label">Monthly revenue lost to the rules</div><div class="value" id="k-lost">–</div><div class="delta" id="d-lost"></div></div>
+    <div class="kpi alert" data-anfra-block="kpi-risk" data-anfra-label="High risk now" data-anfra-query="health"><div class="label">Customers about to leave</div><div class="value" id="k-risk">–</div><div class="delta" id="d-risk"></div></div>
+    <div class="kpi" data-anfra-block="kpi-net" data-anfra-label="Net effect" data-anfra-query="kpiNow sinceRules"><div class="label">Rules, net per month now</div><div class="value" id="k-net">–</div><div class="delta" id="d-net"></div></div>
+  </section>
+
+  <section class="grid g-1-1" data-anfra-container="row-story" data-anfra-label="Story">
+    <div class="panel" data-anfra-block="trend" data-anfra-label="Margin up, churn up">
+      <h2>Margin went up. So did churn.</h2>
+      <div class="sub">Bars: churn rate by month, dark red for customers who blamed the rules. Line: gross margin.</div>
+      <div id="trend-chart" class="chart" data-anfra-query="trend"></div>
+      <div class="status" id="trend-status"></div>
+    </div>
+    <div class="panel" data-anfra-block="net" data-anfra-label="Saved vs lost">
+      <h2>Are the rules still worth it?</h2>
+      <div class="sub">Green: AI cost the rules save each month. Red: monthly revenue already lost to them, adding up. Dashed: the trend, if nothing changes.</div>
+      <div id="net-chart" class="chart" data-anfra-query="trend"></div>
+      <div class="status" id="net-status"></div>
+    </div>
+  </section>
+
+  <section class="grid" data-anfra-container="row-list" data-anfra-label="Monday list">
+    <div class="panel" data-anfra-block="risk" data-anfra-label="Customers about to leave">
+      <h2>This week's list: customers about to leave</h2>
+      <div class="sub" id="risk-sub">Active paying customers, scored against their own normal usage. Pick a save play for each one.</div>
+      <div class="table-wrap" data-anfra-query="risk weekly">
+        <table>
+          <thead><tr><th class="l">Customer</th><th class="l">Plan</th><th>Risk</th><th class="l">Main signal</th><th>Usage vs normal</th><th class="l">Last 16 weeks</th><th title="Agent mode runs the 50-a-month Team cap refused in the last 28 days">Runs refused (28d)</th><th class="l">Save play</th></tr></thead>
+          <tbody id="risk-body"></tbody>
+        </table>
+      </div>
+      <div class="status" id="risk-status"></div>
+    </div>
+  </section>
+
+  <section class="grid g-1-1" data-anfra-container="row-act" data-anfra-label="Act">
+    <div class="panel" data-anfra-block="card" data-anfra-label="Customer story" data-anfra-control="cust">
+      <h2 id="card-title">Pick a customer</h2>
+      <div class="card-head" id="card-head"><span style="color:var(--muted)">Click a row to see their last 16 weeks.</span></div>
+      <div id="card-chart" class="chart" style="height:250px" data-anfra-query="cardWeekly cardCaps"></div>
+      <ul class="events" id="card-events" data-anfra-query="cardEvents"></ul>
+    </div>
+    <div class="panel" data-anfra-block="plays" data-anfra-label="Save plays">
+      <h2>Save plays</h2>
+      <div class="sub">Each play's chance of keeping the customer is your assumption. Costs come from the governed numbers: the runs the cap refuses them times what an Agent run costs.</div>
+      <div class="plays">
+        <div>
+          <div class="lever"><div class="row"><span>Pay per extra run ($1 above the cap)</span><b id="v-overage"></b></div><p>Team only. They keep working and pay for the runs the cap refuses today. Each run earns $1 minus what it costs.</p><input type="range" id="r-overage" min="0" max="100" step="5" value="55"></div>
+          <div class="lever"><div class="row"><span>Raise their Agent cap</span><b id="v-raise"></b></div><p>Team only. We pay for the runs the cap refuses today.</p><input type="range" id="r-raise" min="0" max="100" step="5" value="60"></div>
+          <div class="lever"><div class="row"><span>20% off for 3 months</span><b id="v-discount"></b></div><input type="range" id="r-discount" min="0" max="100" step="5" value="35"></div>
+          <div class="lever"><div class="row"><span>Personal check-in</span><b id="v-call"></b></div><input type="range" id="r-call" min="0" max="100" step="5" value="20"></div>
+        </div>
+        <div class="outcome">
+          <div class="out headline"><div class="label">Expected monthly revenue kept, after costs</div><div class="vals" id="o-net">$0</div><div class="label" id="o-net-sub">Pick a play for a customer in the list.</div></div>
+          <div class="out"><div class="label">Customers with a play</div><div class="vals" id="o-count">0</div></div>
+          <div class="out"><div class="label">Revenue at stake</div><div class="vals" id="o-stake">$0</div></div>
+          <div class="out"><div class="label">Cost of the plays</div><div class="vals" id="o-cost">$0</div></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button type="button" class="btn" id="suggest">Suggest a play for each</button>
+        <button type="button" class="btn primary" id="apply-plays" disabled>Apply plays</button>
+        <button type="button" class="btn" id="clear-plays">Clear</button>
+      </div>
+      <div class="confirm" id="confirm" hidden>
+        <div id="confirm-text"></div>
+        <div class="btn-row"><button type="button" class="btn primary" id="confirm-yes">Send and apply</button><button type="button" class="btn" id="confirm-no">Cancel</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid g-2-1" data-anfra-container="row-forecast" data-anfra-label="Forecast">
+    <div class="panel" data-anfra-block="forecast" data-anfra-label="Revenue forecast" data-anfra-query="cohortRev risk">
+      <h2>What the plays do to revenue from these customers</h2>
+      <div class="sub" id="forecast-sub">Revenue from the customers on this week's list: the last 6 months, then 6 months ahead.</div>
+      <div id="forecast-chart" class="chart"></div>
+    </div>
+    <div class="panel" data-anfra-block="activity" data-anfra-label="Activity">
+      <h2>Activity</h2>
+      <div class="sub">What "Apply" did, customer by customer.</div>
+      <div class="activity" id="activity"><div class="empty">Nothing applied yet. Pick plays, then Apply.</div></div>
+    </div>
+  </section>
+
+  <section class="grid" data-anfra-container="row-why" data-anfra-label="Why">
+    <div class="panel" data-anfra-block="reasons" data-anfra-label="Why they left">
+      <h2>Why they left, since 1 October</h2>
+      <div class="sub">Monthly revenue lost, by the reason customers gave when they cancelled or downgraded.</div>
+      <div id="reasons-chart" class="chart" style="height:250px" data-anfra-query="reasons"></div>
+      <div class="status" id="reasons-status"></div>
+    </div>
+  </section>
+
+  <footer class="panel" data-anfra-block="definitions" data-anfra-label="Definitions">
+    <h2>How these numbers are defined</h2>
+    <div class="sub">Every number is a metric defined once in <code>datasets/retention.dataset.aml</code> and <code>models/customer_health.model.aml</code>. Open Inspect to see the AQL and SQL behind any chart.</div>
+    <dl>
+      <dt>Churn</dt><dd>Paid plans cancelled in the month, divided by paying customers that month.</dd>
+      <dt>Revenue lost</dt><dd>The monthly price customers stopped paying when they cancelled or downgraded. "Lost to the rules" when they named the Agent cap, Pro having no cap, or chat quality.</dd>
+      <dt>Agent runs refused</dt><dd>Agent mode is the expensive feature (a multi-step task on the Frontier model). Since 1 Oct, Team accounts get 50 runs a month; every attempt after that is refused and counted here.</dd>
+      <dt>AI cost saved</dt><dd>Agent runs refused by the cap times the average cost of an Agent run, plus chat tokens served by Mini priced at the Standard minus Mini list price.</dd>
+      <dt>Save plays</dt><dd>Expected revenue kept = (their price + pay-per-run margin) × the chance the play keeps them, minus what the play costs. The chances are your assumptions.</dd>
+      <dt>Actions</dt><dd>In this demo, Apply and the copilot only simulate the emails and billing changes shown in Activity; nothing leaves the page.</dd>
+      <dt>Risk score</dt><dd>0-100: usage over the last 28 days against the customer's own normal (up to 45), Agent runs refused by the cap (up to 30), days since last active (up to 15), a failed payment (10). High at 45+, Watch at 30+.</dd>
+    </dl>
+  </footer>
+
+  <button type="button" id="ai-fab">✦ Ask the retention copilot</button>
+  <aside id="ai-panel" hidden data-anfra-block="assistant" data-anfra-label="Retention copilot">
+    <header><b>Retention copilot</b><span id="ai-status">checking…</span><button type="button" id="ai-reset" title="New conversation">↺</button><button type="button" id="ai-close" title="Close">×</button></header>
+    <div id="ai-log"></div>
+    <div class="ai-off" id="ai-off" hidden>The copilot is offline. Locally, run <code>node scripts/ai-proxy.mjs</code> with <code>OPENAI_API_KEY</code> set, then reopen this panel.</div>
+    <div id="ai-suggest"></div>
+    <div class="ai-input"><textarea id="ai-text" rows="2" placeholder="Ask, or give a command: “who should I call this week?”"></textarea><button type="button" id="ai-send">Send</button></div>
+  </aside>
+</main>
+
+<script>
+  const DS = 'retention';
+  // This world's calendar: the rules went live on 1 Oct 2026, the data runs to 10 Jan 2027.
+  const RULES_FROM = '2026-10-01';
+  const app = Anfra.createApp({ title: 'Churn Radar' });
+
+  // ---------------------------------------------------------------- queries
+  // Every AQL text is a literal (no interpolation): the deploy gateway only runs queries that appear verbatim in this file.
+  const rulesQ = app.createQuery('rulesQ', { dataset: DS, aql: `explore { dimensions { since: rules.rules_effective_date, cap: rules.team_agent_cap, mini: rules.chat_to_mini_pct } }` });
+  const kpiNow = app.createQuery('kpiNow', { dataset: DS, aql: `explore { measures { margin_pct: gross_margin_pct, churn: churn_rate, mrr_lost: mrr_lost, saved: ai_cost_saved, paying: paying_customers, cost_per_run: cost_per_agent_run, revenue: revenue, llm_cost: llm_cost } filters { dim_dates.date_key matches @(2026-12-01 - 2026-12-31) } }` });
+  const kpiBefore = app.createQuery('kpiBefore', { dataset: DS, aql: `explore { measures { margin_pct: gross_margin_pct, churn: churn_rate, mrr_lost: mrr_lost, saved: ai_cost_saved, paying: paying_customers, cost_per_run: cost_per_agent_run, revenue: revenue, llm_cost: llm_cost } filters { dim_dates.date_key matches @(2026-09-01 - 2026-09-30) } }` });
+  const sinceRules = app.createQuery('sinceRules', {
+    dataset: DS,
+    aql: `explore { measures { lost_rules: mrr_lost_to_rules, cancels_rules: cancellations_to_rules, downgrades: downgrades, saved: ai_cost_saved } filters { dim_dates.date_key matches @(2026-10-01 - 2027-01-10) } }`,
+  });
+  const health = app.createQuery('health', {
+    dataset: DS,
+    aql: `explore { dimensions { as_of: customer_health.as_of_date } measures { high: high_risk_customers, at_risk: mrr_at_risk, measured: customers_measured } }`,
+  });
+  const trend = app.createQuery('trend', {
+    dataset: DS,
+    aql: `explore {
+      dimensions { period: dim_dates.date_key | month() }
+      measures { margin_pct: gross_margin_pct, churn: churn_rate, cancels: cancellations, cancels_rules: cancellations_to_rules, paying: paying_customers, mrr_lost: mrr_lost, lost_rules: mrr_lost_to_rules, saved: ai_cost_saved, revenue: revenue }
+      filters { dim_dates.date_key matches @(2026-04-01 - 2027-01-10) }
+      sorts { period asc }
+    }`,
+  });
+  const reasons = app.createQuery('reasons', {
+    dataset: DS,
+    aql: `explore {
+      dimensions { reason: subscription_events.reason, rule: subscription_events.is_rule_related }
+      measures { cancels: cancellations, downgrades: downgrades, lost: mrr_lost }
+      filters { dim_dates.date_key matches @(2026-10-01 - 2027-01-10), subscription_events.event_type in ['cancel', 'downgrade'] }
+      sorts { lost desc }
+    }`,
+  });
+  const risk = app.createQuery('risk', {
+    dataset: DS,
+    aql: `explore {
+      dimensions {
+        id: customers.customer_id, name: customers.customer_name, plan: plans.plan_name, price: plans.monthly_price_usd,
+        score: customer_health.risk_score, band: customer_health.risk_band, why: customer_health.risk_reason,
+        change: customer_health.usage_change, recent: customer_health.requests_last_28d, normal: customer_health.requests_normal_28d,
+        blocked: customer_health.blocked_runs_last_28d, quiet: customer_health.days_since_active
+      }
+      filters { customer_health.risk_score > 29 }
+      sorts { score desc }
+    }`,
+  });
+  const weekly = app.createQuery('weekly', {
+    dataset: DS,
+    aql: `explore {
+      dimensions { id: customers.customer_id, week: date_trunc(llm_usage.used_on, 'week') }
+      measures { requests: requests }
+      filters { llm_usage.used_on matches @(2026-09-14 - 2027-01-10) }
+      sorts { week asc }
+    }`,
+  });
+  const cohortRev = app.createQuery('cohortRev', {
+    dataset: DS,
+    aql: `explore {
+      dimensions { period: dim_dates.date_key | month() }
+      measures { revenue: revenue }
+      filters { dim_dates.date_key matches @(2026-07-01 - 2026-12-31) }
+      sorts { period asc }
+    }`,
+  });
+  const cardWeekly = app.createQuery('cardWeekly', {
+    dataset: DS,
+    aql: `explore {
+      dimensions { week: date_trunc(llm_usage.used_on, 'week') }
+      measures { requests: requests, agent: agent_runs }
+      filters { llm_usage.used_on matches @(2026-09-14 - 2027-01-10) }
+      sorts { week asc }
+    }`,
+  });
+  const cardCaps = app.createQuery('cardCaps', {
+    dataset: DS,
+    aql: `explore {
+      dimensions { week: date_trunc(cap_events.event_date, 'week') }
+      measures { blocked: blocked_agent_runs }
+      filters { cap_events.event_date matches @(2026-09-14 - 2027-01-10) }
+      sorts { week asc }
+    }`,
+  });
+  const cardEvents = app.createQuery('cardEvents', {
+    dataset: DS,
+    aql: `explore {
+      dimensions { day: subscription_events.event_date, kind: subscription_events.event_type, from: subscription_events.from_plan, to: subscription_events.to_plan, reason: subscription_events.reason }
+      sorts { day asc }
+    }`,
+  });
+
+  // ---------------------------------------------------------------- controls
+  // The list's customers, for the sparkline query (set once the list loads).
+  const listed = app.createFilter('listed', { dataset: DS, field: 'customers.customer_id', label: 'Listed customers' });
+  app.mapControl(listed, weekly, { field: 'customers.customer_id' });
+  app.mapControl(listed, cohortRev, { field: 'customers.customer_id' });
+  const cust = app.createFilter('cust', { dataset: DS, field: 'customers.customer_id', label: 'Customer' });
+  for (const q of [cardWeekly, cardCaps, cardEvents]) app.mapControl(cust, q, { field: 'customers.customer_id' });
+  let picked = null;
+  const plays = new Map(); // customer id -> 'raise' | 'discount' | 'call'
+
+  // ---------------------------------------------------------------- helpers
+  const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
+  const usd0 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  const int = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+  const pct = (v, d = 1) => (v === null || !isFinite(v) ? '–' : `${(v * 100).toFixed(d)}%`);
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const C = { rule: css('--rule'), other: css('--other'), saved: css('--saved'), lost: css('--lost'), good: css('--good'), bad: css('--bad'), muted: css('--muted'), accent: css('--accent'), rev: css('--rev'), watch: css('--watch') };
+  const monthLabel = (iso) => new Date(iso.slice(0, 7) + '-01T00:00:00Z').toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const escapeHtml = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const row0 = (q) => q.result?.rows[0] || {};
+  function setStatus (q, id, empty) {
+    const el = document.getElementById(id);
+    el.classList.remove('error');
+    let t = '';
+    if (q.state === 'executing' && !q.result) t = 'Loading…';
+    else if (q.state === 'error') { t = `Couldn't load: ${q.error.message}`; el.classList.add('error'); }
+    else if (q.state === 'success' && q.result.rows.length === 0) t = empty;
+    el.textContent = t;
+    el.classList.toggle('visible', t !== '');
+  }
+  const logged = new Set();
+  function logFirst (q) {
+    if (q.state !== 'success' || logged.has(q.name)) return;
+    logged.add(q.name);
+    console.log(q.name, q.result.rows[0], q.result.debug?.executedAql);
+  }
+
+  // ---------------------------------------------------------------- headline
+  function renderKpis () {
+    const n = row0(kpiNow), b = row0(kpiBefore), s = row0(sinceRules), h = row0(health);
+    if (kpiNow.result && kpiBefore.result) {
+      document.getElementById('k-margin').textContent = pct(num(n.margin_pct));
+      const dm = (num(n.margin_pct) - num(b.margin_pct)) * 100;
+      document.getElementById('d-margin').innerHTML = `<span class="up-good">${dm >= 0 ? '+' : ''}${dm.toFixed(1)} pts</span> vs September (${pct(num(b.margin_pct))})`;
+      document.getElementById('k-churn').textContent = pct(num(n.churn));
+      const ratio = num(n.churn) / num(b.churn);
+      document.getElementById('d-churn').innerHTML = `<span class="up-bad">${ratio.toFixed(1)}×</span> September (${pct(num(b.churn))})`;
+    }
+    if (sinceRules.result) {
+      document.getElementById('k-lost').textContent = usd0.format(num(s.lost_rules) ?? 0);
+      document.getElementById('d-lost').textContent = `${int.format(num(s.cancels_rules) ?? 0)} cancellations, ${int.format(num(s.downgrades) ?? 0)} downgrades since 1 Oct`;
+    }
+    if (health.result) {
+      document.getElementById('asof').textContent = new Date(String(h.as_of).slice(0, 10) + 'T00:00:00Z').toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+      document.getElementById('k-risk').textContent = int.format(num(h.high) ?? 0);
+      document.getElementById('d-risk').textContent = `${usd0.format(num(h.at_risk) ?? 0)} a month at high risk · ${int.format(risk.result?.rows.length ?? 0)} on the list`;
+    }
+    if (kpiNow.result && sinceRules.result) {
+      const net = (num(n.saved) ?? 0) - (num(s.lost_rules) ?? 0);
+      const el = document.getElementById('k-net');
+      el.textContent = `${net >= 0 ? '+' : '−'}${usd0.format(Math.abs(net))}`;
+      el.className = 'value ' + (net >= 0 ? 'up-good' : 'up-bad');
+      document.getElementById('d-net').textContent = `${usd0.format(num(n.saved) ?? 0)} AI cost saved in Dec − ${usd0.format(num(s.lost_rules) ?? 0)} lost`;
+    }
+  }
+
+  // ---------------------------------------------------------------- what changed
+  function renderChange () {
+    const r = row0(rulesQ);
+    if (rulesQ.result) {
+      document.getElementById('rules-date').textContent = new Date(String(r.since).slice(0, 10) + 'T00:00:00Z').toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+      document.getElementById('rules-body').innerHTML = [
+        ['Team Agent runs', 'Unlimited', `${int.format(num(r.cap))} a month, then refused`],
+        ['Pro, Starter Agent runs', 'Unlimited', 'Unlimited'],
+        ['Chat model', 'All Standard', `${int.format(num(r.mini))}% on cheaper Mini`],
+        ['Prices', '$12 / $29 / $99', 'Unchanged'],
+      ].map(([k, b, a]) => `<tr><td class="l">${k}</td><td class="l before">${b}</td><td class="arrow">→</td><td class="l after">${a}</td></tr>`).join('');
+    }
+    if (!kpiNow.result || !kpiBefore.result) return;
+    const n = row0(kpiNow), b = row0(kpiBefore);
+    const rowsOut = [
+      ['AI cost / month', num(b.llm_cost), num(n.llm_cost), (v) => usd0.format(v), 'down'],
+      ['Gross margin', num(b.margin_pct), num(n.margin_pct), (v) => pct(v), 'up', true],
+      ['Churn', num(b.churn), num(n.churn), (v) => pct(v), 'down', true],
+      ['Paying customers', num(b.paying), num(n.paying), (v) => int.format(v), 'up'],
+      ['Revenue / month', num(b.revenue), num(n.revenue), (v) => usd0.format(v), 'up'],
+    ];
+    document.getElementById('results-body').innerHTML = rowsOut.map(([k, bv, av, f, good, isPct]) => {
+      const diff = av - bv;
+      const label = isPct ? `${diff >= 0 ? '+' : ''}${(diff * 100).toFixed(1)} pts` : `${diff >= 0 ? '+' : ''}${Math.round(100 * diff / bv)}%`;
+      const ok = (diff >= 0) === (good === 'up');
+      return `<tr><td class="l">${k}</td><td class="l before">${f(bv)}</td><td class="arrow">→</td><td class="l after">${f(av)}</td><td class="l"><span class="tag ${ok ? 'good' : 'bad'}">${label}</span></td></tr>`;
+    }).join('');
+  }
+
+  // ---------------------------------------------------------------- charts
+  const trendChart = echarts.init(document.getElementById('trend-chart'));
+  const netChart = echarts.init(document.getElementById('net-chart'));
+  const reasonsChart = echarts.init(document.getElementById('reasons-chart'));
+  const cardChart = echarts.init(document.getElementById('card-chart'));
+  addEventListener('resize', () => [trendChart, netChart, reasonsChart, cardChart].forEach((c) => c.resize()));
+
+  const fullMonths = () => (trend.result ? trend.result.rows.filter((r) => String(r.period).slice(0, 10) < '2027-01-01') : []);
+
+  function renderTrend () {
+    setStatus(trend, 'trend-status', 'No data');
+    if (!trend.result) return;
+    const rows = fullMonths();
+    const labels = rows.map((r) => monthLabel(String(r.period)));
+    const rulesIdx = rows.findIndex((r) => String(r.period).startsWith('2026-10'));
+    const rate = (r, k) => +(100 * (num(r[k]) ?? 0) / Math.max(1, num(r.paying) ?? 0)).toFixed(2);
+    trendChart.setOption({
+      grid: { left: 48, right: 48, top: 44, bottom: 28 },
+      legend: { top: 0, left: 0, itemWidth: 12, itemHeight: 10, textStyle: { color: C.muted } },
+      tooltip: { trigger: 'axis', valueFormatter: (v) => (v === null || v === undefined ? '–' : `${v}%`) },
+      xAxis: { type: 'category', data: labels, axisTick: { show: false } },
+      yAxis: [
+        { type: 'value', min: 0, max: 8, axisLabel: { formatter: '{value}%' }, splitLine: { lineStyle: { color: '#eef0f3' } }, name: 'churn', nameTextStyle: { color: C.muted } },
+        { type: 'value', min: 0, max: 100, axisLabel: { formatter: '{value}%' }, splitLine: { show: false }, name: 'margin', nameTextStyle: { color: C.muted } },
+      ],
+      series: [
+        { name: 'Churn, other reasons', type: 'bar', stack: 'churn', itemStyle: { color: C.other }, data: rows.map((r) => +(rate(r, 'cancels') - rate(r, 'cancels_rules')).toFixed(2)) },
+        { name: 'Churn, blamed the rules', type: 'bar', stack: 'churn', itemStyle: { color: C.rule, borderRadius: [3, 3, 0, 0] }, data: rows.map((r) => rate(r, 'cancels_rules')),
+          markLine: rulesIdx < 0 ? undefined : { symbol: 'none', silent: true, lineStyle: { color: C.accent, type: 'dashed' }, label: { formatter: 'Rules live', color: C.accent, fontWeight: 600, position: 'end' }, data: [{ xAxis: rulesIdx - 0.5 }] } },
+        { name: 'Gross margin', type: 'line', yAxisIndex: 1, smooth: true, symbolSize: 6, itemStyle: { color: C.good }, lineStyle: { width: 2.5 }, data: rows.map((r) => +(100 * (num(r.margin_pct) ?? 0)).toFixed(1)) },
+      ],
+    });
+  }
+
+  // Savings vs cumulative lost revenue, with a straight-line projection of each.
+  let netState = null;
+  function renderNet () {
+    setStatus(trend, 'net-status', 'No data');
+    if (!trend.result) return;
+    const rows = fullMonths().filter((r) => String(r.period) >= '2026-10');
+    if (rows.length < 2) return;
+    let acc = 0;
+    const saved = rows.map((r) => num(r.saved) ?? 0);
+    const lost = rows.map((r) => (acc += num(r.lost_rules) ?? 0));
+    const H = 4;
+    const sSlope = (saved.at(-1) - saved[0]) / (saved.length - 1);
+    const lSlope = (lost.at(-1) - lost[0]) / (lost.length - 1);
+    const last = new Date(String(rows.at(-1).period).slice(0, 10) + 'T00:00:00Z');
+    const futureLabels = Array.from({ length: H }, (_, i) => monthLabel(new Date(Date.UTC(last.getUTCFullYear(), last.getUTCMonth() + i + 1, 1)).toISOString()));
+    const kept = playTotals().net; // save plays offset the lost line
+    const savedProj = Array.from({ length: H }, (_, i) => Math.max(0, saved.at(-1) + sSlope * (i + 1)));
+    const lostProj = Array.from({ length: H }, (_, i) => lost.at(-1) + lSlope * (i + 1));
+    const labels = [...rows.map((r) => monthLabel(String(r.period))), ...futureLabels];
+    const pad = (n) => Array(n).fill(null);
+    const crossI = savedProj.findIndex((s, i) => lostProj[i] >= s);
+    const crossAfter = keptCross(savedProj, lostProj, kept);
+    netState = { saved: saved.at(-1), lost: lost.at(-1), cross: crossI >= 0 ? futureLabels[crossI] : null, crossWithPlays: crossAfter >= 0 ? futureLabels[crossAfter] : null };
+    netChart.setOption({
+      animationDurationUpdate: 300,
+      grid: { left: 56, right: 16, top: 44, bottom: 28 },
+      legend: { top: 0, left: 0, itemWidth: 12, itemHeight: 10, textStyle: { color: C.muted } },
+      tooltip: { trigger: 'axis', valueFormatter: (v) => (v === null || v === undefined ? '–' : usd0.format(v)) },
+      xAxis: { type: 'category', data: labels, axisTick: { show: false } },
+      yAxis: { type: 'value', axisLabel: { formatter: (v) => usd0.format(v) }, splitLine: { lineStyle: { color: '#eef0f3' } } },
+      series: [
+        { id: 'saved', name: 'AI cost saved / month', type: 'bar', itemStyle: { color: C.saved, borderRadius: [3, 3, 0, 0] }, data: [...saved.map(Math.round), ...savedProj.map((v) => ({ value: Math.round(v), itemStyle: { opacity: 0.35 } }))] },
+        { id: 'lost', name: 'Revenue lost to the rules / month', type: 'line', symbolSize: 7, itemStyle: { color: C.lost }, lineStyle: { width: 3 }, data: [...lost.map(Math.round), ...pad(H)] },
+        { id: 'lostProj', name: 'Trend', type: 'line', symbol: 'none', itemStyle: { color: C.lost }, lineStyle: { width: 2, type: 'dashed' }, data: [...pad(lost.length - 1), Math.round(lost.at(-1)), ...lostProj.map(Math.round)],
+          markPoint: crossI < 0 ? undefined : { symbol: 'pin', symbolSize: 44, itemStyle: { color: C.lost }, label: { formatter: 'costs\nmore', fontSize: 9, color: '#fff' }, data: [{ coord: [rows.length + crossI, Math.round(lostProj[crossI])] }] } },
+        { id: 'withPlays', name: 'With your save plays', type: 'line', symbol: 'none', itemStyle: { color: C.accent }, lineStyle: { width: 2.5, type: 'dashed' },
+          data: kept > 0 ? [...pad(lost.length - 1), Math.round(lost.at(-1)), ...lostProj.map((v) => Math.round(Math.max(0, v - kept)))] : [] },
+      ],
+    });
+  }
+  const keptCross = (s, l, kept) => s.findIndex((sv, i) => l[i] - kept >= sv);
+
+  function renderReasons () {
+    setStatus(reasons, 'reasons-status', 'Nobody left since 1 October');
+    if (!reasons.result) return;
+    const rows = reasons.result.rows.slice().reverse();
+    reasonsChart.setOption({
+      grid: { left: 190, right: 60, top: 8, bottom: 24 },
+      tooltip: { formatter: (p) => { const r = rows[p.dataIndex]; return `<b>${escapeHtml(r.reason)}</b><br>${usd0.format(num(r.lost))} a month<br>${int.format(num(r.cancels) ?? 0)} cancelled, ${int.format(num(r.downgrades) ?? 0)} downgraded`; } },
+      xAxis: { type: 'value', axisLabel: { formatter: (v) => usd0.format(v) }, splitLine: { lineStyle: { color: '#eef0f3' } } },
+      yAxis: { type: 'category', data: rows.map((r) => r.reason), axisTick: { show: false }, axisLabel: { color: '#14181f', fontWeight: 500 } },
+      series: [{ type: 'bar', barWidth: 18, data: rows.map((r) => ({ value: Math.round(num(r.lost) ?? 0), itemStyle: { color: String(r.rule) === 'true' ? C.rule : C.other, borderRadius: [0, 4, 4, 0] } })),
+        label: { show: true, position: 'right', formatter: (p) => usd0.format(p.value), color: C.muted, fontSize: 11 } }],
+    }, { replaceMerge: ['series'] });
+  }
+
+  // ---------------------------------------------------------------- the list
+  const PLAY_LABEL = { '': 'No play yet', overage: 'Pay per extra run', raise: 'Raise their Agent cap', discount: '20% off for 3 months', call: 'Personal check-in' };
+  const OVERAGE_PRICE = 1;
+  let listedSet = false;
+  function spark (vals) {
+    if (!vals.length) return '';
+    const w = 110, h = 26, max = Math.max(...vals, 1);
+    const pts = vals.map((v, i) => `${(i / Math.max(1, vals.length - 1)) * w},${h - 2 - (v / max) * (h - 4)}`).join(' ');
+    const last = vals.at(-1), first = vals.slice(0, Math.max(1, vals.length - 4)).reduce((a, b) => a + b, 0) / Math.max(1, vals.length - 4);
+    const color = last < first * 0.6 ? C.bad : C.muted;
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8"/></svg>`;
+  }
+  function renderRisk () {
+    setStatus(risk, 'risk-status', 'Nobody looks at risk');
+    if (!risk.result) return;
+    const rows = risk.result.rows;
+    if (!listedSet && rows.length) {
+      listedSet = true;
+      const first = rows.find((r) => r.plan === 'Team') || rows[0];
+      picked = { ...first, id: String(first.id) };
+      cust.setCondition({ operator: 'is', values: [picked.id] });
+      listed.setCondition({ operator: 'is', values: rows.map((r) => String(r.id)) });
+      app.execute();
+    }
+    const byId = new Map();
+    for (const r of weekly.result?.rows || []) {
+      const k = String(r.id);
+      if (!byId.has(k)) byId.set(k, []);
+      byId.get(k).push(num(r.requests) ?? 0);
+    }
+    const high = rows.filter((r) => r.band === 'High');
+    document.getElementById('risk-sub').textContent = `${rows.length} active paying customers look at risk, ${high.length} of them high (${usd0.format(high.reduce((s, r) => s + (num(r.price) ?? 0), 0))} a month). Scored against their own normal usage.`;
+    const body = document.getElementById('risk-body');
+    body.replaceChildren(...rows.map((r) => {
+      const tr = document.createElement('tr');
+      const id = String(r.id);
+      tr.dataset.id = id;
+      if (picked && picked.id === id) tr.className = 'picked';
+      const change = num(r.change) ?? 0;
+      const opts = Object.entries(PLAY_LABEL).filter(([k]) => !['raise', 'overage'].includes(k) || r.plan === 'Team').map(([k, v]) => `<option value="${k}" ${plays.get(id) === k ? 'selected' : ''}>${v}</option>`).join('');
+      tr.innerHTML = `<td class="l"><b>${escapeHtml(r.name)}</b></td><td class="l">${escapeHtml(r.plan)} · ${usd0.format(num(r.price))}</td>
+        <td><span class="badge ${r.band}">${int.format(num(r.score))}</span></td><td class="l">${escapeHtml(r.why)}</td>
+        <td class="${change < -0.3 ? 'neg' : ''}">${change >= 0 ? '+' : ''}${Math.round(change * 100)}%</td>
+        <td class="l">${spark(byId.get(id) || [])}</td><td>${int.format(num(r.blocked) ?? 0)}</td>
+        <td class="l">${applied.has(id)
+          ? `<span class="sent ${applied.get(id).done ? '' : 'pending'}">${applied.get(id).done ? '✓' : '…'} ${PLAY_SHORT[applied.get(id).play]}</span>`
+          : `<select class="play ${plays.get(id) ? 'on' : ''}" data-id="${id}">${opts}</select>`}</td>`;
+      tr.addEventListener('click', (e) => { if (e.target.tagName !== 'SELECT' && e.target.tagName !== 'OPTION') pick(r); });
+      tr.querySelector('select')?.addEventListener('change', (e) => { e.target.value ? plays.set(id, e.target.value) : plays.delete(id); e.target.classList.toggle('on', Boolean(e.target.value)); renderPlays(); renderNet(); renderApply(); renderForecast(); });
+      return tr;
+    }));
+  }
+
+  function pick (r) {
+    picked = { ...r, id: String(r.id) };
+    cust.setCondition({ operator: 'is', values: [picked.id] });
+    renderRisk();
+    app.execute();
+  }
+
+  function renderCard () {
+    const head = document.getElementById('card-head');
+    if (!picked) return;
+    const r = picked;
+    document.getElementById('card-title').textContent = `${r.name} · ${r.plan}`;
+    const change = num(r.change) ?? 0;
+    head.innerHTML = `<span>Pays <b>${usd0.format(num(r.price))}</b>/mo</span><span>Risk <b class="${r.band === 'High' ? 'neg' : ''}">${int.format(num(r.score))}</b></span>
+      <span>Last 28 days <b>${int.format(num(r.recent))}</b> requests vs normal <b>${int.format(num(r.normal))}</b> (<b class="${change < 0 ? 'neg' : 'pos'}">${change >= 0 ? '+' : ''}${Math.round(change * 100)}%</b>)</span>
+      <span>Agent runs refused by the cap <b>${int.format(num(r.blocked) ?? 0)}</b> (28 days)</span><span>Quiet for <b>${int.format(num(r.quiet) ?? 0)}</b> days</span>`;
+    if (cardWeekly.result) {
+      const weeks = cardWeekly.result.rows.map((w) => String(w.week).slice(0, 10));
+      const capBy = new Map((cardCaps.result?.rows || []).map((c) => [String(c.week).slice(0, 10), num(c.blocked) ?? 0]));
+      const normalWeekly = (num(r.normal) ?? 0) / 4;
+      // the week that contains 1 Oct, when the cap and the chat routing started
+      const rulesWeek = weeks.findIndex((w, i) => w <= RULES_FROM && (weeks[i + 1] ?? '9999') > RULES_FROM);
+      cardChart.setOption({
+        grid: { left: 50, right: 46, top: 52, bottom: 26 },
+        legend: { top: 0, left: 0, itemWidth: 12, itemHeight: 10, textStyle: { color: C.muted } },
+        tooltip: { trigger: 'axis' },
+        xAxis: { type: 'category', data: weeks.map((w) => new Date(w + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })), axisTick: { show: false } },
+        yAxis: [{ type: 'value', splitLine: { lineStyle: { color: '#eef0f3' } } }, { type: 'value', splitLine: { show: false } }],
+        series: [
+          { name: 'Requests / week', type: 'line', smooth: true, symbolSize: 5, itemStyle: { color: C.rev }, lineStyle: { width: 2.5 }, areaStyle: { color: 'rgba(59,111,216,0.08)' }, data: cardWeekly.result.rows.map((w) => num(w.requests) ?? 0),
+            markLine: normalWeekly ? { symbol: 'none', silent: true, lineStyle: { color: C.muted, type: 'dashed' }, label: { formatter: 'their normal', color: C.muted, position: 'insideEndTop' }, data: [{ yAxis: Math.round(normalWeekly) }] } : undefined },
+          { name: 'Agent runs refused by the cap', type: 'bar', yAxisIndex: 1, itemStyle: { color: C.rule, opacity: 0.75 }, data: weeks.map((w) => capBy.get(w) ?? 0),
+            markLine: rulesWeek < 0 ? undefined : { symbol: 'none', silent: true, lineStyle: { color: C.accent, type: 'dashed', width: 1.5 },
+              label: { formatter: 'Rules live, 1 Oct', color: C.accent, fontWeight: 600, position: 'end', fontSize: 11 }, data: [{ xAxis: rulesWeek }] } },
+        ],
+      }, { replaceMerge: ['series'] });
+    }
+    if (cardEvents.result) {
+      const ev = cardEvents.result.rows.filter((e) => e.kind !== 'signup' || true);
+      document.getElementById('card-events').innerHTML = ev.map((e) => `<li>${String(e.day).slice(0, 10)}: ${escapeHtml(e.kind)}${e.from ? ` from ${escapeHtml(e.from)}` : ''}${e.to ? ` to ${escapeHtml(e.to)}` : ''}${e.reason ? `, "${escapeHtml(e.reason)}"` : ''}</li>`).join('');
+    }
+  }
+
+  // ---------------------------------------------------------------- save plays
+  const rates = { overage: document.getElementById('r-overage'), raise: document.getElementById('r-raise'), discount: document.getElementById('r-discount'), call: document.getElementById('r-call') };
+  Object.values(rates).forEach((el) => el.addEventListener('input', () => { renderPlays(); renderNet(); renderForecast(); }));
+  function playCost (r, play, costPerRun) {
+    const price = num(r.price) ?? 0;
+    if (play === 'raise') return (num(r.blocked) ?? 0) * costPerRun * (30 / 28);
+    if (play === 'discount') return price * 0.2 * 3 / 12;
+    return 0;
+  }
+  function playTotals (assign = plays, rateOverride = null) {
+    const rows = risk.result?.rows || [];
+    const costPerRun = num(row0(kpiNow).cost_per_run) ?? 0.64;
+    const rate = (k) => (rateOverride?.[k] ?? +rates[k].value) / 100;
+    let stake = 0, kept = 0, cost = 0, n = 0;
+    const per = [];
+    for (const r of rows) {
+      const play = assign.get(String(r.id));
+      if (!play) continue;
+      const price = num(r.price) ?? 0;
+      const blockedMonth = (num(r.blocked) ?? 0) * (30 / 28);
+      // pay-per-run: if they stay, they also pay for the runs the cap used to block (margin per run = price - cost)
+      const extra = play === 'overage' ? blockedMonth * (OVERAGE_PRICE - costPerRun) : 0;
+      const k = (price + extra) * rate(play), c = playCost(r, play, costPerRun);
+      n++; stake += price; kept += k; cost += c;
+      per.push({ customer_id: String(r.id), name: r.name, plan: r.plan, play, price, expected_kept: +k.toFixed(2), cost_per_month: +c.toFixed(2), net: +(k - c).toFixed(2) });
+    }
+    return { n, stake, kept, cost, net: kept - cost, per };
+  }
+  function renderPlays () {
+    for (const k of Object.keys(rates)) document.getElementById(`v-${k}`).textContent = `${rates[k].value}% stay`;
+    const t = playTotals();
+    document.getElementById('o-net').textContent = `${t.net >= 0 ? '+' : '−'}${usd0.format(Math.abs(t.net))} / month`;
+    document.getElementById('o-net-sub').textContent = t.n ? `${usd0.format(t.kept)} expected to stay, minus ${usd0.format(t.cost)} the plays cost` : 'Pick a play for a customer in the list.';
+    document.getElementById('o-count').textContent = int.format(t.n);
+    document.getElementById('o-stake').textContent = usd0.format(t.stake);
+    document.getElementById('o-cost').textContent = usd0.format(t.cost);
+  }
+  function suggestPlays () {
+    for (const r of risk.result?.rows || []) {
+      const id = String(r.id);
+      if (r.plan === 'Team' && (num(r.blocked) ?? 0) > 0) plays.set(id, 'overage');
+      else if (r.band === 'High' || (num(r.price) ?? 0) >= 29) plays.set(id, 'discount');
+      else plays.set(id, 'call');
+    }
+    renderRisk(); renderPlays(); renderNet(); renderApply(); renderForecast();
+  }
+  document.getElementById('suggest').addEventListener('click', suggestPlays);
+
+  // ---- apply: what a real tool would do (billing change + email), simulated here
+  const applied = new Map(); // customer id -> { play, done }
+  const activity = [];       // newest first
+  const PLAY_SHORT = { overage: 'Pay per run on, email sent', raise: 'Cap raised, email sent', discount: '20% off applied, email sent', call: 'Check-in booked, email sent' };
+  const firstName = (n) => String(n).split(' ')[0];
+  function actionsFor (r, play) {
+    const blocked = int.format(num(r.blocked) ?? 0);
+    const steps = {
+      overage: [`Turn on pay-per-run billing: $${OVERAGE_PRICE} per Agent run above 50`],
+      raise: ['Raise their Agent cap to 150 runs a month'],
+      discount: ['Add coupon SAVE20: 20% off the next 3 invoices'],
+      call: ['Book a 15-minute check-in on the calendar'],
+    }[play];
+    const email = {
+      overage: `Hi ${firstName(r.name)},\nyour team hit the Agent cap ${blocked} times in the last four weeks. From today you can keep running Agents past the cap for $${OVERAGE_PRICE} a run, billed with your plan. Nothing else changes.\nReply if you'd rather talk it through.\nMinh`,
+      raise: `Hi ${firstName(r.name)},\nyour team kept hitting the Agent cap, so I've raised it to 150 runs a month for you, at no extra cost.\nTell me how it goes.\nMinh`,
+      discount: `Hi ${firstName(r.name)},\nthanks for sticking with Inkwell. I've taken 20% off your next three invoices.\nIf something isn't working for you, I'd really like to hear it.\nMinh`,
+      call: `Hi ${firstName(r.name)},\nI noticed you haven't been in Inkwell much lately. Could we grab 15 minutes this week? I'd like to hear what would make it worth your time again.\nMinh`,
+    }[play];
+    return { steps: [...steps, `Send email to ${r.name}`], email };
+  }
+  const pendingPlays = () => [...plays.entries()].filter(([id, p]) => !applied.has(id) && findRow(id));
+  function renderApply () {
+    const n = pendingPlays().length;
+    const btn = document.getElementById('apply-plays');
+    btn.disabled = n === 0;
+    btn.textContent = n ? `Apply ${n} play${n === 1 ? '' : 's'}` : 'Apply plays';
+  }
+  function askApply () {
+    const list = pendingPlays();
+    if (!list.length) return;
+    const count = (k) => list.filter(([, p]) => p === k).length;
+    const parts = [count('overage') && `turn on pay-per-run for ${count('overage')}`, count('raise') && `raise the cap for ${count('raise')}`,
+      count('discount') && `add a 20% coupon for ${count('discount')}`, count('call') && `book ${count('call')} check-in${count('call') === 1 ? '' : 's'}`].filter(Boolean);
+    document.getElementById('confirm-text').innerHTML = `This will email <b>${list.length} customer${list.length === 1 ? '' : 's'}</b> and ${parts.join(', ')}.`;
+    document.getElementById('confirm').hidden = false;
+  }
+  async function executePlays (list = pendingPlays(), { follow = false } = {}) {
+    document.getElementById('confirm').hidden = true;
+    const items = [];
+    for (const [id, play] of list) {
+      const r = findRow(id);
+      if (!r || applied.has(id)) continue;
+      const { steps, email } = actionsFor(r, play);
+      const item = { id, name: r.name, plan: r.plan, play, steps: steps.map((t) => ({ t, done: false })), email };
+      applied.set(id, { play, done: false });
+      activity.unshift(item);
+      items.push(item);
+    }
+    renderActivity(); renderRisk(); renderApply(); renderForecast();
+    for (const item of items) {
+      if (follow) document.querySelector(`#risk-body tr[data-id="${item.id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      for (const st of item.steps) { await new Promise((res) => setTimeout(res, 300)); st.done = true; renderActivity(); }
+      applied.get(item.id).done = true;
+      renderRisk(); renderForecast();
+    }
+    return items.length;
+  }
+  function renderActivity () {
+    const box = document.getElementById('activity');
+    if (!activity.length) { box.innerHTML = '<div class="empty">Nothing applied yet. Pick plays, then Apply.</div>'; return; }
+    box.innerHTML = activity.map((a) => `<div class="act-item"><div class="who"><span>${escapeHtml(a.name)} · ${escapeHtml(a.plan)}</span><span style="color:var(--accent)">${escapeHtml(PLAY_LABEL[a.play])}</span></div>
+      <ul>${a.steps.map((st) => `<li class="${st.done ? 'done' : ''}">${escapeHtml(st.t)}</li>`).join('')}</ul>
+      <details><summary>Email</summary><blockquote>${escapeHtml(a.email)}</blockquote></details></div>`).join('');
+  }
+  document.getElementById('apply-plays').addEventListener('click', askApply);
+  document.getElementById('confirm-no').addEventListener('click', () => { document.getElementById('confirm').hidden = true; });
+  document.getElementById('confirm-yes').addEventListener('click', () => executePlays());
+
+  // ---- forecast: trend vs trend + revenue the plays keep
+  const forecastChart = echarts.init(document.getElementById('forecast-chart'));
+  addEventListener('resize', () => forecastChart.resize());
+  // Without a play, a High-risk customer leaves at LEAVE.High a month, a Watch one at LEAVE.Watch (stated assumptions).
+  // With a play, the play's save rate keeps them for good (plus pay-per-run income); otherwise the same decay applies.
+  const LEAVE = { High: 0.6, Watch: 0.3 };
+  function cohortForecast (assign, months) {
+    const rows = risk.result?.rows || [];
+    const costPerRun = num(row0(kpiNow).cost_per_run) ?? 0.64;
+    return Array.from({ length: months }, (_, i) => {
+      const t = i + 1;
+      return rows.reduce((sum, r) => {
+        const price = num(r.price) ?? 0, survive = Math.pow(1 - (LEAVE[r.band] ?? 0.3), t);
+        const play = assign.get(String(r.id));
+        if (!play) return sum + price * survive;
+        const rate = +rates[play].value / 100;
+        const extra = play === 'overage' ? (num(r.blocked) ?? 0) * (30 / 28) * OVERAGE_PRICE : 0;
+        return sum + (price + extra) * rate + price * (1 - rate) * survive;
+      }, 0);
+    });
+  }
+  function renderForecast () {
+    const hist = (cohortRev.result?.rows || []).map((r) => ({ m: String(r.period), v: num(r.revenue) ?? 0 }));
+    if (!hist.length || !risk.result) return;
+    const H = 6;
+    const last = new Date(hist.at(-1).m.slice(0, 10) + 'T00:00:00Z');
+    const fLabels = Array.from({ length: H }, (_, i) => monthLabel(new Date(Date.UTC(last.getUTCFullYear(), last.getUTCMonth() + i + 1, 1)).toISOString()));
+    const appliedMap = new Map([...applied.entries()].map(([id, a]) => [id, a.play]));
+    const base = cohortForecast(new Map(), H);
+    const proposed = plays.size ? cohortForecast(plays, H) : null;
+    const done = appliedMap.size ? cohortForecast(appliedMap, H) : null;
+    const total = (arr) => arr.reduce((a, b) => a + b, 0);
+    const pad = (n) => Array(n).fill(null);
+    const startV = Math.round(hist.at(-1).v);
+    const join = (arr) => [...pad(hist.length - 1), startV, ...arr.map(Math.round)];
+    const best = done || proposed;
+    document.getElementById('forecast-sub').textContent = best
+      ? `Over the next 6 months the plays keep about ${usd0.format(total(best) - total(base))} more revenue from these ${int.format(risk.result.rows.length)} customers than doing nothing${done ? ' (applied plays)' : ' (proposed plays)'}, including pay-per-run income. Without a play, High-risk customers leave at ${LEAVE.High * 100}% a month and Watch customers at ${LEAVE.Watch * 100}%.`
+      : `Revenue from the ${int.format(risk.result.rows.length)} customers on this week's list. Without a play, High-risk customers leave at ${LEAVE.High * 100}% a month and Watch customers at ${LEAVE.Watch * 100}%. Pick plays to see what they keep.`;
+    forecastChart.setOption({
+      animationDurationUpdate: 300,
+      grid: { left: 56, right: 16, top: 44, bottom: 28 },
+      legend: { top: 0, left: 0, itemWidth: 14, itemHeight: 8, textStyle: { color: C.muted } },
+      tooltip: { trigger: 'axis', valueFormatter: (v) => (v === null || v === undefined ? '–' : usd0.format(v)) },
+      xAxis: { type: 'category', data: [...hist.map((h) => monthLabel(h.m)), ...fLabels], boundaryGap: false, axisTick: { show: false } },
+      yAxis: { type: 'value', min: 0, axisLabel: { formatter: (v) => usd0.format(v) }, splitLine: { lineStyle: { color: '#eef0f3' } } },
+      series: [
+        { id: 'actual', name: 'Revenue so far', type: 'line', symbolSize: 6, itemStyle: { color: '#14181f' }, lineStyle: { width: 2.5 }, data: [...hist.map((h) => Math.round(h.v)), ...pad(H)] },
+        { id: 'base', name: 'Do nothing', type: 'line', symbol: 'none', itemStyle: { color: C.lost }, lineStyle: { width: 2, type: 'dashed' }, data: join(base),
+          markArea: { silent: true, itemStyle: { color: 'rgba(20,24,31,0.03)' }, label: { show: true, position: 'insideTop', color: C.muted, fontSize: 11, formatter: 'Forecast' }, data: [[{ xAxis: fLabels[0] }, { xAxis: fLabels.at(-1) }]] } },
+        { id: 'proposed', name: 'With proposed plays', type: 'line', symbol: 'none', itemStyle: { color: C.accent }, lineStyle: { width: 2, type: 'dashed' }, data: proposed && !done ? join(proposed) : [] },
+        { id: 'applied', name: 'With applied plays', type: 'line', symbol: 'none', itemStyle: { color: C.good }, lineStyle: { width: 3 }, areaStyle: { color: 'rgba(19,138,91,0.10)' }, data: done ? join(done) : [] },
+      ],
+    });
+  }
+  document.getElementById('clear-plays').addEventListener('click', () => { for (const id of [...plays.keys()]) if (!applied.has(id)) plays.delete(id); renderRisk(); renderPlays(); renderNet(); renderApply(); renderForecast(); });
+
+  // ---------------------------------------------------------------- retention copilot (OpenAI through the local proxy or the deployed gateway)
+  // Locally: the proxy on 127.0.0.1:7879. Deployed: the shell page relays the call to the gateway's /ai on
+  // the same origin, because this sandboxed frame's own requests would miss the site's password cookie.
+  // The frame is a srcdoc document, so baseURI is the shell page's URL.
+  const AI_LOCAL = (() => {
+    try { const b = new URL(document.baseURI); return /^(127\.0\.0\.1|localhost)$/.test(b.hostname) && b.port === '7878'; } catch { return true; }
+  })();
+  let aiRelaySeq = 0;
+  function aiFetch (path, body) {
+    if (AI_LOCAL) return fetch(`http://127.0.0.1:7879${path}`, body === undefined ? {} : { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+    return new Promise((resolve, reject) => {
+      const id = `ai-${++aiRelaySeq}`;
+      const timer = setTimeout(() => { removeEventListener('message', onMsg); reject(new Error('The copilot did not answer in time')); }, path === '/health' ? 15000 : 200000);
+      function onMsg (e) {
+        if (e.source !== window.parent || e.data?.aiRelay !== id) return;
+        clearTimeout(timer); removeEventListener('message', onMsg);
+        resolve(new Response(e.data.text, { status: e.data.status, headers: { 'content-type': 'application/json' } }));
+      }
+      addEventListener('message', onMsg);
+      window.parent.postMessage({ aiRelay: id, path, body }, '*');
+    });
+  }
+  const aiLog = document.getElementById('ai-log');
+  const aiText = document.getElementById('ai-text');
+  const aiSendBtn = document.getElementById('ai-send');
+  let aiBusy = false, aiReady = false;
+  const r2 = (v) => (v === null || v === undefined || !isFinite(v) ? null : Math.round(v * 100) / 100);
+
+  const SYSTEM_PROMPT = `You are the Retention Copilot inside "Churn Radar", for Inkwell, a fictional indie AI writing app (all data synthetic).
+On 1 Oct 2026 Inkwell capped Team plans at 50 Agent runs a month and moved 60% of chat to the cheaper Mini model. Margin went up, churn went up.
+The founder uses this page every Monday to decide who to call and what to offer.
+
+Facts about the numbers:
+- Every number comes from governed metrics through your tools. Never invent, estimate or recompute numbers yourself; call a tool.
+- Risk score (0-100) compares each customer's last 28 days with their own normal, plus blocked Agent runs, days quiet and failed payments.
+- Save plays: "overage" (Team only: pay $1 per extra run above the cap, so they keep working and each extra run earns $1 minus its cost), "raise" (raise their Agent cap, Team only, costs their blocked runs at the cost of an Agent run), "discount" (20% off for 3 months), "call" (personal check-in, free). Each has an assumed chance of keeping the customer, set on the page. Prefer plays with a positive net.
+
+How to work:
+- Call read_dashboard first in a conversation.
+- "Apply" or "set" plays means propose them on the page (apply_plays). Only call execute_plays when the user clearly asks to send, execute, or "apply and send". After executing, say the emails and changes went out and do not repeat the email texts. Never mention that anything is simulated.
+- To recommend plays, call rank_plays and use each customer's best_play (never pick a play with a negative net when a better one exists). Focus on High risk first, then the biggest revenue. Use simulate_plays to check the total, and apply_plays only when the user asks you to set, apply or decide.
+- When asked for emails, write one short, warm, specific email per customer (3-4 sentences) mentioning what changed for them. Format exactly like this example, every email line starting with "> ":
+**Noah Ivanova**
+> Hi Noah, I saw your team keeps hitting the new Agent cap.
+> Want to keep running Agents past it at $1 a run? I can switch it on today.
+> Minh
+- Never mention tool or parameter names. Be concise: bullets, numbers with $ and %, at most about 150 words plus any emails. No preamble.`;
+
+  const PLAY_ENUM = ['overage', 'raise', 'discount', 'call'];
+  const AI_TOOLS = [
+    { name: 'read_dashboard', description: 'Everything on the page: headline numbers, monthly churn and margin, AI cost saved vs revenue lost to the rules (with projection), reasons customers left, the at-risk list with signals, current save plays and assumptions.', parameters: { type: 'object', properties: {} } },
+    { name: 'get_customer', description: 'One customer: weekly usage for 16 weeks, blocked runs by week, plan events.', parameters: { type: 'object', properties: { customer_id: { type: 'string' } }, required: ['customer_id'] } },
+    { name: 'rank_plays', description: 'For every at-risk customer, the expected monthly net of each play they can get, best first. Use this to choose plays.', parameters: { type: 'object', properties: { save_rates_pct: { type: 'object', properties: { overage: { type: 'number' }, raise: { type: 'number' }, discount: { type: 'number' }, call: { type: 'number' } } } } } },
+    { name: 'simulate_plays', description: 'Expected monthly revenue kept, cost and net for a set of plays, without changing the page.', parameters: { type: 'object', properties: {
+      plays: { type: 'array', items: { type: 'object', properties: { customer_id: { type: 'string' }, play: { type: 'string', enum: PLAY_ENUM } }, required: ['customer_id', 'play'] } },
+      save_rates_pct: { type: 'object', properties: { overage: { type: 'number' }, raise: { type: 'number' }, discount: { type: 'number' }, call: { type: 'number' } } } }, required: ['plays'] } },
+    { name: 'apply_plays', description: 'Set save plays on the page (replaces the current ones) and optionally the save-rate assumptions.', parameters: { type: 'object', properties: {
+      plays: { type: 'array', items: { type: 'object', properties: { customer_id: { type: 'string' }, play: { type: 'string', enum: PLAY_ENUM } }, required: ['customer_id', 'play'] } },
+      save_rates_pct: { type: 'object', properties: { overage: { type: 'number' }, raise: { type: 'number' }, discount: { type: 'number' }, call: { type: 'number' } } } }, required: ['plays'] } },
+    { name: 'execute_plays', description: 'Apply plays: sends each customer the email and makes the billing change. Only when the user explicitly asks to send, apply or execute.', parameters: { type: 'object', properties: {
+      plays: { type: 'array', items: { type: 'object', properties: { customer_id: { type: 'string' }, play: { type: 'string', enum: PLAY_ENUM } }, required: ['customer_id', 'play'] } } }, required: ['plays'] } },
+    { name: 'open_customer', description: 'Open one customer\'s story card on the page.', parameters: { type: 'object', properties: { customer_id: { type: 'string' } }, required: ['customer_id'] } },
+  ].map((f) => ({ type: 'function', function: f }));
+
+  const toMap = (list = []) => new Map(list.filter((p) => PLAY_ENUM.includes(p.play)).map((p) => [String(p.customer_id), p.play]));
+  const findRow = (id) => (risk.result?.rows || []).find((r) => String(r.id) === String(id));
+  const aiTools = {
+    async read_dashboard () {
+      const n = row0(kpiNow), b = row0(kpiBefore), s = row0(sinceRules), h = row0(health);
+      return {
+        as_of: String(h.as_of).slice(0, 10), rules_live_since: RULES_FROM,
+        december: { gross_margin_pct: r2(100 * num(n.margin_pct)), churn_pct: r2(100 * num(n.churn)), ai_cost_saved: r2(num(n.saved)), paying_customers: num(n.paying), cost_per_agent_run: r2(num(n.cost_per_run)) },
+        september_before_rules: { gross_margin_pct: r2(100 * num(b.margin_pct)), churn_pct: r2(100 * num(b.churn)) },
+        since_rules: { monthly_revenue_lost_to_rules: r2(num(s.lost_rules)), cancellations_blaming_rules: num(s.cancels_rules), downgrades: num(s.downgrades) },
+        net_per_month_now: r2((num(n.saved) ?? 0) - (num(s.lost_rules) ?? 0)),
+        projection: netState ? { rules_cost_more_than_they_save_from: netState.cross, with_current_save_plays_from: netState.crossWithPlays } : null,
+        monthly: fullMonths().map((r) => ({ month: String(r.period).slice(0, 7), gross_margin_pct: r2(100 * num(r.margin_pct)), churn_pct: r2(100 * num(r.churn)), revenue_lost: r2(num(r.mrr_lost)), revenue_lost_to_rules: r2(num(r.lost_rules)), ai_cost_saved: r2(num(r.saved)) })),
+        reasons_since_rules: (reasons.result?.rows || []).map((r) => ({ reason: r.reason, blamed_rules: String(r.rule) === 'true', cancellations: num(r.cancels), downgrades: num(r.downgrades), monthly_revenue_lost: r2(num(r.lost)) })),
+        at_risk: (risk.result?.rows || []).map((r) => ({ customer_id: String(r.id), name: r.name, plan: r.plan, price: num(r.price), risk_score: num(r.score), band: r.band, main_signal: r.why, usage_vs_normal_pct: r2(100 * num(r.change)), blocked_runs_28d: num(r.blocked), days_quiet: num(r.quiet), current_play: plays.get(String(r.id)) || null })),
+        save_rates_pct: Object.fromEntries(Object.entries(rates).map(([k, el]) => [k, +el.value])),
+      };
+    },
+    async get_customer ({ customer_id }) {
+      const r = findRow(customer_id);
+      if (!r) return { error: 'Not on the at-risk list. Use an ID from read_dashboard.' };
+      pick(r);
+      await app.execute();
+      return {
+        customer: { name: r.name, plan: r.plan, price: num(r.price), risk_score: num(r.score), main_signal: r.why },
+        weekly_requests: (cardWeekly.result?.rows || []).map((w) => ({ week: String(w.week).slice(0, 10), requests: num(w.requests), agent_runs: num(w.agent) })),
+        weekly_blocked_runs: (cardCaps.result?.rows || []).map((w) => ({ week: String(w.week).slice(0, 10), blocked: num(w.blocked) })),
+        events: (cardEvents.result?.rows || []).map((e) => ({ date: String(e.day).slice(0, 10), event: e.kind, from: e.from, to: e.to, reason: e.reason })),
+      };
+    },
+    async rank_plays ({ save_rates_pct = null }) {
+      return (risk.result?.rows || []).map((r) => {
+        const id = String(r.id);
+        const options = PLAY_ENUM.filter((k) => !['raise', 'overage'].includes(k) || r.plan === 'Team')
+          .map((k) => ({ play: k, net_per_month: playTotals(new Map([[id, k]]), save_rates_pct).per[0]?.net ?? 0 }))
+          .sort((a, b) => b.net_per_month - a.net_per_month);
+        return { customer_id: id, name: r.name, plan: r.plan, price: num(r.price), risk_score: num(r.score), main_signal: r.why, best_play: options[0].play, options };
+      });
+    },
+    async simulate_plays ({ plays: list = [], save_rates_pct = null }) {
+      const t = playTotals(toMap(list), save_rates_pct);
+      return { customers: t.n, revenue_at_stake: r2(t.stake), expected_kept: r2(t.kept), cost_per_month: r2(t.cost), net_per_month: r2(t.net), per_customer: t.per };
+    },
+    async apply_plays ({ plays: list = [], save_rates_pct = null }) {
+      plays.clear();
+      for (const [k, v] of toMap(list)) plays.set(k, v);
+      if (save_rates_pct) for (const k of PLAY_ENUM) if (typeof save_rates_pct[k] === 'number') rates[k].value = Math.max(0, Math.min(100, Math.round(save_rates_pct[k] / 5) * 5));
+      renderRisk(); renderPlays(); renderNet();
+      const t = playTotals();
+      return { applied: true, customers: t.n, net_per_month: r2(t.net), expected_kept: r2(t.kept), cost_per_month: r2(t.cost), projection_with_plays: netState?.crossWithPlays ?? 'no crossover within 4 months' };
+    },
+    async execute_plays ({ plays: list = [] }) {
+      for (const [k, v] of toMap(list)) plays.set(k, v);
+      renderRisk(); renderPlays(); renderNet();
+      // Show the work: tuck the panel away and let the list change in front of the user.
+      document.getElementById('ai-panel').hidden = true;
+      document.getElementById('ai-fab').hidden = false;
+      document.querySelector('[data-anfra-block="risk"]').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      await new Promise((res) => setTimeout(res, 1200));
+      const n = await executePlays(pendingPlays().filter(([id]) => toMap(list).has(id)), { follow: true });
+      const t = playTotals(new Map([...applied.entries()].map(([id, a]) => [id, a.play])));
+      return { executed: n, emails_sent: n, applied_customers: applied.size, expected_monthly_revenue_kept: r2(t.kept), net_per_month: r2(t.net),
+        sent: activity.slice(0, n).map((a) => ({ name: a.name, play: a.play, email: a.email })) };
+    },
+    async open_customer ({ customer_id }) {
+      const r = findRow(customer_id);
+      if (!r) return { error: 'Not on the at-risk list.' };
+      pick(r);
+      await app.execute();
+      return { opened: r.name };
+    },
+  };
+
+  function describeCall (name, args) {
+    const who = (id) => findRow(id)?.name ?? id;
+    switch (name) {
+      case 'read_dashboard': return 'Read the dashboard';
+      case 'get_customer': return `Looked at ${who(args.customer_id)}`;
+      case 'rank_plays': return 'Scored every play for every customer';
+      case 'simulate_plays': return `Tested plays for ${args.plays?.length ?? 0} customers`;
+      case 'apply_plays': return `Set plays for ${args.plays?.length ?? 0} customers`;
+      case 'execute_plays': return `Sent ${args.plays?.length ?? 0} offers`;
+      case 'open_customer': return `Opened ${who(args.customer_id)}`;
+      default: return name;
+    }
+  }
+
+  function md (text) {
+    const inline = (t) => escapeHtml(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+    const lines = String(text || '').split('\n');
+    let html = '', i = 0;
+    const isRow = (l) => (l.match(/\|/g) || []).length >= 2;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (/^\s*>/.test(line)) {
+        const q = [];
+        while (i < lines.length && (/^\s*>/.test(lines[i]))) { q.push(lines[i].replace(/^\s*>\s?/, '')); i++; }
+        html += `<blockquote>${inline(q.join('\n'))}</blockquote>`;
+        continue;
+      }
+      if (isRow(line)) {
+        const rows = [];
+        while (i < lines.length && (isRow(lines[i]) || (!lines[i].trim() && isRow(lines[i + 1] || '')))) { if (lines[i].trim()) rows.push(lines[i]); i++; }
+        const cells = rows.filter((r) => !/^\s*\|?\s*:?-{2,}/.test(r)).map((r) => r.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim()));
+        html += `<table><thead><tr>${cells[0].map((c) => `<th>${inline(c)}</th>`).join('')}</tr></thead><tbody>${cells.slice(1).map((r) => `<tr>${r.map((c) => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+        continue;
+      }
+      if (/^\s*[-*] /.test(line)) {
+        const items = [];
+        while (i < lines.length && /^\s*[-*] /.test(lines[i])) { items.push(lines[i].replace(/^\s*[-*] /, '')); i++; }
+        html += `<ul>${items.map((t) => `<li>${inline(t)}</li>`).join('')}</ul>`;
+        continue;
+      }
+      if (line.trim()) html += `<p>${inline(line.replace(/^#+\s*/, ''))}</p>`;
+      i++;
+    }
+    return html;
+  }
+  function aiAdd (cls, html) { const el = document.createElement('div'); el.className = cls; el.innerHTML = html; aiLog.appendChild(el); aiLog.scrollTop = aiLog.scrollHeight; return el; }
+  let aiMessages = [{ role: 'system', content: SYSTEM_PROMPT }];
+  const SUGGESTIONS = ['Who should I call this week, and what should I offer each?', 'Are the October rules still worth it?', 'Pick the plays that keep the most revenue and apply them', 'Draft the win-back emails for the top 3'];
+  function renderSuggestions () {
+    const box = document.getElementById('ai-suggest');
+    box.hidden = aiMessages.length > 1;
+    box.replaceChildren(...SUGGESTIONS.map((t) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.onclick = () => aiAsk(t); return b; }));
+  }
+  async function aiHealth () {
+    const st = document.getElementById('ai-status');
+    try { const j = await (await aiFetch('/health')).json(); aiReady = !!j.ok; st.textContent = j.ok ? j.model : 'no API key'; }
+    catch { aiReady = false; st.textContent = 'offline'; }
+    st.className = aiReady ? 'ok' : 'off';
+    document.getElementById('ai-off').hidden = aiReady;
+    aiSendBtn.disabled = !aiReady || aiBusy;
+  }
+  async function aiAsk (text) {
+    text = String(text || '').trim();
+    if (!text || aiBusy) return;
+    if (!aiReady) await aiHealth();
+    if (!aiReady) return;
+    aiBusy = true; aiSendBtn.disabled = true; aiText.value = '';
+    fabStatus('✦ Copilot is working…');
+    aiMessages.push({ role: 'user', content: text });
+    aiAdd('msg user', escapeHtml(text));
+    renderSuggestions();
+    const typing = aiAdd('typing', 'Thinking…');
+    try {
+      for (let step = 0; step < 12; step++) {
+        const res = await aiFetch('/chat', JSON.stringify({ messages: aiMessages, tools: AI_TOOLS }));
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(j.error?.message || j.error || `AI proxy returned ${res.status}`);
+        const msg = j.choices?.[0]?.message;
+        if (!msg) throw new Error('Empty answer from the model');
+        aiMessages.push({ role: 'assistant', content: msg.content ?? null, ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}) });
+        if (!msg.tool_calls?.length) { typing.remove(); aiAdd('msg bot', md(msg.content)); break; }
+        for (const call of msg.tool_calls) {
+          let args = {};
+          try { args = JSON.parse(call.function.arguments || '{}'); } catch { /* keep {} */ }
+          if (call.function.name === 'execute_plays') fabStatus(`✦ Copilot is sending ${args.plays?.length ?? ''} offers…`);
+          let result;
+          try { result = await (aiTools[call.function.name] ? aiTools[call.function.name](args) : { error: `Unknown tool ${call.function.name}` }); }
+          catch (err) { result = { error: String(err.message || err) }; }
+          aiLog.insertBefore(Object.assign(document.createElement('div'), { className: 'act', textContent: describeCall(call.function.name, args) }), typing);
+          aiMessages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) });
+        }
+        typing.textContent = 'Working…';
+        aiLog.appendChild(typing);
+        aiLog.scrollTop = aiLog.scrollHeight;
+      }
+    } catch (err) {
+      aiAdd('msg err', escapeHtml(`Couldn't reach the model: ${err.message}`));
+    } finally {
+      typing.remove();
+      aiBusy = false; aiSendBtn.disabled = !aiReady;
+      fabStatus(document.getElementById('ai-panel').hidden ? '✦ Copilot replied ●' : null);
+    }
+  }
+  const FAB_IDLE = '✦ Ask the retention copilot';
+  function fabStatus (text) { document.getElementById('ai-fab').textContent = text || FAB_IDLE; }
+  document.getElementById('ai-fab').addEventListener('click', () => {
+    if (!aiBusy) fabStatus(null); document.getElementById('ai-panel').hidden = false; document.getElementById('ai-fab').hidden = true; renderSuggestions(); aiHealth(); aiText.focus(); });
+  document.getElementById('ai-close').addEventListener('click', () => { document.getElementById('ai-panel').hidden = true; document.getElementById('ai-fab').hidden = false; });
+  document.getElementById('ai-reset').addEventListener('click', () => { aiMessages = [{ role: 'system', content: SYSTEM_PROMPT }]; aiLog.replaceChildren(); renderSuggestions(); });
+  aiSendBtn.addEventListener('click', () => aiAsk(aiText.value));
+  aiText.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiAsk(aiText.value); } });
+
+  // ---------------------------------------------------------------- wiring
+  function render () {
+    for (const q of [rulesQ, cohortRev, kpiNow, kpiBefore, sinceRules, health, trend, reasons, risk, weekly, cardWeekly, cardCaps, cardEvents]) logFirst(q);
+    renderChange(); renderKpis(); renderTrend(); renderNet(); renderReasons(); renderRisk(); renderCard(); renderPlays(); renderApply(); renderForecast();
+  }
+  app.subscribe(render);
+  render();
+  app.execute();
+</script>
+</body>
+</html>

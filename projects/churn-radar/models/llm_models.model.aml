@@ -1,0 +1,34 @@
+Model llm_models {
+  type: 'table'
+  label: 'LLM Models'
+  description: 'Model price list, USD per million tokens.'
+  data_source_name: 'inkwell'
+  table_name: 'llm_models'
+
+  dimension model_id {
+    label: 'Model ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.model_id }};;
+  }
+  dimension model_name {
+    label: 'Model'
+    type: 'text'
+    definition: @sql {{ #SOURCE.model_name }};;
+  }
+  dimension provider {
+    label: 'Provider'
+    type: 'text'
+    definition: @sql {{ #SOURCE.provider }};;
+  }
+  dimension input_usd_per_mtok {
+    label: 'Input Price per 1M Tokens (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.input_usd_per_mtok }};;
+  }
+  dimension output_usd_per_mtok {
+    label: 'Output Price per 1M Tokens (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.output_usd_per_mtok }};;
+  }
+}

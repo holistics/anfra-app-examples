@@ -1,0 +1,1530 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AI Margin Radar</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      --bg: #f6f7f9; --card: #ffffff; --ink: #14181f; --muted: #5f6b7a; --line: #e3e7ec;
+      --rev: #3b6fd8; --cost: #e0663f; --agent: #b5305c; --good: #138a5b; --bad: #c8312c;
+      --comped: #c98a12; --accent: #4b3fd8;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 1320px; margin: 0 auto; padding: 20px 20px 40px; }
+    header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+    .logo { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--accent), #8b5cf6); display: grid; place-items: center; color: #fff; font-weight: 700; }
+    .brand h1 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
+    .brand p { margin: 0; color: var(--muted); font-size: 12.5px; }
+    .control { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+    select { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+    .chip { display: none; align-items: center; gap: 6px; padding: 5px 6px 5px 10px; border-radius: 999px; background: #ece9ff; color: var(--accent); font-size: 13px; font-weight: 600; }
+    .chip.visible { display: inline-flex; }
+    .chip button { border: 0; background: rgb(75 63 216 / 0.15); color: var(--accent); border-radius: 999px; width: 22px; height: 22px; cursor: pointer; font-size: 14px; line-height: 1; }
+
+    .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+    .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-height: 104px; position: relative; }
+    .kpi .label { color: var(--muted); font-size: 12.5px; }
+    .kpi .value { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin: 2px 0; font-variant-numeric: tabular-nums; }
+    .kpi .delta { font-size: 12.5px; font-variant-numeric: tabular-nums; }
+    .kpi.alert { border-color: #f1c4c2; background: linear-gradient(180deg, #fff7f6, #fff); }
+    .kpi.alert .value { color: var(--bad); }
+    .up-bad, .down-bad { color: var(--bad); } .up-good, .down-good { color: var(--good); } .flat { color: var(--muted); }
+
+    .grid { display: grid; gap: 14px; margin-bottom: 14px; }
+    .g-2-1 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; position: relative; min-width: 0; }
+    .panel h2 { font-size: 14.5px; margin: 0; }
+    .panel .sub { color: var(--muted); font-size: 12.5px; margin: 2px 0 8px; }
+    .chart { height: 300px; }
+    .chart.tall { height: 360px; }
+    .status { position: absolute; inset: 56px 16px 16px; display: none; align-items: center; justify-content: center; text-align: center;
+              background: rgb(255 255 255 / 0.75); color: var(--muted); border-radius: 8px; z-index: 2; }
+    .status.visible { display: flex; }
+    .status.error { color: var(--bad); }
+
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    th { text-align: right; font-weight: 600; color: var(--muted); font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    td { text-align: right; padding: 7px 8px; border-bottom: 1px solid #f0f2f5; white-space: nowrap; }
+    th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: #f8f8ff; }
+    tbody tr.picked { background: #ece9ff; }
+    .neg { color: var(--bad); font-weight: 600; }
+    .pos { color: var(--good); }
+    .badge { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 6px; margin-left: 6px; background: #fdf1d8; color: #8a5a00; font-weight: 600; }
+    .bar { display: inline-block; height: 8px; border-radius: 4px; background: var(--agent); vertical-align: middle; }
+    .table-wrap { overflow-x: auto; max-height: 420px; overflow-y: auto; }
+
+    .detail-head { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 4px 0 6px; font-size: 13px; }
+    .detail-head b { font-variant-numeric: tabular-nums; }
+    .empty-hint { color: var(--muted); font-size: 13px; }
+
+    .whatif { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 20px; }
+    .lever { margin-bottom: 14px; }
+    .lever .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .lever .row b { font-variant-numeric: tabular-nums; color: var(--accent); }
+    .lever p { margin: 2px 0 4px; color: var(--muted); font-size: 12.5px; }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+    .outcome { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-content: start; }
+    .lever-group { border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px 2px; margin-bottom: 14px; }
+    .lever-group .hint { display: none; font-size: 12.5px; color: var(--accent); margin: 0 0 8px; }
+    .lever-group.locked .hint { display: block; }
+    .lever-group.locked .lever { opacity: 0.4; }
+    .forecast { grid-column: 1 / -1; height: 280px; margin-top: -6px; }
+    .seg { display: inline-flex; justify-self: end; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .seg button { border: 0; background: #fff; color: var(--muted); font: inherit; font-size: 12.5px; padding: 4px 10px; cursor: pointer; }
+    .seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
+    table.prices { margin-top: 4px; }
+    table.prices th, table.prices td { text-align: right; padding: 4px 6px; }
+    table.prices th:first-child, table.prices td:first-child { text-align: left; }
+    table.prices th:nth-child(2), table.prices td:nth-child(2) { text-align: right; }
+    table.prices tbody tr { cursor: default; }
+    table.prices tbody tr:hover { background: none; }
+    table.prices input { width: 84px; font: inherit; text-align: right; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; font-variant-numeric: tabular-nums; }
+    table.prices input.edited { border-color: var(--accent); background: #f0eeff; color: var(--accent); font-weight: 600; }
+    table.prices .was { color: var(--muted); font-size: 11.5px; margin-left: 4px; }
+    .linkbtn { border: 0; background: none; color: var(--accent); cursor: pointer; font: inherit; font-size: 12.5px; padding: 0; }
+    .effect { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
+    .effect-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
+    .effect-head h3 { font-size: 14.5px; margin: 0; }
+    #effect-summary { font-size: 13px; color: var(--muted); }
+    #effect-summary b { color: var(--ink); font-variant-numeric: tabular-nums; }
+    .effect .chart { height: 440px; }
+    td.rules-cell { font-weight: 600; }
+    .legend-note { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12.5px; color: var(--muted); }
+    .out { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+    .out .label { color: var(--muted); font-size: 12px; }
+    .out .vals { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .out .vals s { color: var(--muted); font-weight: 500; font-size: 15px; margin-right: 6px; }
+    .headline { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; background: linear-gradient(135deg, #f0eeff, #fff); border-color: #d9d4ff; }
+    .headline .vals { font-size: 24px; color: var(--accent); }
+    .note { color: var(--muted); font-size: 12px; margin-top: 10px; }
+
+    .fix-chip { display: flex; align-items: center; gap: 8px; border: 1px solid #d9d4ff; background: #f6f5ff; border-radius: 8px; padding: 6px 8px; margin-top: 6px; font-size: 12.5px; }
+    .fix-chip b { color: var(--accent); }
+    .fix-chip span { flex: 1; }
+    .fix-chip button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 15px; }
+
+    #ai-fab { position: fixed; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 20; border: 0; border-radius: 999px; padding: 12px 18px;
+              background: linear-gradient(135deg, var(--accent), #8b5cf6); color: #fff; font: 600 14px system-ui, sans-serif; cursor: pointer; box-shadow: 0 8px 24px rgb(75 63 216 / 0.35); }
+    #ai-panel { position: fixed; right: 20px; bottom: 20px; z-index: 21; width: min(500px, calc(100vw - 40px)); height: min(720px, calc(100vh - 40px));
+                background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 16px 48px rgb(20 24 31 / 0.18); display: flex; flex-direction: column; overflow: hidden; }
+    #ai-panel header { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+    #ai-panel header b { font-size: 14.5px; }
+    #ai-status { font-size: 12px; color: var(--muted); margin-right: auto; }
+    #ai-status.ok::before { content: '●'; color: var(--good); margin-right: 4px; }
+    #ai-status.off::before { content: '●'; color: var(--bad); margin-right: 4px; }
+    #ai-panel header button { border: 0; background: none; font-size: 18px; color: var(--muted); cursor: pointer; }
+    #ai-log { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+    .msg { max-width: 92%; padding: 9px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; }
+    .msg.user { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; white-space: pre-wrap; }
+    .msg.bot { align-self: flex-start; background: #f3f4f7; border-bottom-left-radius: 4px; }
+    .msg.bot p { margin: 0 0 6px; } .msg.bot p:last-child { margin-bottom: 0; }
+    .msg.bot ul { margin: 4px 0 6px; padding-left: 18px; }
+    .msg.bot table { font-size: 12px; margin: 6px 0; background: #fff; border-radius: 6px; }
+    .msg.bot th, .msg.bot td { padding: 4px 6px; text-align: left; white-space: normal; }
+    .msg.bot tbody tr { cursor: default; }
+    .msg.err { align-self: stretch; background: #fff1f0; color: var(--bad); font-size: 12.5px; }
+    .act { align-self: flex-start; font-size: 12px; color: var(--muted); padding-left: 4px; }
+    .act::before { content: '↳ '; color: var(--accent); }
+    .typing { align-self: flex-start; color: var(--muted); font-size: 12.5px; }
+    #ai-suggest { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 10px; }
+    #ai-suggest button { border: 1px solid #d9d4ff; background: #f6f5ff; color: var(--accent); border-radius: 999px; padding: 5px 10px; font: 12.5px system-ui, sans-serif; cursor: pointer; text-align: left; }
+    .ai-input { display: flex; gap: 8px; padding: 10px 14px 14px; border-top: 1px solid var(--line); }
+    .ai-input textarea { flex: 1; resize: none; font: 13.5px system-ui, sans-serif; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+    .ai-input button { border: 0; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 600; padding: 0 14px; cursor: pointer; }
+    .ai-input button:disabled { opacity: 0.5; cursor: default; }
+    .ai-off { padding: 10px 12px; margin: 0 14px 10px; border-radius: 10px; background: #fff7e6; color: #7a5200; font-size: 12.5px; }
+    .ai-off code { background: #fff; padding: 1px 4px; border-radius: 4px; }
+
+    footer { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+    footer dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 8px 0 0; }
+    footer dt { font-weight: 600; color: var(--ink); }
+    footer dd { margin: 0; }
+
+    @media (max-width: 1000px) {
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .g-2-1, .whatif { grid-template-columns: minmax(0, 1fr); }
+    }
+  </style>
+</head>
+<body>
+<main data-anfra-container="page" data-anfra-label="AI Margin Radar">
+
+  <header class="top" data-anfra-container="header" data-anfra-label="Header">
+    <div class="brand">
+      <div class="logo">i</div>
+      <div>
+        <h1>AI Margin Radar</h1>
+        <p>Inkwell (synthetic data): which customers cost more in AI tokens than they pay you</p>
+      </div>
+    </div>
+    <span class="chip" id="plan-chip" data-anfra-block="plan-chip" data-anfra-label="Plan selection"><span id="plan-chip-text"></span><button type="button" id="plan-clear" title="Show all plans">×</button></span>
+    <label class="control" data-anfra-block="month-picker" data-anfra-label="Month" data-anfra-control="month">Month
+      <select id="month-select"><option>Loading…</option></select>
+    </label>
+  </header>
+
+  <section class="kpis" data-anfra-container="kpis" data-anfra-label="Headline numbers">
+    <div class="kpi" data-anfra-block="kpi-revenue" data-anfra-label="Revenue" data-anfra-query="kpis"><div class="label">Revenue kept</div><div class="value" id="k-revenue">–</div><div class="delta" id="d-revenue"></div></div>
+    <div class="kpi" data-anfra-block="kpi-llm" data-anfra-label="LLM cost" data-anfra-query="kpis"><div class="label">LLM cost</div><div class="value" id="k-llm">–</div><div class="delta" id="d-llm"></div></div>
+    <div class="kpi" data-anfra-block="kpi-margin" data-anfra-label="Gross margin %" data-anfra-query="kpis"><div class="label">Gross margin</div><div class="value" id="k-margin">–</div><div class="delta" id="d-margin"></div></div>
+    <div class="kpi alert" data-anfra-block="kpi-unprofitable" data-anfra-label="Unprofitable customers" data-anfra-query="kpis"><div class="label">Customers losing you money</div><div class="value" id="k-unprof">–</div><div class="delta" id="d-unprof"></div></div>
+    <div class="kpi alert" data-anfra-block="kpi-lost" data-anfra-label="Margin lost" data-anfra-query="kpis"><div class="label">What they cost you</div><div class="value" id="k-lost">–</div><div class="delta" id="d-lost"></div></div>
+  </section>
+
+  <section class="grid g-2-1" data-anfra-container="row-trend" data-anfra-label="Trend and spend">
+    <div class="panel" data-anfra-block="trend" data-anfra-label="Revenue vs LLM cost">
+      <h2>Revenue is growing. AI cost is growing faster.</h2>
+      <div class="sub">Monthly revenue, LLM cost (Agent mode in dark red) and gross margin %. Click a month to inspect it.</div>
+      <div id="trend-chart" class="chart" data-anfra-query="trend"></div>
+      <div class="status" id="trend-status"></div>
+    </div>
+    <div class="panel" data-anfra-block="features" data-anfra-label="LLM cost by feature">
+      <h2>Where the AI spend goes</h2>
+      <div class="sub">LLM cost by feature and model, selected month.</div>
+      <div id="feature-chart" class="chart" data-anfra-query="byFeature"></div>
+      <div class="status" id="feature-status"></div>
+    </div>
+  </section>
+
+  <section class="grid g-2-1" data-anfra-container="row-customers" data-anfra-label="Customers">
+    <div class="panel" data-anfra-block="strip" data-anfra-label="Every customer vs plan price">
+      <h2>Every paying customer, against what they pay</h2>
+      <div class="sub">One dot per customer: their LLM cost this month (log scale). The dashed line is the plan price. <b style="color:var(--bad)">Red</b> dots cost more than they pay, <b style="color:var(--comped)">amber</b> dots paid nothing this month. Click one.</div>
+      <div id="strip-chart" class="chart tall" data-anfra-query="customers"></div>
+      <div class="status" id="strip-status"></div>
+    </div>
+    <div class="panel" data-anfra-block="plans" data-anfra-label="Margin by plan">
+      <h2>Margin by plan</h2>
+      <div class="sub">Click a plan to focus the whole page on it.</div>
+      <div id="plan-chart" class="chart tall" data-anfra-query="byPlan"></div>
+      <div class="status" id="plan-status"></div>
+    </div>
+  </section>
+
+  <section class="grid g-2-1" data-anfra-container="row-losers" data-anfra-label="Loss makers">
+    <div class="panel" data-anfra-block="losers" data-anfra-label="Customers losing you money">
+      <h2>Customers losing you money</h2>
+      <div class="sub" id="losers-sub">Gross margin = revenue kept − LLM cost − payment fees.</div>
+      <div class="table-wrap" data-anfra-query="customers">
+        <table>
+          <thead><tr><th>Customer</th><th>Plan</th><th>Paid</th><th>LLM cost</th><th>Fees</th><th>Margin</th><th>Your rules</th><th>Cost ÷ paid</th><th>Agent share</th></tr></thead>
+          <tbody id="losers-body"></tbody>
+        </table>
+      </div>
+      <div class="status" id="losers-status"></div>
+    </div>
+    <div class="panel" data-anfra-block="detail" data-anfra-label="Customer detail" data-anfra-control="customer">
+      <h2 id="detail-title">All paying customers, day by day</h2>
+      <div class="detail-head" id="detail-head"><span class="empty-hint">Pick a customer in the chart or table to see their month.</span></div>
+      <div id="detail-chart" class="chart" data-anfra-query="customerDaily"></div>
+      <div class="status" id="detail-status"></div>
+    </div>
+  </section>
+
+  <section class="panel" data-anfra-block="whatif" data-anfra-label="What-if simulator" data-anfra-query="customers prices" style="margin-bottom:14px">
+    <h2>What if you changed the rules?</h2>
+    <div class="sub">Starts from this month's governed numbers per customer, applies your rule changes, replays them over the past year, and projects the next 6 months. A projection, not a forecast.</div>
+    <div class="whatif">
+      <div>
+        <div class="lever">
+          <div class="row"><span>Agent runs included, Pro plan</span><b id="v-cap-pro"></b></div>
+          <p>Cap the expensive Agent mode runs per customer per month.</p>
+          <input type="range" id="cap-pro" min="5" max="205" step="5" value="205">
+        </div>
+        <div class="lever">
+          <div class="row"><span>Agent runs included, Team plan</span><b id="v-cap-team"></b></div>
+          <input type="range" id="cap-team" min="10" max="510" step="10" value="510">
+        </div>
+        <div class="lever-group locked" id="overage-group">
+          <p class="hint">Set a Pro or Team cap above to decide what happens at the cap.</p>
+          <div class="lever">
+            <div class="row"><span>At the cap: price per extra run</span><b id="v-power"></b></div>
+            <p>$0 blocks runs above the cap. Above $0, users can keep going and pay per run.</p>
+            <input type="range" id="power-price" min="0" max="3" step="0.1" value="0" disabled>
+          </div>
+          <div class="lever">
+            <div class="row"><span>Share of capped users who pay to keep going</span><b id="v-uptake"></b></div>
+            <p>The rest stop at the cap.</p>
+            <input type="range" id="uptake" min="0" max="100" step="5" value="50" disabled>
+          </div>
+        </div>
+        <div class="lever">
+          <div class="row"><span>Route chat from Standard to Mini</span><b id="v-route"></b></div>
+          <p>Share of chat tokens moved to the cheaper model, priced from the model price list.</p>
+          <input type="range" id="route" min="0" max="100" step="5" value="0">
+        </div>
+        <div class="lever">
+          <div class="row"><span>Model prices, $ per 1M tokens</span><button type="button" class="linkbtn" id="price-reset" hidden>Reset to list price</button></div>
+          <p>Prefilled from the governed price list (<code>llm_models</code>). Edit to test a provider price change or a different model.</p>
+          <table class="prices"><thead><tr><th>Model</th><th>Input</th><th>Output</th></tr></thead><tbody id="price-body"><tr><td colspan="3">Loading…</td></tr></tbody></table>
+        </div>
+        <div class="lever">
+          <div class="row"><span>Monthly growth, next 6 months</span><b id="v-growth"></b></div>
+          <p id="growth-hint">Prefilled from the last 3 months of revenue.</p>
+          <input type="range" id="growth" min="0" max="20" step="1" value="8">
+        </div>
+        <div class="lever" id="fixes-lever" hidden>
+          <div class="row"><span>Customer fixes</span><button type="button" class="linkbtn" id="fixes-clear">Clear all</button></div>
+          <p>Custom deals for single accounts, on top of the rules above. Ask the assistant to add one.</p>
+          <div id="fixes-list"></div>
+        </div>
+      </div>
+      <div class="outcome" id="outcome" data-anfra-query="trend">
+        <div class="out headline">
+          <div><div class="label">Extra gross margin, next 6 months</div><div class="vals" id="o-gain">–</div><div class="label" id="o-gain-sub"></div></div>
+          <div><div class="label" id="o-past-label">Had you used these rules from the start</div><div class="vals" id="o-past">–</div><div class="label" id="o-past-sub"></div></div>
+        </div>
+        <div class="seg" role="group" aria-label="Chart unit" style="grid-column:1/-1"><button type="button" data-mode="pct" class="on">Gross margin %</button><button type="button" data-mode="usd">Gross margin $</button></div>
+        <div id="forecast-chart" class="forecast"></div>
+        <div class="out"><div class="label">Gross margin %</div><div class="vals" id="o-margin-pct">–</div></div>
+        <div class="out"><div class="label">Customers losing you money</div><div class="vals" id="o-unprof">–</div></div>
+        <div class="out"><div class="label">Customers over the cap</div><div class="vals" id="o-capped">–</div></div>
+        <div class="out"><div class="label">Overage revenue / month</div><div class="vals" id="o-overage">–</div></div>
+        <div class="note" id="o-note" style="grid-column:1/-1"></div>
+      </div>
+    </div>
+    <div class="effect" data-anfra-query="customers">
+      <div class="effect-head"><h3>What your rules do to the customers losing you money</h3><span id="effect-summary"></span></div>
+      <div class="sub">Each row is a paying customer who loses you money this month. <b style="color:var(--bad)">Red</b>: their margin today. <b style="color:var(--accent)">Purple</b>: with your rules. <b style="color:var(--good)">Green</b>: your rules make them profitable.</div>
+      <div id="effect-chart" class="chart"></div>
+    </div>
+  </section>
+
+  <footer class="panel" data-anfra-block="definitions" data-anfra-label="Definitions">
+    <h2>How these numbers are defined</h2>
+    <div class="sub">Every number on this page is a metric defined once in <code>datasets/unit_economics.dataset.aml</code>. Open Inspect to trace any chart to its AQL and SQL.</div>
+    <dl>
+      <dt>Revenue kept</dt><dd>Amount collected minus refunds. Coupon discounts and failed card charges never count.</dd>
+      <dt>LLM cost</dt><dd>Input and output tokens × the model's list price per million tokens.</dd>
+      <dt>Payment fees</dt><dd>Stripe's 2.9% + $0.30 per successful charge. Stripe keeps it when you refund, so it still counts.</dd>
+      <dt>Gross margin</dt><dd>Revenue kept − LLM cost − payment fees. Hosting and salaries are not included.</dd>
+      <dt>Revenue timing</dt><dd>Each invoice is spread over the days it pays for, so a month's revenue lines up with that month's AI usage. Billed on Aug 20 means paid for Aug 20 to Sep 19.</dd>
+      <dt>Losing you money</dt><dd>A customer who paid something this month and whose gross margin is below zero. Accounts that paid nothing (comped, refunded, failed card) are flagged separately.</dd>
+    </dl>
+  </footer>
+  <button type="button" id="ai-fab">✦ Ask the margin copilot</button>
+  <aside id="ai-panel" hidden data-anfra-block="assistant" data-anfra-label="Margin copilot">
+    <header><b>Margin copilot</b><span id="ai-status">checking…</span><button type="button" id="ai-reset" title="New conversation">↺</button><button type="button" id="ai-close" title="Close">×</button></header>
+    <div id="ai-log"></div>
+    <div class="ai-off" id="ai-off" hidden>The assistant needs the local AI proxy. In the project folder run <code>node scripts/ai-proxy.mjs</code> with <code>OPENAI_API_KEY</code> set (or in <code>.env.local</code>), then reopen this panel.</div>
+    <div id="ai-suggest"></div>
+    <div class="ai-input"><textarea id="ai-text" rows="2" placeholder="Ask, or give a command: “cap Team at 150 runs”, “fix Noah’s cost”…"></textarea><button type="button" id="ai-send">Send</button></div>
+  </aside>
+</main>
+
+<script>
+  const DS = 'unit_economics';
+  const app = Anfra.createApp({ title: 'AI Margin Radar' });
+
+  // ---------------------------------------------------------------- queries
+  const kpis = app.createQuery('kpis', {
+    dataset: DS,
+    aql: `
+      explore {
+        measures {
+          revenue: revenue,
+          revenue_prev: revenue | relative_period(dim_dates.date_key, interval(-1 month)),
+          llm_cost: llm_cost,
+          llm_cost_prev: llm_cost | relative_period(dim_dates.date_key, interval(-1 month)),
+          margin_pct: gross_margin_pct,
+          margin_pct_prev: gross_margin_pct | relative_period(dim_dates.date_key, interval(-1 month)),
+          unprofitable: unprofitable_customers,
+          unprofitable_prev: unprofitable_customers | relative_period(dim_dates.date_key, interval(-1 month)),
+          lost: loss_from_unprofitable,
+          lost_prev: loss_from_unprofitable | relative_period(dim_dates.date_key, interval(-1 month)),
+          paying: paying_customers,
+          free_cost: free_tier_cost,
+        }
+      }`,
+  });
+
+  const trend = app.createQuery('trend', {
+    dataset: DS,
+    aql: `
+      explore {
+        dimensions { period: dim_dates.date_key | month() }
+        measures {
+          revenue: revenue,
+          llm_cost: llm_cost,
+          agent_cost: llm_cost | where(llm_usage.feature == 'agent'),
+          payment_fees: payment_fees,
+          margin_pct: gross_margin_pct,
+        }
+        sorts { period asc }
+      }`,
+  });
+
+  const byFeature = app.createQuery('byFeature', {
+    dataset: DS,
+    aql: `
+      explore {
+        dimensions { feature: llm_usage.feature, model: llm_models.model_name }
+        measures { llm_cost: llm_cost, requests: requests, cost_per_request: safe_divide(llm_cost, requests) }
+        sorts { llm_cost desc }
+      }`,
+  });
+
+  const byPlan = app.createQuery('byPlan', {
+    dataset: DS,
+    aql: `
+      explore {
+        dimensions { plan: plans.plan_name, plan_order: plans.sort_order }
+        measures {
+          revenue: revenue,
+          llm_cost: llm_cost,
+          payment_fees: payment_fees,
+          margin: gross_margin,
+          margin_pct: gross_margin_pct,
+          unprofitable: unprofitable_customers,
+        }
+        sorts { plan_order asc }
+      }`,
+  });
+
+  const customers = app.createQuery('customers', {
+    dataset: DS,
+    aql: `
+      explore {
+        dimensions {
+          id: customers.customer_id,
+          name: customers.customer_name,
+          plan: plans.plan_name,
+          price: plans.monthly_price_usd,
+          coupon: customers.coupon_code,
+        }
+        measures {
+          revenue: revenue,
+          llm_cost: llm_cost,
+          fees: payment_fees,
+          margin: gross_margin,
+          agent_cost: llm_cost | where(llm_usage.feature == 'agent'),
+          agent_runs: requests | where(llm_usage.feature == 'agent'),
+          in_mini: llm_usage | sum(llm_usage.input_tokens) | where(llm_usage.model_id == 'mini'),
+          out_mini: llm_usage | sum(llm_usage.output_tokens) | where(llm_usage.model_id == 'mini'),
+          in_standard: llm_usage | sum(llm_usage.input_tokens) | where(llm_usage.model_id == 'standard'),
+          out_standard: llm_usage | sum(llm_usage.output_tokens) | where(llm_usage.model_id == 'standard'),
+          in_frontier: llm_usage | sum(llm_usage.input_tokens) | where(llm_usage.model_id == 'frontier'),
+          out_frontier: llm_usage | sum(llm_usage.output_tokens) | where(llm_usage.model_id == 'frontier'),
+        }
+        filters { plans.plan_name != 'Free' }
+        sorts { margin asc }
+      }`,
+  });
+
+  const customerDaily = app.createQuery('customerDaily', {
+    dataset: DS,
+    aql: `
+      explore {
+        dimensions { day: dim_dates.date_key, feature: llm_usage.feature }
+        measures { llm_cost: llm_cost }
+        filters { plans.plan_name != 'Free' }
+        sorts { day asc }
+      }`,
+  });
+
+  // Every paying customer in every month, for replaying the rules over history.
+  const customerMonths = app.createQuery('customerMonths', {
+    dataset: DS,
+    aql: `
+      explore {
+        dimensions {
+          period: dim_dates.date_key | month(),
+          id: customers.customer_id,
+          plan: plans.plan_name,
+        }
+        measures {
+          revenue: revenue,
+          llm_cost: llm_cost,
+          fees: payment_fees,
+          agent_runs: requests | where(llm_usage.feature == 'agent'),
+          in_mini: llm_usage | sum(llm_usage.input_tokens) | where(llm_usage.model_id == 'mini'),
+          out_mini: llm_usage | sum(llm_usage.output_tokens) | where(llm_usage.model_id == 'mini'),
+          in_standard: llm_usage | sum(llm_usage.input_tokens) | where(llm_usage.model_id == 'standard'),
+          out_standard: llm_usage | sum(llm_usage.output_tokens) | where(llm_usage.model_id == 'standard'),
+          in_frontier: llm_usage | sum(llm_usage.input_tokens) | where(llm_usage.model_id == 'frontier'),
+          out_frontier: llm_usage | sum(llm_usage.output_tokens) | where(llm_usage.model_id == 'frontier'),
+        }
+        filters { plans.plan_name != 'Free' }
+        sorts { period asc }
+      }`,
+  });
+
+  const prices = app.createQuery('prices', {
+    dataset: DS,
+    aql: `
+      explore {
+        dimensions {
+          model_id: llm_models.model_id,
+          model: llm_models.model_name,
+          input_price: llm_models.input_usd_per_mtok,
+          output_price: llm_models.output_usd_per_mtok,
+        }
+        sorts { model_id asc }
+      }`,
+  });
+
+  // ---------------------------------------------------------------- controls
+  const today = new Date();
+  const lastFull = new Date(Date.UTC(today.getFullYear(), today.getMonth() - 1, 1));
+  let selectedMonth = isoMonth(lastFull); // 'YYYY-MM'
+
+  const month = app.createFilter('month', {
+    dataset: DS, field: 'dim_dates.date_key', label: 'Month',
+    default: { operator: 'between', values: monthRange(selectedMonth) },
+  });
+  for (const q of [kpis, byFeature, byPlan, customers, customerDaily]) {
+    app.mapControl(month, q, { field: 'dim_dates.date_key' });
+  }
+  const monthFilter = month; // the assistant's navigate tool takes a `month` argument
+
+  const customer = app.createFilter('customer', { dataset: DS, field: 'customers.customer_id', label: 'Customer' });
+  app.mapControl(customer, customerDaily, { field: 'customers.customer_id' });
+  let pickedCustomer = null; // the customers-query row
+
+  for (const q of [kpis, trend, byFeature, customers, customerDaily, customerMonths]) app.mapCrossFilter(byPlan, q);
+
+  // ---------------------------------------------------------------- helpers
+  function isoMonth (d) { return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`; }
+  function monthRange (ym) {
+    const [y, m] = ym.split('-').map(Number);
+    const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    return [`${ym}-01`, `${ym}-${String(last).padStart(2, '0')}`];
+  }
+  function monthLabel (ym, long) {
+    const [y, m] = ym.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-US', { month: long ? 'long' : 'short', year: 'numeric', timeZone: 'UTC' });
+  }
+  const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
+  const usd0 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  const usd2 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const int = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+  const money = (v) => (v === null ? '–' : (Math.abs(v) < 100 ? usd2 : usd0).format(v));
+  const pct = (v) => (v === null || !isFinite(v) ? '–' : `${(v * 100).toFixed(1)}%`);
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const C = { rev: css('--rev'), cost: css('--cost'), agent: css('--agent'), good: css('--good'), bad: css('--bad'), comped: css('--comped'), muted: css('--muted'), accent: css('--accent') };
+  const FEATURE_COLORS = { agent: C.agent, chat: C.cost, summarize: '#f2a65a', rewrite: '#f6cf8f' };
+  const FEATURE_LABEL = { agent: 'Agent mode', chat: 'Chat', summarize: 'Summarize', rewrite: 'Rewrite' };
+
+  function setStatus (query, id, emptyText) {
+    const el = document.getElementById(id);
+    el.classList.remove('error');
+    let text = '';
+    if (query.state === 'executing' && !query.result) text = 'Loading…';
+    else if (query.state === 'error') { text = `Couldn't load: ${query.error.message}`; el.classList.add('error'); }
+    else if (query.state === 'success' && query.result.rows.length === 0) text = emptyText;
+    el.textContent = text;
+    el.classList.toggle('visible', text !== '');
+  }
+
+  const logged = new Set();
+  function logFirst (q) {
+    if (q.state !== 'success' || logged.has(q.name)) return;
+    logged.add(q.name);
+    console.log(q.name, q.result.columns.map((c) => c.name), q.result.rows[0], q.result.debug?.executedAql);
+  }
+
+  function delta (el, cur, prev, { kind, goodWhen }) {
+    if (cur === null || prev === null || prev === 0 && kind !== 'pts') { el.textContent = ''; return; }
+    let text, diff;
+    if (kind === 'pts') { diff = (cur - prev) * 100; text = `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} pts vs last month`; }
+    else if (kind === 'count') { diff = cur - prev; text = `${diff >= 0 ? '+' : ''}${diff} vs last month`; }
+    else { diff = (cur - prev) / Math.abs(prev); text = Math.abs(diff) < 0.005 ? 'Flat vs last month' : `${diff >= 0 ? '▲' : '▼'} ${Math.abs(diff * 100).toFixed(0)}% vs last month`; if (Math.abs(diff) < 0.005) diff = 0; }
+    el.textContent = text;
+    el.className = 'delta ' + (Math.abs(diff) < 1e-9 ? 'flat' : ((diff > 0) === (goodWhen === 'up') ? 'up-good' : 'up-bad'));
+  }
+
+  // ---------------------------------------------------------------- charts
+  const trendChart = echarts.init(document.getElementById('trend-chart'));
+  const featureChart = echarts.init(document.getElementById('feature-chart'));
+  const stripChart = echarts.init(document.getElementById('strip-chart'));
+  const planChart = echarts.init(document.getElementById('plan-chart'));
+  const detailChart = echarts.init(document.getElementById('detail-chart'));
+  window.addEventListener('resize', () => [trendChart, featureChart, stripChart, planChart, detailChart].forEach((c) => c.resize()));
+
+  let monthsRendered = false;
+  function renderMonthPicker () {
+    if (!trend.result || monthsRendered) return;
+    monthsRendered = true;
+    const sel = document.getElementById('month-select');
+    const thisMonth = isoMonth(new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1)));
+    const months = trend.result.rows.map((r) => String(r.period).slice(0, 7));
+    sel.replaceChildren(...months.slice().reverse().map((ym) => new Option(monthLabel(ym, true) + (ym === thisMonth ? ' (to date)' : ''), ym)));
+    if (!months.includes(selectedMonth)) setMonth(months.filter((m) => m !== thisMonth).pop() || months.at(-1));
+    sel.value = selectedMonth;
+  }
+
+  function setMonth (ym) {
+    selectedMonth = ym;
+    document.getElementById('month-select').value = ym;
+    month.setCondition({ operator: 'between', values: monthRange(ym) });
+    clearCustomer(false);
+    app.execute();
+  }
+
+  let trendKey = null;
+  function renderTrend () {
+    setStatus(trend, 'trend-status', 'No data');
+    if (!trend.result) return;
+    const rows = trend.result.rows;
+    const months = rows.map((r) => String(r.period).slice(0, 7));
+    const idx = months.indexOf(selectedMonth);
+    const launch = months.indexOf('2026-06');
+    trendChart.setOption({
+      animationDuration: 500,
+      grid: { left: 56, right: 48, top: 50, bottom: 28 },
+      legend: { top: 0, left: 0, itemWidth: 12, itemHeight: 10, textStyle: { color: C.muted } },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (ps) => `<b>${monthLabel(months[ps[0].dataIndex], true)}</b><br>` + ps.map((p) => `${p.marker} ${p.seriesName}: ${p.seriesName.includes('%') ? pct(p.value / 100) : money(p.value)}`).join('<br>'),
+      },
+      xAxis: { type: 'category', data: months.map((m) => monthLabel(m)), axisTick: { show: false } },
+      yAxis: [
+        { type: 'value', axisLabel: { formatter: (v) => usd0.format(v) }, splitLine: { lineStyle: { color: '#eef0f3' } } },
+        { type: 'value', min: 0, max: 100, axisLabel: { formatter: '{value}%' }, splitLine: { show: false } },
+      ],
+      series: [
+        { name: 'Revenue kept', type: 'bar', barGap: '10%', itemStyle: { color: C.rev, borderRadius: [3, 3, 0, 0] },
+          data: rows.map((r, i) => ({ value: num(r.revenue) ?? 0, itemStyle: { opacity: idx < 0 || i === idx ? 1 : 0.45 } })) },
+        { name: 'LLM cost (other)', type: 'bar', stack: 'cost', itemStyle: { color: C.cost },
+          data: rows.map((r, i) => ({ value: (num(r.llm_cost) ?? 0) - (num(r.agent_cost) ?? 0), itemStyle: { opacity: idx < 0 || i === idx ? 1 : 0.45 } })) },
+        { name: 'LLM cost (Agent mode)', type: 'bar', stack: 'cost', itemStyle: { color: C.agent, borderRadius: [3, 3, 0, 0] },
+          data: rows.map((r, i) => ({ value: num(r.agent_cost) ?? 0, itemStyle: { opacity: idx < 0 || i === idx ? 1 : 0.45 } })),
+          markLine: launch < 0 ? undefined : { symbol: 'none', silent: true, label: { formatter: 'Agent mode launched', color: C.agent, position: 'end', fontWeight: 600 },
+            lineStyle: { color: C.agent, type: 'dashed' }, data: [{ xAxis: launch }] } },
+        { name: 'Gross margin %', type: 'line', yAxisIndex: 1, smooth: true, symbolSize: 6, itemStyle: { color: C.good }, lineStyle: { width: 2.5 },
+          data: rows.map((r) => (num(r.margin_pct) === null ? null : +(num(r.margin_pct) * 100).toFixed(1))) },
+      ],
+    }, trendKey === trend.result ? {} : { replaceMerge: ['series'] });
+    trendKey = trend.result;
+  }
+
+  function renderKpis () {
+    for (const id of ['k-revenue', 'k-llm', 'k-margin', 'k-unprof', 'k-lost']) document.getElementById(id).style.opacity = kpis.state === 'executing' ? 0.4 : 1;
+    if (kpis.state === 'error') { document.getElementById('d-revenue').textContent = kpis.error.message; return; }
+    if (!kpis.result) return;
+    const r = kpis.result.rows[0] || {};
+    const v = (k) => num(r[k]);
+    document.getElementById('k-revenue').textContent = money(v('revenue'));
+    document.getElementById('k-llm').textContent = money(v('llm_cost'));
+    document.getElementById('k-margin').textContent = pct(v('margin_pct'));
+    document.getElementById('k-unprof').textContent = v('unprofitable') === null ? '0' : int.format(v('unprofitable'));
+    document.getElementById('k-lost').textContent = money(v('lost') === null ? 0 : -v('lost'));
+    delta(document.getElementById('d-revenue'), v('revenue'), v('revenue_prev'), { goodWhen: 'up' });
+    delta(document.getElementById('d-llm'), v('llm_cost'), v('llm_cost_prev'), { goodWhen: 'down' });
+    delta(document.getElementById('d-margin'), v('margin_pct'), v('margin_pct_prev'), { kind: 'pts', goodWhen: 'up' });
+    delta(document.getElementById('d-unprof'), v('unprofitable') ?? 0, v('unprofitable_prev') ?? 0, { kind: 'count', goodWhen: 'down' });
+    const lostEl = document.getElementById('d-lost');
+    const paying = v('paying');
+    lostEl.textContent = `of ${paying === null ? 0 : int.format(paying)} paying · free tier cost ${money(v('free_cost') ?? 0)}`;
+    lostEl.className = 'delta flat';
+  }
+
+  function renderFeatures () {
+    setStatus(byFeature, 'feature-status', 'No AI usage this month');
+    if (!byFeature.result) return;
+    const rows = byFeature.result.rows;
+    const total = rows.reduce((s, r) => s + (num(r.llm_cost) ?? 0), 0);
+    featureChart.setOption({
+      tooltip: { formatter: (p) => {
+        const r = rows[p.dataIndex];
+        return `<b>${FEATURE_LABEL[r.feature] || r.feature}</b> on ${r.model}<br>${money(num(r.llm_cost))} (${pct(num(r.llm_cost) / total)})<br>${int.format(num(r.requests))} requests · ${usd2.format(num(r.cost_per_request) ?? 0)} each`;
+      } },
+      series: [{
+        type: 'pie', radius: ['38%', '58%'], center: ['50%', '52%'], itemStyle: { borderColor: '#fff', borderWidth: 2 },
+        avoidLabelOverlap: true, minShowLabelAngle: 2,
+        label: { formatter: (p) => `{b|${p.name}}\n${pct(p.value / total)}`, rich: { b: { fontWeight: 600 } }, alignTo: 'edge', edgeDistance: 6, overflow: 'none' },
+        labelLine: { length: 8, length2: 8 },
+        data: rows.map((r) => ({ name: FEATURE_LABEL[r.feature] || r.feature, value: num(r.llm_cost) ?? 0, itemStyle: { color: FEATURE_COLORS[r.feature] } })),
+      }],
+      graphic: [{ type: 'text', left: 'center', top: '50%', style: { text: money(total), font: '700 18px system-ui', fill: '#14181f', textAlign: 'center' } }],
+    }, { replaceMerge: ['series', 'graphic'] });
+  }
+
+  const PLAN_ORDER = ['Starter', 'Pro', 'Team'];
+  let stripKey = null;
+  function renderStrip () {
+    setStatus(customers, 'strip-status', 'No paying customers this month');
+    if (!customers.result) return;
+    const rows = customers.result.rows;
+    const plans = PLAN_ORDER.filter((p) => rows.some((r) => r.plan === p));
+    const jitter = (id) => { const x = Math.sin(Number(id) * 12.9898) * 43758.5453; return (x - Math.floor(x) - 0.5) * 0.7; };
+    const point = (r) => {
+      const comped = (num(r.revenue) ?? 0) === 0; // paid nothing this month: comped, refunded or failed card
+      const loss = (num(r.margin) ?? 0) < 0;
+      const picked = pickedCustomer && pickedCustomer.id === r.id;
+      return {
+        value: [plans.indexOf(r.plan) + jitter(r.id), Math.max(num(r.llm_cost) ?? 0, 0.01)],
+        row: r,
+        symbolSize: picked ? 16 : (loss ? 9 : 6),
+        itemStyle: { color: comped ? C.comped : (loss ? C.bad : '#7aa7a0'), opacity: picked ? 1 : (loss || comped ? 0.9 : 0.45),
+                     borderColor: picked ? '#14181f' : 'transparent', borderWidth: picked ? 2 : 0 },
+      };
+    };
+    const prices = plans.map((p) => num(rows.find((r) => r.plan === p).price));
+    stripChart.setOption({
+      animationDuration: 400,
+      grid: { left: 64, right: 20, top: 16, bottom: 36 },
+      tooltip: { formatter: (p) => {
+        if (!p.data || !p.data.row) return '';
+        const r = p.data.row;
+        return `<b>${r.name}</b> · ${r.plan}${r.coupon ? ` · ${r.coupon}` : ''}<br>Paid ${money(num(r.revenue) ?? 0)} · LLM ${money(num(r.llm_cost) ?? 0)}<br>Margin <b style="color:${(num(r.margin) ?? 0) < 0 ? C.bad : C.good}">${money(num(r.margin))}</b>`;
+      } },
+      xAxis: { type: 'value', min: -0.5, max: plans.length - 0.5, splitLine: { show: false },
+               axisTick: { customValues: plans.map((_, i) => i) },
+               axisLabel: { customValues: plans.map((_, i) => i), formatter: (v) => (plans[v] ? `${plans[v]} · ${usd0.format(prices[v])}/mo` : ''), fontWeight: 600, color: '#14181f' } },
+      yAxis: { type: 'log', min: 0.01, logBase: 10, name: 'LLM cost this month', axisLine: { onZero: false }, nameTextStyle: { color: C.muted, align: 'left' },
+               axisLabel: { formatter: (v) => (v < 1 ? usd2.format(v) : usd0.format(v)) }, splitLine: { lineStyle: { color: '#eef0f3' } } },
+      series: [{
+        type: 'scatter', data: rows.filter((r) => plans.includes(r.plan)).map(point),
+        markLine: { symbol: 'none', silent: true, animation: false, lineStyle: { color: '#14181f', type: 'dashed', width: 1.5 },
+          label: { show: true, position: 'end', formatter: 'price', color: C.muted, fontSize: 11 },
+          data: plans.map((p, i) => [{ coord: [i - 0.42, prices[i]] }, { coord: [i + 0.42, prices[i]] }]) },
+      }],
+    }, stripKey === customers.result ? {} : { replaceMerge: ['series'] });
+    stripKey = customers.result;
+  }
+
+  let planKey = null;
+  function renderPlans () {
+    setStatus(byPlan, 'plan-status', 'No data');
+    if (!byPlan.result) return;
+    const rows = byPlan.result.rows.filter((r) => r.plan !== 'Free');
+    const selected = new Set(byPlan.selectedRows.map((r) => r.plan));
+    const dim = (r) => (selected.size === 0 || selected.has(r.plan) ? 1 : 0.3);
+    planChart.setOption({
+      grid: { left: 60, right: 16, top: 34, bottom: 56 },
+      legend: { top: 0, left: 0, itemWidth: 12, itemHeight: 10, textStyle: { color: C.muted } },
+      tooltip: { trigger: 'axis', formatter: (ps) => {
+        const r = rows[ps[0].dataIndex];
+        return `<b>${r.plan}</b><br>Revenue ${money(num(r.revenue))}<br>LLM cost ${money(num(r.llm_cost))}<br>Fees ${money(num(r.payment_fees))}<br>Margin ${pct(num(r.margin_pct))}<br>${int.format(num(r.unprofitable) ?? 0)} customers losing money`;
+      } },
+      xAxis: { type: 'category', data: rows.map((r) => r.plan), axisTick: { show: false },
+               axisLabel: { interval: 0, formatter: (v, i) => `${v}\n{m|${pct(num(rows[i]?.margin_pct))} margin}`, rich: { m: { color: C.muted, fontSize: 11, padding: [4, 0, 0, 0] } }, lineHeight: 16 } },
+      yAxis: { type: 'value', axisLabel: { formatter: (v) => usd0.format(v) }, splitLine: { lineStyle: { color: '#eef0f3' } } },
+      series: [
+        { name: 'Revenue kept', type: 'bar', itemStyle: { color: C.rev, borderRadius: [3, 3, 0, 0] }, data: rows.map((r) => ({ value: num(r.revenue) ?? 0, itemStyle: { opacity: dim(r) } })) },
+        { name: 'LLM cost', type: 'bar', itemStyle: { color: C.cost, borderRadius: [3, 3, 0, 0] }, data: rows.map((r) => ({ value: num(r.llm_cost) ?? 0, itemStyle: { opacity: dim(r) } })) },
+      ],
+    }, planKey === byPlan.result ? {} : { replaceMerge: ['series'] });
+    planKey = byPlan.result;
+    const chip = document.getElementById('plan-chip');
+    chip.classList.toggle('visible', selected.size > 0);
+    document.getElementById('plan-chip-text').textContent = selected.size ? `Plan: ${[...selected].join(', ')}` : '';
+  }
+
+  function renderLosers () {
+    setStatus(customers, 'losers-status', 'Nobody is losing you money this month');
+    const body = document.getElementById('losers-body');
+    if (!customers.result) return;
+    const losers = customers.result.rows.filter((r) => (num(r.margin) ?? 0) < 0);
+    const paidLosers = losers.filter((r) => (num(r.revenue) ?? 0) > 0).length;
+    document.getElementById('losers-sub').textContent =
+      `${paidLosers} paying ${paidLosers === 1 ? 'customer' : 'customers'} cost more than they pay in ${monthLabel(selectedMonth, true)}, plus ${losers.length - paidLosers} ${losers.length - paidLosers === 1 ? 'account' : 'accounts'} that paid nothing (comped, refunded or failed card). Gross margin = revenue kept − LLM cost − payment fees.`;
+    body.replaceChildren(...losers.slice(0, 40).map((r) => {
+      const tr = document.createElement('tr');
+      const paid = num(r.revenue) ?? 0, cost = num(r.llm_cost) ?? 0, agent = num(r.agent_cost) ?? 0;
+      if (pickedCustomer && pickedCustomer.id === r.id) tr.className = 'picked';
+      const why = paid > 0 ? '' : (r.coupon === 'FRIENDS100' ? 'comped' : 'unpaid');
+      tr.innerHTML = `<td>${escapeHtml(r.name)}${why ? `<span class="badge" title="${why === 'comped' ? '100% coupon' : 'Refunded or card failed: still using the product'}">${why}</span>` : ''}</td><td>${r.plan}</td>
+        <td>${money(paid)}</td><td>${money(cost)}</td><td>${money(num(r.fees) ?? 0)}</td>
+        <td class="neg">${money(num(r.margin))}</td><td class="rules-cell" data-id="${escapeHtml(r.id)}">–</td><td>${paid > 0 ? `${(cost / paid).toFixed(1)}×` : '–'}</td>
+        <td><span class="bar" style="width:${Math.round(48 * (cost ? agent / cost : 0))}px"></span> ${cost ? Math.round(100 * agent / cost) : 0}%</td>`;
+      tr.addEventListener('click', () => pickCustomer(r));
+      return tr;
+    }));
+  }
+
+  function escapeHtml (s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+  let detailKey = null;
+  function renderDetail () {
+    setStatus(customerDaily, 'detail-status', pickedCustomer ? 'No AI usage this month' : 'No data');
+    const title = document.getElementById('detail-title');
+    const head = document.getElementById('detail-head');
+    if (pickedCustomer) {
+      const r = pickedCustomer;
+      const paid = num(r.revenue) ?? 0;
+      title.textContent = `${r.name} · ${r.plan}`;
+      head.innerHTML = `<span>Paid <b>${money(paid)}</b>${r.coupon ? ` (${escapeHtml(r.coupon)})` : ''}</span><span>LLM cost <b>${money(num(r.llm_cost) ?? 0)}</b></span>
+        <span>Margin <b class="${(num(r.margin) ?? 0) < 0 ? 'neg' : 'pos'}">${money(num(r.margin))}</b></span><span>Agent runs <b>${int.format(num(r.agent_runs) ?? 0)}</b></span>
+        <button type="button" id="detail-clear" style="margin-left:auto;border:0;background:none;color:${C.accent};cursor:pointer">Show everyone</button>`;
+      document.getElementById('detail-clear').onclick = () => { clearCustomer(true); };
+    } else {
+      title.textContent = 'All paying customers, day by day';
+      head.innerHTML = '<span class="empty-hint">Pick a customer in the chart or table to see their month.</span>';
+    }
+    if (!customerDaily.result) return;
+    const rows = customerDaily.result.rows;
+    const days = [...new Set(rows.map((r) => String(r.day).slice(0, 10)))];
+    const features = ['rewrite', 'summarize', 'chat', 'agent'].filter((f) => rows.some((r) => r.feature === f));
+    const byKey = new Map(rows.map((r) => [`${String(r.day).slice(0, 10)}|${r.feature}`, num(r.llm_cost) ?? 0]));
+    detailChart.setOption({
+      grid: { left: 52, right: 12, top: 30, bottom: 28 },
+      legend: { top: 0, left: 0, itemWidth: 12, itemHeight: 10, textStyle: { color: C.muted } },
+      tooltip: { trigger: 'axis', valueFormatter: (v) => money(v) },
+      xAxis: { type: 'category', data: days.map((d) => d.slice(8)), axisTick: { show: false } },
+      yAxis: { type: 'value', axisLabel: { formatter: (v) => usd0.format(v) }, splitLine: { lineStyle: { color: '#eef0f3' } } },
+      series: features.map((f) => ({ name: FEATURE_LABEL[f], type: 'bar', stack: 'cost', itemStyle: { color: FEATURE_COLORS[f] },
+        data: days.map((d) => byKey.get(`${d}|${f}`) ?? 0) })),
+    }, detailKey === customerDaily.result ? {} : { replaceMerge: ['series'] });
+    detailKey = customerDaily.result;
+  }
+
+  function pickCustomer (row) {
+    pickedCustomer = row;
+    customer.setCondition({ operator: 'is', values: [String(row.id)] });
+    renderStrip(); renderLosers();
+    app.execute();
+  }
+  function clearCustomer (run) {
+    pickedCustomer = null;
+    customer.setCondition({ operator: 'is', values: [] });
+    if (run) { renderStrip(); renderLosers(); app.execute(); }
+  }
+
+  // ---------------------------------------------------------------- what-if
+  const levers = ['cap-pro', 'cap-team', 'route', 'power-price', 'uptake'].map((id) => document.getElementById(id));
+  const growthInput = document.getElementById('growth');
+  let growthTouched = false;
+  levers.forEach((el) => el.addEventListener('input', renderWhatIf));
+  growthInput.addEventListener('input', () => { growthTouched = true; renderWhatIf(); });
+  const forecastChart = echarts.init(document.getElementById('forecast-chart'));
+  let forecastMode = 'pct';
+  document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+    forecastMode = b.dataset.mode;
+    document.querySelectorAll('.seg button').forEach((x) => x.classList.toggle('on', x === b));
+    renderWhatIf();
+  }));
+  window.addEventListener('resize', () => forecastChart.resize());
+
+  // A stable pseudo-random number per customer, so the same customers "pay overage" on every render.
+  const hash01 = (id) => { const x = Math.sin(Number(id) * 78.233) * 43758.5453; return x - Math.floor(x); };
+
+  const MODELS = ['mini', 'standard', 'frontier'];
+  function listPrices () {
+    return Object.fromEntries(prices.result.rows.map((r) => [r.model_id, { name: r.model, in: num(r.input_price), out: num(r.output_price) }]));
+  }
+
+  // The price table: governed list prices, editable.
+  let pricesRendered = false;
+  function renderPriceTable () {
+    if (!prices.result || pricesRendered) return;
+    pricesRendered = true;
+    const list = listPrices();
+    const body = document.getElementById('price-body');
+    body.replaceChildren(...MODELS.filter((m) => list[m]).map((m) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(list[m].name)}</td>` + ['in', 'out'].map((k) =>
+        `<td><input type="number" min="0" step="0.05" data-model="${m}" data-kind="${k}" value="${list[m][k]}" aria-label="${escapeHtml(list[m].name)} ${k}put price"></td>`).join('');
+      return tr;
+    }));
+    body.querySelectorAll('input').forEach((el) => el.addEventListener('input', renderWhatIf));
+  }
+  document.getElementById('price-reset').addEventListener('click', () => {
+    const list = listPrices();
+    document.querySelectorAll('#price-body input').forEach((el) => { el.value = list[el.dataset.model][el.dataset.kind]; });
+    renderWhatIf();
+  });
+  function userPrices () {
+    const list = listPrices();
+    const out = Object.fromEntries(MODELS.map((m) => [m, { in: list[m]?.in ?? 0, out: list[m]?.out ?? 0 }]));
+    let edited = false;
+    document.querySelectorAll('#price-body input').forEach((el) => {
+      const v = Number(el.value);
+      const listed = list[el.dataset.model][el.dataset.kind];
+      const ok = el.value !== '' && isFinite(v) && v >= 0;
+      if (ok) out[el.dataset.model][el.dataset.kind] = v;
+      const changed = ok && Math.abs(v - listed) > 1e-9;
+      el.classList.toggle('edited', changed);
+      el.title = changed ? `List price: ${usd2.format(listed)}` : '';
+      edited = edited || changed;
+    });
+    document.getElementById('price-reset').hidden = !edited;
+    return out;
+  }
+
+  // Per-customer fixes (a custom deal for one account): customer id -> { name, plan, agentCap, routePct, monthlyFee }.
+  const overrides = new Map();
+
+  // Rule effect on one month of customers, rebuilt from tokens per model.
+  function simulateMonth (rules, rows = customers.result.rows, fixes = overrides) {
+    const list = listPrices(), price = rules.prices;
+    const t = { revBefore: 0, revAfter: 0, costBefore: 0, costAfter: 0, feesBefore: 0, feesAfter: 0, unprofBefore: 0, unprofAfter: 0, over: 0, overageRev: 0, n: 0, byId: new Map() };
+    for (const r of rows) {
+      const rev = num(r.revenue) ?? 0, cost = num(r.llm_cost) ?? 0, fees = num(r.fees) ?? 0, runs = num(r.agent_runs) ?? 0;
+      const tok = Object.fromEntries(MODELS.map((m) => [m, { in: num(r[`in_${m}`]) ?? 0, out: num(r[`out_${m}`]) ?? 0 }]));
+      const fix = fixes.get(String(r.id));
+      t.n++; t.revBefore += rev; t.costBefore += cost; t.feesBefore += fees;
+      if (rev > 0 && rev - cost - fees < 0) t.unprofBefore++;
+
+      let newRev = rev, newFees = fees, frontierShare = 1;
+      const planCap = r.plan === 'Pro' ? rules.capPro : r.plan === 'Team' ? rules.capTeam : Infinity;
+      const cap = fix?.agentCap ?? planCap;
+      if (runs > cap) {
+        t.over++;
+        const extra = runs - cap;
+        if (fix?.agentCap === undefined && rules.overage > 0 && hash01(r.id) < rules.uptake) {
+          const charge = extra * rules.overage;      // keeps going, pays per run
+          newRev += charge; newFees += charge * 0.029 + 0.30; t.overageRev += charge;
+        } else {
+          frontierShare = cap / runs;                // stops at the cap: agent tokens scale with runs
+        }
+      }
+      if (fix?.monthlyFee) { newRev += fix.monthlyFee; newFees += fix.monthlyFee * 0.029 + 0.30; }
+      // routing: a share of Standard tokens moves to Mini
+      const route = fix?.routePct !== undefined ? fix.routePct / 100 : rules.route;
+      const moveIn = tok.standard.in * route, moveOut = tok.standard.out * route;
+      const used = {
+        mini: { in: tok.mini.in + moveIn, out: tok.mini.out + moveOut },
+        standard: { in: tok.standard.in - moveIn, out: tok.standard.out - moveOut },
+        frontier: { in: tok.frontier.in * frontierShare, out: tok.frontier.out * frontierShare },
+      };
+      const priced = (tk, pr) => MODELS.reduce((sum, m) => sum + (tk[m].in * pr[m].in + tk[m].out * pr[m].out) / 1e6, 0);
+      const residual = cost - priced(tok, Object.fromEntries(MODELS.map((m) => [m, list[m] || { in: 0, out: 0 }]))); // ~0: cost not explained by tokens
+      const newCost = priced(used, price) + residual;
+      t.revAfter += newRev; t.costAfter += newCost; t.feesAfter += newFees;
+      if (rev > 0 && newRev - newCost - newFees < 0) t.unprofAfter++; // same customers as before: those who paid this month
+      t.byId.set(String(r.id), { row: r, before: rev - cost - fees, after: newRev - newCost - newFees, costBefore: cost, costAfter: newCost, revAfter: newRev });
+    }
+    return t;
+  }
+
+  // ---- rules: read from the sliders, write to the sliders, normalize what the assistant asks for
+  const CAP = { pro: { min: 5, max: 200, step: 5, off: 205 }, team: { min: 10, max: 500, step: 10, off: 510 } };
+  const clampSnap = (v, lo, hi, step) => Math.min(hi, Math.max(lo, Math.round(v / step) * step));
+  function readRules () {
+    const capPro = +levers[0].value >= CAP.pro.off ? Infinity : +levers[0].value;
+    const capTeam = +levers[1].value >= CAP.team.off ? Infinity : +levers[1].value;
+    const hasCap = capPro !== Infinity || capTeam !== Infinity;
+    return {
+      capPro, capTeam, hasCap,
+      route: +levers[2].value / 100,
+      overageSetting: +levers[3].value,
+      overage: hasCap ? +levers[3].value : 0,
+      uptake: +levers[4].value / 100,
+      growth: +growthInput.value / 100,
+      prices: prices.result ? userPrices() : null,
+    };
+  }
+  // The assistant's vocabulary -> internal rules, starting from `base`.
+  function normalizeRules (ask = {}, base = readRules()) {
+    const r = { ...base, prices: base.prices ? JSON.parse(JSON.stringify(base.prices)) : null };
+    if ('pro_agent_run_cap' in ask) r.capPro = ask.pro_agent_run_cap === null ? Infinity : clampSnap(ask.pro_agent_run_cap, CAP.pro.min, CAP.pro.max, CAP.pro.step);
+    if ('team_agent_run_cap' in ask) r.capTeam = ask.team_agent_run_cap === null ? Infinity : clampSnap(ask.team_agent_run_cap, CAP.team.min, CAP.team.max, CAP.team.step);
+    if ('route_chat_to_mini_pct' in ask) r.route = clampSnap(ask.route_chat_to_mini_pct, 0, 100, 5) / 100;
+    if ('overage_price_per_run_usd' in ask) r.overageSetting = clampSnap(ask.overage_price_per_run_usd, 0, 3, 0.1);
+    if ('overage_uptake_pct' in ask) r.uptake = clampSnap(ask.overage_uptake_pct, 0, 100, 5) / 100;
+    if ('monthly_growth_pct' in ask) r.growth = clampSnap(ask.monthly_growth_pct, 0, 20, 1) / 100;
+    if (ask.model_prices && r.prices) {
+      for (const m of MODELS) for (const [k, key] of [['in', 'input'], ['out', 'output']]) {
+        const v = ask.model_prices?.[m]?.[key];
+        if (typeof v === 'number' && isFinite(v) && v >= 0) r.prices[m][k] = v;
+      }
+    }
+    r.hasCap = r.capPro !== Infinity || r.capTeam !== Infinity;
+    r.overage = r.hasCap ? r.overageSetting : 0;
+    return r;
+  }
+  function writeRules (r) {
+    levers[0].value = r.capPro === Infinity ? CAP.pro.off : r.capPro;
+    levers[1].value = r.capTeam === Infinity ? CAP.team.off : r.capTeam;
+    levers[2].value = Math.round(r.route * 100);
+    levers[3].value = r.overageSetting;
+    levers[4].value = Math.round(r.uptake * 100);
+    if (Math.abs(+growthInput.value / 100 - r.growth) > 1e-9) { growthInput.value = Math.round(r.growth * 100); growthTouched = true; }
+    if (r.prices) document.querySelectorAll('#price-body input').forEach((el) => { el.value = r.prices[el.dataset.model][el.dataset.kind]; });
+    renderWhatIf();
+  }
+  // Internal rules -> the assistant's vocabulary.
+  function describeRules (r) {
+    return {
+      pro_agent_run_cap: r.capPro === Infinity ? null : r.capPro,
+      team_agent_run_cap: r.capTeam === Infinity ? null : r.capTeam,
+      overage_price_per_run_usd: r.overage,
+      overage_uptake_pct: Math.round(r.uptake * 100),
+      route_chat_to_mini_pct: Math.round(r.route * 100),
+      monthly_growth_pct: Math.round(r.growth * 100),
+      model_prices: r.prices ? Object.fromEntries(MODELS.map((m) => [m, { input: r.prices[m].in, output: r.prices[m].out }])) : null,
+    };
+  }
+
+  // ---- the scenario: this month, replayed history, 6-month projection
+  const HORIZON = 6;
+  function fullMonths () {
+    const thisMonth = isoMonth(new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1)));
+    return trend.result ? trend.result.rows.map((r) => ({ ym: String(r.period).slice(0, 7), rev: num(r.revenue) ?? 0, cost: num(r.llm_cost) ?? 0, fees: num(r.payment_fees) ?? 0 })).filter((r) => r.ym !== thisMonth) : [];
+  }
+  function computeScenario (rules, fixes = overrides) {
+    const hist = fullMonths();
+    if (!customers.result || !prices.result || hist.length === 0) return null;
+    const t = simulateMonth(rules, customers.result.rows, fixes);
+    const ratio = (after, before) => (before ? after / before : 1);
+    const delta = new Map();
+    let lastSim = t;
+    if (customerMonths.result) {
+      const byMonth = new Map();
+      for (const r of customerMonths.result.rows) {
+        const ym = String(r.period).slice(0, 7);
+        if (!byMonth.has(ym)) byMonth.set(ym, []);
+        byMonth.get(ym).push(r);
+      }
+      for (const [ym, rows] of byMonth) {
+        const m = simulateMonth(rules, rows, fixes);
+        delta.set(ym, { rev: m.revAfter - m.revBefore, cost: m.costAfter - m.costBefore, fees: m.feesAfter - m.feesBefore });
+        if (ym === hist.at(-1).ym) lastSim = m;
+      }
+    }
+    const kRev = ratio(lastSim.revAfter, lastSim.revBefore), kCost = ratio(lastSim.costAfter, lastSim.costBefore), kFees = ratio(lastSim.feesAfter, lastSim.feesBefore);
+    const last = hist.at(-1);
+    const [ly, lm] = last.ym.split('-').map(Number);
+    const future = Array.from({ length: HORIZON }, (_, i) => {
+      const f = Math.pow(1 + rules.growth, i + 1);
+      const rev = last.rev * f, cost = last.cost * f, fees = last.fees * f;
+      return { ym: isoMonth(new Date(Date.UTC(ly, lm + i, 1))), base: rev - cost - fees, rules: rev * kRev - cost * kCost - fees * kFees, baseRev: rev, rulesRev: rev * kRev };
+    });
+    const pastMonths = hist.filter((m) => delta.has(m.ym));
+    const sum = (f) => pastMonths.reduce((s, m) => s + f(m, delta.get(m.ym)), 0);
+    const losers = [...t.byId.values()].filter((c) => (num(c.row.revenue) ?? 0) > 0 && c.before < 0);
+    return {
+      rules, t, hist, last, delta, future, pastMonths,
+      gainAhead: future.reduce((s, m) => s + m.rules - m.base, 0),
+      gainPast: sum((m, d) => d.rev - d.cost - d.fees),
+      marginPast: sum((m) => m.rev - m.cost - m.fees),
+      revPast: sum((m) => m.rev),
+      revPastAfter: sum((m, d) => m.rev + d.rev),
+      losers,
+      fixed: losers.filter((c) => c.after >= 0).length,
+      lossBefore: losers.reduce((s, c) => s + c.before, 0),
+      lossAfter: losers.reduce((s, c) => s + Math.min(c.after, 0), 0),
+    };
+  }
+  const r2 = (v) => (v === null || v === undefined || !isFinite(v) ? null : Math.round(v * 100) / 100);
+  function summarize (sc) {
+    if (!sc) return { error: 'Data is still loading. Try again in a moment.' };
+    const t = sc.t;
+    return {
+      measured_on_month: selectedMonth,
+      plan_filter: byPlan.selectedRows.map((r) => r.plan),
+      rules: describeRules(sc.rules),
+      customer_fixes: [...overrides.entries()].map(([id, f]) => ({ customer_id: id, name: f.name, ...f.public })),
+      this_month: {
+        gross_margin_usd_before: r2(t.revBefore - t.costBefore - t.feesBefore), gross_margin_usd_after: r2(t.revAfter - t.costAfter - t.feesAfter),
+        gross_margin_pct_before: r2(100 * (t.revBefore - t.costBefore - t.feesBefore) / t.revBefore), gross_margin_pct_after: r2(100 * (t.revAfter - t.costAfter - t.feesAfter) / t.revAfter),
+        llm_cost_before: r2(t.costBefore), llm_cost_after: r2(t.costAfter),
+        customers_losing_money_before: t.unprofBefore, customers_losing_money_after: t.unprofAfter,
+        loss_makers_fixed: sc.fixed, loss_makers_total: sc.losers.length,
+        loss_makers_monthly_loss_before: r2(-sc.lossBefore), loss_makers_monthly_loss_after: r2(-sc.lossAfter),
+        customers_over_cap: t.over, overage_revenue: r2(t.overageRev),
+      },
+      extra_gross_margin_next_6_months: r2(sc.gainAhead),
+      extra_gross_margin_since_start: customerMonths.result ? r2(sc.gainPast) : null,
+      since_start_margin_pct_before: r2(100 * sc.marginPast / sc.revPast), since_start_margin_pct_after: r2(100 * (sc.marginPast + sc.gainPast) / sc.revPastAfter),
+      since_month: sc.pastMonths[0]?.ym ?? null,
+    };
+  }
+
+  const effectChart = echarts.init(document.getElementById('effect-chart'));
+  window.addEventListener('resize', () => effectChart.resize());
+  let effectKey = null;
+  function renderEffect (t, changed) {
+    const losers = [...t.byId.values()].filter((c) => (num(c.row.revenue) ?? 0) > 0 && c.before < 0).sort((a, b) => a.before - b.before);
+    const shown = losers.slice(0, 15);
+    const fixed = losers.filter((c) => c.after >= 0).length;
+    const lossBefore = losers.reduce((s, c) => s + c.before, 0);
+    const lossAfter = losers.reduce((s, c) => s + Math.min(c.after, 0), 0);
+    document.getElementById('effect-summary').innerHTML = !changed
+      ? 'Move a slider or edit a price to see the effect.'
+      : `Fixes <b>${fixed} of ${losers.length}</b> · their loss <b>${usd0.format(-lossBefore)}</b> → <b>${usd0.format(-lossAfter)}</b> a month`;
+    const names = shown.map((c) => `${c.row.name} · ${c.row.plan}`);
+    const color = (c) => (c.after >= 0 ? C.good : C.accent);
+    effectChart.setOption({
+      animationDurationUpdate: 250,
+      grid: { left: 170, right: 70, top: 10, bottom: 28 },
+      tooltip: { trigger: 'item', formatter: (p) => {
+        const c = shown[p.data?.i ?? p.dataIndex];
+        if (!c) return '';
+        return `<b>${escapeHtml(c.row.name)}</b> · ${c.row.plan}<br>Today: <b style="color:${C.bad}">${money(c.before)}</b><br>Your rules: <b style="color:${color(c)}">${money(c.after)}</b>`;
+      } },
+      xAxis: { type: 'value', axisLabel: { formatter: (v) => usd0.format(v) }, splitLine: { lineStyle: { color: '#eef0f3' } } },
+      yAxis: { type: 'category', inverse: true, data: names, axisTick: { show: false }, axisLine: { show: false }, axisLabel: { color: '#14181f' } },
+      series: [
+        { id: 'link', type: 'custom', silent: true, z: 1,
+          data: shown.map((c, i) => [c.before, c.after, i]),
+          renderItem: (params, api) => {
+            const a = api.coord([api.value(0), api.value(2)]), b = api.coord([api.value(1), api.value(2)]);
+            return { type: 'line', shape: { x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, style: { stroke: '#c9cdd4', lineWidth: 3 } };
+          },
+          encode: { x: [0, 1], y: 2 } },
+        { id: 'today', name: 'Today', type: 'scatter', z: 2, symbolSize: 11, itemStyle: { color: C.bad },
+          data: shown.map((c, i) => ({ value: [c.before, i], i })) },
+        { id: 'yours', name: 'Your rules', type: 'scatter', z: 3, symbolSize: 13,
+          data: shown.map((c, i) => ({ value: [c.after, i], i, itemStyle: { color: color(c), opacity: changed ? 1 : 0 },
+            label: { show: changed, position: 'right', formatter: () => (c.after >= 0 ? 'fixed' : `${c.after - c.before >= 0 ? '+' : '−'}${usd0.format(Math.abs(c.after - c.before))}`), color: color(c), fontWeight: 600, fontSize: 11 } })),
+          markLine: { symbol: 'none', silent: true, lineStyle: { color: '#14181f', type: 'dashed' }, label: { formatter: 'break-even', color: C.muted, position: 'start' }, data: [{ xAxis: 0 }] } },
+      ],
+    }, effectKey === customers.result ? {} : { replaceMerge: ['series'] });
+    effectKey = customers.result;
+
+    // the loss-makers table, live
+    document.querySelectorAll('td.rules-cell').forEach((td) => {
+      const c = t.byId.get(td.dataset.id);
+      if (!c || !changed || Math.abs(c.after - c.before) < 0.005) { td.textContent = '–'; td.className = 'rules-cell'; return; }
+      td.textContent = c.after >= 0 ? `${money(c.after)} ✓` : money(c.after);
+      td.className = 'rules-cell ' + (c.after >= 0 ? 'pos' : 'neg');
+    });
+  }
+
+  function renderWhatIf () {
+    renderPriceTable();
+    const rules = readRules();
+    const { capPro, capTeam, hasCap, route, overageSetting: overage, uptake } = rules;
+    document.getElementById('overage-group').classList.toggle('locked', !hasCap);
+    levers[3].disabled = !hasCap;
+    levers[4].disabled = !hasCap || overage === 0;
+    document.getElementById('v-cap-pro').textContent = capPro === Infinity ? 'Unlimited (today)' : `${capPro} runs / month`;
+    document.getElementById('v-cap-team').textContent = capTeam === Infinity ? 'Unlimited (today)' : `${capTeam} runs / month`;
+    document.getElementById('v-route').textContent = `${Math.round(route * 100)}%`;
+    document.getElementById('v-power').textContent = overage === 0 ? 'Block extra runs' : `${usd2.format(overage)} / run`;
+    document.getElementById('v-uptake').textContent = overage === 0 ? 'n/a while blocked' : `${Math.round(uptake * 100)}%`;
+    renderOverrides();
+
+    const hist0 = fullMonths();
+    if (hist0.length >= 4 && !growthTouched) {
+      const a = hist0.at(-4).rev, b = hist0.at(-1).rev;
+      if (a > 0) { growthInput.value = String(Math.max(0, Math.min(20, Math.round((Math.pow(b / a, 1 / 3) - 1) * 100)))); rules.growth = +growthInput.value / 100; }
+    }
+    document.getElementById('v-growth').textContent = `${Math.round(rules.growth * 100)}% / month`;
+    document.getElementById('growth-hint').textContent = growthTouched ? 'Your assumption. Costs grow with revenue.' : 'Prefilled from the last 3 months of revenue. Costs grow with revenue.';
+
+    const sc = computeScenario(rules);
+    if (!sc) return;
+    const { t, hist, delta, future, pastMonths, gainAhead, gainPast, marginPast, revPast, last } = sc;
+    renderEffect(t, [...t.byId.values()].some((c) => Math.abs(c.after - c.before) > 0.005));
+    const signed = (v) => `${v >= 0 ? '+' : '−'}${usd0.format(Math.abs(v))}`;
+    const same = Math.abs(gainAhead) < 1 && Math.abs(gainPast) < 1;
+    document.getElementById('o-gain').textContent = same ? '$0' : signed(gainAhead);
+    document.getElementById('o-gain-sub').textContent = same ? 'Move a slider or edit a price to try a rule change.' : `${signed(future[0].rules - future[0].base)} in the first month`;
+    document.getElementById('o-past-label').textContent = pastMonths.length ? `Had you used these rules since ${monthLabel(pastMonths[0].ym, true)}` : 'Had you used these rules from the start';
+    document.getElementById('o-past').textContent = !customerMonths.result ? 'Loading…' : (same ? '$0' : signed(gainPast));
+    document.getElementById('o-past-sub').textContent = !customerMonths.result || same ? '' :
+      `margin ${usd0.format(marginPast)} → ${usd0.format(marginPast + gainPast)} (${pct(marginPast / revPast)} → ${pct((marginPast + gainPast) / sc.revPastAfter)})`;
+    const pair = (a, b, f) => (Math.abs(a - b) < 0.0005 ? f(b) : `<s>${f(a)}</s>${f(b)}`);
+    document.getElementById('o-margin-pct').innerHTML = pair((t.revBefore - t.costBefore - t.feesBefore) / t.revBefore, (t.revAfter - t.costAfter - t.feesAfter) / t.revAfter, pct);
+    document.getElementById('o-unprof').innerHTML = pair(t.unprofBefore, t.unprofAfter, String);
+    document.getElementById('o-capped').textContent = `${int.format(t.over)} of ${int.format(t.n)}`;
+    document.getElementById('o-overage').textContent = usd0.format(t.overageRev);
+
+    // Chart: actual vs your rules over history, then today's rules vs your rules ahead, in % or $.
+    const isPct = forecastMode === 'pct';
+    const val = (margin, rev) => (isPct ? (rev ? +(100 * margin / rev).toFixed(1) : null) : +margin.toFixed(0));
+    const shown = hist.slice(-12);
+    const labels = [...shown.map((m) => monthLabel(m.ym)), ...future.map((m) => monthLabel(m.ym))];
+    const pad = (n) => Array(n).fill(null);
+    const withRules = (m) => { const d = delta.get(m.ym) || { rev: 0, cost: 0, fees: 0 }; return val(m.rev + d.rev - m.cost - d.cost - m.fees - d.fees, m.rev + d.rev); };
+    const actual = [...shown.map((m) => val(m.rev - m.cost - m.fees, m.rev)), ...pad(HORIZON)];
+    const base = [...pad(shown.length - 1), val(last.rev - last.cost - last.fees, last.rev), ...future.map((m) => val(m.base, m.baseRev))];
+    const yours = [...shown.map(withRules), ...future.map((m) => val(m.rules, m.rulesRev))];
+    const fmt = (v) => (isPct ? `${v.toFixed(1)}%` : usd0.format(v));
+    forecastChart.setOption({
+      animationDurationUpdate: 250,
+      grid: { left: 64, right: 16, top: 34, bottom: 28 },
+      legend: { top: 0, left: 0, itemWidth: 14, itemHeight: 8, textStyle: { color: C.muted } },
+      tooltip: { trigger: 'axis', formatter: (ps) => `<b>${ps[0].axisValue}</b><br>` + ps.filter((p) => p.value !== null && p.value !== undefined).map((p) => `${p.marker} ${p.seriesName}: ${fmt(p.value)}`).join('<br>') },
+      xAxis: { type: 'category', data: labels, boundaryGap: false, axisTick: { show: false }, axisLabel: { interval: 1 } },
+      yAxis: isPct
+        ? { type: 'value', min: 0, max: 100, axisLabel: { formatter: '{value}%' }, splitLine: { lineStyle: { color: '#eef0f3' } } }
+        : { type: 'value', min: null, max: null, axisLabel: { formatter: (v) => usd0.format(v) }, splitLine: { lineStyle: { color: '#eef0f3' } } },
+      series: [
+        { id: 'actual', name: isPct ? 'Actual gross margin %' : 'Actual gross margin', type: 'line', data: actual, symbol: isPct ? 'circle' : 'none', symbolSize: 5, lineStyle: { width: 2.5, color: isPct ? C.good : '#14181f' }, itemStyle: { color: isPct ? C.good : '#14181f' } },
+        { id: 'base', name: "Today's rules", type: 'line', data: base, symbol: 'none', lineStyle: { width: 2, type: 'dashed', color: C.muted }, itemStyle: { color: C.muted } },
+        { id: 'yours', name: 'Your rules, from the start', type: 'line', data: yours, symbol: 'none', lineStyle: { width: 3, color: C.accent }, itemStyle: { color: C.accent },
+          areaStyle: isPct ? { opacity: 0 } : { color: 'rgba(75, 63, 216, 0.08)', opacity: 1 },
+          markArea: { silent: true, itemStyle: { color: 'rgba(20, 24, 31, 0.03)' }, label: { show: true, position: 'insideTop', color: C.muted, fontSize: 11, formatter: 'Projection' },
+            data: [[{ xAxis: labels[shown.length] }, { xAxis: labels.at(-1) }]] } },
+      ],
+    });
+
+    const plan = byPlan.selectedRows.length ? `, ${byPlan.selectedRows.map((r) => r.plan).join(', ')} plan` : '';
+    document.getElementById('o-note').textContent =
+      `Costs are rebuilt from each customer's tokens per model at the prices above. The purple line replays your rules on every past month, customer by customer${plan}. The next 6 months grow ${monthLabel(last.ym, true)} at the growth rate above. Assumes AI cost scales with agent runs, nobody churns because of a cap, and Mini handles routed chat at the Mini price above.`;
+  }
+
+  // ---------------------------------------------------------------- customer fixes
+  function renderOverrides () {
+    const lever = document.getElementById('fixes-lever');
+    lever.hidden = overrides.size === 0;
+    const list = document.getElementById('fixes-list');
+    list.replaceChildren(...[...overrides.entries()].map(([id, f]) => {
+      const div = document.createElement('div');
+      div.className = 'fix-chip';
+      const parts = [];
+      if (f.agentCap !== undefined) parts.push(`agent cap ${f.agentCap} runs`);
+      if (f.routePct !== undefined) parts.push(`${f.routePct}% chat on Mini`);
+      if (f.monthlyFee) parts.push(`+${usd0.format(f.monthlyFee)}/mo add-on`);
+      div.innerHTML = `<span><b>${escapeHtml(f.name)}</b> · ${escapeHtml(f.plan)}: ${escapeHtml(parts.join(', ') || 'no change')}</span><button type="button" title="Remove this fix">×</button>`;
+      div.querySelector('button').addEventListener('click', () => { overrides.delete(id); renderWhatIf(); });
+      return div;
+    }));
+  }
+  document.getElementById('fixes-clear').addEventListener('click', () => { overrides.clear(); renderWhatIf(); });
+
+  // ---------------------------------------------------------------- margin copilot (OpenAI through the local proxy)
+  // The model never sees SQL or raw tables. It reads the governed numbers this page already has, and acts only
+  // through the same levers a person can move, so every number it quotes traces back to a metric definition.
+  // Locally: the proxy on 127.0.0.1:7879. Deployed: the shell page relays the call to the gateway's /ai on
+  // the same origin, because this sandboxed frame's own requests would miss the site's password cookie.
+  // The frame is a srcdoc document, so baseURI is the shell page's URL.
+  const AI_LOCAL = (() => {
+    try { const b = new URL(document.baseURI); return /^(127\.0\.0\.1|localhost)$/.test(b.hostname) && b.port === '7878'; } catch { return true; }
+  })();
+  let aiRelaySeq = 0;
+  function aiFetch (path, body) {
+    if (AI_LOCAL) return fetch(`http://127.0.0.1:7879${path}`, body === undefined ? {} : { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+    return new Promise((resolve, reject) => {
+      const id = `ai-${++aiRelaySeq}`;
+      const timer = setTimeout(() => { removeEventListener('message', onMsg); reject(new Error('The copilot did not answer in time')); }, path === '/health' ? 15000 : 200000);
+      function onMsg (e) {
+        if (e.source !== window.parent || e.data?.aiRelay !== id) return;
+        clearTimeout(timer); removeEventListener('message', onMsg);
+        resolve(new Response(e.data.text, { status: e.data.status, headers: { 'content-type': 'application/json' } }));
+      }
+      addEventListener('message', onMsg);
+      window.parent.postMessage({ aiRelay: id, path, body }, '*');
+    });
+  }
+  const aiLog = document.getElementById('ai-log');
+  const aiText = document.getElementById('ai-text');
+  const aiSendBtn = document.getElementById('ai-send');
+  let aiBusy = false, aiReady = false;
+
+  const SYSTEM_PROMPT = `You are the Margin Copilot inside "AI Margin Radar", a dashboard for Inkwell, a fictional indie AI writing app (all data synthetic).
+The founder uses it to find customers who cost more in AI tokens than they pay, and to test pricing and usage rules.
+
+Facts about the numbers:
+- Every number comes from governed metrics (defined once in the semantic layer) through your tools. Never invent, estimate or recompute numbers yourself. If you need a number, call a tool. Quote numbers exactly as tools return them, rounded sensibly.
+- Revenue kept = collected minus refunds, spread over the days each invoice pays for. LLM cost = tokens x model list price. Gross margin = revenue - LLM cost - Stripe fees.
+- Features: rewrite and summarize run on Mini, chat on Standard, Agent mode (launched 2026-06-01) on Frontier. Agent mode is the expensive part.
+
+The levers (rules) you can simulate or apply:
+- pro_agent_run_cap / team_agent_run_cap: Agent runs included per customer per month (null = unlimited, today's rule). Pro 5-200, Team 10-500.
+- overage_price_per_run_usd (0-3): price for runs above the cap. 0 blocks extra runs. overage_uptake_pct: share of capped users who pay to keep going.
+- route_chat_to_mini_pct: share of chat tokens moved from Standard to the cheaper Mini model.
+- model_prices: USD per 1M tokens per model (provider price changes).
+- monthly_growth_pct: growth used for the 6-month projection.
+- Customer fixes: a custom deal for one account (agent run cap, share of their chat on Mini, extra monthly add-on fee).
+
+How to work:
+- Call read_dashboard first in a conversation, and again after the user may have changed the page.
+- To compare options, call simulate_rules once per option, then answer with a compact markdown table (option, margin %, customers losing money, extra margin next 6 months).
+- Only change the dashboard (apply_rules, set_customer_fix, clear_customer_fix, navigate, reset_rules) when the user asks you to apply, tune, set, fix or show something. When asked to tune toward a goal, try a few options with simulate_rules, then apply the best and say exactly what you changed.
+- To fix one customer, find them with find_customers, try a fix with simulate_rules (customer_fixes), apply with set_customer_fix, and report their margin before and after.
+- Prefer rules that fix the loss without hurting normal customers. Mention the tradeoff (caps can annoy heavy users, overage needs them to agree to pay).
+Writing rules:
+- Never mention tool names, parameter names or JSON. Describe rules in plain words, e.g. "Team cap 50 runs, $1 per extra run, 20% of chat on Mini".
+- Comparing options: one markdown table with columns Option | Rules | Margin % | Losing money | Next 6 months, then one short tradeoff line per option, then one question.
+- After applying something: one line on what changed on the page, then the key before → after numbers.
+- Be concise: at most about 120 words unless asked for more. No preamble, no closing offers beyond one question.`;
+
+  const RULE_PROPS = {
+    pro_agent_run_cap: { type: ['number', 'null'], description: 'Agent runs included per Pro customer per month, 5-200. null = unlimited.' },
+    team_agent_run_cap: { type: ['number', 'null'], description: 'Agent runs included per Team customer per month, 10-500. null = unlimited.' },
+    overage_price_per_run_usd: { type: 'number', description: 'Price per agent run above the cap, 0-3. 0 blocks extra runs.' },
+    overage_uptake_pct: { type: 'number', description: 'Share of capped users who pay overage, 0-100.' },
+    route_chat_to_mini_pct: { type: 'number', description: 'Share of chat tokens moved from Standard to Mini, 0-100.' },
+    monthly_growth_pct: { type: 'number', description: 'Monthly growth for the projection, 0-20.' },
+    model_prices: { type: 'object', description: 'USD per 1M tokens. Any subset, e.g. {"frontier": {"input": 10}}.',
+      properties: Object.fromEntries(MODELS.map((m) => [m, { type: 'object', properties: { input: { type: 'number' }, output: { type: 'number' } } }])) },
+  };
+  const FIX_PROPS = {
+    customer_id: { type: 'string', description: 'Customer ID from find_customers or read_dashboard.' },
+    agent_run_cap: { type: 'number', description: 'Agent runs allowed per month for this customer only.' },
+    route_chat_to_mini_pct: { type: 'number', description: 'Share of this customer\'s chat moved to Mini, 0-100.' },
+    extra_monthly_fee_usd: { type: 'number', description: 'Add-on charged to this customer each month (custom deal).' },
+    reason: { type: 'string' },
+  };
+  const AI_TOOLS = [
+    { name: 'read_dashboard', description: 'Read everything on the page: selected month and plan filter, headline metrics with last month, monthly trend, AI cost by feature, margin by plan, model price list, current rules and customer fixes, the current scenario outcome, and the top loss-making customers with their token usage.', parameters: { type: 'object', properties: {} } },
+    { name: 'find_customers', description: 'Find paying customers in the selected month by name (case-insensitive substring) or ID. Returns their governed numbers.', parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } },
+    { name: 'simulate_rules', description: 'Compute the outcome of rules (merged onto the current rules) and optional extra customer fixes, without changing the page.', parameters: { type: 'object', properties: { rules: { type: 'object', properties: RULE_PROPS }, customer_fixes: { type: 'array', items: { type: 'object', properties: FIX_PROPS, required: ['customer_id'] } } } } },
+    { name: 'apply_rules', description: 'Set the rule sliders on the page (merged onto the current rules) and return the new outcome.', parameters: { type: 'object', properties: { rules: { type: 'object', properties: RULE_PROPS } }, required: ['rules'] } },
+    { name: 'reset_rules', description: 'Put every rule back to today\'s rules (no caps, no routing, list prices) and remove all customer fixes.', parameters: { type: 'object', properties: {} } },
+    { name: 'set_customer_fix', description: 'Apply a custom deal to one customer on the page. Replaces any earlier fix for that customer.', parameters: { type: 'object', properties: FIX_PROPS, required: ['customer_id'] } },
+    { name: 'clear_customer_fix', description: 'Remove the fix for one customer, or all fixes with customer_id "all".', parameters: { type: 'object', properties: { customer_id: { type: 'string' } }, required: ['customer_id'] } },
+    { name: 'navigate', description: 'Change what the page shows: month (YYYY-MM), plan filter (Starter, Pro, Team or all), or open one customer\'s detail.', parameters: { type: 'object', properties: { month: { type: 'string' }, plan: { type: 'string' }, customer_id: { type: 'string' } } } },
+  ].map((f) => ({ type: 'function', function: f }));
+
+  const rowsToObjects = (q, pick) => (q.result ? q.result.rows.map(pick) : []);
+  function customerFacts (r) {
+    return {
+      customer_id: String(r.id), name: r.name, plan: r.plan, coupon: r.coupon, list_price: r2(num(r.price)),
+      revenue_kept: r2(num(r.revenue) ?? 0), llm_cost: r2(num(r.llm_cost) ?? 0), payment_fees: r2(num(r.fees) ?? 0), gross_margin: r2(num(r.margin) ?? 0),
+      agent_runs: num(r.agent_runs) ?? 0, agent_cost: r2(num(r.agent_cost) ?? 0),
+      tokens_millions: Object.fromEntries(MODELS.map((m) => [m, { input: r2((num(r[`in_${m}`]) ?? 0) / 1e6), output: r2((num(r[`out_${m}`]) ?? 0) / 1e6) }])),
+    };
+  }
+  function toFixes (list = []) {
+    const fixes = new Map(overrides);
+    for (const f of list) {
+      const row = customers.result?.rows.find((r) => String(r.id) === String(f.customer_id));
+      fixes.set(String(f.customer_id), makeFix(f, row));
+    }
+    return fixes;
+  }
+  function makeFix (f, row) {
+    const fix = { name: row?.name ?? `#${f.customer_id}`, plan: row?.plan ?? '', public: {} };
+    if (typeof f.agent_run_cap === 'number') { fix.agentCap = Math.max(0, Math.round(f.agent_run_cap)); fix.public.agent_run_cap = fix.agentCap; }
+    if (typeof f.route_chat_to_mini_pct === 'number') { fix.routePct = Math.min(100, Math.max(0, f.route_chat_to_mini_pct)); fix.public.route_chat_to_mini_pct = fix.routePct; }
+    if (typeof f.extra_monthly_fee_usd === 'number' && f.extra_monthly_fee_usd > 0) { fix.monthlyFee = f.extra_monthly_fee_usd; fix.public.extra_monthly_fee_usd = fix.monthlyFee; }
+    if (f.reason) fix.public.reason = f.reason;
+    return fix;
+  }
+  function customerOutcome (sc, id) {
+    const c = sc?.t.byId.get(String(id));
+    return c ? { customer_id: String(id), name: c.row.name, margin_before: r2(c.before), margin_after: r2(c.after), llm_cost_before: r2(c.costBefore), llm_cost_after: r2(c.costAfter), revenue_after: r2(c.revAfter) } : null;
+  }
+  const settle = () => new Promise((res) => setTimeout(res, 50));
+
+  const aiTools = {
+    async read_dashboard () {
+      const k = kpis.result?.rows[0] || {};
+      const losers = (customers.result?.rows || []).filter((r) => (num(r.margin) ?? 0) < 0).slice(0, 15).map(customerFacts);
+      return {
+        today: isoMonth(new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1))) + ' (partial month)',
+        selected_month: selectedMonth,
+        plan_filter: byPlan.selectedRows.map((r) => r.plan),
+        headline: Object.fromEntries(Object.entries(k).map(([key, v]) => [key.replace('margin_pct', 'gross_margin_pct'), r2(key.startsWith('margin_pct') ? 100 * (num(v) ?? 0) : num(v))])),
+        monthly_trend: rowsToObjects(trend, (r) => ({ month: String(r.period).slice(0, 7), revenue: r2(num(r.revenue)), llm_cost: r2(num(r.llm_cost)), agent_cost: r2(num(r.agent_cost)), payment_fees: r2(num(r.payment_fees)), gross_margin_pct: r2(100 * (num(r.margin_pct) ?? 0)) })),
+        llm_cost_by_feature: rowsToObjects(byFeature, (r) => ({ feature: r.feature, model: r.model, llm_cost: r2(num(r.llm_cost)), requests: num(r.requests), cost_per_request: r2(num(r.cost_per_request)) })),
+        by_plan: rowsToObjects(byPlan, (r) => ({ plan: r.plan, revenue: r2(num(r.revenue)), llm_cost: r2(num(r.llm_cost)), gross_margin_pct: r2(100 * (num(r.margin_pct) ?? 0)), customers_losing_money: num(r.unprofitable) ?? 0 })),
+        model_list_prices_per_million_tokens: prices.result ? Object.fromEntries(Object.entries(listPrices()).map(([m, v]) => [m, { name: v.name, input: v.in, output: v.out }])) : null,
+        current_scenario: summarize(computeScenario(readRules())),
+        top_loss_makers_this_month: losers,
+      };
+    },
+    async find_customers ({ query = '' }) {
+      const q = String(query).toLowerCase().trim();
+      const rows = (customers.result?.rows || []).filter((r) => String(r.id) === q || String(r.name).toLowerCase().includes(q)).slice(0, 10);
+      return rows.length ? { month: selectedMonth, customers: rows.map(customerFacts) } : { month: selectedMonth, customers: [], note: 'No paying customer with that name or ID this month. Free users are not listed.' };
+    },
+    async simulate_rules ({ rules = {}, customer_fixes = [] }) {
+      const sc = computeScenario(normalizeRules(rules), toFixes(customer_fixes));
+      const out = summarize(sc);
+      out.customers = customer_fixes.map((f) => customerOutcome(sc, f.customer_id));
+      out.customer_fixes = [...toFixes(customer_fixes).entries()].map(([id, f]) => ({ customer_id: id, name: f.name, ...f.public }));
+      return out;
+    },
+    async apply_rules ({ rules = {} }) {
+      writeRules(normalizeRules(rules));
+      await settle();
+      return { applied: true, ...summarize(computeScenario(readRules())) };
+    },
+    async reset_rules () {
+      overrides.clear();
+      const list = listPrices();
+      writeRules(normalizeRules({ pro_agent_run_cap: null, team_agent_run_cap: null, route_chat_to_mini_pct: 0, overage_price_per_run_usd: 0,
+        model_prices: Object.fromEntries(MODELS.map((m) => [m, { input: list[m].in, output: list[m].out }])) }));
+      return { reset: true, ...summarize(computeScenario(readRules())) };
+    },
+    async set_customer_fix (f) {
+      const row = customers.result?.rows.find((r) => String(r.id) === String(f.customer_id));
+      if (!row) return { error: `No paying customer ${f.customer_id} in ${selectedMonth}. Use find_customers.` };
+      const before = customerOutcome(computeScenario(readRules()), f.customer_id);
+      overrides.set(String(f.customer_id), makeFix(f, row));
+      renderWhatIf();
+      const sc = computeScenario(readRules());
+      return { applied: true, customer: { ...customerOutcome(sc, f.customer_id), margin_before_fix: before?.margin_after ?? null }, ...summarize(sc) };
+    },
+    async clear_customer_fix ({ customer_id }) {
+      if (customer_id === 'all') overrides.clear(); else overrides.delete(String(customer_id));
+      renderWhatIf();
+      return { cleared: customer_id, ...summarize(computeScenario(readRules())) };
+    },
+    async navigate ({ month, plan, customer_id }) {
+      const done = [];
+      if (month && /^\d{4}-\d{2}$/.test(month) && trend.result?.rows.some((r) => String(r.period).startsWith(month))) {
+        selectedMonth = month; document.getElementById('month-select').value = month;
+        monthFilter.setCondition({ operator: 'between', values: monthRange(month) });
+        clearCustomer(false); done.push(`month ${month}`);
+      }
+      if (plan) {
+        if (String(plan).toLowerCase() === 'all') { app.clearSelection(); done.push('all plans'); }
+        else { const row = byPlan.result?.rows.find((r) => r.plan.toLowerCase() === String(plan).toLowerCase()); if (row) { byPlan.select([row], { fields: ['plan'] }); done.push(`plan ${row.plan}`); } }
+      }
+      await app.execute();
+      if (customer_id) {
+        const row = customers.result?.rows.find((r) => String(r.id) === String(customer_id));
+        if (row) { pickCustomer(row); await app.execute(); done.push(`customer ${row.name}`); }
+      }
+      return { done, selected_month: selectedMonth, plan_filter: byPlan.selectedRows.map((r) => r.plan) };
+    },
+  };
+
+  function describeCall (name, args) {
+    const rules = args.rules || {};
+    const say = {
+      pro_agent_run_cap: (v) => `Pro cap ${v === null ? 'unlimited' : `${v} runs`}`,
+      team_agent_run_cap: (v) => `Team cap ${v === null ? 'unlimited' : `${v} runs`}`,
+      overage_price_per_run_usd: (v) => (v ? `$${v} per extra run` : 'block extra runs'),
+      overage_uptake_pct: (v) => `${v}% pay to continue`,
+      route_chat_to_mini_pct: (v) => `${v}% chat on Mini`,
+      monthly_growth_pct: (v) => `${v}% growth`,
+      model_prices: () => 'new model prices',
+    };
+    const bits = Object.entries(rules).map(([k, v]) => (say[k] ? say[k](v) : k));
+    const who = (id) => customers.result?.rows.find((r) => String(r.id) === String(id))?.name ?? id;
+    switch (name) {
+      case 'read_dashboard': return 'Read the dashboard';
+      case 'find_customers': return `Looked up “${args.query}”`;
+      case 'simulate_rules': return `Tested ${bits.join(', ') || 'current rules'}${args.customer_fixes?.length ? ` + fix for ${args.customer_fixes.map((f) => who(f.customer_id)).join(', ')}` : ''}`;
+      case 'apply_rules': return `Applied ${bits.join(', ')}`;
+      case 'reset_rules': return 'Reset every rule to today';
+      case 'set_customer_fix': return `Fixed ${who(args.customer_id)}`;
+      case 'clear_customer_fix': return args.customer_id === 'all' ? 'Removed all customer fixes' : `Removed the fix for ${who(args.customer_id)}`;
+      case 'navigate': return `Showed ${[args.month, args.plan, args.customer_id && who(args.customer_id)].filter(Boolean).join(', ')}`;
+      default: return name;
+    }
+  }
+
+  // Tiny, safe markdown: escape first, then bold, code, bullets, tables.
+  function md (text) {
+    const inline = (t) => escapeHtml(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+    const lines = String(text || '').split('\n');
+    let html = '', i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      const isRow = (l) => (l.match(/\|/g) || []).length >= 2;
+      if (isRow(line)) {
+        const rows = [];
+        while (i < lines.length && (isRow(lines[i]) || (!lines[i].trim() && isRow(lines[i + 1] || '')))) { if (lines[i].trim()) rows.push(lines[i]); i++; }
+        const cells = rows.filter((r) => !/^\s*\|?\s*:?-{2,}/.test(r)).map((r) => r.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim()));
+        html += `<table><thead><tr>${cells[0].map((c) => `<th>${inline(c)}</th>`).join('')}</tr></thead><tbody>${cells.slice(1).map((r) => `<tr>${r.map((c) => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+        continue;
+      }
+      if (/^\s*[-*] /.test(line)) {
+        const items = [];
+        while (i < lines.length && /^\s*[-*] /.test(lines[i])) { items.push(lines[i].replace(/^\s*[-*] /, '')); i++; }
+        html += `<ul>${items.map((t) => `<li>${inline(t)}</li>`).join('')}</ul>`;
+        continue;
+      }
+      if (line.trim()) html += `<p>${inline(line.replace(/^#+\s*/, ''))}</p>`;
+      i++;
+    }
+    return html;
+  }
+  function aiAdd (cls, html) {
+    const el = document.createElement('div');
+    el.className = cls;
+    el.innerHTML = html;
+    aiLog.appendChild(el);
+    aiLog.scrollTop = aiLog.scrollHeight;
+    return el;
+  }
+
+  let aiMessages = [{ role: 'system', content: SYSTEM_PROMPT }];
+  const SUGGESTIONS = [
+    'Read the dashboard and suggest 3 scenarios to fix my margin',
+    'Tune the rules to get gross margin back above 75% with the fewest customers capped',
+    'Fix the cost of my worst customer',
+    'Why did margin drop in June?',
+  ];
+  function renderSuggestions () {
+    const box = document.getElementById('ai-suggest');
+    box.hidden = aiMessages.length > 1;
+    box.replaceChildren(...SUGGESTIONS.map((t) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.onclick = () => aiAsk(t); return b; }));
+  }
+
+  async function aiHealth () {
+    const status = document.getElementById('ai-status');
+    try {
+      const res = await aiFetch('/health');
+      const j = await res.json();
+      aiReady = !!j.ok;
+      status.textContent = j.ok ? j.model : 'proxy has no API key';
+    } catch { aiReady = false; status.textContent = 'offline'; }
+    status.className = aiReady ? 'ok' : 'off';
+    document.getElementById('ai-off').hidden = aiReady;
+    aiSendBtn.disabled = !aiReady || aiBusy;
+  }
+
+  async function aiAsk (text) {
+    text = String(text || '').trim();
+    if (!text || aiBusy) return;
+    if (!aiReady) await aiHealth();
+    if (!aiReady) return;
+    aiBusy = true; aiSendBtn.disabled = true; aiText.value = '';
+    aiMessages.push({ role: 'user', content: text });
+    aiAdd('msg user', escapeHtml(text));
+    renderSuggestions();
+    const typing = aiAdd('typing', 'Thinking…');
+    try {
+      for (let step = 0; step < 12; step++) {
+        const res = await aiFetch('/chat', JSON.stringify({ messages: aiMessages, tools: AI_TOOLS }));
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(j.error?.message || j.error || `AI proxy returned ${res.status}`);
+        const msg = j.choices?.[0]?.message;
+        if (!msg) throw new Error('Empty answer from the model');
+        aiMessages.push({ role: 'assistant', content: msg.content ?? null, ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}) });
+        if (!msg.tool_calls?.length) { typing.remove(); aiAdd('msg bot', md(msg.content)); break; }
+        for (const call of msg.tool_calls) {
+          let args = {};
+          try { args = JSON.parse(call.function.arguments || '{}'); } catch { /* keep {} */ }
+          let result;
+          try { result = await (aiTools[call.function.name] ? aiTools[call.function.name](args) : { error: `Unknown tool ${call.function.name}` }); }
+          catch (err) { result = { error: String(err.message || err) }; }
+          aiLog.insertBefore(Object.assign(document.createElement('div'), { className: 'act', textContent: describeCall(call.function.name, args) }), typing);
+          aiMessages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) });
+        }
+        typing.textContent = 'Working…';
+        aiLog.appendChild(typing);
+        aiLog.scrollTop = aiLog.scrollHeight;
+      }
+    } catch (err) {
+      typing.remove();
+      aiAdd('msg err', escapeHtml(`Couldn't reach the model: ${err.message}`));
+    } finally {
+      typing.remove();
+      aiBusy = false; aiSendBtn.disabled = !aiReady;
+    }
+  }
+
+  document.getElementById('ai-fab').addEventListener('click', () => {
+    document.getElementById('ai-panel').hidden = false; document.getElementById('ai-fab').hidden = true;
+    renderSuggestions(); aiHealth(); aiText.focus();
+  });
+  document.getElementById('ai-close').addEventListener('click', () => { document.getElementById('ai-panel').hidden = true; document.getElementById('ai-fab').hidden = false; });
+  document.getElementById('ai-reset').addEventListener('click', () => { aiMessages = [{ role: 'system', content: SYSTEM_PROMPT }]; aiLog.replaceChildren(); renderSuggestions(); });
+  aiSendBtn.addEventListener('click', () => aiAsk(aiText.value));
+  aiText.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiAsk(aiText.value); } });
+
+  // ---------------------------------------------------------------- wiring
+  function render () {
+    for (const q of [kpis, trend, byFeature, byPlan, customers, customerDaily, customerMonths, prices]) logFirst(q);
+    renderMonthPicker();
+    renderKpis(); renderTrend(); renderFeatures(); renderPlans(); renderStrip(); renderLosers(); renderDetail(); renderWhatIf();
+  }
+  app.subscribe(render);
+
+  document.getElementById('month-select').addEventListener('change', (e) => setMonth(e.target.value));
+  trendChart.on('click', (p) => { if (trend.result) setMonth(String(trend.result.rows[p.dataIndex].period).slice(0, 7)); });
+  planChart.on('click', (p) => {
+    const rows = byPlan.result.rows.filter((r) => r.plan !== 'Free');
+    const row = rows[p.dataIndex];
+    const isOnly = byPlan.selectedRows.length === 1 && byPlan.selectedRows[0] === row;
+    byPlan.select(isOnly ? [] : [row], { fields: ['plan'] });
+    clearCustomer(false);
+    app.execute();
+  });
+  document.getElementById('plan-clear').addEventListener('click', () => { app.clearSelection(); app.execute(); });
+  stripChart.on('click', (p) => { if (p.data && p.data.row) pickCustomer(p.data.row); });
+
+  render();
+  app.execute();
+</script>
+</body>
+</html>

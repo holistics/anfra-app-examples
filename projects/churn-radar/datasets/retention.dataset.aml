@@ -1,0 +1,219 @@
+Dataset retention {
+  label: 'Inkwell Retention'
+  description: '''
+# What this dataset answers
+- Who is likely to cancel soon, measured against their own normal usage.
+- How churn changed after the October rules (Team Agent cap of 50 runs, 60% of chat on the Mini model).
+- What the rules saved in AI cost against what they lost in revenue.
+
+# Definitions that matter
+- Revenue kept is cash collected minus refunds, spread over the days each invoice pays for.
+- A cancellation or downgrade is dated when the customer clicks it. MRR lost is the monthly price they no longer pay.
+- "Caused by the rules": the customer named the Agent cap, Pro having no cap, or chat quality as the reason.
+- Customer Health is measured on the last day of data. Usage is compared with the customer's own normal.
+'''
+  data_source_name: 'inkwell'
+
+  models: [
+    customers,
+    plans,
+    invoices,
+    revenue_daily,
+    llm_usage,
+    llm_models,
+    subscription_events,
+    cap_events,
+    customer_health,
+    rules,
+    dim_dates,
+  ]
+  relationships: [
+    rel_config(Relationship { type: 'many_to_one', from: r(invoices.customer_id), to: r(customers.customer_id) }, true, 'one_way'),
+    rel_config(Relationship { type: 'many_to_one', from: r(revenue_daily.customer_id), to: r(customers.customer_id) }, true, 'one_way'),
+    rel_config(Relationship { type: 'many_to_one', from: r(llm_usage.customer_id), to: r(customers.customer_id) }, true, 'one_way'),
+    rel_config(Relationship { type: 'many_to_one', from: r(subscription_events.customer_id), to: r(customers.customer_id) }, true, 'one_way'),
+    rel_config(Relationship { type: 'many_to_one', from: r(cap_events.customer_id), to: r(customers.customer_id) }, true, 'one_way'),
+    rel_config(Relationship { type: 'many_to_one', from: r(customer_health.customer_id), to: r(customers.customer_id) }, true, 'one_way'),
+    relationship(customers.plan_id > plans.plan_id, true),
+    relationship(llm_usage.model_id > llm_models.model_id, true),
+    rel_config(Relationship { type: 'many_to_one', from: r(revenue_daily.service_date), to: r(dim_dates.date_key) }, true, 'one_way'),
+    rel_config(Relationship { type: 'many_to_one', from: r(llm_usage.used_on), to: r(dim_dates.date_key) }, true, 'one_way'),
+    rel_config(Relationship { type: 'many_to_one', from: r(subscription_events.event_date), to: r(dim_dates.date_key) }, true, 'one_way'),
+    rel_config(Relationship { type: 'many_to_one', from: r(cap_events.event_date), to: r(dim_dates.date_key) }, true, 'one_way'),
+    // Billing date: inactive, so customer-by-month questions use service days (revenue_daily).
+    rel_config(Relationship { type: 'many_to_one', from: r(invoices.invoiced_on), to: r(dim_dates.date_key) }, false, 'one_way'),
+  ]
+
+  // ---------------------------------------------------------------- money
+  metric revenue {
+    label: 'Revenue'
+    type: 'number'
+    description: 'Cash kept (collected minus refunds), spread evenly over the days each invoice pays for.'
+    definition: @aql revenue_daily | sum(revenue_daily.revenue_usd) ;;
+    format: '[$$]#,###0'
+  }
+  metric payment_fees {
+    label: 'Payment Fees'
+    type: 'number'
+    definition: @aql revenue_daily | sum(revenue_daily.fee_usd) ;;
+    format: '[$$]#,###0'
+  }
+  metric llm_cost {
+    label: 'LLM Cost'
+    type: 'number'
+    definition: @aql llm_usage | sum(llm_usage.input_tokens * llm_models.input_usd_per_mtok / 1000000.0 + llm_usage.output_tokens * llm_models.output_usd_per_mtok / 1000000.0) ;;
+    format: '[$$]#,###0'
+  }
+  metric gross_margin {
+    label: 'Gross Margin'
+    type: 'number'
+    definition: @aql coalesce(revenue, 0) - coalesce(llm_cost, 0) - coalesce(payment_fees, 0) ;;
+    format: '[$$]#,###0'
+  }
+  metric gross_margin_pct {
+    label: 'Gross Margin %'
+    type: 'number'
+    definition: @aql safe_divide(gross_margin, revenue) ;;
+    format: '#,##0.0%'
+  }
+
+  // ---------------------------------------------------------------- customers and churn
+  metric paying_customers {
+    label: 'Paying Customers'
+    type: 'number'
+    description: 'Customers with revenue kept in the period.'
+    definition: @aql revenue_daily | where(revenue_daily.revenue_usd > 0) | count_distinct(revenue_daily.customer_id) ;;
+    format: '#,###0'
+  }
+  metric new_paying_signups {
+    label: 'New Paid Signups'
+    type: 'number'
+    definition: @aql subscription_events | where(subscription_events.event_type == 'signup') | where(subscription_events.to_plan != 'Free') | count(subscription_events.event_id) ;;
+    format: '#,###0'
+  }
+  metric cancellations {
+    label: 'Cancellations'
+    type: 'number'
+    description: 'Paid plans cancelled in the period.'
+    definition: @aql subscription_events | where(subscription_events.event_type == 'cancel') | where(subscription_events.from_plan != 'Free') | count(subscription_events.event_id) ;;
+    format: '#,###0'
+  }
+  metric downgrades {
+    label: 'Downgrades'
+    type: 'number'
+    definition: @aql subscription_events | where(subscription_events.event_type == 'downgrade') | count(subscription_events.event_id) ;;
+    format: '#,###0'
+  }
+  metric churn_rate {
+    label: 'Churn Rate'
+    type: 'number'
+    description: 'Cancellations in the period divided by paying customers in the period.'
+    definition: @aql safe_divide(cancellations, paying_customers) ;;
+    format: '#,##0.0%'
+  }
+  metric mrr_lost {
+    label: 'MRR Lost'
+    type: 'number'
+    description: 'Monthly price no longer paid because of cancellations and downgrades in the period.'
+    definition: @aql subscription_events | where(subscription_events.event_type in ['cancel', 'downgrade']) | where(subscription_events.from_plan != 'Free') | sum(-subscription_events.mrr_change_usd) ;;
+    format: '[$$]#,###0'
+  }
+  metric mrr_lost_to_rules {
+    label: 'MRR Lost to the October Rules'
+    type: 'number'
+    definition: @aql mrr_lost | where(subscription_events.is_rule_related is true) ;;
+    format: '[$$]#,###0'
+  }
+  metric cancellations_to_rules {
+    label: 'Cancellations Caused by the Rules'
+    type: 'number'
+    definition: @aql cancellations | where(subscription_events.is_rule_related is true) ;;
+    format: '#,###0'
+  }
+  metric requests {
+    label: 'Requests'
+    type: 'number'
+    definition: @aql llm_usage | sum(llm_usage.requests) ;;
+    format: '#,###0'
+  }
+  metric blocked_agent_runs {
+    label: 'Agent Runs Refused by the Cap'
+    description: 'Agent mode attempts refused because the Team account had used its 50 runs that month.'
+    type: 'number'
+    definition: @aql cap_events | sum(cap_events.blocked_runs) ;;
+    format: '#,###0'
+  }
+  metric customers_at_cap {
+    label: 'Customers Hitting the Cap'
+    type: 'number'
+    definition: @aql cap_events | count_distinct(cap_events.customer_id) ;;
+    format: '#,###0'
+  }
+
+  // ---------------------------------------------------------------- what the rules saved
+  metric agent_runs {
+    label: 'Agent Runs'
+    type: 'number'
+    definition: @aql llm_usage | where(llm_usage.feature == 'agent') | sum(llm_usage.requests) ;;
+    format: '#,###0'
+  }
+  metric agent_cost {
+    label: 'Agent Mode LLM Cost'
+    type: 'number'
+    definition: @aql llm_cost | where(llm_usage.feature == 'agent') ;;
+    format: '[$$]#,###0'
+  }
+  metric cost_per_agent_run {
+    label: 'Cost per Agent Run'
+    type: 'number'
+    definition: @aql safe_divide(agent_cost, agent_runs) ;;
+    format: '[$$]#,###0.00'
+  }
+  metric cap_savings {
+    label: 'AI Cost Saved by the Cap'
+    type: 'number'
+    description: 'Blocked Agent runs times what an Agent run costs on average in the same period.'
+    definition: @aql coalesce(blocked_agent_runs, 0) * coalesce(cost_per_agent_run, 0) ;;
+    format: '[$$]#,###0'
+  }
+  metric routing_savings {
+    label: 'AI Cost Saved by Routing Chat to Mini'
+    type: 'number'
+    description: 'Chat tokens served by Mini, priced at the Standard list price minus the Mini list price (USD 3 to 0.40 input, 15 to 1.60 output per 1M tokens).'
+    definition: @aql llm_usage | where(llm_usage.feature == 'chat') | where(llm_usage.model_id == 'mini') | sum(llm_usage.input_tokens * (3.0 - 0.4) / 1000000.0 + llm_usage.output_tokens * (15.0 - 1.6) / 1000000.0) ;;
+    format: '[$$]#,###0'
+  }
+  metric ai_cost_saved {
+    label: 'AI Cost Saved by the Rules'
+    type: 'number'
+    definition: @aql cap_savings + coalesce(routing_savings, 0) ;;
+    format: '[$$]#,###0'
+  }
+
+  // ---------------------------------------------------------------- health (as of the last day of data)
+  metric customers_measured {
+    label: 'Customers Measured'
+    type: 'number'
+    definition: @aql customer_health | count(customer_health.customer_id) ;;
+    format: '#,###0'
+  }
+  metric high_risk_customers {
+    label: 'High-Risk Customers'
+    type: 'number'
+    definition: @aql customer_health | where(customer_health.risk_band == 'High') | count(customer_health.customer_id) ;;
+    format: '#,###0'
+  }
+  metric mrr_at_risk {
+    label: 'MRR at Risk'
+    type: 'number'
+    description: 'Current monthly list price of high-risk customers.'
+    definition: @aql customer_health | where(customer_health.risk_band == 'High') | sum(plans.monthly_price_usd) ;;
+    format: '[$$]#,###0'
+  }
+  metric avg_risk_score {
+    label: 'Average Risk Score'
+    type: 'number'
+    definition: @aql customer_health | avg(customer_health.risk_score) ;;
+    format: '#,##0'
+  }
+}

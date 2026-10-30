@@ -1,0 +1,5 @@
+data_sources:
+  inkwell:
+    type: duckdb
+    connection:
+      path: data/inkwell.duckdb  # written by scripts/generate_data.py

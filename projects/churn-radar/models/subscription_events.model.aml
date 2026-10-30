@@ -1,0 +1,58 @@
+Model subscription_events {
+  type: 'table'
+  label: 'Subscription Events'
+  description: 'Signups, downgrades and cancellations. mrr_change_usd is the monthly price gained (+) or lost (-).'
+  data_source_name: 'inkwell'
+  table_name: 'subscription_events'
+
+  dimension event_id {
+    label: 'Event ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.event_id }};;
+  }
+  dimension customer_id {
+    label: 'Customer ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.customer_id }};;
+  }
+  dimension event_date {
+    label: 'Event Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.event_date }};;
+  }
+  dimension event_type {
+    label: 'Event'
+    type: 'text'
+    description: 'signup, downgrade or cancel.'
+    definition: @sql {{ #SOURCE.event_type }};;
+  }
+  dimension from_plan {
+    label: 'From Plan'
+    type: 'text'
+    definition: @sql upper(left({{ #SOURCE.from_plan }}, 1)) || lower(substr({{ #SOURCE.from_plan }}, 2));;
+  }
+  dimension to_plan {
+    label: 'To Plan'
+    type: 'text'
+    definition: @sql upper(left({{ #SOURCE.to_plan }}, 1)) || lower(substr({{ #SOURCE.to_plan }}, 2));;
+  }
+  dimension mrr_change_usd {
+    label: 'MRR Change (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.mrr_change_usd }};;
+  }
+  dimension reason {
+    label: 'Reason'
+    type: 'text'
+    definition: @sql coalesce({{ #SOURCE.reason }}, '');;
+  }
+  dimension is_rule_related {
+    label: 'Caused by the October Rules'
+    type: 'truefalse'
+    description: 'The customer named the Agent cap or the cheaper chat model as the reason.'
+    definition: @sql {{ #SOURCE.reason }} in ('Hit the Agent run cap', 'Pro has no Agent cap', 'Chat answers got worse');;
+  }
+}

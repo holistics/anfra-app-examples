@@ -1,0 +1,12 @@
+Model sf_quotes {
+  type: 'table'
+  label: 'Customer quotes'
+  description: 'From the weekly sales reports. One row per customer quote in a week: text in quotation marks, so not always praise.'
+  data_source_name: 'warehouse'
+  table_name: '"sales"."quotes"'
+
+  dimension id { label: 'Quote id' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.id }};; }
+  dimension week { label: 'Week' type: 'text' definition: @sql {{ #SOURCE.week }};; }
+  dimension slug { label: 'Deal key' type: 'text' hidden: true definition: @sql {{ #SOURCE.slug }};; }
+  dimension quote { label: 'Quote' type: 'text' definition: @sql {{ #SOURCE.quote }};; }
+}

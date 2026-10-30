@@ -1,0 +1,2486 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HollyDeals</title>
+<style>
+  /* A soft grey backdrop, one large white canvas, pill-shaped controls and numbers, black and crimson accents. */
+  :root {
+    --bg: #ece7e7; --canvas: #fbfafa; --panel: #fff; --soft: #f4f1f1; --line: #ebe6e6; --line-2: #f2efef; --row-hover: #f7f4f4;
+    --empty: #f1eded; --text: #141414; --muted: #77716f; --dim: #aca5a3; --dark: #131313; --accent: #d7264f; --link: #2f5bd8;
+    --good: #1c8a4a; --bad: #d7264f; --warn-bg: #fff4e5; --warn: #9a5b00;
+    --won: #1c8a4a; --lost: #d7264f; --due: #f5b8c6; --new: #3a5fd9; --progress: #72ad2b;
+    --stuck: #e48a1c; --moving: #8b62d6; --quiet: #d6d0ce;
+    --skel: #efeaea;
+    --hatch: repeating-linear-gradient(135deg, #e3dddd 0 3px, transparent 3px 7px);
+    --sans: Inter, -apple-system, system-ui, sans-serif;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { background: var(--bg); }
+  body { margin: 0; min-height: 100vh; font: 13px/1.45 Inter, -apple-system, system-ui, sans-serif; color: var(--text); background: var(--bg); }
+  button, select, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .canvas { margin: 14px; background: var(--canvas); border-radius: 30px; box-shadow: 0 1px 0 rgba(255, 255, 255, .7) inset, 0 18px 50px rgba(60, 40, 40, .08); min-height: calc(100vh - 28px); }
+
+  /* ---- Header ---- */
+  header { padding: 26px 28px 12px; }
+  .title-row { display: flex; align-items: center; gap: 12px 10px; flex-wrap: wrap; margin: 0 0 26px; }
+  .title-row .tabs { margin-right: 16px; }
+  .title { margin: 0; font-size: 38px; line-height: 1.1; font-weight: 600; letter-spacing: -.03em; color: #bdb6b4; }
+  .eyebrow { font-size: 13px; color: var(--muted); }
+  .spacer { flex: 1; }
+  /* Rep chips: the owner filter, one pill per rep with their photo. */
+  .reps { display: flex; flex-wrap: wrap; gap: 8px; }
+  .rep-chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--panel); border-radius: 999px;
+              padding: 4px 14px 4px 4px; cursor: pointer; font-weight: 500; white-space: nowrap; }
+  .rep-chip.all { padding: 4px 14px; min-height: 36px; }
+  .rep-chip .x { font-size: 17px; line-height: 1; color: #bdb6b4; margin-left: 2px; }
+  .rep-chip:hover { border-color: #d9d2d2; }
+  .rep-chip[aria-pressed="true"] { background: var(--dark); border-color: var(--dark); color: #fff; }
+  .rep-chip[aria-pressed="true"] .n { color: #a9a3a1; }
+  .switch { display: inline-flex; background: var(--soft); border-radius: 999px; padding: 3px; }
+  .switch button { border: 0; background: none; padding: 6px 15px; border-radius: 999px; cursor: pointer; color: var(--muted); font-weight: 500; }
+  .switch button[aria-pressed="true"] { background: var(--dark); color: #fff; }
+  .stepper { display: inline-flex; align-items: center; background: var(--soft); border-radius: 999px; padding: 3px; }
+  .stepper button { border: 0; background: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1; }
+  .stepper button:hover:not(:disabled) { background: var(--panel); color: var(--text); }
+  .stepper button:disabled { opacity: .35; cursor: default; }
+  .stepper select { border: 0; background: none; font-weight: 600; padding: 3px 2px; min-height: 30px; }
+  select, input[type="search"] { border: 1px solid var(--line); border-radius: 999px; background: var(--panel); padding: 6px 14px; min-height: 34px; }
+  select { cursor: pointer; }
+  select.on { border-color: var(--dark); }
+
+  /* ---- Page ---- */
+  main { padding: 10px 28px 30px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .panel { background: var(--panel); border: 1px solid var(--line-2); border-radius: 24px; padding: 18px 20px; min-width: 0; }
+  .panel.soft { background: var(--soft); border-color: var(--soft); }
+  h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+  .hint { color: var(--muted); font-weight: 400; }
+  .state { color: var(--muted); padding: 6px 0; }
+  .state.error { color: var(--bad); }
+  .state:empty { display: none; }
+  .warning { background: var(--warn-bg); color: var(--warn); border-radius: 999px; padding: 6px 14px; font-size: 12px; margin-top: 10px; justify-self: start; }
+  .warning:empty { display: none; }
+  .skel { display: inline-block; border-radius: 8px; color: transparent;
+          background: linear-gradient(90deg, var(--skel) 0%, #f9f6f6 45%, var(--skel) 90%) 0 0 / 220% 100%; animation: shimmer 1.4s linear infinite; }
+  @keyframes shimmer { from { background-position: 110% 0; } to { background-position: -110% 0; } }
+  .good { color: var(--good); } .bad { color: var(--bad); } .flat { color: var(--dim); }
+  .info { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; color: var(--dim); font-size: 13px; font-weight: 400; cursor: help; }
+  .info:hover, .info:focus-visible { color: var(--text); }
+  .info:not([data-title]):not([data-tip]), .info[data-tip=""] { display: none; }
+  /* Number pills: dark for the main count, light for the comparison, crimson or green for a change. */
+  .pill { display: inline-flex; align-items: center; gap: 3px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  button.pill { border: 0; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+  button.pill.hit:hover, button.pill.hit[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent); }
+  .pill.dark { background: var(--dark); color: #fff; }
+  .pill.light { background: var(--soft); color: #57504e; }
+  .pill.up { background: #e6f4ec; color: #146c39; } .pill.down { background: #fde8ed; color: #b51d42; }
+  .pill.bad { background: var(--accent); color: #fff; } .pill.good { background: var(--won); color: #fff; } .pill.flat { background: var(--soft); color: var(--muted); }
+  /* A rep's avatar: their photo, else their initials on a colour of their own. */
+  .av { display: inline-grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%; font-size: 10px; font-weight: 700; letter-spacing: .02em; object-fit: cover; }
+  img.av { background: var(--soft); }
+  .av.none { background: var(--line-2); color: var(--dim); }
+
+  /* ---- The period in one line ---- */
+  .hero { display: grid; padding: 2px 0 4px; }
+  .headline { margin: 0; font-size: 30px; line-height: 1.3; font-weight: 600; letter-spacing: -.025em; }
+  .headline .skel { width: 440px; max-width: 100%; height: 34px; }
+  .headline em { font-style: normal; padding: 0 12px; border-radius: 999px; white-space: nowrap; }
+  .headline .count { font: inherit; letter-spacing: inherit; border: 0; padding: 0 14px 2px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .headline .count:hover, .headline .count[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--canvas), 0 0 0 5px currentColor; }
+  .headline .count.t-new { background: var(--dark); color: #fff; } .headline .count.t-new:hover, .headline .count.t-new[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--canvas), 0 0 0 5px var(--dark); }
+  .headline .count.t-won { background: var(--won); color: #fff; } .headline .count.t-won:hover, .headline .count.t-won[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--canvas), 0 0 0 5px var(--won); }
+  .headline .count.t-lost { background: var(--accent); color: #fff; } .headline .count.t-lost:hover, .headline .count.t-lost[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--canvas), 0 0 0 5px var(--accent); }
+  .lede { margin: 10px 0 0; color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .lede b { color: var(--text); font-weight: 600; }
+  .t-won { background: #e3f3e9; color: #146c39; } .t-lost { background: #fde5eb; color: #a8173a; } .t-due { background: #fde5eb; color: #a8173a; }
+  .t-new { background: #e3e9fb; color: #213f9c; } .t-progress { background: #eef6e1; color: #46701a; } .t-stuck { background: #fdf0de; color: #93530a; }
+  .t-moving { background: #efe8fa; color: #5a3a99; } .t-quiet { background: var(--soft); color: #57504e; } .t-none { background: var(--soft); color: #57504e; }
+  /* The deals behind a headline count. */
+  .pop { position: absolute; z-index: 20; width: 410px; max-width: calc(100vw - 32px); background: var(--panel); border: 1px solid var(--line);
+         border-radius: 22px; box-shadow: 0 18px 44px rgba(40, 20, 20, .16); padding: 10px; }
+  .pop-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 8px 8px; font-size: 14px; }
+  .pop-x { border: 0; background: var(--soft); width: 28px; height: 28px; border-radius: 50%; font-size: 17px; line-height: 1; color: var(--muted); cursor: pointer; }
+  .pop-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 390px; overflow: auto; }
+  .pop-deal { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; width: 100%; text-align: left; border: 0; background: var(--soft);
+              padding: 10px 12px; border-radius: 16px; cursor: pointer; }
+  .pop-deal:hover, .pop-deal:focus-visible { background: #ede9e9; }
+  .pop-deal .pn { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pop-deal .go { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .pop-deal:hover .go { color: var(--text); }
+  .pop-deal .pm { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+  .pop-deal .pm .av { width: 20px; height: 20px; font-size: 8.5px; }
+  .pop-deal .pl { grid-column: 1 / -1; color: #57504e; font-size: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .pop .fine { margin: 0; padding: 8px 8px 2px; color: var(--dim); font-size: 11.5px; }
+
+  /* ---- What changed: the period's new, won and lost deals, with their reps ---- */
+  /* The period's deals as one strip of square cards, coloured by what happened: blue new, green won, crimson lost. */
+  .panel.changes { padding: 18px 22px 16px; }
+  .chg-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(188px, 1fr)); gap: 12px; }
+  .chg-list > li { min-width: 0; }
+  .chg-list > li.more-li, .chg-list > li.chg-none { grid-column: 1 / -1; }
+  .chg { --c: var(--dark); display: flex; flex-direction: column; aspect-ratio: 1; width: 100%; text-align: left; cursor: pointer; background: var(--c); border: 0; border-radius: 22px; padding: 14px 15px 12px; color: #fff; overflow: hidden; }
+  .chg.new { --c: var(--new); } .chg.won { --c: var(--won); } .chg.lost { --c: var(--accent); }
+  .chg .ck { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 6px; font: 700 10.5px/1.6 var(--sans); letter-spacing: .07em; text-transform: uppercase; color: rgba(255, 255, 255, .78); }
+  .chg .ck > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chg .ck .wkb { flex: none; text-transform: none; letter-spacing: 0; font-size: 11px; background: rgba(255, 255, 255, .2); border-radius: 999px; padding: 0 8px; color: #fff; }
+  .chg .cn { margin: auto 0 5px; min-height: 0; font: 700 21px/1.12 var(--sans); letter-spacing: -.02em; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .chg .cn.l { font-size: 19px; } .chg .cn.xl { font-size: 17px; }
+  .chg .cl { flex: none; font-size: 11.5px; line-height: 1.4; color: rgba(255, 255, 255, .84); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 32px; }
+  .chg .cf { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 9px; padding-top: 9px; border-top: 1px solid rgba(255, 255, 255, .28); }
+  .chg .crep { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 11.5px; font-weight: 600; }
+  .chg .crep > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chg .crep .av { width: 22px; height: 22px; font-size: 8px; box-shadow: 0 0 0 2px rgba(255, 255, 255, .55); }
+  .chg:hover { filter: brightness(.92); }
+  .chg-none { color: var(--dim); padding: 6px 0; }
+  .panel.changes .more { margin: 2px 0 0; }
+
+  /* ---- Tabs and the overview ---- */
+  .tabs { display: inline-flex; gap: 22px; align-self: center; margin-left: 4px; }
+  .tabs button { border: 0; border-bottom: 2px solid transparent; background: none; padding: 4px 0; cursor: pointer; color: var(--muted); font-weight: 600; font-size: 15px; }
+  .tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+  .tabs button:hover:not([aria-selected="true"]) { color: var(--text); }
+  main[data-view="overview"] .wk, header.is-overview .wk-only { display: none !important; }
+  .overview { display: none; gap: 16px; min-width: 0; }
+  main[data-view="overview"] .overview { display: grid; }
+  .ov svg { width: 100%; height: auto; display: block; }
+  .ov text { font-family: var(--sans); }
+  .flow-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .live { display: grid; margin-top: 8px; }
+  .live .g { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-top: 1px solid var(--line-2); align-items: start; }
+  .live .g:first-child { border-top: 0; }
+  .live .gh { display: flex; align-items: center; gap: 8px; font-weight: 600; padding-top: 3px; }
+  .live .gh i { width: 10px; height: 10px; border-radius: 50%; }
+  .live .gh b { color: var(--muted); font-weight: 600; }
+  .live .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .live .chips button { display: inline-flex; align-items: center; gap: 7px; border: 0; background: var(--soft); border-radius: 999px; padding: 3px 12px 3px 4px; font-weight: 600; cursor: pointer; }
+  .live .chips button:hover { background: var(--dark); color: #fff; }
+  .live .chips button em { font-style: normal; color: var(--muted); font-weight: 500; font-size: 11.5px; }
+  .live .chips button:hover em { color: #b9b2b0; }
+  .live .chips .av { width: 22px; height: 22px; font-size: 8px; }
+  .live .chips .more { margin: 0; padding: 4px 12px; }
+  .legend2 { display: flex; gap: 6px 16px; flex-wrap: wrap; color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .legend2 i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+  .fseg { cursor: pointer; outline: none; }
+  .fseg .band, .fseg .bar { transition: opacity .18s ease, fill-opacity .18s ease, filter .18s ease; }
+  #ov-funnel svg.hov .fseg:not(.on) { opacity: .25; }
+  .fseg.on .band { fill-opacity: .7; }
+  .fseg:focus-visible .band { stroke: var(--accent); stroke-width: 2; }
+  #ov-funnel svg g { transition: opacity .18s ease; }
+  #ov-flow svg path { transition: opacity .18s ease; }
+  #ov-flow svg.hov path[data-f]:not(.on) { opacity: .08 !important; }
+  #ov-flow svg path[data-f] { cursor: pointer; }
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { animation: sweep 1.6s cubic-bezier(.3, .7, .2, 1) both; }
+    .flowline { animation: flowdash 1.4s linear infinite; }
+    .fseg .band { animation: fx 1.1s cubic-bezier(.3, .7, .2, 1) both; animation-delay: calc(var(--s) * .55s + .1s); }
+    .fseg .bar, .fbar0 { transform-box: fill-box; transform-origin: center; animation: grow-y .7s cubic-bezier(.2, .75, .2, 1) both; animation-delay: calc(var(--s) * .55s + .35s); }
+    .fnum { animation: fnum .7s ease-out both; animation-delay: calc(var(--s) * .55s + .2s); }
+  }
+  @keyframes flowdash { to { stroke-dashoffset: -34; } }
+  @keyframes sweep { from { width: 0; } }
+  @keyframes grow-y { from { transform: scaleY(0); opacity: 0; } }
+  @keyframes fnum { from { opacity: 0; transform: translateY(6px); } }
+  @keyframes fx { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  @media (max-width: 720px) { .live .g { grid-template-columns: minmax(0, 1fr); gap: 6px; }  }
+
+  /* ---- Layout: the deals on the left, the reps, the month and the customers on the right ---- */
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: stretch; }
+  .main-col, .rail { display: grid; gap: 16px; min-width: 0; }
+  .main-col { grid-template-rows: auto minmax(0, 1fr); }
+  #grid-panel { display: flex; flex-direction: column; min-height: 0; }
+  #grid-panel .scroller { flex: 1 1 0; min-height: 480px; max-height: none; contain: size; }
+
+  /* ---- Live deals: one pill per status, sized by its share ---- */
+  .pipe-bar { margin: 14px 0 0; }
+  .pipe-bar .stack { display: flex; gap: 3px; height: 46px; }
+  .pipe-bar .seg { border: 0; padding: 0; min-width: 34px; cursor: pointer; color: #fff; font: 700 15px var(--sans); border-radius: 8px; display: grid; place-items: center; transform-origin: left; }
+  .pipe-bar .seg:first-child { border-radius: 999px 8px 8px 999px; } .pipe-bar .seg:last-child { border-radius: 8px 999px 999px 8px; } .pipe-bar .seg:only-child { border-radius: 999px; }
+  .pipe-bar .seg.s-quiet { color: #3f3937; }
+  .pipe-bar .seg.on { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--dark); }
+  .pipe-bar .legend3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(124px, 1fr)); gap: 4px 8px; margin-top: 12px; }
+  .pipe-bar .lg { display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: 0 7px; align-items: center; text-align: left; cursor: pointer; border: 0; background: none; border-radius: 12px; padding: 7px 4px 7px 8px; color: var(--text); }
+  .pipe-bar .lg i { width: 12px; height: 12px; border-radius: 50%; }
+  .pipe-bar .lg b { font-weight: 600; font-size: 12.5px; white-space: nowrap; }
+  .pipe-bar .lg .lv { grid-column: 2; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .pipe-bar .lg .lv em { font-style: normal; font-weight: 700; font-size: 14px; color: var(--text); }
+  .pipe-bar .lg .pd { color: #57504e; font-weight: 600; } .pipe-bar .lg .pd.flat { color: var(--dim); }
+  .pipe-bar .lg:hover:not(:disabled) { background: var(--soft); }
+  .pipe-bar .lg.on, .pipe-bar .lg.on:hover:not(:disabled) { background: var(--dark); color: #fff; }
+  .pipe-bar .lg.on .lv, .pipe-bar .lg.on .lv em, .pipe-bar .lg.on .pd { color: #e0dad8; }
+  .pipe-bar .lg.zero { cursor: default; opacity: .5; }
+  .pipe-bar .pipe-note { color: var(--dim); font-size: 11.5px; padding: 8px 2px 0; }
+  .keys { display: none; }
+
+  /* ---- By rep ---- */
+  table.byrep { width: 100%; border-collapse: separate; border-spacing: 0 4px; margin-top: 8px; }
+  table.byrep th { font-size: 11.5px; font-weight: 500; color: var(--dim); text-align: center; padding: 0 2px 2px; }
+  table.byrep th:first-child { text-align: left; }
+  table.byrep td { padding: 6px 2px; text-align: center; background: var(--soft); }
+  table.byrep td:first-child { text-align: left; border-radius: 999px 0 0 999px; padding-left: 6px; }
+  table.byrep td:last-child { border-radius: 0 999px 999px 0; padding-right: 8px; }
+  table.byrep tr.rep { cursor: pointer; }
+  table.byrep tr.rep:hover td { background: #ede9e9; }
+  table.byrep tr.on td { background: var(--dark); color: #fff; }
+  table.byrep .who { display: flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
+  table.byrep .pill { min-width: 30px; justify-content: center; padding: 2px 8px; }
+  table.byrep .zero { color: var(--dim); }
+
+  /* ---- This month against last ---- */
+  .mon table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  .mon td { padding: 7px 0; font-size: 13px; vertical-align: middle; }
+  .mon td.lbl { width: 32%; }
+  .mon td.bars { width: 38%; padding-right: 10px; }
+  .mon .pair { display: grid; gap: 4px; }
+  .mon .pair i { display: block; height: 9px; border-radius: 999px; min-width: 3px; }
+  .mon .pair i.prev { background: var(--hatch); box-shadow: inset 0 0 0 1px #e3dddd; }
+  .mon td.num { text-align: right; white-space: nowrap; }
+  .mon td.num .pill { margin-left: 3px; }
+  .mon .key { color: var(--dim); font-size: 11.5px; padding-top: 6px; }
+
+  /* ---- Grid ---- */
+  .grid-head { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .key-btn { border: 1px solid var(--line); border-radius: 999px; background: var(--panel); padding: 6px 14px; min-height: 34px; cursor: pointer; color: var(--muted); }
+  .key-btn[aria-expanded="true"] { color: #fff; background: var(--dark); border-color: var(--dark); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px; color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+  .legend > span { background: var(--soft); border-radius: 999px; padding: 3px 10px 3px 6px; }
+  .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  .legend .off-key { color: var(--bad); font-weight: 600; }
+  .scroller { overflow: auto; max-height: max(360px, calc(100vh - 140px)); }
+  table.deals { --cell: 24px; border-collapse: separate; border-spacing: 0; }
+  table.deals th, table.deals td { padding: 0; }
+  table.deals thead th { position: sticky; z-index: 2; background: var(--panel); font-weight: 500; color: var(--dim); font-size: 10.5px; }
+  table.deals thead tr.months th { top: 0; height: 18px; text-align: left; padding-left: 2px; white-space: nowrap; }
+  table.deals thead tr.weeks th { top: 18px; height: 22px; width: var(--cell); min-width: var(--cell); text-align: center; }
+  table.deals thead th.sel { color: #fff; font-weight: 700; }
+  table.deals thead tr.weeks th.sel { background: linear-gradient(var(--dark), var(--dark)) center / 22px 18px no-repeat; }
+  table.deals thead th.off { color: var(--bad); }
+  table.deals thead th.sel.off { color: #ffb3c4; }
+  table.deals .who { position: sticky; left: 0; z-index: 1; background: var(--panel); width: 280px; min-width: 280px; max-width: 280px; padding: 0 12px 0 0; }
+  table.deals thead .who { z-index: 3; text-align: left; vertical-align: bottom; padding-bottom: 4px; }
+  table.deals tbody tr[data-slug] { cursor: pointer; }
+  table.deals tbody tr[data-slug]:hover td { background: var(--row-hover); }
+  table.deals tbody tr[data-slug]:hover td.who { border-radius: 999px 0 0 999px; }
+  table.deals tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  table.deals tbody tr.open .who { box-shadow: inset 3px 0 0 var(--accent); }
+  .who-in { display: grid; grid-template-columns: minmax(0, 1fr) 22px 100px; gap: 8px; align-items: center; height: 32px; padding-left: 6px; }
+  .who-in .nm { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .who-in .av { width: 22px; height: 22px; font-size: 8.5px; }
+  .chip { display: inline-block; max-width: 100%; padding: 2px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+  .chip.s-due, .chip.s-quiet { color: #3f3937; }
+  .chip.s-none { color: var(--dim); background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+  tr.grp td { background: var(--panel); }
+  tr.grp .who { padding-top: 14px; }
+  tr.grp button { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: none; padding: 0 0 6px 4px; cursor: pointer; text-align: left;
+                  font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  tr.grp button:hover { color: var(--text); }
+  tr.grp button .n { background: var(--soft); color: #57504e; border-radius: 999px; padding: 0 8px; font-size: 11.5px; }
+  tr.grp button .caret { display: inline-block; width: 10px; transition: transform .15s; }
+  tr.grp button[aria-expanded="false"] .caret { transform: rotate(-90deg); }
+  tr.grp td.rest { border-bottom: 1px solid var(--line-2); }
+  tr.grp td.who { border-bottom: 1px solid var(--line-2); }
+  td.c { width: var(--cell); min-width: var(--cell); height: 32px; text-align: center; }
+  td.c i { display: block; width: calc(var(--cell) - 4px); height: 18px; margin: 0 auto; border-radius: 6px; }
+  td.c.now i:not(.s-none) { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--dark); }
+  .s-won { background: var(--won); } .s-lost { background: var(--lost); } .s-due { background: var(--due); }
+  .s-new { background: var(--new); } .s-progress { background: var(--progress); } .s-stuck { background: var(--stuck); }
+  .s-moving { background: var(--moving); } .s-quiet { background: var(--quiet); }
+  .s-none { background: var(--empty); }
+  .skel-row { display: block; height: 18px; margin: 8px 0; width: 100%; }
+  .tip { position: fixed; z-index: 10; pointer-events: none; max-width: 340px; background: var(--dark); color: #fff; border-radius: 14px;
+         padding: 9px 12px; font-size: 12px; box-shadow: 0 10px 28px rgba(0, 0, 0, .2); }
+  .tip b { display: block; margin-bottom: 2px; }
+  .tip span { color: #d0cac8; }
+
+  /* ---- From customers: pull-quotes, as in a newspaper ---- */
+  .voices { display: grid; gap: 16px; }
+  .sub-line { margin: 3px 0 0; color: var(--muted); font-size: 12.5px; }
+  .voice-list { margin: 14px 0 0; padding: 0; list-style: none; }
+  .voice { position: relative; overflow-wrap: anywhere; }
+  .voice[data-slug] { cursor: pointer; }
+  .voice q { quotes: none; display: block; }
+  .voice .by { color: var(--muted); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; line-height: 1.5; }
+  .voice .by b { color: var(--text); font-weight: 700; }
+  .voice .extra-q { color: var(--dim); }
+  .voice-list:not(.all) > li.extra { display: none; }
+  .voice-list > li.show-all { padding: 10px 0 0; }
+  .voice .side-sum { margin: 0; }
+  /* Quotes: a point inside corner brackets, in bold sans, like a boxed pull-quote. */
+  .fb-panel { background: var(--panel); }
+  #v-quotes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; align-items: stretch; }
+  #v-quotes > li.state, #v-quotes > li.show-all { grid-column: 1 / -1; }
+  #v-quotes .voice { margin: 0; padding: 44px 20px 20px; border: 0; border-radius: 4px;
+                     background: linear-gradient(var(--accent), var(--accent)) left top / 30px 3px no-repeat, linear-gradient(var(--accent), var(--accent)) left top / 3px 30px no-repeat; }
+  #v-quotes .voice::before { content: '\201C'; position: absolute; left: 20px; top: 8px; font: 800 54px/1 var(--sans); color: var(--dark); }
+  #v-quotes .voice::after { content: ''; position: absolute; right: 0; bottom: 0; width: 30px; height: 30px; border-right: 3px solid var(--accent); border-bottom: 3px solid var(--accent); }
+  #v-quotes .voice q { font: 700 14px/1.4 Inter, -apple-system, system-ui, sans-serif; letter-spacing: -.005em; }
+  #v-quotes .voice .by { margin-top: 12px; padding-right: 22px; }
+  #v-quotes .voice[data-slug]:hover { background-color: var(--row-hover); }
+  /* Feedback themes: a plain list for now. */
+  #v-feedback .voice { padding: 12px 8px; margin: 0 -8px; border-top: 1px solid var(--line-2); border-radius: 12px; }
+  #v-feedback .voice:first-child { border-top: 0; }
+  #v-feedback .voice .side-sum, #v-feedback .voice .md { font-size: 13.5px; font-weight: 600; line-height: 1.4; }
+  #v-feedback .voice .md p { margin: 0; }
+  #v-feedback .voice .by { margin-top: 6px; }
+  #v-feedback .voice[data-slug]:hover { background: var(--row-hover); }
+  .deal-link { border: 0; background: none; padding: 0; color: inherit; font: inherit; font-weight: 700; cursor: pointer; text-transform: inherit; letter-spacing: inherit; }
+  .deal-link:hover { text-decoration: underline; }
+  .more { border: 0; background: var(--soft); border-radius: 999px; padding: 3px 11px; margin-top: 6px; color: #57504e; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .more:hover { background: var(--dark); color: #fff; }
+
+  /* ---- Deal page ---- */
+  .deal-head { display: grid; padding: 22px 28px 4px; }
+  .deal-head .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+  .back { border: 0; border-radius: 999px; background: var(--dark); color: #fff; padding: 8px 16px; cursor: pointer; font-weight: 500; }
+  .back:hover { background: #2b2b2b; }
+  .crumb { color: var(--muted); font-size: 13px; }
+  .deal-head .lede { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .deal-owner { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; background: var(--soft); border-radius: 999px; padding: 4px 14px 4px 4px; font-weight: 600; justify-self: start; }
+  .deal-owner:empty { display: none; }
+  .deal-owner .av { width: 30px; height: 30px; }
+  #deal-page a { color: var(--link); text-decoration: none; }
+  #deal-page a:hover { text-decoration: underline; }
+  .facts { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 12px; padding: 0; background: none; border: 0; }
+  .fact { background: var(--panel); border: 1px solid var(--line-2); border-radius: 22px; padding: 16px 18px; min-width: 0; }
+  .fact:first-child { border: 1.5px solid var(--accent); }
+  .fact:nth-child(2) { background: var(--dark); border-color: var(--dark); color: #fff; }
+  .fact:nth-child(2) .lbl, .fact:nth-child(2) .sub { color: #b9b2b0; }
+  .fact .lbl { font-size: 13px; font-weight: 500; color: var(--muted); }
+  .fact .val { font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
+  .fact .val.txt { font-size: 15px; letter-spacing: 0; line-height: 1.35; padding: 5px 0 3px; }
+  .fact .val .skel { width: 60px; height: 26px; vertical-align: middle; }
+  .fact .sub { font-size: 12px; color: var(--muted); }
+  /* Balanced rows: the story beside the notes and chart, equal widths and heights; then contacts and feedback, full width. */
+  .deal-mid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+  .deal-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .deal-side > .panel:first-child { flex: 1; }
+  .deal-rows { display: grid; gap: 16px; }
+  /* The story takes the row's height from the notes beside it and scrolls inside, so both columns end together. */
+  #deal-weeks { position: relative; min-height: 480px; }
+  .tl-scroll { position: absolute; inset: 56px 0 0; overflow: auto; padding: 4px 20px 24px;
+               -webkit-mask-image: linear-gradient(#000 calc(100% - 36px), transparent); mask-image: linear-gradient(#000 calc(100% - 36px), transparent); }
+  #deal-page h3 { margin: 0 0 12px; font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
+  #deal-page * + h3 { margin-top: 18px; }
+  #deal-page h3 .hint { font-weight: 400; font-size: 12.5px; }
+  .md { line-height: 1.5; overflow-wrap: anywhere; }
+  .md p { margin: 0 0 8px; }
+  .md ul, .md ol { margin: 0 0 8px; padding-left: 20px; }
+  .md li { margin: 0 0 4px; }
+  .md blockquote { margin: 0 0 8px; padding: 2px 0 2px 10px; border-left: 3px solid var(--line); color: var(--muted); }
+  .md hr { border: 0; border-top: 1px solid var(--line-2); margin: 10px 0; }
+  .md code { font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--soft); border-radius: 6px; padding: 0 4px; }
+  .md table { border-collapse: collapse; width: 100%; font-size: 12px; margin: 0 0 8px; }
+  .md th, .md td { text-align: left; vertical-align: top; padding: 5px 6px; border-bottom: 1px solid var(--line-2); }
+  .md th { color: var(--muted); font-weight: 500; }
+  .md > :last-child { margin-bottom: 0; }
+  /* Key contacts: one card per contact. Initials and name, labelled facts, the research note, then tags. */
+  .contacts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-items: stretch; }
+  .contacts > .more { grid-column: 1 / -1; justify-self: start; margin-top: 0; }
+  .contacts:not(.all) > .contact.extra { display: none; }
+  .contact { border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; background: var(--panel); min-width: 0; }
+  .c-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .c-av { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #2b2826; color: #fff; font-size: 11.5px; font-weight: 600; }
+  .c-who { display: grid; min-width: 0; line-height: 1.3; }
+  .c-who b { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .c-role { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .c-line { margin: 8px 0 0; font-size: 12px; color: #57504e; overflow-wrap: anywhere; }
+  .c-mail { color: var(--muted); user-select: all; }
+  .c-note { margin: 6px 0 0; font-size: 12px; color: var(--muted); cursor: pointer;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .c-note.open { display: block; }
+  .empty { color: var(--dim); }
+  /* The story so far: one entry per report week, newest first, on a rail coloured by that week's status. */
+  .tl { margin: 0; padding: 0; list-style: none; }
+  .tl li { display: grid; grid-template-columns: 44px 16px minmax(0, 1fr); gap: 0 12px; }
+  .tl .w { font-weight: 700; color: #57504e; padding-top: 1px; font-size: 12.5px; }
+  .tl .w a { background: var(--soft); border-radius: 999px; padding: 1px 7px; }
+  .tl .rail { position: relative; display: flex; justify-content: center; }
+  .tl .rail::before { content: ''; position: absolute; top: 0; bottom: 0; width: 2px; background: var(--line); }
+  .tl li:first-child .rail::before { top: 9px; }
+  .tl li:last-child .rail::before { bottom: calc(100% - 9px); }
+  .tl .dot { position: relative; width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; box-shadow: 0 0 0 3px var(--panel); }
+  .tl .body { padding-bottom: 20px; min-width: 0; }
+  .tl .body .md { margin-top: 6px; font: 14.5px/1.55 var(--sans); color: #2b2524; }
+  .tl .body .md code { font-size: 12px; }
+  .tl .sum { margin: 6px 0 0; font: 15px/1.5 var(--sans); color: #2b2524; }
+  .next { margin: 6px 0 0; font-size: 12.5px; color: #57504e; }
+  .next b { background: var(--dark); color: #fff; border-radius: 999px; padding: 0 7px; margin-right: 5px; font-size: 11px; }
+  .side-sum { margin: 0; }
+  .steps { margin: 0; padding-left: 18px; }
+  .steps li { margin: 0 0 5px; }
+  .tl li.gap .body { color: var(--dim); font-size: 12px; font-style: italic; padding-bottom: 16px; }
+  .tl li.gap .w { color: var(--dim); font-weight: 400; }
+  #d-weeks:not(.all) li.older, #d-weeks.all li.older-toggle { display: none; }
+  .tl li.older-toggle .body { padding-bottom: 16px; }
+  .tl li.older-toggle .more { margin-top: 0; }
+  /* A long text shows short first; "Read more" swaps in the full text. */
+  .expand.open .short, .expand:not(.open) .full { display: none; }
+  /* The reference a quote or feedback card opened the deal page on. */
+  mark.ref { background: #ffd6e0; color: inherit; padding: 0 2px; border-radius: 4px; box-shadow: 0 0 0 2px #ffd6e0; }
+  .tl li.hit > .body, .fb.hit { animation: flash 2.4s ease-out 1; }
+  .tl li.hit.whole > .body { background: #fdf0f3; border-radius: 14px; }
+  @keyframes flash { 0%, 35% { background: #fde3ea; } 100% { background: transparent; } }
+  .fb-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .fb { padding: 12px 14px; border-radius: 16px; background: var(--soft); }
+  .fb .side-sum { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .fb-list:not(.all) > .fb.extra, .fb-list.all > .fb-all { display: none; }
+  .fb-all { grid-column: 1 / -1; }
+  .fb-all .more { margin-top: 0; }
+  .fb.hit { background: #fdf0f3; box-shadow: inset 0 0 0 1.5px var(--accent); }
+  .fb .w { font-size: 11.5px; font-weight: 700; color: var(--muted); margin-bottom: 2px; }
+  .fb .also { margin-top: 5px; font-size: 12px; color: var(--muted); }
+  /* Raised in feedback, as notes on graph paper: a grid page, paper notes taped on and tilted, typewriter ink. */
+  #deal-feedback { --ink: #1f1f1f; background: var(--panel); }
+  #deal-feedback h3 { font: 600 15px/1.2 var(--sans); color: var(--ink); letter-spacing: -.01em; }
+  #deal-feedback h3 .hint { font: 400 12px var(--sans); color: #77716f; }
+  #d-feedback { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 20px; padding: 14px 6px 6px; }
+  #d-feedback .fb { position: relative; border-radius: 2px; background: #fff; border: 1px solid var(--line); color: var(--ink); padding: 22px 18px 16px;
+    box-shadow: 0 1px 1px rgba(40, 30, 20, .12), 0 8px 16px -8px rgba(40, 30, 20, .22); rotate: -.7deg; font-family: var(--sans); }
+  #d-feedback .fb:nth-child(even) { rotate: .6deg; }
+  #d-feedback .fb:nth-child(3n) { rotate: -.3deg; }
+  #d-feedback .fb::before { content: ''; position: absolute; top: -9px; left: 50%; width: 64px; height: 18px; margin-left: -32px; background: rgba(248, 190, 205, .8); transform: rotate(-2deg); box-shadow: 0 1px 2px rgba(0, 0, 0, .1); }
+  #d-feedback .fb:nth-child(even)::before { background: rgba(190, 220, 245, .75); transform: rotate(2.5deg); }
+  #d-feedback .fb .w { display: inline-block; margin-bottom: 8px; font: 700 11.5px/1.5 var(--sans); letter-spacing: .04em; color: var(--ink);
+    background: linear-gradient(transparent 55%, #cfe0fa 55%, #cfe0fa 92%, transparent 92%); padding: 0 4px; margin-left: -4px; }
+  #d-feedback .fb .side-sum, #d-feedback .fb .md, #d-feedback .fb .md p { font: 500 13.5px/1.5 var(--sans); color: var(--ink); }
+  #d-feedback .fb .more { background: none; border-radius: 0; padding: 0; margin-top: 8px; font: 600 12px var(--sans); color: var(--ink);
+    text-decoration: underline; text-decoration-color: #bdb6b0; text-underline-offset: 3px; }
+  #d-feedback .fb .more:hover { background: none; color: var(--accent); text-decoration-color: var(--accent); }
+  #d-feedback .fb .also { margin-top: 10px; padding-top: 8px; border-top: 1px dashed #bdb6b0; font: 500 11.5px var(--sans); color: #57504e; }
+  #d-feedback .fb .deal-link { font: inherit; font-weight: 700; text-decoration: underline; text-decoration-color: #bdb6b0; text-underline-offset: 3px; }
+  #d-feedback .fb .deal-link:hover { text-decoration-color: var(--accent); color: var(--accent); }
+  #d-feedback .fb.hit { background-color: #fff; outline: 2px solid var(--accent); outline-offset: 3px; }
+  #d-feedback li.fb-all { transform: none; }
+  /* Win chance by week: one line, dots coloured by that week's status. */
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart .grid { stroke: var(--line-2); stroke-dasharray: 3 3; }
+  .chart .base { stroke: var(--line); }
+  .chart .ln { fill: none; stroke: var(--dark); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+  .chart text { font-size: 10px; fill: var(--dim); }
+  .chart text.v { font-size: 11px; font-weight: 700; fill: var(--text); }
+  .chart circle { stroke: var(--panel); stroke-width: 2; }
+  .chart circle.s-won { fill: var(--won); } .chart circle.s-lost { fill: var(--lost); } .chart circle.s-due { fill: #ef7f99; }
+  .chart circle.s-new { fill: var(--new); } .chart circle.s-progress { fill: var(--progress); } .chart circle.s-stuck { fill: var(--stuck); }
+  .chart circle.s-moving { fill: var(--moving); } .chart circle.s-quiet { fill: #aca5a3; }
+
+  /* Wide: the live deals and By rep share the first row, so they are the same height; the deals grid fills the left
+     column beside the month and the customers. */
+  @media (min-width: 1101px) {
+    .layout { grid-template-rows: auto auto minmax(0, 1fr); }
+    .main-col, .rail { display: contents; }
+    .pipe { grid-column: 1; grid-row: 1; }
+    .byrep-panel { grid-column: 2; grid-row: 1; }
+    #grid-panel { grid-column: 1; grid-row: 2 / span 2; }
+    .rail .mon { grid-column: 2; grid-row: 2; }
+    .rail .voices { grid-column: 2; grid-row: 3; }
+  }
+
+  /* Narrower: one column, with the reps, the month and the customers above the long grid, side by side when there's room. */
+  @media (max-width: 1100px) {
+    #v-quotes, #d-feedback, .contacts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .layout { display: flex; flex-direction: column; align-items: stretch; }
+    #grid-panel .scroller { flex: none; contain: none; min-height: 0; max-height: max(360px, 75vh); }
+    .main-col { display: contents; }
+    .pipe { order: 1; } .rail { order: 2; } #grid-panel { order: 3; }
+    .rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .rail .voices { display: contents; }
+  }
+  @media (max-width: 720px) {
+    .canvas { margin: 0; border-radius: 0; }
+    header, main, .deal-head { padding-left: 16px; padding-right: 16px; }
+    .title { font-size: 30px; }
+    .headline { font-size: 23px; }
+    .rail, #v-quotes, #d-feedback, .contacts { grid-template-columns: minmax(0, 1fr); }
+    .chg-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .chg .cn { font-size: 22px; }
+    .deal-mid { grid-template-columns: minmax(0, 1fr); }
+    #deal-weeks { min-height: 0; }
+    .tl-scroll { position: static; padding: 0; -webkit-mask-image: none; mask-image: none; }
+    .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    table.deals .who { width: 220px; min-width: 220px; max-width: 220px; padding-right: 8px; }
+    .who-in { grid-template-columns: minmax(0, 1fr) 96px; }
+    .who-in .av { display: none; }
+  }
+  /* ---- Motion: the page rises in on load, lists slide in one after another, bars grow, the grid sweeps in ---- */
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pop-in { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
+  @keyframes grow { from { transform: scaleX(0); } to { transform: none; } }
+  @keyframes cell-in { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: no-preference) {
+    .canvas { animation: fade-in .5s ease-out both; }
+    .canvas:not(.settled) :is(.toolbar, .title-row, .hero, .changes, .pipe, #grid-panel, .rail > section, .rail .voices > section, .fb-panel) {
+      animation: rise .7s cubic-bezier(.2, .75, .2, 1) both; animation-delay: calc(var(--d, 0) * 70ms + 60ms); }
+    :is(.chg-list, #byrep tbody, .pipe-bar, .voice-list, .pop-list, .fb-list, .tl, .change-cols) > * {
+      animation: rise .5s cubic-bezier(.2, .75, .2, 1) both; animation-delay: calc(var(--i, 0) * 55ms + 120ms); }
+    :is(.chg-list, #byrep tbody, .pipe-bar, .voice-list, .pop-list, .fb-list, .tl, .change-cols) > :nth-child(2) { --i: 1; }
+    :is(.chg-list, #byrep tbody, .pipe-bar, .voice-list, .pop-list, .fb-list, .tl, .change-cols) > :nth-child(3) { --i: 2; }
+    :is(.chg-list, #byrep tbody, .pipe-bar, .voice-list, .pop-list, .fb-list, .tl, .change-cols) > :nth-child(4) { --i: 3; }
+    :is(.chg-list, #byrep tbody, .pipe-bar, .voice-list, .pop-list, .fb-list, .tl, .change-cols) > :nth-child(5) { --i: 4; }
+    :is(.chg-list, #byrep tbody, .pipe-bar, .voice-list, .pop-list, .fb-list, .tl, .change-cols) > :nth-child(6) { --i: 5; }
+    :is(.chg-list, #byrep tbody, .pipe-bar, .voice-list, .pop-list, .fb-list, .tl, .change-cols) > :nth-child(n+7) { --i: 6; }
+    .pipe-bar .seg { animation: grow .9s cubic-bezier(.2, .75, .2, 1) both; animation-delay: .2s; }
+    .mon .pair i { transform-origin: left; animation: grow .8s cubic-bezier(.2, .75, .2, 1) both; animation-delay: .15s; }
+    .mon .pair i.prev { animation-delay: .28s; }
+    table.deals.intro td.c i { animation: cell-in .45s cubic-bezier(.2, .75, .2, 1.3) both; animation-delay: calc(var(--x, 0) * 24ms + var(--y, 0) * 10ms + 250ms); }
+    .pop:not([hidden]) { animation: pop-in .18s ease-out; transform-origin: top left; }
+    #deal-page:not([hidden]) :is(.deal-head, .facts > .fact, .deal-mid > *, .deal-side > *) { animation: rise .55s cubic-bezier(.2, .75, .2, 1) both; }
+    #deal-page:not([hidden]) .facts > .fact:nth-child(2) { animation-delay: .05s; } #deal-page:not([hidden]) .facts > .fact:nth-child(3) { animation-delay: .1s; }
+    #deal-page:not([hidden]) .facts > .fact:nth-child(4) { animation-delay: .15s; }
+    #deal-page:not([hidden]) .deal-mid > * { animation-delay: .15s; } #deal-page:not([hidden]) .deal-side > :nth-child(n+2) { animation-delay: .25s; }
+    /* Hover: cards and chips lift a little. */
+    :is(.chg, .rep-chip, .pipe-bar button, .pop-deal, .headline .count, .back) { transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease; }
+    .pop-deal:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(40, 20, 20, .08); }
+    .headline .count:hover { transform: translateY(-2px); }
+    /* Hover motion: things lift, swell or nudge. translate/scale/rotate are their own properties, so they work on
+       elements whose entrance animation holds a transform. */
+    :is(.chg, .contact, .fact, .pop-deal, .voice[data-slug], #d-feedback li.fb, .rep-chip, .pipe-bar button, .live .chips button,
+        .headline .count, .back, .tabs button, .switch button, .stepper button, .key-btn, .more, button.pill.hit, .deal-link, .chg .av, .contact .c-av,
+        .pipe-bar button i, #byrep .av, #byrep tr.rep, .who-in .nm, .who-in .av, .tl .dot, td.c i, .fseg .bar, #v-quotes .voice::before, #d-feedback li.fb::before) {
+      transition: translate .22s cubic-bezier(.2, .8, .2, 1), scale .22s cubic-bezier(.2, .8, .2, 1), rotate .3s cubic-bezier(.2, .8, .2, 1), box-shadow .22s ease, background-color .18s ease, filter .18s ease, color .18s ease; }
+    .chg:hover { translate: 0 -5px; scale: 1.035; box-shadow: 0 16px 30px rgba(20, 20, 20, .22); }
+    .chg:hover .av { scale: 1.18; }
+    .contact:hover { translate: 0 -4px; box-shadow: 0 12px 24px rgba(20, 20, 20, .1); }
+    .contact:hover .c-av { rotate: -10deg; scale: 1.1; }
+    .fact:hover { translate: 0 -4px; box-shadow: 0 12px 24px rgba(20, 20, 20, .1); }
+    #d-feedback li.fb:hover { rotate: 0deg; translate: 0 -6px; scale: 1.03; box-shadow: 0 2px 2px rgba(40, 30, 20, .12), 0 18px 28px -10px rgba(40, 30, 20, .32); z-index: 2; }
+    #d-feedback li.fb:hover::before { translate: 0 -3px; }
+    .voice[data-slug]:hover { translate: 0 -4px; }
+    #v-quotes .voice:hover::before { scale: 1.2; rotate: -8deg; }
+    .rep-chip:hover { translate: 0 -2px; scale: 1.05; }
+    .pipe-bar .seg:hover { translate: 0 -3px; }
+    .pipe-bar .lg:hover:not(:disabled) { translate: 3px 0; }
+    .pipe-bar .lg:hover:not(:disabled) i { scale: 1.3; }
+    .live .chips button:hover { translate: 0 -3px; scale: 1.05; }
+    .tabs button:hover:not([aria-selected="true"]), .switch button:hover:not([aria-pressed="true"]) { translate: 0 -1px; }
+    .stepper button:hover:not(:disabled) { scale: 1.2; }
+    .back:hover { translate: -4px 0; }
+    .more:hover, .key-btn:hover { scale: 1.07; }
+    button.pill.hit:hover { scale: 1.14; }
+    .deal-link:hover { translate: 2px 0; }
+    #byrep tr.rep:hover { translate: 4px 0; }
+    #byrep tr.rep:hover .av { scale: 1.2; }
+    table.deals tbody tr[data-slug]:hover .nm { translate: 4px 0; }
+    table.deals tbody tr[data-slug]:hover .who-in .av { scale: 1.2; }
+    td.c i:hover { scale: 1.4; position: relative; z-index: 1; }
+    .tl li:hover .dot { scale: 1.6; }
+    .fseg:hover .bar { scale: 2 1; }
+    :is(button, [role="tab"], [data-seg]):active:not(:disabled) { scale: .95; transition-duration: .08s; }
+  }
+  @media (prefers-reduced-motion: reduce) { .tl li.hit > .body, .fb.hit { animation: none; } .skel { animation: none; } tr.grp button .caret { transition: none; } }
+</style>
+</head>
+<body>
+<div class="canvas">
+<header id="grid-header" data-anfra-container="controls" data-anfra-label="Header">
+  <div class="title-row" style="--d:0"><p class="title">HollyDeals</p>
+    <nav class="tabs" role="tablist" aria-label="View" data-anfra-block="tabs" data-anfra-label="Report or overview">
+      <button type="button" role="tab" data-view="week" aria-selected="true">Report</button>
+      <button type="button" role="tab" data-view="overview" aria-selected="false">Overview</button>
+    </nav>
+    <span class="spacer"></span>
+    <div class="reps" id="rep-chips" data-anfra-block="filter-owner" data-anfra-label="Owner" data-anfra-control="owner" data-anfra-query="ownerFilter reps"></div>
+    <select id="f-owner" class="sr-only" aria-hidden="true" tabindex="-1"><option value="">All owners</option></select>
+    <span class="switch wk-only" role="group" aria-label="Period" data-anfra-block="mode" data-anfra-label="Week or month">
+      <button type="button" data-mode="week" aria-pressed="true">Week</button>
+      <button type="button" data-mode="month" aria-pressed="false">Month</button>
+    </span>
+    <span class="stepper wk-only" data-anfra-block="period" data-anfra-label="Period" data-anfra-query="weeks">
+      <button type="button" id="period-prev" aria-label="Earlier period">‹</button>
+      <select id="period" aria-label="Period"><option>Loading…</option></select>
+      <button type="button" id="period-next" aria-label="Later period">›</button>
+    </span>
+  </div>
+</header>
+
+<main id="grid-view" data-view="week" data-anfra-container="page" data-anfra-label="HollyDeals">
+  <section class="hero wk" style="--d:2" data-anfra-block="headline" data-anfra-label="The period in one line" data-anfra-query="scoreWeek scoreMonth weeks">
+    <h1 class="headline" id="headline"><span class="skel"></span></h1>
+    <p class="lede"><span id="lede"></span></p>
+    <div id="counts-warning" class="warning" role="status"></div>
+    <div id="score-state" class="state"></div>
+  </section>
+  <div class="wk" data-anfra-block="filter-state" data-anfra-label="Filter lists" data-anfra-query="ownerFilter statusFilter">
+    <div id="filter-state" class="state"></div>
+  </div>
+
+  <section class="panel changes wk" style="--d:3" id="changes" data-anfra-block="changes" data-anfra-label="What changed" data-anfra-query="grid">
+    <h2 id="changes-title">What changed</h2>
+    <div class="change-cols" id="change-cols"></div>
+  </section>
+
+  <div class="layout wk">
+    <div class="main-col" data-anfra-container="main" data-anfra-label="Deals">
+      <section class="panel pipe" style="--d:4" data-anfra-block="pipeline" data-anfra-label="Where the live deals are" data-anfra-query="grid">
+        <h2 id="pipe-title">Where the live deals are</h2>
+        <div class="pipe-bar" id="pipe-bar" title="Click a colour to show only those deals in the grid; click it again to show all"></div>
+        <div class="keys" id="pipe-keys"></div>
+      </section>
+
+      <section class="panel" style="--d:5" id="grid-panel" data-anfra-block="grid" data-anfra-label="Every deal, week by week" data-anfra-query="grid" data-anfra-control="status">
+        <div class="grid-head">
+          <h2>Every deal, week by week <span class="info" tabindex="0" role="note" title="Colour: the deal's section in that week's report. Hover a deal for its latest line; click it to open the deal.">ⓘ</span></h2>
+          <span class="spacer"></span>
+          <select id="f-status" aria-label="Status this week" data-anfra-query="statusFilter"><option value="">Any status this week</option></select>
+          <input id="f-search" type="search" placeholder="Search deals" aria-label="Search deals">
+          <button type="button" class="key-btn" id="key-btn" aria-expanded="false" aria-controls="legend">Key</button>
+        </div>
+        <div class="legend" id="legend" hidden></div>
+        <div id="grid-state" class="state"></div>
+        <div id="scroller" class="scroller"><table class="deals" id="deals"></table></div>
+      </section>
+    </div>
+
+    <aside class="rail" data-anfra-container="rail" data-anfra-label="The reps, the month and customers">
+      <section class="panel byrep-panel" style="--d:4" data-anfra-block="by-rep" data-anfra-label="By rep" data-anfra-query="grid reps">
+        <h2 id="byrep-title">By rep</h2>
+        <table class="byrep" id="byrep"></table>
+      </section>
+      <section class="panel mon" style="--d:5" data-anfra-block="month" data-anfra-label="This month against last" data-anfra-query="scoreMonth">
+        <h2 id="mon-title">This month against last</h2>
+        <table id="mon"></table>
+      </section>
+      <div class="voices" id="voices" data-anfra-container="voices" data-anfra-label="From sales, the latest 4 weeks">
+        <section class="panel" style="--d:6">
+          <h2>Raised by 2+ customers <span class="hint"><span class="panel-weeks"></span></span> <span class="info" tabindex="0" role="note" title="Feedback points in the reports that name two or more deals. Click one to open its deal at that point.">ⓘ</span></h2>
+          <p class="sub-line">Themes sales heard across deals, in their own summary</p>
+          <ul class="voice-list" id="v-feedback" data-anfra-block="repeated" data-anfra-label="Raised by more than one customer" data-anfra-query="repeatedFeedback"></ul>
+        </section>
+      </div>
+    </aside>
+  </div>
+
+  <section class="panel fb-panel wk" id="quote-row" style="--d:7">
+    <h2>What customers said <span class="hint"><span class="panel-weeks"></span></span> <span class="info" tabindex="0" role="note" title="Text in quotation marks in the reports: not always praise. Click one to open the deal at that quote.">ⓘ</span></h2>
+    <p class="sub-line">In the customer's own words, from the weekly reports</p>
+    <ul class="voice-list" id="v-quotes" data-anfra-block="quotes" data-anfra-label="Customer quotes" data-anfra-query="quotes"></ul>
+  </section>
+
+  <section class="overview ov" id="overview" data-anfra-container="overview" data-anfra-label="Overview">
+    <div class="hero">
+      <h1 class="headline" id="ov-headline"><span class="skel"></span></h1>
+      <p class="lede" id="ov-lede"></p>
+    </div>
+    <section class="panel" id="ov-funnel-panel" data-anfra-block="funnel" data-anfra-label="Where every deal ended up" data-anfra-query="grid weeks">
+      <h2>Where every deal ended up <span class="hint" id="ov-funnel-sub"></span></h2>
+      <div id="ov-funnel"></div>
+    </section>
+    <section class="panel" id="ov-live-panel" data-anfra-block="running" data-anfra-label="Running now" data-anfra-query="grid weeks">
+      <h2 id="ov-live-title">Running now</h2>
+      <div class="live" id="ov-live"></div>
+    </section>
+    <section class="panel" id="ov-flow-panel" data-anfra-block="flow" data-anfra-label="How the pipeline moved" data-anfra-query="grid weeks">
+      <div class="flow-head"><h2>How the pipeline moved <span class="hint" id="ov-flow-sub"></span></h2><span class="spacer"></span>
+        <span class="switch" role="group" aria-label="Compare with">
+          <button type="button" data-ago="4" aria-pressed="false">4 weeks ago</button><button type="button" data-ago="8" aria-pressed="true">8 weeks ago</button><button type="button" data-ago="12" aria-pressed="false">12 weeks ago</button>
+        </span></div>
+      <div class="flow" id="ov-flow"></div>
+      <div class="legend2" id="ov-flow-legend"></div>
+    </section>
+  </section>
+</main>
+
+<!-- The deal page: opened by #deal=<slug>, from a grid row or a pasted link. -->
+<div id="deal-page" hidden data-anfra-container="deal" data-anfra-label="Deal page">
+  <div class="deal-head" data-anfra-block="deal-head" data-anfra-label="Deal" data-anfra-query="dealInfo dealWeeks" data-anfra-control="deal">
+    <div class="row">
+      <button type="button" class="back" id="deal-back" aria-label="Back to all deals (Escape)">← All deals</button>
+      <span class="crumb" id="deal-crumb"></span>
+      <span class="spacer"></span>
+    </div>
+    <h1 class="headline" id="deal-name"></h1>
+    <p class="lede" id="deal-meta"></p>
+    <div class="deal-owner" id="deal-owner"></div>
+  </div>
+  <main data-anfra-container="deal-main" data-anfra-label="Deal">
+    <div data-anfra-block="deal-state" data-anfra-label="Deal notes" data-anfra-query="dealInfo dealWeeks">
+      <div id="deal-state" class="state"></div>
+    </div>
+    <section class="panel facts" id="deal-tiles" data-anfra-container="deal-tiles" data-anfra-label="From the deal file">
+      <div class="fact" data-anfra-block="deal-win" data-anfra-label="Win chance" data-anfra-query="dealInfo dealWeeks"><div class="lbl">Win chance</div><div class="val" id="dt-win"></div><div class="sub" id="ds-win"></div></div>
+      <div class="fact" data-anfra-block="deal-amount" data-anfra-label="Amount" data-anfra-query="dealInfo"><div class="lbl">Amount</div><div class="val" id="dt-amount"></div><div class="sub" id="ds-amount"></div></div>
+      <div class="fact" data-anfra-block="deal-age" data-anfra-label="Age" data-anfra-query="dealInfo"><div class="lbl">Age</div><div class="val" id="dt-age"></div><div class="sub" id="ds-age"></div></div>
+      <div class="fact" id="deal-trial" data-anfra-block="deal-trial" data-anfra-label="Trial" data-anfra-query="dealInfo"><div class="lbl">Trial</div><div class="val" id="dt-trial"></div><div class="sub" id="ds-trial"></div></div>
+    </section>
+    <div class="deal-mid" id="deal-mid" data-anfra-container="deal-mid" data-anfra-label="Today">
+      <section class="panel" id="deal-weeks" data-anfra-block="deal-weeks" data-anfra-label="The story so far" data-anfra-query="dealWeeks">
+        <h3>The story so far <span class="hint">· newest first</span></h3>
+        <div class="tl-scroll" id="tl-scroll"><ol class="tl" id="d-weeks"></ol></div>
+      </section>
+      <div class="deal-side" data-anfra-container="deal-side" data-anfra-label="Side">
+        <section class="panel" data-anfra-block="deal-notes" data-anfra-label="Assessment and next steps" data-anfra-query="dealInfo">
+          <h3>Assessment</h3><div class="md" id="d-assessment"></div>
+          <h3>Next steps</h3><div class="md" id="d-next"></div>
+        </section>
+        <section class="panel" id="deal-chart" data-anfra-block="deal-win-chart" data-anfra-label="Win chance by week" data-anfra-query="dealWeeks">
+          <h3>Win chance by week</h3><div class="chart" id="d-chart"></div>
+        </section>
+      </div>
+    </div>
+    <div class="deal-rows" id="deal-rows" data-anfra-container="deal-rows" data-anfra-label="People and feedback">
+      <section class="panel" data-anfra-block="deal-contacts" data-anfra-label="Key contacts" data-anfra-query="dealInfo">
+        <h3>Key contacts</h3><div class="md" id="d-contacts"></div>
+      </section>
+      <section class="panel" id="deal-feedback" data-anfra-block="deal-feedback" data-anfra-label="Raised in feedback" data-anfra-query="dealFeedback">
+        <h3>Raised in feedback <span class="hint">· from the reports' feedback sections</span></h3><ul class="fb-list" id="d-feedback"></ul>
+      </section>
+    </div>
+  </main>
+</div>
+</div>
+<div id="tip" class="tip" hidden></div>
+<div id="pop" class="pop" role="dialog" aria-label="Deals behind the count" hidden></div>
+
+<script id="queries" type="application/json">
+{
+  "weeks": {"aql": [
+    "explore {",
+    "  dimensions { week: sf_reports.week, month: sf_reports.month, counts_ok: sf_reports.counts_ok, week_seq: sf_deal_weeks.week_seq }",
+    "  sorts { week_seq ASC }",
+    "}"]},
+  "scoreWeek": {"aql": [
+    "explore {",
+    "  dimensions { week: sf_reports.week }",
+    "  measures { new: new_deals, won: won_deals, lost: lost_deals, live: live_deals }",
+    "}"]},
+  "scoreMonth": {"aql": [
+    "explore {",
+    "  dimensions { month: sf_reports.month }",
+    "  measures { new: new_deals_first, won: won_deals_first, lost: lost_deals_first, live: live_deals }",
+    "}"]},
+  "grid": {"pageSize": 2000, "aql": [
+    "explore {",
+    "  dimensions {",
+    "    slug: sf_deal_weeks.slug, name: sf_deals.name, owner: sf_deals.owner,",
+    "    week: sf_deal_weeks.week, status: sf_deal_weeks.status, first_sentence: sf_deal_weeks.first_sentence,",
+    "    amount: sf_deals.amount, currency: sf_deals.currency, period: sf_deals.amount_period",
+    "  }",
+    "  sorts { slug ASC, week ASC }",
+    "}"]},
+  "ownerFilter": {"aql": [
+    "explore {",
+    "  dimensions { owner: sf_deals.owner }",
+    "  measures { deals: count_distinct(sf_deal_weeks.slug) }",
+    "  sorts { owner ASC }",
+    "}"]},
+  "statusFilter": {"aql": [
+    "explore {",
+    "  dimensions { status: sf_deal_weeks.status }",
+    "}"]},
+  "quotes": {"aql": [
+    "explore {",
+    "  dimensions { id: sf_quotes.id, week: sf_quotes.week, quote: sf_quotes.quote, slug: sf_quotes.slug, name: sf_deals.name }",
+    "  sorts { week DESC, id ASC }",
+    "}"]},
+  "repeatedFeedback": {"aql": [
+    "explore {",
+    "  dimensions {",
+    "    id: sf_feedback_deals.feedback_id, week: sf_feedback.week, text: sf_feedback.text, deal_count: sf_feedback.deal_count,",
+    "    slug: sf_feedback_deals.slug, name: sf_deals.name",
+    "  }",
+    "  filters { sf_feedback.deal_count >= 2 }",
+    "  sorts { week DESC, id ASC }",
+    "}"]},
+  "dealInfo": {"lazy": true, "dealField": "sf_deals.slug", "aql": [
+    "explore {",
+    "  dimensions {",
+    "    slug: sf_deals.slug, name: sf_deals.name, owner: sf_deals.owner, stage: sf_deals.deal_stage, health: sf_deals.health,",
+    "    amount: sf_deals.amount, currency: sf_deals.currency, period: sf_deals.amount_period,",
+    "    created: sf_deals.deal_created, first_call: sf_deals.first_call, close_date: sf_deals.close_date,",
+    "    trial_status: sf_deals.trial_status, trial_builders: sf_deals.trial_builders, trial_expiry: sf_deals.trial_expiry,",
+    "    win_text: sf_deals.win_probability_text, assessment: sf_deals.assessment, next_steps: sf_deals.next_steps,",
+    "    key_contacts: sf_deals.key_contacts",
+    "  }",
+    "}"]},
+  "dealWeeks": {"lazy": true, "dealField": "sf_deals.slug", "aql": [
+    "explore {",
+    "  dimensions { week: sf_deal_weeks.week, week_seq: sf_deal_weeks.week_seq, status: sf_deal_weeks.status, win_pct: sf_deal_weeks.win_pct, paragraph: sf_deal_weeks.paragraph }",
+    "  sorts { week_seq DESC }",
+    "}"]},
+  "reps": {"aql": [
+    "explore {",
+    "  dimensions { name: sf_reps.name, photo: sf_reps.photo }",
+    "}"]},
+  "dealFeedback": {"lazy": true, "dealField": "sf_deals.slug", "aql": [
+    "explore {",
+    "  dimensions { id: sf_feedback_deals.feedback_id, week: sf_feedback.week, text: sf_feedback.text, deal_count: sf_feedback.deal_count }",
+    "  sorts { week DESC, id ASC }",
+    "}"]}
+}
+</script>
+
+<script>
+// ---- Setup ----
+const DATASET = 'sales_funnel';
+const Q = JSON.parse(document.getElementById('queries').textContent);
+// Statuses in the report's priority order, with their cell colour class.
+const STATUSES = [
+  ['Won', 's-won'], ['Lost', 's-lost'], ['Close-lost due', 's-due'], ['New', 's-new'],
+  ['Good progress', 's-progress'], ['Stuck', 's-stuck'], ['Also moving', 's-moving'], ['Quiet', 's-quiet'],
+];
+const CLASS = Object.fromEntries(STATUSES);
+const ORDER = Object.fromEntries(STATUSES.map(([s], i) => [s, i]));
+
+const app = Anfra.createApp({ title: 'HollyDeals', timezone: 'Etc/UTC' });
+const q = {};
+const makeQuery = (name) => app.createQuery(name, { dataset: DATASET, aql: Q[name].aql.join('\n'), ...(Q[name].pageSize ? { pageSize: Q[name].pageSize } : {}) });
+for (const name of Object.keys(Q)) if (!Q[name].lazy) q[name] = makeQuery(name); // a lazy query is declared when the deal page first needs it
+// The deal file's owner: set for every deal, where the report leaves some weeks without one.
+const f = {
+  owner: app.createFilter('owner', { dataset: DATASET, field: 'sf_deals.owner', label: 'Owner' }),
+  // "Status this week" picks deals by their status in the picked week (anchorWeek), so it is applied here rather than
+  // mapped onto the grid, where it would drop the deal's other weeks.
+  status: app.createFilter('status', { dataset: DATASET, field: 'sf_deal_weeks.status', label: 'Status this week' }),
+  // The open deal page's slug. Not the owner filter: a deal page shows its deal whoever owns it.
+  deal: app.createFilter('deal', { type: 'string', label: 'Deal' }),
+};
+const OWNER_MAPPED = ['scoreWeek', 'scoreMonth', 'grid'];
+for (const name of OWNER_MAPPED) app.mapControl(f.owner, q[name], { field: 'sf_deals.owner' });
+// The deal page's queries, declared on the first open. Those with a dealField are filtered on the open deal's slug.
+const DEAL_PAGE = ['dealInfo', 'dealWeeks', 'dealFeedback'];
+function need(name) {
+  if (q[name]) return q[name];
+  q[name] = makeQuery(name);
+  if (Q[name].dealField) app.mapControl(f.deal, q[name], { field: Q[name].dealField });
+  return q[name];
+}
+
+// ---- Formatting ----
+// Numbers arrive as strings: convert with n() before any arithmetic.
+const n = (v) => (v === null || v === undefined ? null : Number(v));
+const isFalse = (v) => v === false || v === 'false' || v === '0';
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const day = (v) => String(v).slice(0, 10); // a month arrives as an ISO date: keep the YYYY-MM-DD
+const monthName = (m, opts = { month: 'short', year: 'numeric' }) => new Date(`${day(m)}T00:00:00Z`).toLocaleDateString('en-US', { ...opts, timeZone: 'UTC' });
+const wk = (w) => String(w).replace(/^\d{4}-/, ''); // 2026-W42 -> W42
+// Draws html into an element, unless it already shows exactly that: an unchanged redraw would replay its motion.
+// Returns whether it drew.
+const drawn = new WeakMap();
+const set = (id, html) => {
+  const el = document.getElementById(id);
+  if (drawn.get(el) === html) return false;
+  drawn.set(el, html);
+  el.innerHTML = html;
+  return true;
+};
+
+// ---- Markdown ----
+// Deal text is markdown from the weekly reports. Every piece is escaped first; then only a small subset becomes HTML again:
+// paragraphs, line breaks, **bold**, *italic*, `code`, lists, tables, > quotes, --- rules and http(s) links.
+// No raw HTML passes through.
+function mdInline(text) {
+  const kept = [];
+  const hold = (html) => `\u0000${kept.push(html) - 1}\u0000`;
+  const emph = (s) => s
+    .replace(/(\*\*|__)(?=\S)(.*?\S)\1/g, '<strong>$2</strong>')
+    .replace(/(^|[^\w*])\*([^\s*](?:[^*]*?[^\s*])?)\*(?!\w)/g, '$1<em>$2</em>')
+    .replace(/(^|[^\w])_([^\s_](?:[^_]*?[^\s_])?)_(?!\w)/g, '$1<em>$2</em>');
+  let s = esc(String(text ?? '').replace(/\u0000/g, ''));
+  s = s.replace(/`([^`]+)`/g, (_, code) => hold(`<code>${code}</code>`));
+  // The href is already escaped, so it can't leave its quotes; only http(s) becomes a link, anything else stays text.
+  // A code span inside the href (a placeholder) would put markup in the attribute: such a link stays text.
+  s = s.replace(/\[([^\]]+)\]\(([^()\s]+)\)/g, (all, label, href) =>
+    !/^https?:\/\//i.test(href) ? label : href.includes('\u0000') ? all : hold(`<a href="${href}" target="_blank" rel="noopener">${emph(label)}</a>`));
+  s = emph(s);
+  while (s.includes('\u0000')) s = s.replace(/\u0000(\d+)\u0000/g, (_, i) => kept[i]);
+  return s;
+}
+function md(text) {
+  const RULE = /^\s*([-*_])(\s*\1){2,}\s*$/;
+  const LIST = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
+  const QUOTE = /^\s*>\s?(.*)$/;
+  const ROW = /^\s*\|/;
+  const SEP = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/;
+  const lines = String(text ?? '').replace(/\r\n?/g, '\n').split('\n');
+  const isTable = (i) => ROW.test(lines[i]) && SEP.test(lines[i + 1] ?? '');
+  const starts = (i) => RULE.test(lines[i]) || LIST.test(lines[i]) || QUOTE.test(lines[i]) || isTable(i);
+  const cells = (line) => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => mdInline(c.trim()));
+  const ordered = (marker) => /\d/.test(marker);
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim()) { i++; continue; }
+    if (RULE.test(line)) { out.push('<hr>'); i++; continue; }
+    if (isTable(i)) {
+      const head = cells(line);
+      const body = [];
+      for (i += 2; i < lines.length && ROW.test(lines[i]); i++) body.push(cells(lines[i]));
+      out.push(`<table><thead><tr>${head.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${
+        body.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`);
+      continue;
+    }
+    if (QUOTE.test(line)) {
+      const inner = [];
+      for (; i < lines.length && QUOTE.test(lines[i]); i++) inner.push(QUOTE.exec(lines[i])[1]);
+      out.push(`<blockquote>${md(inner.join('\n'))}</blockquote>`);
+      continue;
+    }
+    const first = LIST.exec(line);
+    if (first) {
+      // Items at this indent; deeper lines (a nested list) belong to the item above and are rendered on their own.
+      const base = first[1].length, kind = ordered(first[2]);
+      const items = [];
+      while (i < lines.length) {
+        const m = LIST.exec(lines[i]);
+        if (m && m[1].length <= base) {
+          if (ordered(m[2]) !== kind) break;
+          items.push({ text: [m[3]], sub: [] });
+        } else if (m || (items.at(-1).sub.length && /^\s/.test(lines[i]) && lines[i].trim())) {
+          items.at(-1).sub.push(lines[i].slice(Math.min(base + 2, lines[i].search(/\S/))));
+        } else if (lines[i].trim() && !starts(i)) {
+          items.at(-1).text.push(lines[i].trim()); // a wrapped line of the item
+        } else if (!lines[i].trim() && LIST.test(lines[i + 1] ?? '')) {
+          // a blank line between items
+        } else break;
+        i++;
+      }
+      const tag = kind ? 'ol' : 'ul';
+      out.push(`<${tag}>${items.map((it) => `<li>${mdInline(it.text.join(' '))}${it.sub.length ? md(it.sub.join('\n')) : ''}</li>`).join('')}</${tag}>`);
+      continue;
+    }
+    const para = [];
+    for (; i < lines.length && lines[i].trim() && (!para.length || !starts(i)); i++) para.push(mdInline(lines[i].trim()));
+    out.push(`<p>${para.join('<br>')}</p>`);
+  }
+  return out.join('');
+}
+// ---- end Markdown ----
+
+// ---- Status ----
+function status(query, id, empty) {
+  const el = document.getElementById(id);
+  el.classList.toggle('error', query.state === 'error');
+  el.textContent = query.state === 'error' ? `Couldn't load ${query.name}: ${query.error.message}`
+    : query.state === 'success' && query.result.rows.length === 0 ? empty : '';
+}
+const loading = (query) => !query.result && query.state !== 'error';
+const logged = new Set();
+function logFirst(query) {
+  if (query.state !== 'success' || logged.has(query.name)) return;
+  logged.add(query.name);
+  console.log(query.name, query.result.columns, query.result.rows[0], query.result.debug?.executedAql);
+}
+
+// ---- Periods ----
+// The weeks query lists every report week in order; months are derived from it. A period is picked here,
+// never put in the AQL: the score queries return every period and the page reads the selected one.
+let mode = 'week';
+const picked = { week: null, month: null }; // null = the latest
+function periods(m = mode) {
+  const weeks = q.weeks.result?.rows ?? [];
+  if (m === 'week') return weeks.map((r) => ({ key: r.week, label: r.week, short: wk(r.week), weeks: [r] }));
+  const byMonth = new Map();
+  for (const r of weeks) {
+    const key = day(r.month);
+    if (!byMonth.has(key)) byMonth.set(key, { key, label: monthName(key), short: monthName(key, { month: 'short' }), weeks: [] });
+    byMonth.get(key).weeks.push(r);
+  }
+  return [...byMonth.values()];
+}
+function selected() {
+  const list = periods();
+  let i = picked[mode] === null ? -1 : list.findIndex((p) => p.key === picked[mode]);
+  if (i < 0) i = list.length - 1; // the latest, also when the picked period is no longer listed
+  return { list, i, cur: list[i], prev: i > 0 ? list[i - 1] : null, latest: i === list.length - 1 };
+}
+// The week the grid's status chip, status filter and sort describe: the picked week, or the last
+// reported week of the picked month. Picking W38 shows the funnel as it was in W38.
+const anchorWeek = () => selected().cur?.weeks.at(-1).week ?? null;
+const latestWeek = () => q.weeks.result?.rows.at(-1)?.week ?? null;
+// The month the picked period falls in (the picked month, or the anchor week's month) and the month before it.
+function selectedMonth() {
+  const list = periods('month');
+  const anchor = anchorWeek();
+  const i = list.findIndex((p) => p.weeks.some((r) => r.week === anchor));
+  return i < 0 ? null : { cur: list[i], prev: i > 0 ? list[i - 1] : null, latest: i === list.length - 1 };
+}
+let periodSig;
+function renderPeriodPicker() {
+  const el = document.getElementById('period');
+  const { list, cur, i } = selected();
+  const sig = [q.weeks.result, q.weeks.state, mode, cur?.key, view];
+  if (periodSig && sig.every((x, j) => x === periodSig[j])) return;
+  periodSig = sig;
+  document.getElementById('period-prev').disabled = !list.length || i === 0;
+  document.getElementById('period-next').disabled = !list.length || i === list.length - 1;
+  if (!list.length) { el.replaceChildren(new Option(q.weeks.state === 'error' ? 'No periods' : 'Loading…', '')); return; }
+  el.replaceChildren(...[...list].reverse().map((p) => new Option(p.label, p.key)));
+  el.value = cur.key;
+}
+function pickPeriod(key) {
+  closePop();
+  picked[mode] = key === periods().at(-1)?.key ? null : key;
+  render();
+}
+document.getElementById('period').addEventListener('change', (e) => pickPeriod(e.target.value));
+for (const [id, step] of [['period-prev', -1], ['period-next', 1]]) {
+  document.getElementById(id).addEventListener('click', () => {
+    const { list, i } = selected();
+    if (list[i + step]) pickPeriod(list[i + step].key);
+  });
+}
+document.querySelector('.switch').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-mode]');
+  if (!b || b.dataset.mode === mode) return;
+  mode = b.dataset.mode;
+  closePop();
+  for (const x of document.querySelectorAll('.switch button')) x.setAttribute('aria-pressed', String(x === b));
+  render();
+});
+
+// ---- The period in one line ----
+// scoreWeek counts the deals in each section of a week's report; scoreMonth counts deals the first time they are New,
+// Won or Lost. A period with no matching deals has no row at all: it counts 0.
+const weekKey = (r) => r.week;
+const monthKey = (r) => day(r.month);
+const scoreRows = (score, keyOf) => new Map((score.result?.rows ?? []).map((r) => [keyOf(r), r]));
+const scoreOf = (rows, p, key) => n(rows.get(p.key)?.[key]) ?? 0;
+const plural = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
+const longMonth = (p) => monthName(p.key, { month: 'long' });
+// "2 new prospects, no wins and 3 lost in W42.": a count above zero is highlighted in its status colour.
+function headlineHtml(v, when) {
+  // A count above zero is a button: it opens the list of those deals.
+  const num = (count) => `<span data-count="${count}">${count}</span>`;
+  const part = (kind, count, none, some) => (count === 0 ? none
+    : `<button type="button" class="count t-${kind === 'new' ? 'new' : kind}" data-pop="${kind}" aria-haspopup="dialog" aria-expanded="false">${some}</button>`);
+  const s = `${part('new', v.new, 'no new prospects', `${num(v.new)} new prospect${v.new === 1 ? '' : 's'}`)}, ${
+    part('won', v.won, 'no wins', `${num(v.won)} won`)} and ${part('lost', v.lost, 'none lost', `${num(v.lost)} lost`)} ${when}.`;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function renderHeadline() {
+  const week = mode === 'week';
+  const score = week ? q.scoreWeek : q.scoreMonth;
+  const failed = [q.weeks, score].find((x) => x.state === 'error');
+  status(failed ?? score, 'score-state', '');
+  const { cur, prev, latest } = selected();
+  if (!cur || !score.result) {
+    set('headline', failed ? 'Couldn’t load the counts' : '<span class="skel"></span>');
+    for (const id of ['lede', 'counts-warning']) set(id, '');
+    return;
+  }
+  const rows = scoreRows(score, week ? weekKey : monthKey);
+  const v = Object.fromEntries(['new', 'won', 'lost', 'live'].map((key) => [key, scoreOf(rows, cur, key)]));
+  if (set('headline', headlineHtml(v, week ? `in ${esc(cur.short)}` : `${latest ? 'so far ' : ''}in ${esc(longMonth(cur))}`))) countUp('headline');
+  const d = prev ? v.live - scoreOf(rows, prev, 'live') : null;
+  const vs = d === null ? '' : d === 0 ? `<span class="pill flat">same as ${esc(prev.short)}</span>`
+    : `<span class="pill ${d > 0 ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)} vs ${esc(prev.short)}</span>`;
+  if (set('lede', `<b><span data-count="${v.live}">${v.live}</span> deal${v.live === 1 ? '' : 's'} live</b>${week ? '' : ` during ${esc(longMonth(cur))}`} ${vs}`)) countUp('lede');
+  // The parsed deals must agree with the report's own counts block; say so when a week doesn't.
+  const off = cur.weeks.filter((r) => isFalse(r.counts_ok));
+  set('counts-warning', !off.length ? ''
+    : week ? `⚠ ${esc(cur.label)} doesn't match the report's own counts`
+    : `⚠ ${esc(cur.label)} doesn't match the report's own counts (${off.map((r) => esc(wk(r.week))).join(', ')})`);
+}
+
+// ---- Motion ----
+// Numbers marked data-count run up from 0 when drawn. Nothing moves for a viewer who asked for reduced motion.
+const still = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function countUp(id) {
+  if (still()) return;
+  for (const el of document.getElementById(id).querySelectorAll('[data-count]')) {
+    const to = Number(el.dataset.count), start = performance.now(), ms = 650;
+    if (!(to > 1)) continue;
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / ms);
+      el.textContent = String(Math.round(to * (1 - (1 - t) ** 3)));
+      if (t < 1 && el.isConnected) requestAnimationFrame(tick);
+    };
+    el.textContent = '0';
+    requestAnimationFrame(tick);
+  }
+}
+// The page's sections rise in once, on load; after that, coming back from a deal page shows them as they are.
+setTimeout(() => document.querySelector('.canvas').classList.add('settled'), 1800);
+
+// The ⓘ notes: the app's own tooltip, at once on hover, on keyboard focus and on a tap or click. (A browser title
+// tooltip waits, and doesn't show reliably inside the app's frame.)
+const infoText = (el) => el.dataset.tip || el.dataset.title || '';
+function showInfo(el) { const t = infoText(el); if (t) showTip(el, `<span style="color:#fff">${esc(t)}</span>`); else tip.hidden = true; }
+for (const el of document.querySelectorAll('.info[title]')) { el.dataset.title = el.title; el.removeAttribute('title'); }
+document.addEventListener('mouseover', (e) => { const el = e.target.closest('.info'); if (el) showInfo(el); else if (!e.target.closest('[data-seg], [data-f], #deals, #d-chart, #ov-live, #ov-flow')) tip.hidden = true; });
+document.addEventListener('focusin', (e) => { const el = e.target.closest('.info'); if (el) showInfo(el); });
+document.addEventListener('focusout', (e) => { if (e.target.closest('.info')) tip.hidden = true; });
+document.addEventListener('click', (e) => { const el = e.target.closest('.info'); if (el) showInfo(el); });
+
+// ---- Click rules ----
+// The deals behind a headline count. A week counts the deals in that section of its report; a month counts each deal
+// the first time it is ever in that section, when that falls in the month (as new_deals_first and the others do).
+// deals: [{cells: {week: {status}}}]; weeks: every report week, in order; period: the period's weeks.
+const KIND_STATUS = { new: 'New', won: 'Won', lost: 'Lost' };
+function dealsBehind(deals, weeks, period, kind, month) {
+  const status = KIND_STATUS[kind];
+  const inPeriod = new Set(period);
+  return deals.map((d) => {
+    const week = (month ? weeks : period).find((w) => d.cells[w]?.status === status);
+    return week && inPeriod.has(week) ? { deal: d, week } : null;
+  }).filter(Boolean);
+}
+// A quote marked inside its week's rendered paragraph; null when the rendering split it (a mark or a line break in it).
+function markQuote(html, quote) {
+  const needle = esc(quote);
+  const i = needle ? html.indexOf(needle) : -1;
+  return i < 0 ? null : `${html.slice(0, i)}<mark class="ref">${needle}</mark>${html.slice(i + needle.length)}`;
+}
+// ---- end Click rules ----
+const pop = document.getElementById('pop');
+// A count opens the list of its deals: the headline's counts, and the month panel's (this month's and last month's).
+// Each trigger carries data-pop="<kind>" (the picked period) or "<month>:<kind>" (that month); the page redraws often,
+// so the popover goes by that key, not by a button element.
+let popKey = null, popLoading = false;
+const popButton = (key) => [...document.querySelectorAll('[data-pop]')].find((b) => b.dataset.pop === key);
+function closePop() {
+  if (popKey === null) return;
+  pop.hidden = true;
+  popButton(popKey)?.setAttribute('aria-expanded', 'false');
+  popKey = null;
+}
+const POP_TITLE = { new: 'new prospects', won: 'won', lost: 'lost' };
+function openFunnelPop(key, btn) {
+  popKey = key;
+  btn.setAttribute('aria-expanded', 'true');
+  const sg = funnelSegs[key.slice(4)];
+  if (!sg) { closePop(); return; }
+  const { weeks } = deals();
+  const item = (d) => {
+    const w = [...weeks].reverse().find((x) => d.cells[x]), c = d.cells[w];
+    const meta = avatar(d.owner) + [d.owner ?? 'no owner', c.amount !== null ? amountText(c) : null, `${c.status}, ${wk(w)}`].filter(Boolean).map(esc).join(' · ');
+    return `<li><button type="button" class="pop-deal" data-slug="${esc(d.slug)}"><span class="pn">${esc(d.name)}</span><span class="go">Open →</span>
+      <span class="pm">${meta}</span>${c.first_sentence ? `<span class="pl">${esc(plain(c.first_sentence))}</span>` : ''}</button></li>`;
+  };
+  const rows = [...sg.deals].sort((a, b) => a.name.localeCompare(b.name));
+  pop.innerHTML = `<div class="pop-head"><b>${sg.n} ${esc(sg.label)}</b><button type="button" class="pop-x" aria-label="Close">×</button></div>
+    <ul class="pop-list">${rows.map(item).join('')}</ul><p class="fine">By each deal's latest mention in the reports.</p>`;
+  placePop(btn);
+  pop.querySelector('.pop-deal')?.focus({ preventScroll: true });
+}
+function openPop(key) {
+  const btn = popButton(key);
+  if (btn && key.startsWith('fun:')) { openFunnelPop(key, btn); return; }
+  const [first, second] = key.split(':').reverse(); // [kind, month?] reversed
+  const kind = first, monthKey = second ?? null;
+  const picked = monthKey ? periods('month').find((p) => p.key === monthKey) : selected().cur;
+  if (!btn || !picked) { closePop(); return; }
+  popKey = key;
+  btn.setAttribute('aria-expanded', 'true');
+  popLoading = !q.grid.result || !q.weeks.result;
+  if (popLoading) {
+    pop.innerHTML = '<div class="state">Loading the deals…</div>';
+    placePop(btn);
+    return;
+  }
+  const { weeks, list } = deals();
+  const month = monthKey !== null || mode === 'month';
+  const rows = dealsBehind(list, weeks, picked.weeks.map((r) => r.week), kind, month)
+    .sort((a, b) => weeks.indexOf(b.week) - weeks.indexOf(a.week) || a.deal.name.localeCompare(b.deal.name));
+  const item = ({ deal, week }) => {
+    const c = deal.cells[week];
+    const meta = avatar(deal.owner) + [deal.owner ?? 'no owner', c.amount !== null ? amountText(c) : null, month ? wk(week) : null].filter(Boolean).map(esc).join(' · ');
+    return `<li><button type="button" class="pop-deal" data-slug="${esc(deal.slug)}"><span class="pn">${esc(deal.name)}</span><span class="go">Open →</span>
+      <span class="pm">${meta}</span>${c.first_sentence ? `<span class="pl">${esc(plain(c.first_sentence))}</span>` : ''}</button></li>`;
+  };
+  pop.innerHTML = `<div class="pop-head"><b>${rows.length} ${POP_TITLE[kind]} in ${esc(month ? longMonth(picked) : picked.short)}</b>
+    <button type="button" class="pop-x" aria-label="Close">×</button></div>
+    ${rows.length ? `<ul class="pop-list">${rows.map(item).join('')}</ul>` : '<div class="state">No deals match</div>'}
+    ${month ? '<p class="fine">Each deal is listed in the month it first reached this section.</p>' : ''}`;
+  placePop(btn);
+  pop.querySelector('.pop-deal')?.focus({ preventScroll: true });
+}
+function placePop(btn) {
+  pop.hidden = false;
+  const r = btn.getBoundingClientRect();
+  const left = Math.max(16, Math.min(r.left + window.scrollX, document.documentElement.clientWidth - pop.offsetWidth - 16));
+  // Below the trigger, or above it when there's no room under it.
+  const below = r.bottom + 8, fits = below + pop.offsetHeight <= window.innerHeight || r.top < pop.offsetHeight + 16;
+  pop.style.top = `${(fits ? below : r.top - pop.offsetHeight - 8) + window.scrollY}px`;
+  pop.style.left = `${left}px`;
+}
+// Called on every render: fills a popover opened before the deals loaded, and keeps its count marked open.
+function renderPop() {
+  if (popKey === null) return;
+  if (popLoading && q.grid.result && q.weeks.result) openPop(popKey);
+  else popButton(popKey)?.setAttribute('aria-expanded', 'true');
+}
+document.addEventListener('click', (e) => {
+  const trigger = e.target.closest('[data-pop]');
+  if (trigger) { if (popKey === trigger.dataset.pop) closePop(); else openPop(trigger.dataset.pop); return; }
+  const deal = e.target.closest('.pop-deal');
+  if (deal) { closePop(); openDeal(deal); return; }
+  if (e.target.closest('.pop-x') || !e.target.closest('#pop')) closePop();
+});
+
+// ---- What changed ----
+// A rep's avatar: their initials on a colour picked from their name, so a rep keeps one colour everywhere.
+const AVATAR = [['#dbeafe', '#1e40af'], ['#fce7f3', '#9d174d'], ['#dcfce7', '#166534'], ['#fef3c7', '#92400e'],
+  ['#ede9fe', '#5b21b6'], ['#e0f2fe', '#075985'], ['#ffe4e6', '#9f1239'], ['#ecfccb', '#3f6212']];
+// Photos come from the reps query (data: URIs loaded from data/reps/); only an image data: URI is used.
+const PHOTO_OK = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+let photosFrom, photos = new Map();
+function photoOf(owner) {
+  const rows = q.reps.result?.rows;
+  if (rows !== photosFrom) {
+    photosFrom = rows;
+    photos = new Map((rows ?? []).filter((r) => PHOTO_OK.test(r.photo ?? '')).map((r) => [r.name, r.photo]));
+  }
+  return photos.get(owner);
+}
+function avatar(owner) {
+  if (!owner) return '<span class="av none" aria-hidden="true">?</span>';
+  const photo = photoOf(owner);
+  if (photo) return `<img class="av" src="${photo}" alt="" title="${esc(owner)}">`;
+  let h = 0;
+  for (const ch of owner) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const [bg, fg] = AVATAR[h % AVATAR.length];
+  return `<span class="av" style="background:${bg};color:${fg}" title="${esc(owner)}" aria-hidden="true">${esc(owner.slice(0, 2).toUpperCase())}</span>`;
+}
+const CHANGE_COLS = [
+  { kind: 'new', title: 'New prospects', label: 'New prospect', cls: 's-new' },
+  { kind: 'won', title: 'Won', label: 'Won', cls: 's-won' },
+  { kind: 'lost', title: 'Lost', label: 'Lost', cls: 's-lost' },
+];
+const CHANGE_SHOWN = 10; // cards before "Show all"
+// A square card, coloured by what happened: what kind of change (and when), the customer's name, the report's line,
+// then the rep and amount.
+const changeCard = ({ deal, week, kind, label }, showWeek) => {
+  const c = deal.cells[week];
+  return `<button type="button" class="chg ${kind}" data-slug="${esc(deal.slug)}">
+    <span class="ck"><span>${esc(label)}${showWeek ? ` · ${esc(wk(week))}` : ''}</span>${c.amount !== null ? `<span class="wkb">${esc(amountText(c))}</span>` : ''}</span>
+    <span class="cn ${deal.name.length > 22 ? 'xl' : deal.name.length > 14 ? 'l' : ''}" title="${esc(deal.name)}">${esc(deal.name)}</span>
+    <span class="cl">${c.first_sentence ? esc(plain(c.first_sentence)) : ''}</span>
+    <span class="cf"><span class="crep">${avatar(deal.owner)}<span>${esc(deal.owner ?? 'No owner')}</span></span></span></button>`;
+};
+let changesOpen = false; // showing every card, not just the first few
+let changesSig;
+function renderChanges() {
+  const { cur } = selected();
+  const failed = [q.weeks, q.grid].find((x) => x.state === 'error');
+  const sig = [q.grid.result, q.weeks.result, q.reps.result, failed, mode, cur?.key, changesOpen];
+  if (changesSig && sig.every((x, i) => x === changesSig[i])) return;
+  changesSig = sig;
+  const el = document.getElementById('change-cols');
+  if (failed) { el.innerHTML = `<div class="state error">Couldn't load ${esc(failed.name)}: ${esc(failed.error.message)}</div>`; return; }
+  if (!cur || loading(q.grid) || loading(q.weeks)) { el.innerHTML = '<span class="skel skel-row"></span>'.repeat(3); return; }
+  const month = mode === 'month';
+  const when = month ? longMonth(cur) : cur.short;
+  set('changes-title', `What changed in ${esc(when)}`);
+  const { weeks, list } = deals();
+  const byNewest = (a, b) => weeks.indexOf(b.week) - weeks.indexOf(a.week) || a.deal.name.localeCompare(b.deal.name);
+  const period = cur.weeks.map((r) => r.week);
+  const groups = CHANGE_COLS.map((col) => ({ col, rows: dealsBehind(list, weeks, period, col.kind, month).sort(byNewest) }));
+  const shown = groups.flatMap((g) => g.rows.map((r) => ({ ...r, kind: g.col.kind, label: g.col.label })));
+  const cards = shown.map((r, i) => `<li${!changesOpen && i >= CHANGE_SHOWN ? ' hidden' : ''}>${changeCard(r, month)}</li>`).join('');
+  const more = shown.length > CHANGE_SHOWN ? `<li class="more-li"><button type="button" class="more" data-more>${changesOpen ? 'Show fewer' : `Show all ${shown.length}`}</button></li>` : '';
+  el.innerHTML = `<ul class="chg-list">${cards || `<li class="chg-none">Nothing changed in ${esc(when)}</li>`}${more}</ul>`;
+}
+document.getElementById('change-cols').addEventListener('click', (e) => {
+  if (e.target.closest('button[data-more]')) { changesOpen = !changesOpen; render(); return; }
+  const card = e.target.closest('button.chg');
+  if (card) openDeal(card);
+});
+
+// ---- Overview rules ----
+// Every deal has a last known status as of a week: its most recent mention up to then, or "Not yet" when it hadn't
+// been mentioned. The overview reads the funnel and the flow from these. deals: [{cells: {week: {status}}}];
+// weeks: every report week, in order.
+const NOT_YET = 'Not yet';
+function statusAt(cells, weeks, upTo) {
+  for (let i = Math.min(upTo, weeks.length - 1); i >= 0; i--) { const c = cells[weeks[i]]; if (c) return c.status; }
+  return NOT_YET;
+}
+// The funnel: closed (won, lost), the rest still in play, of which active lately (mentioned in the last `recent`
+// weeks) by status, and the others, not active lately.
+function funnelOf(deals, weeks, recent = 4) {
+  const last = weeks.length - 1, since = weeks.slice(-recent);
+  const out = { tracked: deals.length, won: 0, lost: 0, play: 0, active: {}, activeN: 0, dormant: 0 };
+  for (const d of deals) {
+    const st = statusAt(d.cells, weeks, last);
+    if (st === 'Won') out.won++;
+    else if (st === 'Lost') out.lost++;
+    else {
+      out.play++;
+      if (since.some((w) => d.cells[w])) { out.active[st] = (out.active[st] ?? 0) + 1; out.activeN++; } else out.dormant++;
+    }
+  }
+  return out;
+}
+// The deals in each funnel segment: won, lost, still in play (all of them), active lately by status, not active lately.
+function funnelGroups(deals, weeks, recent = 4) {
+  const last = weeks.length - 1, since = weeks.slice(-recent);
+  const g = { won: [], lost: [], play: [], dormant: [], active: {} };
+  for (const d of deals) {
+    const st = statusAt(d.cells, weeks, last);
+    if (st === 'Won') g.won.push(d);
+    else if (st === 'Lost') g.lost.push(d);
+    else {
+      g.play.push(d);
+      if (since.some((w) => d.cells[w])) (g.active[st] ??= []).push(d); else g.dormant.push(d);
+    }
+  }
+  return g;
+}
+// The flow: how many deals went from each status `ago` weeks back to each status now.
+function flowOf(deals, weeks, ago) {
+  const last = weeks.length - 1, from = Math.max(0, last - ago), links = new Map();
+  for (const d of deals) {
+    const a = statusAt(d.cells, weeks, from), b = statusAt(d.cells, weeks, last), key = `${a}\u0000${b}`;
+    if (!links.has(key)) links.set(key, { from: a, to: b, deals: [] });
+    links.get(key).deals.push(d);
+  }
+  return { from, links: [...links.values()] };
+}
+// ---- end Overview rules ----
+const FLOW_ORDER = ['Won', 'Lost', 'Close-lost due', 'Good progress', 'Also moving', 'Stuck', 'Quiet', 'New', NOT_YET];
+const FLOW_COLOUR = { Won: '#1c8a4a', Lost: '#d7264f', 'Close-lost due': '#f5b8c6', 'Good progress': '#72ad2b', 'Also moving': '#8b62d6', Stuck: '#e48a1c', Quiet: '#d6d0ce', New: '#3a5fd9', [NOT_YET]: '#ece7e7' };
+const bandPath = (x1, y1, h1, x2, y2, h2) => {
+  const mx = (x1 + x2) / 2;
+  return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2} L${x2},${y2 + h2} C${mx},${y2 + h2} ${mx},${y1 + h1} ${x1},${y1 + h1} Z`;
+};
+let view = 'week', flowAgo = 8, liveOpen = false;
+let overviewSig;
+function renderOverview() {
+  if (view !== 'overview') return;
+  const failed = [q.weeks, q.grid].find((x) => x.state === 'error');
+  const sig = [q.grid.result, q.weeks.result, q.reps.result, failed, flowAgo, liveOpen];
+  if (overviewSig && sig.every((x, i) => x === overviewSig[i])) return;
+  overviewSig = sig;
+  if (failed) { set('ov-headline', 'Couldn’t load the deals'); return; }
+  if (loading(q.grid) || loading(q.weeks)) { set('ov-headline', '<span class="skel"></span>'); return; }
+  const { weeks, list } = deals();
+  if (!list.length) { set('ov-headline', 'No deals in the reports yet'); set('ov-lede', ''); return; }
+  const last = weeks.length - 1, f = funnelOf(list, weeks);
+  set('ov-headline', `${plural(f.tracked, 'deal')} tracked since ${esc(wk(weeks[0]))}.`);
+  set('ov-lede', `${f.won} won, ${f.lost} lost and ${f.play} still in play, ${f.activeN} of them mentioned in the last four weeks.`);
+  set('ov-funnel-sub', `· ${f.tracked === 1 ? 'the deal' : `all ${f.tracked} deals`} since ${esc(wk(weeks[0]))}`);
+  if (set('ov-funnel', funnelSvg(f, funnelGroups(list, weeks)))) countUp('ov-funnel');
+  renderLive(list, weeks, last);
+  renderFlow(list, weeks);
+}
+// The funnel: one smooth shape. Won and lost peel off the top, the rest narrows to the deals active lately, and
+// those not active lately drift off the bottom. Every band and end bar is a segment (data-seg, data-pop): hover tells
+// what's in it, a click lists its deals. Stage 0 grows first, then stage 1.
+let funnelSegs = {};
+function funnelSvg(f, groups) {
+  const k = 200 / Math.max(f.tracked, 1), cy = 215, X = [150, 470, 790], bw = 7;
+  const pct = (n) => `${Math.round((n / f.tracked) * 100)}% of all`;
+  const num = (x, y, n, label, sub, anchor, stage) => `<g class="fnum" style="--s:${stage}"><text x="${x}" y="${y}" text-anchor="${anchor}" font-size="40" font-weight="300" letter-spacing="-1" fill="#141414" data-count="${n}">${n}</text>
+    <text x="${x}" y="${y + 22}" text-anchor="${anchor}" font-size="11.5" fill="#77716f" letter-spacing=".8">${esc(label)}</text>${sub ? `<text x="${x}" y="${y + 40}" text-anchor="${anchor}" font-size="11.5" fill="#a39b98">${esc(sub)}</text>` : ''}</g>`;
+  const h = { all: f.tracked * k, won: f.won * k, lost: f.lost * k, play: f.play * k, act: f.activeN * k, dor: f.dormant * k };
+  const y1 = cy - h.all / 2, pos = { won: y1, lost: y1 + h.won, play: y1 + h.won + h.lost }, y2 = cy - h.play / 2, y3 = cy - h.act / 2;
+  funnelSegs = {};
+  const seg = (key, label, deals, colour, stage, band, bar) => {
+    funnelSegs[key] = { label, deals, n: deals.length };
+    const attrs = `data-seg="${esc(key)}" data-pop="fun:${esc(key)}" aria-haspopup="dialog" aria-expanded="false" tabindex="0" aria-label="${esc(`${deals.length} ${label}: list them`)}"`;
+    return `<g class="fseg" ${attrs} style="--s:${stage}">${band}${bar}</g>`;
+  };
+  let g = '';
+  let ey = 14; // the exits' stubs, stacked from the top
+  for (const [n, name, colour] of [['won', 'WON', 'Won'], ['lost', 'LOST', 'Lost']]) {
+    if (!f[n]) continue;
+    const x = X[1] + 40, hh = h[n], c = FLOW_COLOUR[colour];
+    g += seg(n, name.toLowerCase(), groups[n], c, 0,
+      `<path class="band" d="${bandPath(X[0] + bw, pos[n], hh, x, ey, hh)}" fill="${c}" fill-opacity=".28" stroke="${c}" stroke-opacity=".55"/>`,
+      `<rect class="bar" x="${x}" y="${ey}" width="${bw}" height="${hh}" rx="2" fill="${c}"/>`) + num(x + bw + 14, ey + hh / 2 + 2, f[n], name, '', 'start', 1);
+    ey += hh + 14;
+  }
+  if (f.play) g += seg('play', 'still in play', groups.play, '#cfc8c6', 0, `<path class="band" d="${bandPath(X[0] + bw, pos.play, h.play, X[1], y2, h.play)}" fill="#cfc8c6" fill-opacity=".4"/>`, '');
+  const parts = Object.entries(groups.active).sort((a, b) => FLOW_ORDER.indexOf(a[0]) - FLOW_ORDER.indexOf(b[0]));
+  let off = 0, yb = y3;
+  for (const [st, ds] of parts) {
+    const n = ds.length;
+    g += seg(`act:${st}`, `active lately, ${st.toLowerCase()}`, ds, FLOW_COLOUR[st], 1,
+      `<path class="band" d="${bandPath(X[1] + bw, y2 + off, n * k, X[2], yb, n * k)}" fill="${FLOW_COLOUR[st]}" fill-opacity=".42"/>`,
+      `<rect class="bar" x="${X[2]}" y="${yb}" width="${bw}" height="${n * k}" fill="${FLOW_COLOUR[st]}"/>`);
+    off += n * k; yb += n * k;
+  }
+  if (f.dormant) {
+    const yd = cy + h.act / 2 + 50, xd = X[2] - 60;
+    g += seg('dormant', 'not active lately', groups.dormant, '#b9b2b0', 1,
+      `<path class="band" d="${bandPath(X[1] + bw, y2 + off, h.dor, xd, yd, h.dor)}" fill="#cfc8c6" fill-opacity=".4"/>`,
+      `<rect class="bar" x="${xd}" y="${yd}" width="${bw}" height="${h.dor}" rx="2" fill="#b9b2b0"/>`) + num(xd + bw + 14, yd + h.dor / 2 + 2, f.dormant, 'NOT ACTIVE LATELY', '', 'start', 2);
+  }
+  const bars = `<rect class="fbar0" x="${X[0]}" y="${y1}" width="${bw}" height="${h.all}" rx="3" fill="#141414"/>${f.play ? `<rect class="fbar0" style="--s:1" x="${X[1]}" y="${y2}" width="${bw}" height="${h.play}" rx="3" fill="#8d8785"/>` : ''}`;
+  const ty = y2 + h.play + 34;
+  const labels = num(X[0] - 14, cy - 6, f.tracked, 'ALL TRACKED', '100%', 'end', 0)
+    + (f.play ? num(X[1] - 14, ty, f.play, 'STILL IN PLAY', pct(f.play), 'end', 1) : '')
+    + (f.activeN ? num(X[2] + bw + 14, cy - 2, f.activeN, 'ACTIVE LATELY', `${pct(f.activeN)} · last 4 weeks`, 'start', 2) : '');
+  return `<svg viewBox="0 0 1000 370" role="img" aria-label="${esc(`${f.tracked} deals: ${f.won} won, ${f.lost} lost, ${f.play} in play, ${f.activeN} active lately`)}">${g}${bars}${labels}</svg>`;
+}
+const funnelBox = document.getElementById('ov-funnel');
+funnelBox.addEventListener('mouseover', (e) => {
+  const el = e.target.closest('[data-seg]'), svg = funnelBox.querySelector('svg');
+  for (const x of funnelBox.querySelectorAll('.fseg.on')) x.classList.remove('on');
+  svg?.classList.toggle('hov', !!el);
+  if (!el) { tip.hidden = true; return; }
+  el.classList.add('on');
+  const sg = funnelSegs[el.dataset.seg];
+  if (!sg) return;
+  const total = deals().list.length;
+  const names = sg.deals.slice(0, 5).map((d) => esc(d.name)).join(', ') + (sg.deals.length > 5 ? ` and ${sg.deals.length - 5} more` : '');
+  showTip(el.querySelector('.bar') ?? el, `<b>${sg.n} ${esc(sg.label)} · ${Math.round((sg.n / Math.max(total, 1)) * 100)}% of all deals</b><span>${names}</span><span style="display:block;margin-top:3px;color:#9a928f">Click to list them</span>`);
+});
+funnelBox.addEventListener('mouseleave', () => { tip.hidden = true; funnelBox.querySelector('svg')?.classList.remove('hov'); for (const x of funnelBox.querySelectorAll('.fseg.on')) x.classList.remove('on'); });
+funnelBox.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-seg]')) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
+// Running now: the deals in play and active lately, grouped by how they're going.
+function renderLive(list, weeks, last) {
+  const since = weeks.slice(-4), groups = new Map();
+  for (const d of list) {
+    const st = statusAt(d.cells, weeks, last);
+    if (st === 'Won' || st === 'Lost' || !since.some((w) => d.cells[w])) continue;
+    if (!groups.has(st)) groups.set(st, []);
+    groups.get(st).push(d);
+  }
+  const order = FLOW_ORDER.filter((st) => groups.has(st));
+  const total = order.reduce((n, st) => n + groups.get(st).length, 0);
+  set('ov-live-title', `Running now <span class="hint">· ${plural(total, 'deal')} active in the last four weeks, by how they're going</span>`);
+  const SHOW = 8;
+  set('ov-live', order.map((st) => {
+    const ds = groups.get(st).sort((a, b) => a.name.localeCompare(b.name));
+    const open = liveOpen || ds.length <= SHOW + 1;
+    const chip = (d) => {
+      const c = d.cells[[...weeks].reverse().find((w) => d.cells[w])];
+      return `<button type="button" data-slug="${esc(d.slug)}">${avatar(d.owner)}${esc(d.name)}${c?.amount !== null && c?.amount !== undefined ? `<em>${esc(amountText(c))}</em>` : ''}</button>`;
+    };
+    return `<div class="g"><div class="gh"><i style="background:${FLOW_COLOUR[st]}"></i>${esc(st)} <b>${ds.length}</b></div><div class="chips">${
+      (open ? ds : ds.slice(0, SHOW)).map(chip).join('')}${open ? '' : `<button type="button" class="more" data-live-more>+${ds.length - SHOW} more</button>`}</div></div>`;
+  }).join('') || '<div class="state">Nothing active in the last four weeks</div>');
+}
+// Hover a customer: who has it, how it's going, when it was last in a report, and what the report said.
+document.getElementById('ov-live').addEventListener('mouseover', (e) => {
+  const chip = e.target.closest('button[data-slug]');
+  if (!chip) { tip.hidden = true; return; }
+  const { weeks, list } = deals();
+  const d = list.find((x) => x.slug === chip.dataset.slug);
+  const w = d && [...weeks].reverse().find((x) => d.cells[x]);
+  if (!d || !w) return;
+  const c = d.cells[w], since = weeks.length - 1 - weeks.indexOf(w);
+  const facts = [d.owner ? `${esc(d.owner)}'s deal` : 'no owner', c.amount !== null ? esc(amountText(c)) : null,
+    `${esc(c.status)}, last in ${esc(wk(w))}${since ? ` (${plural(since, 'week')} ago)` : ' (this week)'}`].filter(Boolean).join(' · ');
+  showTip(chip, `<b>${esc(d.name)}</b><span>${facts}</span>${c.first_sentence ? `<span style="display:block;margin-top:4px">${esc(plain(c.first_sentence))}</span>` : ''}<span style="display:block;margin-top:3px;color:#9a928f">Click to open the deal</span>`);
+});
+document.getElementById('ov-live').addEventListener('mouseleave', () => { tip.hidden = true; });
+document.getElementById('ov-live').addEventListener('click', (e) => {
+  if (e.target.closest('[data-live-more]')) { liveOpen = true; render(); return; }
+  const chip = e.target.closest('button[data-slug]');
+  if (chip) openDeal(chip);
+});
+// The flow chart: the status of every deal `flowAgo` weeks ago on the left, now on the right, ribbons between.
+let flowLinks = [];
+function renderFlow(list, weeks) {
+  const { from, links } = flowOf(list, weeks, flowAgo);
+  const ago = weeks.length - 1 - from;
+  set('ov-flow-sub', `· status of every deal ${plural(ago, 'week')} ago → now`);
+  for (const b of document.querySelectorAll('#ov-flow-panel [data-ago]')) b.setAttribute('aria-pressed', String(Number(b.dataset.ago) === flowAgo));
+  const total = list.length, top = 40, H = 350, sc = H / total, xL = 200, xR = 790, bw = 18;
+  const side = (key) => {
+    const sums = {}; for (const l of links) sums[l[key]] = (sums[l[key]] ?? 0) + l.deals.length;
+    let y = top; const o = {};
+    for (const st of FLOW_ORDER) if (sums[st]) { o[st] = { y, h: sums[st] * sc, n: sums[st], used: 0 }; y += sums[st] * sc; }
+    return o;
+  };
+  const L = side('from'), R = side('to');
+  flowLinks = [...links].sort((a, b) => FLOW_ORDER.indexOf(a.from) - FLOW_ORDER.indexOf(b.from) || FLOW_ORDER.indexOf(a.to) - FLOW_ORDER.indexOf(b.to));
+  let paths = '', dashes = '';
+  flowLinks.forEach((l, i) => {
+    const a = L[l.from], b = R[l.to], h = l.deals.length * sc, y1 = a.y + a.used, y2 = b.y + b.used;
+    a.used += h; b.used += h;
+    paths += `<path data-f="${i}" d="${bandPath(xL + bw, y1, h, xR, y2, h)}" fill="${FLOW_COLOUR[l.to]}" opacity="${l.from === l.to ? .32 : .6}"/>`;
+    if (h > 4) { const mx = (xL + bw + xR) / 2; dashes += `<path class="flowline" d="M${xL + bw},${y1 + h / 2} C${mx},${y1 + h / 2} ${mx},${y2 + h / 2} ${xR},${y2 + h / 2}" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 14" pointer-events="none"/>`; }
+  });
+  const blocks = (o, x, anchor, dx) => Object.entries(o).map(([st, p]) => `<rect x="${x}" y="${p.y}" width="${bw}" height="${p.h}" fill="${FLOW_COLOUR[st]}" stroke="#fff" stroke-width="1.2"/>
+    <text x="${x + dx}" y="${p.y + p.h / 2 + 4}" text-anchor="${anchor}" font-size="12" font-weight="600">${esc(st)} <tspan fill="#77716f" font-weight="500">${p.n}</tspan></text>`).join('');
+  set('ov-flow', `<svg viewBox="0 0 1000 420" role="img" aria-label="${esc(`How ${total} deals moved between statuses over ${ago} weeks`)}">
+    <text x="${xL}" y="20" font-size="12" font-weight="700">${plural(ago, 'week')} ago <tspan fill="#77716f" font-weight="500">· ${esc(wk(weeks[from]))}</tspan></text>
+    <text x="${xR + bw}" y="20" text-anchor="end" font-size="12" font-weight="700">Now <tspan fill="#77716f" font-weight="500">· ${esc(wk(weeks.at(-1)))}</tspan></text>
+    <defs><clipPath id="rv"><rect class="reveal" x="${xL}" y="0" width="${xR - xL + bw}" height="420"/></clipPath></defs>
+    <g clip-path="url(#rv)">${paths}${dashes}</g>${blocks(L, xL, 'end', -10)}${blocks(R, xR, 'start', bw + 10)}</svg>`);
+  set('ov-flow-legend', FLOW_ORDER.filter((st) => L[st] || R[st]).map((st) => `<span><i style="background:${FLOW_COLOUR[st]}${st === NOT_YET ? ';border:1px solid #d9d2d2' : ''}"></i>${st === NOT_YET ? 'Not in the reports yet' : esc(st)}</span>`).join(''));
+}
+const flowBox = document.getElementById('ov-flow');
+flowBox.addEventListener('mouseover', (e) => {
+  const path = e.target.closest('path[data-f]'), svg = flowBox.querySelector('svg');
+  for (const p of flowBox.querySelectorAll('path.on')) p.classList.remove('on');
+  svg?.classList.toggle('hov', !!path);
+  if (!path) { tip.hidden = true; return; }
+  path.classList.add('on');
+  const l = flowLinks[Number(path.dataset.f)];
+  const names = l.deals.slice(0, 6).map((d) => esc(d.name)).join(', ') + (l.deals.length > 6 ? ` and ${l.deals.length - 6} more` : '');
+  showTip(path, `<b>${plural(l.deals.length, 'deal')}: ${esc(l.from === NOT_YET ? 'not yet in the reports' : l.from)} → ${esc(l.to)}</b><span>${names}</span>`);
+});
+flowBox.addEventListener('mouseleave', () => { tip.hidden = true; flowBox.querySelector('svg')?.classList.remove('hov'); for (const p of flowBox.querySelectorAll('path.on')) p.classList.remove('on'); });
+document.getElementById('ov-flow-panel').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-ago]');
+  if (b) { flowAgo = Number(b.dataset.ago); render(); }
+});
+// The tabs: This week (the period's changes) or Overview (all deals, all time).
+function setView(next) {
+  view = next;
+  document.getElementById('grid-view').dataset.view = next;
+  document.getElementById('grid-header').classList.toggle('is-overview', next === 'overview');
+  for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.view === next));
+  closePop();
+  overviewSig = null;
+  render();
+}
+document.querySelector('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-view]'); if (b && b.dataset.view !== view) setView(b.dataset.view); });
+
+// ---- Reps ----
+// The owner filter as one chip per rep, with their photo. A chip sets the hidden owner select, which the filter reads.
+let chipsSig;
+function renderRepChips() {
+  const owner = ownerEl.value;
+  const sig = [owner, q.reps.result];
+  if (chipsSig && sig.every((x, i) => x === chipsSig[i])) return;
+  chipsSig = sig;
+  set('rep-chips', owner ? `<button type="button" class="rep-chip" data-owner="${esc(owner)}" aria-pressed="true" title="Show every rep again" aria-label="${esc(`Filtered to ${owner}: click to clear`)}">${avatar(owner)}${esc(owner)} <span class="x" aria-hidden="true">×</span></button>` : '');
+}
+function pickOwner(owner) {
+  ownerEl.value = ownerEl.value === owner ? '' : owner;
+  ownerEl.dispatchEvent(new Event('change'));
+}
+document.getElementById('rep-chips').addEventListener('click', (e) => {
+  const chip = e.target.closest('.rep-chip');
+  if (chip) pickOwner(chip.dataset.owner === '' ? ownerEl.value : chip.dataset.owner);
+});
+// By rep: each rep's live, new, won and lost deals in the period, counted as the headline counts them.
+let byRepSig;
+function renderByRep() {
+  const { cur } = selected();
+  const failed = [q.weeks, q.grid].find((x) => x.state === 'error');
+  const sig = [q.grid.result, q.weeks.result, q.reps.result, failed, mode, cur?.key, ownerEl.value];
+  if (byRepSig && sig.every((x, i) => x === byRepSig[i])) return;
+  byRepSig = sig;
+  const el = document.getElementById('byrep');
+  if (failed) { el.innerHTML = `<tr><td class="state error">Couldn't load ${esc(failed.name)}</td></tr>`; return; }
+  if (!cur || loading(q.grid) || loading(q.weeks)) { el.innerHTML = '<tr><td><span class="skel skel-row"></span><span class="skel skel-row"></span></td></tr>'; return; }
+  const month = mode === 'month';
+  set('byrep-title', `By rep <span class="hint">· ${esc(month ? longMonth(cur) : cur.short)}</span>`);
+  const { weeks, list } = deals();
+  const period = cur.weeks.map((r) => r.week);
+  const reps = new Map();
+  const of = (owner) => reps.get(owner) ?? reps.set(owner, { owner, live: 0, new: 0, won: 0, lost: 0 }).get(owner);
+  for (const kind of ['new', 'won', 'lost']) for (const { deal } of dealsBehind(list, weeks, period, kind, month)) of(deal.owner)[kind]++;
+  for (const d of list) if (period.some((w) => d.cells[w] && !CLOSED.has(d.cells[w].status))) of(d.owner).live++;
+  const rows = [...reps.values()].sort((a, b) => b.live - a.live || (a.owner ?? '').localeCompare(b.owner ?? ''));
+  const cell = (v, cls) => `<td>${v ? `<span class="pill ${cls}">${v}</span>` : '<span class="zero">–</span>'}</td>`;
+  el.innerHTML = !rows.length ? '<tr><td class="state">No deals in this period</td></tr>'
+    : `<thead><tr><th>Rep</th><th>Live</th><th>New</th><th>Won</th><th>Lost</th></tr></thead><tbody>${rows.map((r) =>
+      `<tr class="rep${r.owner && ownerEl.value === r.owner ? ' on' : ''}" data-owner="${esc(r.owner ?? '')}" title="${r.owner ? `Show only ${esc(r.owner)}'s deals` : ''}">
+        <td><span class="who">${avatar(r.owner)}${esc(r.owner ?? 'No owner')}</span></td>${cell(r.live, 'dark')}${cell(r.new, 'light')}${cell(r.won, 'up')}${cell(r.lost, 'down')}</tr>`).join('')}</tbody>`;
+}
+document.getElementById('byrep').addEventListener('click', (e) => {
+  const row = e.target.closest('tr.rep[data-owner]');
+  if (row && row.dataset.owner) pickOwner(row.dataset.owner);
+});
+
+// ---- This month against last ----
+// A count that opens its deals; a zero has none to open.
+const pillBtn = (count, tone, key, label) => (count > 0
+  ? `<button type="button" class="pill ${tone} hit" data-pop="${esc(key)}" aria-haspopup="dialog" aria-expanded="false" title="${esc(label)}: click to list them">${count}</button>`
+  : `<span class="pill ${tone}">${count}</span>`);
+const MONTH_ROWS = [
+  { key: 'new', label: 'New prospects', cls: 's-new', upIsGood: true },
+  { key: 'won', label: 'Won', cls: 's-won', upIsGood: true },
+  { key: 'lost', label: 'Lost', cls: 's-lost', upIsGood: false },
+];
+function renderMonth() {
+  const failed = [q.weeks, q.scoreMonth].find((x) => x.state === 'error');
+  const sm = failed ? null : selectedMonth();
+  if (failed || !sm || !q.scoreMonth.result) {
+    set('mon-title', 'This month against last');
+    set('mon', failed ? `<tr><td class="state error">Couldn't load ${esc(failed.name)}: ${esc(failed.error.message)}</td></tr>`
+      : '<tr><td><span class="skel skel-row"></span><span class="skel skel-row"></span></td></tr>');
+    return;
+  }
+  const rows = scoreRows(q.scoreMonth, monthKey);
+  set('mon-title', `${esc(longMonth(sm.cur))}${sm.latest ? ' so far' : ''}${sm.prev ? ` vs ${esc(longMonth(sm.prev))}` : ''}`);
+  const vals = MONTH_ROWS.map((r) => [scoreOf(rows, sm.cur, r.key), sm.prev ? scoreOf(rows, sm.prev, r.key) : null]);
+  const max = Math.max(1, ...vals.flat().filter((x) => x !== null));
+  set('mon', MONTH_ROWS.map((r, i) => {
+    const [a, b] = vals[i];
+    const d = b === null ? null : a - b;
+    const delta = d === null ? '' : d === 0 ? '<span class="pill flat">±0</span>'
+      : `<span class="pill ${d > 0 === r.upIsGood ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)}</span>`;
+    return `<tr><td class="lbl">${r.label}</td>
+      <td class="bars"><div class="pair"><i class="${r.cls}" style="width:${(a / max) * 100}%"></i>${b === null ? '' : `<i class="prev" style="width:${(b / max) * 100}%"></i>`}</div></td>
+      <td class="num">${pillBtn(a, 'dark', `${sm.cur.key}:${r.key}`, `${a} ${POP_TITLE[r.key]} in ${longMonth(sm.cur)}`)}${b === null ? '' : pillBtn(b, 'light', `${sm.prev.key}:${r.key}`, `${b} ${POP_TITLE[r.key]} in ${longMonth(sm.prev)}`)}${delta}</td></tr>`;
+  }).join('') + `<tr><td colspan="3" class="key">${sm.prev
+    ? `Solid: ${esc(longMonth(sm.cur))} · striped: ${esc(longMonth(sm.prev))} · each deal counted the first time it's New, Won or Lost`
+    : 'No earlier month to compare with'}</td></tr>`);
+}
+
+// ---- Filters ----
+const ownerEl = document.getElementById('f-owner');
+const statusEl = document.getElementById('f-status');
+const searchEl = document.getElementById('f-search');
+let ownerOptionsDrawn, statusOptionsDrawn;
+function renderFilterOptions() {
+  status([q.ownerFilter, q.statusFilter].find((x) => x.state === 'error') ?? q.ownerFilter, 'filter-state', '');
+  if (q.ownerFilter.result && q.ownerFilter.result !== ownerOptionsDrawn) {
+    ownerOptionsDrawn = q.ownerFilter.result;
+    const keep = ownerEl.value;
+    ownerEl.replaceChildren(new Option('All owners', ''), ...q.ownerFilter.result.rows
+      .filter((r) => r.owner !== null && n(r.deals) > 0)
+      .map((r) => new Option(`${r.owner} (${n(r.deals)})`, r.owner)));
+    ownerEl.value = keep;
+  }
+  if (q.statusFilter.result && q.statusFilter.result !== statusOptionsDrawn) {
+    statusOptionsDrawn = q.statusFilter.result;
+    const keep = statusEl.value;
+    const found = q.statusFilter.result.rows.map((r) => r.status).filter((s) => s !== null);
+    found.sort((a, b) => (ORDER[a] ?? 99) - (ORDER[b] ?? 99) || a.localeCompare(b));
+    statusEl.replaceChildren(new Option('Any status this week', ''), ...found.map((s) => new Option(s, s)));
+    statusEl.value = keep;
+  }
+  const anchor = anchorWeek();
+  statusEl.options[0].textContent = anchor ? `Any status in ${wk(anchor)}` : 'Any status this week';
+}
+ownerEl.addEventListener('change', () => {
+  ownerEl.classList.toggle('on', !!ownerEl.value);
+  closePop();
+  f.owner.setCondition({ operator: 'is', values: ownerEl.value ? [ownerEl.value] : [] });
+  app.execute();
+});
+statusEl.addEventListener('change', () => {
+  statusEl.classList.toggle('on', !!statusEl.value);
+  f.status.setCondition({ operator: 'is', values: statusEl.value ? [statusEl.value] : [] }); // for the Inspect panel; applied below
+  render();
+});
+searchEl.addEventListener('input', () => render());
+
+// ---- Grid ----
+document.getElementById('key-btn').addEventListener('click', (e) => {
+  const legend = document.getElementById('legend');
+  legend.hidden = !legend.hidden;
+  e.currentTarget.setAttribute('aria-expanded', String(!legend.hidden));
+});
+document.getElementById('legend').innerHTML = [...STATUSES, ['Not mentioned', 's-none']]
+  .map(([s, c]) => `<span><i class="${c}"></i>${esc(s)}</span>`).join('')
+  + `<span><b class="off-key">Red week number</b>: that week doesn't match the report's own counts</span>`;
+
+let dealsSig, dealsCache;
+// One deal per slug, with its cells by week and the weeks it was mentioned in. Rebuilt only for a new grid or weeks result.
+function deals() {
+  const sig = [q.grid.result, q.weeks.result];
+  if (dealsSig && sig.every((x, i) => x === dealsSig[i])) return dealsCache;
+  dealsSig = sig;
+  const weeks = q.weeks.result.rows.map((r) => r.week);
+  const seq = Object.fromEntries(weeks.map((w, i) => [w, i]));
+  const bySlug = new Map();
+  for (const r of q.grid.result.rows) {
+    let d = bySlug.get(r.slug);
+    if (!d) bySlug.set(r.slug, d = { slug: r.slug, name: r.name ?? r.slug, owner: r.owner, cells: {}, seen: [] });
+    d.cells[r.week] = r;
+    if (r.week in seq) d.seen.push(seq[r.week]);
+  }
+  dealsCache = { weeks, seq, list: [...bySlug.values()] };
+  return dealsCache;
+}
+// The deals as of a week: their status that week (null when not mentioned), sorted by the most recent status change
+// up to then (see Grid rules).
+function asOf(anchor) {
+  const { weeks, seq, list } = deals();
+  const at = seq[anchor];
+  return list.map((d) => ({ ...d, now: d.cells[anchor]?.status ?? null, changedAt: lastChange(d.cells, weeks, at) }))
+    .sort(byLastChange);
+}
+// ---- Grid rules ----
+// The index of the latest week up to `at` in which the deal's status differed from its previous mention. A deal
+// that never changed counts from its first mention; one not mentioned by then is -1. `weeks` is in week order.
+function lastChange(cells, weeks, at) {
+  let prev = null, found = -1;
+  for (let i = 0; i <= at && i < weeks.length; i++) {
+    const s = cells[weeks[i]]?.status ?? null;
+    if (s === null) continue;
+    if (s !== prev) found = i;
+    prev = s;
+  }
+  return found;
+}
+// The design's default sort: the most recent status change first, then by name.
+const byLastChange = (a, b) => b.changedAt - a.changedAt || a.name.localeCompare(b.name);
+// ---- end Grid rules ----
+// The report's first sentence as plain text: links keep their label, bold and code marks go.
+const plain = (s) => String(s ?? '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\*\*|__|`/g, '');
+// Cells grow from 22px to 30px to use the panel's width; the sticky name column keeps its width.
+function fitCells() {
+  const scroller = document.getElementById('scroller');
+  const who = document.querySelector('#deals thead .who');
+  const count = q.weeks.result?.rows.length;
+  if (!who || !count) return;
+  const cell = Math.max(22, Math.min(30, Math.floor((scroller.clientWidth - who.offsetWidth) / count)));
+  document.getElementById('deals').style.setProperty('--cell', `${cell}px`);
+}
+window.addEventListener('resize', fitCells);
+const openSlug = () => {
+  const m = /deal=([^&]+)/.exec(location.hash);
+  try { return m ? decodeURIComponent(m[1]) : null; } catch { return m[1]; } // a malformed escape is kept as typed
+};
+// The grid's groups, in order. A deal won or lost in the picked period is "closed"; otherwise it goes by its status in
+// the anchor week, or by its last mention before it.
+const CLOSED = new Set(['Won', 'Lost']);
+const GROUPS = [
+  { key: 'closed', title: (p) => `Won or lost in ${p.period}` },
+  { key: 'live', title: (p) => `Live in ${p.week}` },
+  { key: 'dropped', title: (p) => `Not in the ${p.week} report` },
+  { key: 'earlier', title: () => 'Closed earlier' },
+  { key: 'later', title: (p) => `Not in the reports yet by ${p.week}` },
+];
+const folded = new Set(['earlier', 'later']); // folded until their title is clicked; a search or status filter opens all
+function placeDeal(d, periodWeeks, weeks, at) {
+  const closedAt = [...periodWeeks].reverse().find((w) => CLOSED.has(d.cells[w]?.status));
+  let last = null;
+  for (let i = at; i >= 0 && !last; i--) last = d.cells[weeks[i]] ?? null;
+  const group = closedAt ? 'closed' : d.now ? 'live' : !last ? 'later' : CLOSED.has(last.status) ? 'earlier' : 'dropped';
+  // The cell the row speaks for: the closing week, else the latest mention up to the anchor.
+  const cell = closedAt ? d.cells[closedAt] : last;
+  return { ...d, group, cell, shown: cell && (group === 'closed' || group === 'live') ? cell.status : null };
+}
+let gridSig, scrolled = false, gridIntroDone = false;
+function renderGrid() {
+  const failed = [q.weeks, q.grid].find((x) => x.state === 'error');
+  const stateEl = document.getElementById('grid-state');
+  const table = document.getElementById('deals');
+  if (failed) { status(failed, 'grid-state', ''); table.innerHTML = ''; gridSig = null; return; }
+  if (loading(q.grid) || loading(q.weeks)) {
+    stateEl.textContent = '';
+    table.innerHTML = `<tbody><tr><td style="width:600px">${'<span class="skel skel-row"></span>'.repeat(8)}</td></tr></tbody>`;
+    gridSig = null;
+    return;
+  }
+  const { cur } = selected();
+  const term = searchEl.value.trim().toLowerCase();
+  const sig = [q.grid.result, q.weeks.result, q.reps.result, statusEl.value, term, mode, cur?.key, openSlug(), [...folded].join()];
+  if (gridSig && sig.every((x, i) => x === gridSig[i])) return;
+  gridSig = sig;
+
+  const anchor = anchorWeek();
+  const { weeks, seq } = deals();
+  const periodWeeks = cur ? cur.weeks.map((r) => r.week) : [];
+  const rows = asOf(anchor).map((d) => placeDeal(d, periodWeeks, weeks, seq[anchor]))
+    .filter((d) => (!statusEl.value || d.shown === statusEl.value) && (!term || d.name.toLowerCase().includes(term)));
+  const filtering = statusEl.value || term || ownerEl.value;
+  stateEl.textContent = rows.length ? '' : filtering ? 'No deals match' : 'No deals in the reports yet';
+  if (!rows.length) { table.innerHTML = ''; return; }
+
+  const sel = new Set(periodWeeks);
+  const month = Object.fromEntries(q.weeks.result.rows.map((r) => [r.week, day(r.month)]));
+  const off = new Set(q.weeks.result.rows.filter((r) => isFalse(r.counts_ok)).map((r) => r.week));
+  const months = [];
+  for (const w of weeks) {
+    if (months.at(-1)?.m === month[w]) months.at(-1).n++; else months.push({ m: month[w], n: 1 });
+  }
+  const open = openSlug();
+  const head = `<thead><tr class="months"><th class="who" rowspan="2">${plural(rows.length, 'deal')}</th>${
+    months.map((g) => `<th colspan="${g.n}">${esc(g.n >= 2 ? monthName(g.m, { month: 'short' }) : '')}</th>`).join('')}</tr>
+    <tr class="weeks">${weeks.map((w) => `<th class="${sel.has(w) ? 'sel' : ''}${off.has(w) ? ' off' : ''}" title="${esc(w)}${off.has(w) ? ": doesn't match the report's own counts" : ''}">${esc(wk(w).slice(1))}</th>`).join('')}</tr></thead>`;
+  const names = { period: esc(mode === 'week' ? wk(anchor) : longMonth(cur)), week: esc(wk(anchor)) };
+  const searching = statusEl.value || term;
+  const intro = !gridIntroDone && !still();
+  let rowAt = 0;
+  const row = (d) => {
+    const y = Math.min(rowAt++, 24);
+    const c = d.cell;
+    const chipHtml = d.shown ? `<span class="chip ${CLASS[d.shown] ?? 's-quiet'}">${esc(d.shown)}</span>`
+      : c ? `<span class="chip ${CLASS[c.status] ?? 's-quiet'}" style="opacity:.5" title="Last: ${esc(c.status)} in ${esc(wk(c.week))}">${esc(c.status)}</span>`
+      : '<span class="chip s-none">Not yet</span>';
+    const said = c?.first_sentence ? `${c.week !== anchor ? `${wk(c.week)}: ` : ''}${plain(c.first_sentence)}` : '';
+    const cells = weeks.map((w) => {
+      const x = d.cells[w];
+      return `<td class="c${sel.has(w) ? ' sel' : ''}${w === anchor ? ' now' : ''}"><i class="${x ? CLASS[x.status] ?? 's-quiet' : 's-none'}"${x ? ` data-w="${esc(w)}"` : ''}${
+        intro ? ` style="--x:${weeks.indexOf(w)};--y:${y}"` : ''}></i></td>`;
+    }).join('');
+    const label = `${d.name}, ${d.owner ?? 'no owner'}, ${d.shown ?? (c ? `last ${c.status} in ${wk(c.week)}` : 'not mentioned yet')} as of ${wk(anchor)}`;
+    return `<tr data-slug="${esc(d.slug)}" tabindex="0" aria-label="${esc(label)}"${d.slug === open ? ' class="open"' : ''}>
+      <td class="who"><div class="who-in" data-name="${esc(d.name)}" data-owner="${esc(d.owner ?? '')}" data-said="${esc(said)}"><span class="nm">${esc(d.name)}</span>${avatar(d.owner)}<span>${chipHtml}</span></div></td>${cells}</tr>`;
+  };
+  const body = GROUPS.map((g) => {
+    const members = rows.filter((d) => d.group === g.key);
+    if (!members.length) return '';
+    const shut = folded.has(g.key) && !searching;
+    return `<tr class="grp"><td class="who"><button type="button" data-group="${g.key}" aria-expanded="${!shut}"><span class="caret">▾</span>${
+      g.title(names)} <span class="n">${members.length}</span></button></td><td class="rest" colspan="${weeks.length}"></td></tr>${
+      shut ? '' : members.map(row).join('')}`;
+  }).join('');
+  table.innerHTML = head + `<tbody>${body}</tbody>`;
+  if (intro) {
+    gridIntroDone = true;
+    table.classList.add('intro');
+    setTimeout(() => table.classList.remove('intro'), 2200);
+  }
+  fitCells();
+  const scroller = document.getElementById('scroller');
+  if (!scrolled && scroller.clientWidth) { // newest weeks on screen on load (once the grid is shown, after a deep link)
+    scroller.scrollLeft = scroller.scrollWidth;
+    scrolled = true;
+  }
+}
+// Where the live deals are: the anchor week's live deals by status, as one bar. A segment filters the grid to it.
+const LIVE = ['New', 'Good progress', 'Also moving', 'Stuck', 'Quiet', 'Close-lost due'];
+let pipeSig;
+// The row for the status picked in the grid's filter is marked in place, so picking one doesn't redraw (and replay) the list.
+function markPipeline() {
+  for (const b of document.querySelectorAll('#pipe-bar button[data-status]')) { // the stacked bar's segments and its legend
+    const on = statusEl.value === b.dataset.status;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  }
+}
+function renderPipeline() {
+  const failed = [q.weeks, q.grid].find((x) => x.state === 'error');
+  const anchor = anchorWeek();
+  const sig = [q.grid.result, q.weeks.result, failed, anchor, selected().prev?.key];
+  if (pipeSig && sig.every((x, i) => x === pipeSig[i])) { markPipeline(); return; }
+  pipeSig = sig;
+  const bar = document.getElementById('pipe-bar');
+  if (failed || loading(q.grid) || loading(q.weeks) || !anchor) {
+    set('pipe-title', 'Where the live deals are');
+    bar.innerHTML = '';
+    set('pipe-keys', failed ? `<span class="bad">Couldn't load ${esc(failed.name)}</span>` : '');
+    return;
+  }
+  // This period's live deals by status, and the previous period's (the week before, or the month before) for the change.
+  const countAt = (week) => {
+    const c = Object.fromEntries(LIVE.map((st) => [st, 0]));
+    if (week) for (const d of deals().list) { const st = d.cells[week]?.status; if (st in c) c[st]++; }
+    return c;
+  };
+  const now = countAt(anchor), prevWeek = selected().prev?.weeks.at(-1).week ?? null, before = prevWeek ? countAt(prevWeek) : null;
+  const total = LIVE.reduce((n, st) => n + now[st], 0), prevTotal = before ? LIVE.reduce((n, st) => n + before[st], 0) : null;
+  const rows = LIVE.filter((st) => now[st] > 0 || before?.[st] > 0);
+  const vs = selected().prev ? selected().prev.short : '';
+  const mx = Math.max(1, ...rows.map((st) => now[st]));
+  set('pipe-title', total ? `Where the ${plural(total, 'live deal')} ${total === 1 ? 'is' : 'are'} in ${esc(wk(anchor))}` : `No live deals in ${esc(wk(anchor))}`);
+  const seg = (st) => `<button type="button" class="seg ${CLASS[st]}" data-status="${esc(st)}" style="flex:${now[st]}"
+    title="${esc(st)}: ${now[st]} of ${total}. Click to show only these deals in the grid" aria-pressed="false" aria-label="${esc(`${st}: ${now[st]} of ${total}`)}"><span>${now[st]}</span></button>`;
+  const leg = (st) => {
+    const c = now[st], d = before ? c - before[st] : null;
+    const delta = d === null ? '' : d === 0 ? '<span class="pd flat">±0</span>' : `<span class="pd" title="${esc(`${d > 0 ? '+' : '−'}${Math.abs(d)} vs ${vs}`)}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)}</span>`;
+    return `<button type="button" class="lg${c === 0 ? ' zero' : ''}" data-status="${esc(st)}" ${c === 0 ? 'disabled' : ''} aria-pressed="false"
+      title="${esc(st)}: ${c} of ${total}. Click to show only these deals in the grid"><i class="${CLASS[st]}"></i><b>${esc(st)}</b>
+      <span class="lv"><em>${c}</em> <span class="pc">${total ? Math.round((c / total) * 100) : 0}%</span> ${delta}</span></button>`;
+  };
+  bar.innerHTML = `<div class="stack" role="group" aria-label="Live deals by status">${rows.filter((st) => now[st] > 0).map(seg).join('')}</div>
+    <div class="legend3">${rows.map(leg).join('')}</div>${prevTotal !== null ? `<div class="pipe-note">Change compared with ${esc(vs)}</div>` : ''}`;
+  set('pipe-keys', '');
+  markPipeline();
+}
+document.getElementById('pipe-bar').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-status]');
+  if (!b) return;
+  statusEl.value = statusEl.value === b.dataset.status ? '' : b.dataset.status;
+  statusEl.dispatchEvent(new Event('change'));
+});
+// Hover a cell: the week, the status, then the first sentence of that week's paragraph.
+const tip = document.getElementById('tip');
+const table = document.getElementById('deals');
+table.addEventListener('mouseover', (e) => {
+  const who = e.target.closest('.who-in[data-name]');
+  if (who) {
+    const { name, owner, said } = who.dataset;
+    showTip(who, `<b>${esc(name)}${owner ? ` · ${esc(owner)}` : ''}</b>${said ? `<span>${esc(said)}</span>` : ''}`);
+    return;
+  }
+  const cell = e.target.closest('i[data-w]');
+  const tr = cell?.closest('tr[data-slug]');
+  if (!cell || !tr) { tip.hidden = true; return; }
+  const r = dealsCache.list.find((d) => d.slug === tr.dataset.slug)?.cells[cell.dataset.w];
+  if (!r) { tip.hidden = true; return; }
+  showTip(cell, `<b>${esc(wk(r.week))} · ${esc(r.status)}</b>${r.first_sentence ? `<span>${esc(plain(r.first_sentence))}</span>` : ''}`);
+});
+// The tooltip, above the element (below it when there's no room).
+function showTip(el, html) {
+  tip.innerHTML = html;
+  tip.hidden = false;
+  const box = el.getBoundingClientRect();
+  const left = Math.min(Math.max(8, box.left + box.width / 2 - tip.offsetWidth / 2), window.innerWidth - tip.offsetWidth - 8);
+  const above = box.top - tip.offsetHeight - 6;
+  tip.style.left = `${left}px`;
+  tip.style.top = `${above >= 4 ? above : box.bottom + 6}px`;
+}
+table.addEventListener('mouseleave', () => { tip.hidden = true; });
+document.getElementById('scroller').addEventListener('scroll', () => { tip.hidden = true; });
+// Click a deal: deep-link it. The deal page reads #deal=<slug>. Click a group's title: fold or unfold it.
+let fromGrid = false; // the deal page was opened from the grid, so going back is a history step
+// ref: the quote or feedback item to highlight on the deal page ({kind: 'quote' | 'feedback', id}), or null.
+let focusRef = null;
+function openDeal(el, ref = null) {
+  focusRef = ref;
+  fromGrid = true;
+  location.hash = `deal=${encodeURIComponent(el.dataset.slug)}`;
+}
+table.addEventListener('click', (e) => {
+  const g = e.target.closest('button[data-group]');
+  if (g) {
+    if (g.getAttribute('aria-expanded') === 'true') folded.add(g.dataset.group); else folded.delete(g.dataset.group);
+    render();
+    document.querySelector(`#deals button[data-group="${g.dataset.group}"]`)?.focus({ preventScroll: true });
+    return;
+  }
+  const tr = e.target.closest('tbody tr[data-slug]');
+  if (tr) openDeal(tr);
+});
+table.addEventListener('keydown', (e) => {
+  const tr = e.target.closest('tbody tr[data-slug]');
+  if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openDeal(tr); }
+});
+window.addEventListener('hashchange', () => {
+  const closed = syncDeal();
+  render();
+  // Back on the grid: focus the deal's row again (after render, which may redraw the rows).
+  if (closed) document.querySelector(`#deals tr[data-slug="${CSS.escape(closed)}"]`)?.focus({ preventScroll: true });
+});
+
+// ---- Deal page ----
+// Shown in place of the grid while the hash is #deal=<slug>. The grid stays drawn underneath, so going back keeps
+// its filters and scroll. Browser back works because opening a deal is a hash change.
+const dealPage = document.getElementById('deal-page');
+let shownSlug = null, gridScrollY = 0;
+// Shows the deal page or the grid to match the hash. Returns the slug of a deal page it just closed.
+function syncDeal() {
+  const slug = openSlug();
+  if (slug === shownSlug) return null;
+  tip.hidden = true;
+  if (slug === null) {
+    const was = shownSlug;
+    shownSlug = null;
+    focusRef = null;
+    fromGrid = false; // a later deep link's back control clears the hash rather than leaving the app's history
+    dealPage.hidden = true;
+    document.getElementById('grid-header').hidden = false;
+    document.getElementById('grid-view').hidden = false;
+    window.scrollTo(0, gridScrollY);
+    return was;
+  }
+  if (shownSlug === null) gridScrollY = window.scrollY;
+  closePop();
+  shownSlug = slug;
+  for (const name of DEAL_PAGE) need(name);
+  f.deal.setCondition({ operator: 'is', values: [slug] });
+  app.execute();
+  document.getElementById('grid-header').hidden = true;
+  document.getElementById('grid-view').hidden = true;
+  dealPage.hidden = false;
+  window.scrollTo(0, 0);
+  document.getElementById('deal-back').focus({ preventScroll: true });
+}
+function closeDeal() {
+  if (fromGrid) { fromGrid = false; history.back(); } else location.hash = '';
+}
+document.getElementById('deal-back').addEventListener('click', closeDeal);
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (popKey !== null) { const key = popKey; closePop(); popButton(key)?.focus(); } else if (shownSlug !== null) closeDeal();
+});
+
+// ---- Contact rules ----
+// Key contacts are a markdown table: the first column holds "**Name** · Role · last heard 2026-09-25 (25d) · 45
+// interactions", the others a header each (Research, Notes, Role, Email…). Each row becomes a contact: its name, role,
+// labelled facts, a note and leftover tags. null when the text isn't a table, so the page shows it as written.
+const cellText = (s) => String(s ?? '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\*\*|__|`/g, '').replace(/\s+/g, ' ').trim();
+function contactsFrom(text) {
+  const rows = String(text ?? '').split('\n').map((l) => l.trim()).filter((l) => l.startsWith('|'));
+  if (rows.length < 2 || !/^\|?[\s:|-]+\|?$/.test(rows[1])) return null;
+  const cells = (l) => l.replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
+  const head = cells(rows[0]).map((h) => cellText(h).toLowerCase());
+  return rows.slice(2).map((l) => {
+    const row = cells(l);
+    const first = row[0] ?? '';
+    const bold = /\*\*(.+?)\*\*/.exec(first);
+    const parts = (bold ? first.replace(bold[0], '') : first).split('·').map(cellText);
+    const c = { name: cellText(bold ? bold[1] : parts.shift()), role: null, facts: [], note: null, tags: [] };
+    for (const part of parts) {
+      let m;
+      if (!part || part === '—' || part === '-') continue;
+      if ((m = /^last heard\s+(\d{4}-\d{2}-\d{2})(?:\s*\((\d+)d\))?/i.exec(part))) c.facts.push({ label: 'Last heard', date: m[1], days: m[2] ? Number(m[2]) : null });
+      else if ((m = /^first seen\s+(\d{4}-\d{2}-\d{2})/i.exec(part))) c.facts.push({ label: 'First seen', date: m[1] });
+      else if ((m = /^(\d[\d,]*)\s+interactions?$/i.exec(part))) c.facts.push({ label: 'Interactions', value: m[1] });
+      else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(part)) c.facts.push({ label: 'Email', value: part });
+      else if (c.role === null) c.role = part;
+      else c.tags.push(part);
+    }
+    head.slice(1).forEach((h, i) => {
+      const v = cellText(row[i + 1]);
+      if (!v || v === '—') return;
+      if (/^(role|title)$/.test(h)) c.role ??= v;
+      else if (/^(research|notes?)$/.test(h)) c.note = (row[i + 1] ?? '').trim();
+      else c.facts.push({ label: h.charAt(0).toUpperCase() + h.slice(1), value: v });
+    });
+    return c;
+  }).filter((c) => c.name);
+}
+const initials = (name) => name.split(/\s+/).filter((w) => /^[A-Za-zÀ-ÿ]/.test(w)).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
+// ---- end Contact rules ----
+const CONTACTS_SHOWN = 4;
+const FEEDBACK_SHOWN = 4;
+// A contact in three lines: who they are, one line of facts, and the research note cut to two lines (a click opens it).
+function contactHtml(c) {
+  const fact = (f) => f.label === 'Last heard' ? `Last heard ${esc(shortDate(f.date))}${f.days !== null && f.days !== undefined ? `, ${f.days}d ago` : ''}`
+    : f.label === 'First seen' ? `First seen ${esc(shortDate(f.date))}`
+    : f.label === 'Interactions' ? `${esc(f.value)} interaction${f.value === '1' ? '' : 's'}`
+    : f.label === 'Email' ? `<span class="c-mail">${esc(f.value)}</span>` : `${esc(f.label)}: ${esc(f.value)}`;
+  const line = [...c.facts.map(fact), ...c.tags.map(esc)].join(' · ');
+  return `<article class="contact">
+    <div class="c-head"><span class="c-av" aria-hidden="true">${esc(initials(c.name))}</span>
+      <span class="c-who"><b>${esc(c.name)}</b>${c.role ? `<span class="c-role">${esc(c.role)}</span>` : ''}</span></div>
+    ${line ? `<p class="c-line">${line}</p>` : ''}
+    ${c.note ? `<p class="c-note" title="Click to read it all">${esc(cellText(c.note))}</p>` : ''}
+  </article>`;
+}
+
+// A result is the open deal's once its query has run with the current slug.
+const fresh = (query) => query?.state === 'success' && !query.isDirty;
+const dateFmt = (v, withYear) => new Date(`${day(v)}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(withYear ? { year: 'numeric' } : {}), timeZone: 'UTC' });
+const shortDate = (v) => dateFmt(v, day(v).slice(0, 4) !== String(new Date().getUTCFullYear()));
+const chip = (s) => (s === null ? '<span class="chip s-none">Not mentioned</span>' : `<span class="chip ${CLASS[s] ?? 's-quiet'}">${esc(s)}</span>`);
+
+// ---- Deal rules ----
+// "€2,500/mo": the currency and period when the deal file gives them, else the bare number.
+function amountText(d) {
+  if (d.amount === null) return '—';
+  const cur = d.currency ? (/[A-Za-z]$/.test(d.currency) ? `${d.currency} ` : d.currency) : '';
+  return `${cur}${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(d.amount)}${d.period ? `/${d.period}` : ''}`;
+}
+// The trial tile shows only for a real trial: the deal file says "none" for a deal that never had one.
+const hasTrial = (d) => d.trial_status !== null && d.trial_status.trim().toLowerCase() !== 'none';
+// Age in days from deal_created (else first_call): to today, or to close_date once the deal is closed (its stage
+// says closed/won/lost, or its latest week is Won or Lost). Never negative. null when there's no start date.
+function dealAge(d, latestStatus, now = Date.now()) {
+  const since = d.created ?? d.first_call;
+  if (!since) return null;
+  const at = (v) => Date.parse(`${String(v).slice(0, 10)}T00:00:00Z`);
+  const closed = !!d.close_date && (/closed|won|lost/i.test(d.stage ?? '') || latestStatus === 'Won' || latestStatus === 'Lost');
+  return { days: Math.max(0, Math.floor(((closed ? at(d.close_date) : now) - at(since)) / 86400000)), closed };
+}
+// ---- end Deal rules ----
+
+// "High (~70%)": the percentage large, the words under it. Text with no percentage is shown as it is.
+function winParts(text) {
+  if (!text) return { val: '—', sub: '' };
+  const m = /~?\d+(?:\.\d+)?\s?%/.exec(text);
+  if (!m) return { val: null, sub: text };
+  const rest = text.replace(m[0], '').replace(/\(\s*\)/g, '').replace(/^[\s—–:;-]+|[\s—–:;-]+$/g, '');
+  return { val: m[0].replace(/\s/g, ''), sub: rest };
+}
+// The headline's words for a status: "Hallio is making good progress."
+const PHRASE = {
+  Won: ['was', 'won'], Lost: ['was', 'lost'], 'Close-lost due': ['is', 'due to close as lost'], New: ['is a', 'new prospect'],
+  'Good progress': ['is making', 'good progress'], Stuck: ['is', 'stuck'], 'Also moving': ['is', 'moving'], Quiet: ['has gone', 'quiet'],
+};
+const tint = (s) => `t-${(CLASS[s] ?? 's-quiet').slice(2)}`;
+// The deal in the anchor week, and its last mention up to then. weeks: newest first.
+function dealAt(weeks, anchor) {
+  const seq = n(q.weeks.result?.rows.find((r) => r.week === anchor)?.week_seq);
+  return { now: weeks.find((r) => r.week === anchor) ?? null, last: weeks.find((r) => n(r.week_seq) <= seq) ?? null };
+}
+function dealHeadline(name, weeks, anchor) {
+  const { now, last } = dealAt(weeks, anchor);
+  const when = anchor === latestWeek() ? '' : ` in ${esc(wk(anchor))}`;
+  if (now) {
+    const [verb, word] = PHRASE[now.status] ?? ['is', now.status.toLowerCase()];
+    return `${esc(name)} ${verb} <em class="${tint(now.status)}">${esc(word)}</em>${when}.`;
+  }
+  return last ? `${esc(name)} wasn't in the ${esc(wk(anchor))} report.` : `${esc(name)} isn't in the reports yet by ${esc(wk(anchor))}.`;
+}
+// "up from 40% in W40": the latest week's win % against the week before it that gave one.
+function winTrend(weeks) {
+  const pts = weeks.filter((r) => r.win_pct !== null);
+  if (pts.length < 2) return '';
+  const [a, b] = [n(pts[0].win_pct), n(pts[1].win_pct)];
+  return a === b ? `same as in ${esc(wk(pts[1].week))}` : `${a > b ? 'up' : 'down'} from ${b}% in ${esc(wk(pts[1].week))}`;
+}
+// weeks: the deal's weeks (newest first), null while loading, 'error' when they couldn't load.
+function renderDealTiles(d, weeks) {
+  if (!d) {
+    for (const key of ['win', 'amount', 'age', 'trial']) { set(`dt-${key}`, '<span class="skel"></span>'); set(`ds-${key}`, ''); }
+    return;
+  }
+  const win = winParts(d.win_text);
+  const winEl = document.getElementById('dt-win');
+  winEl.classList.toggle('txt', win.val === null);
+  winEl.innerHTML = win.val === null ? mdInline(win.sub) : esc(win.val);
+  const trend = Array.isArray(weeks) ? winTrend(weeks) : '';
+  set('ds-win', [win.val !== null && win.sub ? mdInline(win.sub) : '', trend].filter(Boolean).join(' · ') || (win.val === null ? '' : 'from the deal file'));
+  set('dt-amount', esc(amountText(d)));
+  set('ds-amount', d.amount === null ? 'not in the deal file' : d.period ? 'from the deal file' : 'from the deal file, no period given');
+  const age = dealAge(d, Array.isArray(weeks) ? weeks[0]?.status : undefined);
+  set('dt-age', age ? plural(age.days, 'day') : '—');
+  const since = d.created ?? d.first_call;
+  set('ds-age', !age ? 'no created or first-call date' : [
+    `${d.created ? 'created' : 'first call'} ${esc(shortDate(since))}`,
+    age.closed ? `closed ${esc(shortDate(d.close_date))}` : d.close_date ? `close date ${esc(shortDate(d.close_date))}` : '',
+  ].filter(Boolean).join(age.closed ? ' → ' : ' · '));
+  // Trial: builders and expiry, hidden when the deal file has no trial (null or "none").
+  const trial = hasTrial(d);
+  document.getElementById('deal-trial').hidden = !trial;
+  document.getElementById('deal-tiles').style.setProperty('--n', trial ? 4 : 3);
+  if (trial) {
+    set('dt-trial', d.trial_builders !== null ? plural(n(d.trial_builders), 'builder') : esc(d.trial_status));
+    const expiry = d.trial_expiry ? `${Date.parse(`${day(d.trial_expiry)}T23:59:59Z`) < Date.now() ? 'expired' : 'expires'} ${esc(shortDate(d.trial_expiry))}` : 'no expiry date';
+    set('ds-trial', expiry.startsWith(d.trial_status) ? expiry : `${esc(d.trial_status)} · ${expiry}`); // not "expired · expired 19 Oct"
+  }
+}
+// Win chance by week: the weeks whose paragraph gives a ~NN%, oldest on the left, as one line on 0–100%. Each dot is
+// coloured by that week's status; the latest is labelled, the rest show on hover.
+function renderWinChart(weeks) {
+  const el = document.getElementById('d-chart');
+  if (weeks === 'error') { el.innerHTML = '<div class="empty">Couldn\'t load the weeks</div>'; return; }
+  if (!weeks) { el.innerHTML = '<span class="skel skel-row"></span>'; return; }
+  const pts = weeks.filter((r) => r.win_pct !== null).reverse();
+  if (!pts.length) { el.innerHTML = '<div class="empty">No week gives a win % yet</div>'; return; }
+  const W = 320, H = 124, L = 32, R = 16, T = 18, B = 22;
+  const lastI = pts.length - 1, step = Math.ceil(pts.length / 7);
+  const x = (i) => (lastI === 0 ? (L + W - R) / 2 : L + (i * (W - L - R)) / lastI);
+  const y = (v) => T + ((100 - Math.max(0, Math.min(100, v))) / 100) * (H - T - B);
+  const label = pts.map((r) => `${wk(r.week)} ${n(r.win_pct)}%`).join(', ');
+  const grid = [100, 50, 0].map((v) => `<line class="${v ? 'grid' : 'base'}" x1="${L}" x2="${W - R / 2}" y1="${y(v)}" y2="${y(v)}"/>
+    <text x="${L - 7}" y="${y(v) + 3.5}" text-anchor="end">${v}%</text>`).join('');
+  const line = `<polyline class="ln" points="${pts.map((r, i) => `${x(i)},${y(n(r.win_pct))}`).join(' ')}"/>`;
+  const dots = pts.map((r, i) => `<circle class="${CLASS[r.status] ?? 's-quiet'}" cx="${x(i)}" cy="${y(n(r.win_pct))}" r="${i === lastI ? 5.5 : 4.5}"
+    data-tip="${esc(`${wk(r.week)} · ${n(r.win_pct)}% · ${r.status}`)}"/>`).join('');
+  const ticks = pts.map((r, i) => (i === lastI || (i % step === 0 && lastI - i >= step)
+    ? `<text x="${x(i)}" y="${H - 5}" text-anchor="middle">${esc(wk(r.week))}</text>` : '')).join('');
+  const last = pts[lastI];
+  const value = `<text class="v" x="${x(lastI)}" y="${y(n(last.win_pct)) - 10}" text-anchor="middle">${n(last.win_pct)}%</text>`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(`Win chance by week: ${label}`)}">${grid}${line}${dots}${ticks}${value}</svg>`;
+}
+document.getElementById('d-chart').addEventListener('mouseover', (e) => {
+  const dot = e.target.closest('[data-tip]');
+  if (dot) showTip(dot, `<b>${esc(dot.dataset.tip)}</b>`); else tip.hidden = true;
+});
+document.getElementById('d-chart').addEventListener('mouseleave', () => { tip.hidden = true; });
+// ---- Summary rules ----
+// The deal page shows each long text short first: its opening sentences as plain text, the full text a click away.
+// Plain text drops the markdown marks (a link keeps its label), so a cut can't leave a mark open.
+const plainMd = (s) => String(s ?? '')
+  .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+  .replace(/\*\*|__|`/g, '')
+  .replace(/(^|[\s(])[*_](?=\S)|(?<=\S)[*_](?=[\s).,;:!?]|$)/g, '$1')
+  .replace(/^\s*(?:[-*+]|\d+[.)]|>|#+)\s+/gm, '')
+  .replace(/\s+/g, ' ')
+  .replace(/^[\s.,;:–—-]+/, '')
+  .trim();
+const sentences = (s) => plainMd(s).split(/(?<=[.!?])\s+(?=["“'(]*[A-Z0-9])/).filter(Boolean);
+// The first `count` sentences, cut at a word near `max` characters when they run long.
+function lead(text, count = 1, max = 220) {
+  const s = sentences(text).slice(0, count).join(' ');
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), Math.floor(max * 0.6))).replace(/[\s,;:–—-]+$/, '')}…`;
+}
+// A week's paragraph as two lines: its opening sentence, and what its "**Next:**" part says happens next.
+function weekLead(text) {
+  const t = String(text ?? '');
+  const i = t.search(/\*\*Next:?\*\*|(?:^|\s)Next:\s/);
+  return i === 0 ? '' : lead(i > 0 ? t.slice(0, i) : t);
+}
+function nextLine(text) {
+  const m = /\*\*Next:?\*\*:?\s*([\s\S]+)|(?:^|\s)Next:\s+([\s\S]+)/.exec(String(text ?? ''));
+  return m ? lead(m[1] ?? m[2], 1, 180) : '';
+}
+// Next steps as a short list: the first sentence of each top-level item. Text that isn't a list gives its opening.
+function stepLeads(text) {
+  const items = String(text ?? '').split('\n').map((l) => /^(?:[-*+]|\d+[.)])\s+(.*)$/.exec(l)?.[1]).filter(Boolean);
+  return items.length ? items.map((it) => lead(it, 1, 140)) : [lead(text, 2, 260)].filter(Boolean);
+}
+// Text with something to read once a table's header row, its separator and --- rules are gone: a contacts section
+// that is only an empty table reads as none.
+const hasText = (text) => !!plainMd(String(text ?? '')
+  .replace(/^.*\|.*\n\s*\|?\s*:?-{2,}[-:|\s]*$/m, '')
+  .replace(/^\s*([-*_])(\s*\1){2,}\s*$/gm, '')
+  .replace(/\|/g, ' '));
+// The short version leaves something out: worth a "Read more".
+const clipped = (text, shown) => plainMd(text).length > plainMd(shown).length + 15;
+// ---- end Summary rules ----
+const expandHtml = (short, full) => `<div class="expand"><div class="short">${short}</div><div class="full">${full}</div>
+  <button type="button" class="more" aria-expanded="false">Read more</button></div>`;
+document.getElementById('deal-page').addEventListener('click', (e) => {
+  const note = e.target.closest('.c-note');
+  if (note) { note.classList.toggle('open'); return; }
+  const other = e.target.closest('button.deal-link');
+  if (other) { openDeal(other); return; }
+  const b = e.target.closest('button.more');
+  if (!b) return;
+  if (b.hasAttribute('data-older')) { document.getElementById('d-weeks').classList.add('all'); return; }
+  if (b.hasAttribute('data-contacts')) { b.closest('.contacts').classList.add('all'); b.remove(); return; }
+  if (b.hasAttribute('data-feedback')) { b.closest('.fb-list').classList.add('all'); return; }
+  toggleMore(b);
+});
+function toggleMore(b) {
+  const open = b.closest('.expand').classList.toggle('open');
+  b.setAttribute('aria-expanded', String(open));
+  b.textContent = open ? 'Show less' : 'Read more';
+}
+// The story so far: one entry per report week (newest first), with a note where the deal skipped reports. The latest
+// STORY_WEEKS show; the earlier ones fold behind a button.
+const STORY_WEEKS = 4;
+// quote: the {week, text} to highlight, or null. Its week shows in full with the quote marked (the whole entry when the
+// rendering split the quote), and unfolds the earlier weeks when it is one of them.
+function storyHtml(weeks, quote) {
+  const older = weeks.length - STORY_WEEKS;
+  return weeks.map((r, i) => {
+    const before = weeks[i + 1];
+    const skipped = before ? n(r.week_seq) - n(before.week_seq) - 1 : 0;
+    const head = weekLead(r.paragraph), next = nextLine(r.paragraph);
+    const short = `${head ? `<p class="sum">${esc(head)}</p>` : ''}${next ? `<p class="next"><b>Next</b>${esc(next)}</p>` : ''}`;
+    const hit = quote && r.week === quote.week && r.paragraph;
+    const marked = hit ? markQuote(md(r.paragraph), quote.text) : null;
+    const text = !r.paragraph ? '<p class="sum empty">No paragraph</p>'
+      : hit ? `<div class="md">${marked ?? md(r.paragraph)}</div>`
+      : clipped(r.paragraph, `${head} ${next}`) ? expandHtml(short, `<div class="md">${md(r.paragraph)}</div>`) : `<div class="md">${md(r.paragraph)}</div>`;
+    const names = [i >= STORY_WEEKS ? 'older' : '', hit ? 'hit' : '', hit && !marked ? 'whole' : ''].filter(Boolean);
+    const cls = names.length ? ` class="${names.join(' ')}"` : '';
+    return `${i === STORY_WEEKS ? `<li class="older-toggle"><span></span><span class="rail"></span><div class="body">
+      <button type="button" class="more" data-older>Show ${plural(older, 'earlier week')}</button></div></li>` : ''}<li${cls}><span class="w">${esc(wk(r.week))}</span>
+      <span class="rail"><i class="dot ${CLASS[r.status] ?? 's-quiet'}"></i></span>
+      <div class="body">${chip(r.status)}${text}</div></li>${
+      skipped > 0 ? `<li class="gap${i >= STORY_WEEKS - 1 ? ' older' : ''}"><span class="w"></span><span class="rail"></span><div class="body">Not in the reports for ${plural(skipped, 'week')}</div></li>` : ''}`;
+  }).join('');
+}
+
+let dealSig;
+function renderDeal() {
+  // Declaring a query notifies subscribers at once, so render can run while need() is still declaring them.
+  if (shownSlug === null || !DEAL_PAGE.every((name) => q[name])) { dealSig = null; return; }
+  const info = q.dealInfo, weeksQ = q.dealWeeks;
+  // Redraw only when something the page shows changed: the SDK notifies on every state change of any query.
+  const fbQ = q.dealFeedback;
+  const sig = [shownSlug, dealPage.hidden, focusRef, focusRef?.scrolled, anchorWeek(), q.weeks.result, q.weeks.state, q.reps.result, q.quotes.result, q.repeatedFeedback.result,
+    ...[info, weeksQ, fbQ].flatMap((x) => [x.result, x.state, x.isDirty])];
+  if (dealSig && sig.every((x, i) => x === dealSig[i])) return;
+  dealSig = sig;
+
+  const failed = [info, weeksQ, q.weeks].filter((x) => x.state === 'error');
+  const d = fresh(info) ? info.result.rows[0] ?? null : undefined; // undefined: loading, null: no such deal
+  const weeks = weeksQ.state === 'error' ? 'error' : fresh(weeksQ) ? weeksQ.result.rows : null;
+  const stateEl = document.getElementById('deal-state');
+  stateEl.classList.toggle('error', failed.length > 0);
+  stateEl.textContent = failed.length ? failed.map((x) => `Couldn't load ${x.name}: ${x.error.message}`).join(' · ')
+    : d === null ? `No deal “${shownSlug}” in the reports.` : '';
+  const missing = d === null || info.state === 'error';
+  for (const id of ['deal-tiles', 'deal-mid', 'deal-rows']) document.getElementById(id).hidden = missing;
+
+  const anchor = anchorWeek();
+  const name = d ? d.name ?? d.slug : d === null ? shownSlug : '';
+  const ready = Array.isArray(weeks) && anchor && q.weeks.result;
+  set('deal-crumb', anchor ? `HollyDeals · ${esc(anchor)}` : 'HollyDeals');
+  set('deal-name', d && ready ? dealHeadline(name, weeks, anchor) : esc(name));
+  const at = ready ? dealAt(weeks, anchor) : null;
+  const mentions = Array.isArray(weeks) && weeks.length ? `in ${plural(weeks.length, 'report')} since ${wk(weeks.at(-1).week)}` : null;
+  const lastSeen = at && !at.now && at.last ? `last: ${at.last.status} in ${wk(at.last.week)}` : null;
+  set('deal-owner', d ? `${avatar(d.owner)}${esc(d.owner ?? 'No owner')}` : '');
+  const meta = d ? [d.stage ? `stage: ${d.stage}` : null, d.health ? `health: ${d.health}` : null, lastSeen, mentions] : [];
+  set('deal-meta', meta.filter(Boolean).map(esc).join(' · '));
+  document.getElementById('deal-meta').title = meta.filter(Boolean).join(' · ');
+  if (missing) return;
+
+  renderDealTiles(d, weeks);
+  const gist = d?.assessment ? lead(d.assessment, 2, 320) : '';
+  set('d-assessment', d === undefined ? '<span class="skel skel-row"></span>' : !d.assessment ? '<span class="empty">No assessment in the deal file</span>'
+    : clipped(d.assessment, gist) ? expandHtml(`<p class="side-sum">${esc(gist)}</p>`, md(d.assessment)) : md(d.assessment));
+  const steps = d?.next_steps ? stepLeads(d.next_steps) : [];
+  const firstSteps = steps.slice(0, 3), moreSteps = steps.length - firstSteps.length;
+  set('d-next', d === undefined ? '' : !d.next_steps ? '<span class="empty">No next steps in the deal file</span>'
+    : clipped(d.next_steps, firstSteps.join(' ')) ? expandHtml(`<ol class="steps">${firstSteps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>${
+      moreSteps > 0 ? `<p class="fine">and ${plural(moreSteps, 'more step')}</p>` : ''}`, md(d.next_steps))
+    : md(d.next_steps));
+  const contacts = d && hasText(d.key_contacts) ? contactsFrom(d.key_contacts) : null;
+  set('d-contacts', d === undefined ? '<span class="skel skel-row"></span>' : !hasText(d.key_contacts) ? '<span class="empty">No key contacts in the deal file</span>'
+    : contacts?.length ? `<div class="contacts">${contacts.map((c, i) => contactHtml(c).replace('<article class="contact"', `<article class="contact${i >= CONTACTS_SHOWN ? ' extra' : ''}"`)).join('')}${
+      contacts.length > CONTACTS_SHOWN ? `<button type="button" class="more" data-contacts>Show all ${contacts.length} contacts</button>` : ''}</div>` : md(d.key_contacts));
+  renderWinChart(weeks);
+  // A single point is no trend: the win chance fact already shows it.
+  document.getElementById('deal-chart').hidden = Array.isArray(weeks) && weeks.filter((r) => r.win_pct !== null).length < 2;
+  const story = document.getElementById('d-weeks');
+  if (story.dataset.slug !== shownSlug) { // a new deal starts folded, at its newest week
+    story.classList.remove('all');
+    story.dataset.slug = shownSlug;
+    document.getElementById('tl-scroll').scrollTop = 0;
+  }
+  const quoteRow = focusRef?.kind === 'quote' ? q.quotes.result?.rows.find((r) => String(r.id) === focusRef.id) : null;
+  const quote = quoteRow ? { week: quoteRow.week, text: quoteRow.quote } : null;
+  if (quote && Array.isArray(weeks) && weeks.findIndex((r) => r.week === quote.week) >= STORY_WEEKS) story.classList.add('all');
+  set('d-weeks', weeks === 'error' ? '<li class="empty">Couldn\'t load the weeks</li>'
+    : !weeks ? '<li><span class="skel skel-row"></span></li>'
+    : !weeks.length ? '<li class="empty">Not mentioned in any report</li>'
+    : storyHtml(weeks, quote));
+  // Raised in feedback: every bullet naming this deal, newest first, with the other deals it names.
+  const fbRows = fbQ.state === 'error' ? 'error' : fresh(fbQ) ? fbQ.result.rows : null;
+  const fbId = focusRef?.kind === 'feedback' ? focusRef.id : null;
+  document.getElementById('deal-feedback').hidden = Array.isArray(fbRows) && !fbRows.length;
+  const others = (id) => (q.repeatedFeedback.result?.rows ?? []).filter((r) => String(r.id) === String(id) && r.slug !== shownSlug && resolves(r.slug, r.name));
+  set('d-feedback', fbRows === 'error' ? `<li class="state error">Couldn't load dealFeedback: ${esc(fbQ.error.message)}</li>`
+    : !fbRows ? '<li><span class="skel skel-row"></span></li>'
+    : fbRows.map((r, i) => {
+      const hit = String(r.id) === fbId;
+      const gist = lead(r.text, 1, 170);
+      const also = others(r.id);
+      return `<li class="fb${hit ? ' hit' : ''}${i >= FEEDBACK_SHOWN ? ' extra' : ''}" data-fb="${esc(r.id)}"><div class="w">${esc(wk(r.week))}</div>${
+        hit || !clipped(r.text, gist) ? `<div class="md">${md(r.text)}</div>` : expandHtml(`<p class="side-sum">${esc(gist)}</p>`, `<div class="md">${md(r.text)}</div>`)}${
+        also.length ? `<div class="also">Also raised by ${also.map((o) => dealButton(o.slug, o.name)).join(', ')}</div>` : ''}</li>`;
+    }).join('') + (fbRows.length > FEEDBACK_SHOWN ? `<li class="fb-all"><button type="button" class="more" data-feedback>Show all ${fbRows.length}</button></li>` : ''));
+  // The clicked feedback is shown even when it's past the first few.
+  const fbList = document.getElementById('d-feedback');
+  if (fbList.dataset.slug !== shownSlug) { fbList.classList.remove('all'); fbList.dataset.slug = shownSlug; }
+  if (Array.isArray(fbRows) && fbRows.findIndex((r) => String(r.id) === fbId) >= FEEDBACK_SHOWN) fbList.classList.add('all');
+  // Bring the reference into view: once the whole page has loaded (the sections above it set its position) and
+  // the note itself is on screen. Until then every redraw tries again; after it, the reader's scrolling is left alone.
+  if (focusRef && !focusRef.scrolled && d && Array.isArray(weeks) && (focusRef.kind === 'quote' || Array.isArray(fbRows)) && q.quotes.result) {
+    const target = dealPage.querySelector('mark.ref, .tl li.hit, .fb.hit');
+    if (target?.offsetParent) {
+      focusRef.scrolled = true;
+      requestAnimationFrame(() => requestAnimationFrame(() => target.scrollIntoView({ block: 'center' })));
+    }
+  }
+}
+
+// ---- Panel rules ----
+// The panel covers the latest 4 report weeks, taken from the weeks query (in week order), so it moves on when a
+// report lands. Its queries return every week; the weeks are picked here, never in the AQL.
+const latestWeeks = (rows, count = 4) => rows.slice(-count).map((r) => r.week);
+// Newest week first, then in report order.
+const newestFirst = (weeks) => (a, b) => weeks.indexOf(b.week) - weeks.indexOf(a.week) || Number(a.id) - Number(b.id);
+const quoteItems = (rows, weeks) => rows.filter((r) => weeks.includes(r.week)).sort(newestFirst(weeks));
+// One item per feedback bullet in those weeks, with the deals it names that have a deal row: a slug without one
+// isn't named, and the bullet is kept whatever its deals.
+function feedbackItems(rows, weeks) {
+  const byId = new Map();
+  for (const r of rows) {
+    if (!weeks.includes(r.week)) continue;
+    let item = byId.get(r.id);
+    if (!item) byId.set(r.id, item = { id: r.id, week: r.week, text: r.text, count: Number(r.deal_count), deals: [] });
+    if (r.slug !== null && r.name !== null && !item.deals.some((d) => d.slug === r.slug)) item.deals.push({ slug: r.slug, name: r.name });
+  }
+  const items = [...byId.values()].sort(newestFirst(weeks));
+  for (const item of items) item.deals.sort((a, b) => a.name.localeCompare(b.name));
+  return items;
+}
+// A deal name is a button: it opens the deal page like a grid row does. A deal with no deal row (no name) has no
+// page to open, so it is plain text.
+const dealButton = (slug, name) => `<button type="button" class="deal-link" data-slug="${esc(slug)}">${esc(name)}</button>`;
+const dealRef = (slug, name) => (slug !== null && name !== null ? dealButton(slug, name) : '<span class="empty">unknown deal</span>');
+// ---- end Panel rules ----
+
+// ---- Panel ----
+// A card opens its deal's page on the reference it shows: a quote in its week's story, a bullet in the deal's feedback.
+// A feedback card opens its first deal; each deal name opens that deal.
+const resolves = (slug, name) => slug !== null && name !== null;
+// One quote per deal (its newest), saying how many more the deal has.
+function onePerDeal(items) {
+  const seen = new Map();
+  for (const r of items) {
+    const key = r.slug ?? `quote:${r.id}`;
+    if (seen.has(key)) seen.get(key).more++; else seen.set(key, { ...r, more: 0 });
+  }
+  return [...seen.values()];
+}
+// A quote that starts mid-sentence (in lowercase) reads as an excerpt: "…worked well so far."
+const excerpt = (text) => (/^[a-z]/.test(text) ? `…${text}` : text);
+const quoteHtml = (r) => `<li class="voice"${resolves(r.slug, r.name) ? ` data-slug="${esc(r.slug)}" data-quote="${esc(r.id)}" tabindex="0" role="link"
+  aria-label="${esc(`Open ${r.name} at this quote`)}"` : ''}><q>${esc(excerpt(r.quote))}</q>
+  <div class="by">${resolves(r.slug, r.name) ? `<b>${esc(r.name)}</b>` : dealRef(r.slug, r.name)} · ${esc(wk(r.week))}${
+    r.more ? ` · <span class="extra-q">+${r.more} more</span>` : ''}</div></li>`;
+function feedbackHtml(it) {
+  const unnamed = it.count - it.deals.length; // deals the bullet names that aren't in the deal list
+  const deals = [it.deals.map((d) => dealButton(d.slug, d.name)).join(', '), unnamed > 0 ? `${unnamed} not in the deal list` : '']
+    .filter(Boolean).join(', ');
+  const first = it.deals[0];
+  return `<li class="voice"${first ? ` data-slug="${esc(first.slug)}" data-fb="${esc(it.id)}" tabindex="0" role="link"
+    aria-label="${esc(`Open ${first.name} at this feedback`)}"` : ''}>${clipped(it.text, lead(it.text, 1, 100))
+      ? expandHtml(`<p class="side-sum"><b>${esc(lead(it.text, 1, 100))}</b></p>`, `<div class="md">${md(it.text)}</div>`) : `<div class="md">${md(it.text)}</div>`}
+    <div class="by">${deals} · ${esc(wk(it.week))}</div></li>`;
+}
+function renderColumn(id, query, items, html) {
+  const el = document.getElementById(id);
+  const failed = [q.weeks, query].find((x) => x.state === 'error');
+  if (failed) { el.innerHTML = `<li class="state error">Couldn't load ${esc(failed.name)}: ${esc(failed.error.message)}</li>`; return; }
+  if (loading(query) || loading(q.weeks)) { el.innerHTML = '<li><span class="skel skel-row"></span><span class="skel skel-row"></span></li>'; return; }
+  const list = items(query.result.rows);
+  const SHOWN = id === 'v-quotes' ? 4 : 2;
+  el.innerHTML = !list.length ? '<li class="state">Nothing in the last 4 weeks</li>'
+    : list.map((it, i) => html(it).replace(/^<li class="voice"/, `<li class="voice${i >= SHOWN ? ' extra' : ''}"`)).join('')
+      + (list.length > SHOWN ? `<li class="show-all"><button type="button" class="more" data-all>${el.classList.contains('all') ? 'Show fewer' : `Show all ${list.length}`}</button></li>` : '');
+}
+let panelSig;
+function renderPanel() {
+  const sig = [q.weeks.result, q.weeks.state, ...[q.quotes, q.repeatedFeedback].flatMap((x) => [x.result, x.state])];
+  if (panelSig && sig.every((x, i) => x === panelSig[i])) return;
+  panelSig = sig;
+  const weeks = latestWeeks(q.weeks.result?.rows ?? []);
+  for (const el of document.querySelectorAll('.panel-weeks')) el.textContent = weeks.length ? ` · ${wk(weeks[0])}–${wk(weeks.at(-1))}` : '';
+  renderColumn('v-quotes', q.quotes, (rows) => onePerDeal(quoteItems(rows, weeks)), quoteHtml);
+  renderColumn('v-feedback', q.repeatedFeedback, (rows) => feedbackItems(rows, weeks), feedbackHtml);
+}
+function openFromVoice(e) {
+  const all = e.target.closest('button[data-all]');
+  if (all) {
+    const list = all.closest('.voice-list');
+    all.textContent = list.classList.toggle('all') ? 'Show fewer' : `Show all ${list.querySelectorAll('li.voice').length}`;
+    return;
+  }
+  const more = e.target.closest('button.more');
+  if (more) { toggleMore(more); return; }
+  const card = e.target.closest('li.voice[data-slug]');
+  const name = e.target.closest('button.deal-link');
+  const el = name ?? card;
+  if (!el) return;
+  if (e.target.closest('a')) return; // a link in the feedback text
+  const ref = card?.dataset.quote ? { kind: 'quote', id: card.dataset.quote } : card?.dataset.fb ? { kind: 'feedback', id: card.dataset.fb } : null;
+  openDeal(el, ref);
+}
+for (const box of [document.getElementById('voices'), document.getElementById('quote-row')]) {
+  box.addEventListener('click', openFromVoice);
+  box.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('li.voice[data-slug]')) { e.preventDefault(); openFromVoice(e); }
+  });
+}
+
+// The grid is paged: fetch every page.
+let fetching = false;
+function fetchAllGrid() {
+  if (fetching || q.grid.state !== 'success' || !q.grid.hasMore) return;
+  fetching = true;
+  q.grid.fetchMore().catch((err) => console.error('grid: next page failed', err)).finally(() => { fetching = false; });
+}
+
+// ---- Render ----
+function render() {
+  renderPeriodPicker();
+  renderRepChips();
+  renderHeadline();
+  renderPop();
+  renderChanges();
+  renderByRep();
+  renderOverview();
+  renderMonth();
+  renderFilterOptions();
+  renderGrid();
+  renderPipeline();
+  renderPanel();
+  renderDeal();
+  fetchAllGrid();
+  for (const query of Object.values(q)) logFirst(query);
+}
+app.subscribe(render);
+
+// execute() skips a query whose inputs match its last finished run even while an older request with other inputs
+// is in flight; that request then lands and leaves a stale result. Once nothing is running, re-run whatever is
+// stale. Failed queries are left alone, so an error can't loop.
+let catchingUp = false;
+app.subscribe(() => {
+  const all = Object.values(q);
+  if (catchingUp || all.some((query) => query.state === 'executing')) return;
+  if (!all.some((query) => query.isDirty && query.state !== 'error')) return;
+  catchingUp = true;
+  app.execute().finally(() => { catchingUp = false; });
+});
+
+syncDeal(); // a pasted #deal=<slug> opens the deal page directly
+render();
+app.execute();
+</script>
+</body>
+</html>

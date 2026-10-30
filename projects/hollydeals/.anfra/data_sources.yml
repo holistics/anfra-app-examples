@@ -1,0 +1,6 @@
+# The sample DuckDB file, by a path relative to this repo. No credentials.
+data_sources:
+  warehouse:
+    type: duckdb
+    connection:
+      path: data/funnel.duckdb

@@ -1,0 +1,6 @@
+# python
+.venv/
+__pycache__/
+# DuckDB: write-ahead log, and the half-built file etl.build_duckdb leaves on a failed build
+data/*.duckdb.wal
+data/*.building*

@@ -1,0 +1,1439 @@
+// Status rules, each written once. An organ's status today and its status on every time-lapse day
+// (the frame_* metrics) apply the same rule to their own input metrics, named here as text.
+// Each organ status answers what to do at this visit: "act_now" (a safety issue or a referral comes first), "review"
+// (a measure past its guideline goal, or a test or screening due) or "on_target". A missing or stale test is due.
+// CGM status alone can be "not_enough_data": too little sensor wear, so glucose status falls back to lab HbA1c.
+Func cgm_status_rule(sensor_wear_pct: String, tbr_pct: String, tir_pct: String) {
+  @aql case(
+    when: coalesce(${sensor_wear_pct}, 0) < sensor_wear_target_pct, then: 'not_enough_data',
+    when: ${tbr_pct} > tbr_target_pct, then: 'act_now',
+    when: ${tir_pct} < tir_target_pct, then: 'review',
+    else: 'on_target'
+  ) ;;
+}
+// Each glucose target in two values: the standard set, and the older / high-risk set (ADA 2026 Table 13.2; International
+// Consensus on Time in Range, 2019). null: the set defines no target for that measure.
+Func glucose_target_rule(standard: String, older_high_risk: String) {
+  @aql case(when: uses_older_targets, then: ${older_high_risk}, else: ${standard}) ;;
+}
+Func hba1c_recent_rule(hba1c_latest_pct: String, days_since_hba1c: String) {
+  @aql case(when: ${days_since_hba1c} < hba1c_recent_days, then: ${hba1c_latest_pct}, else: null) ;;
+}
+Func hba1c_status_rule(hba1c_recent_pct: String) {
+  @aql case(
+    when: ${hba1c_recent_pct} is null or ${hba1c_recent_pct} >= hba1c_target_pct, then: 'review',
+    else: 'on_target'
+  ) ;;
+}
+Func glycemic_status_rule(cgm_status: String, hba1c_status: String) {
+  @aql case(when: ${cgm_status} != 'not_enough_data', then: ${cgm_status}, else: ${hba1c_status}) ;;
+}
+Func glycemic_status_source_rule(cgm_status: String, hba1c_recent_pct: String) {
+  @aql case(
+    when: ${cgm_status} != 'not_enough_data', then: 'cgm',
+    when: ${hba1c_recent_pct} is not null, then: 'lab_hba1c',
+    else: null
+  ) ;;
+}
+// The ADA/KDIGO heat map: its "treat and refer" cells and a fast fall in eGFR are "act_now"; its "treat" cells are "review".
+Func kidney_status_rule(egfr: String, uacr: String, egfr_slope: String, egfr_slope_span_months: String, months_since_egfr: String, months_since_uacr: String) {
+  @aql case(
+    when: ${uacr} >= uacr_ceiling or ${egfr} < egfr_severe_floor or (${egfr} < egfr_floor and ${uacr} >= uacr_target), then: 'act_now',
+    when: ${egfr_slope} < egfr_rapid_decline_per_year and ${egfr_slope_span_months} >= egfr_slope_min_span_months, then: 'act_now',
+    when: ${egfr} < egfr_target or ${uacr} >= uacr_target, then: 'review',
+    when: coalesce(${months_since_egfr} > kidney_test_interval_months, true) or coalesce(${months_since_uacr} > kidney_test_interval_months, true), then: 'review',
+    else: 'on_target'
+  ) ;;
+}
+Func ckd_rule(egfr: String, uacr: String) {
+  @aql coalesce(${egfr} < egfr_target or ${uacr} >= uacr_target, false) ;;
+}
+// Hypertension starts at 130/80 for everyone; only the treatment goal is stricter with chronic kidney disease.
+Func ascvd_risk_factor_rule(has_ckd: String, systolic: String, diastolic: String, blood_pressure_drugs: String) {
+  @aql coalesce(${has_ckd} or ${blood_pressure_drugs} > 0
+    or ${systolic} >= systolic_target_without_ckd or ${diastolic} >= diastolic_target, false) ;;
+}
+// On the older / high-risk targets the goal stays under 130/80 with CKD too (ADA 2026 Table 13.2, complex/intermediate health).
+Func systolic_target_rule(has_ckd: String) {
+  @aql case(
+    when: uses_older_targets, then: systolic_target_without_ckd,
+    when: ${has_ckd}, then: systolic_target_with_ckd,
+    else: systolic_target_without_ckd
+  ) ;;
+}
+Func no_statin_rule(age_years: String, active_statins: String) {
+  @aql coalesce(${age_years} >= statin_age_min and ${age_years} <= statin_age_max and ${active_statins} <= 0, false) ;;
+}
+Func ldl_target_rule(has_ascvd_risk_factor: String) {
+  @aql case(when: ${has_ascvd_risk_factor}, then: ldl_target_with_risk_factor, else: ldl_target_without_risk_factor) ;;
+}
+Func heart_status_rule(ldl: String, systolic: String, diastolic: String, ldl_target: String, systolic_target: String, no_statin: String, months_since_ldl: String, months_since_blood_pressure: String) {
+  @aql case(
+    when: ${ldl} >= ${ldl_target} or ${systolic} >= ${systolic_target} or ${diastolic} >= diastolic_target or ${no_statin}, then: 'review',
+    when: coalesce(${months_since_ldl} > lipid_test_interval_months, true) or coalesce(${months_since_blood_pressure} > blood_pressure_interval_months, true), then: 'review',
+    else: 'on_target'
+  ) ;;
+}
+Func screening_status_rule(months_since: String, result_latest: String, interval_months: String, finding: String) {
+  @aql case(
+    when: coalesce(${months_since} > ${interval_months}, true) or ${result_latest} == '${finding}', then: 'review',
+    else: 'on_target'
+  ) ;;
+}
+
+// How many of the five organ statuses equal one status value ("Act now", "Review", ...).
+Func organs_with_status_rule(status: String, glycemic_status: String, kidney_status: String, heart_status: String, eye_status: String, foot_status: String) {
+  @aql case(when: ${glycemic_status} == '${status}', then: 1, else: 0)
+    + case(when: ${kidney_status} == '${status}', then: 1, else: 0)
+    + case(when: ${heart_status} == '${status}', then: 1, else: 0)
+    + case(when: ${eye_status} == '${status}', then: 1, else: 0)
+    + case(when: ${foot_status} == '${status}', then: 1, else: 0) ;;
+}
+
+Dataset diabetes {
+  label: 'Diabetes Care'
+  description: 'The clinic panel: CGM readings, insulin, treatment changes, lab results, blood pressure and complication screenings, with the clinical status of each organ diabetes affects and how many organs per patient need action.'
+  data_source_name: 'health'
+  models: [patients, cgm_readings, insulin_doses, treatment_events, lab_results, blood_pressure_readings, complication_screenings, patient_days]
+  relationships: [
+    relationship(cgm_readings.patient_id > patients.id, true),
+    relationship(insulin_doses.patient_id > patients.id, true),
+    relationship(treatment_events.patient_id > patients.id, true),
+    relationship(lab_results.patient_id > patients.id, true),
+    relationship(blood_pressure_readings.patient_id > patients.id, true),
+    relationship(complication_screenings.patient_id > patients.id, true),
+    relationship(patient_days.patient_id > patients.id, true)
+  ]
+
+  // Report windows, each a pair of governed dates (the bounds a date filter uses) and a truefalse dimension
+  // built from them. "Current" counts back from each patient's latest reading, not from today's date, so a patient
+  // whose sensor stopped yesterday still gets a full report.
+  dimension current_window_ends_on {
+    model: patients
+    label: 'Current Window Ends On'
+    type: 'date'
+    description: "Last day of the current CGM report: the day of the patient's most recent reading."
+    definition: @aql patients.last_read_at | day() ;;
+  }
+  dimension current_window_starts_on {
+    model: patients
+    label: 'Current Window Starts On'
+    type: 'date'
+    description: 'First day of the current CGM report, 14 days long including its last day (the standard report length, International Consensus on Time in Range, 2019).'
+    definition: @aql patients.current_window_ends_on - interval(${report_days()} days) + interval(1 day) ;;
+  }
+  dimension in_current_window {
+    model: cgm_readings
+    label: 'In Current 14-Day Window'
+    type: 'truefalse'
+    description: "The reading falls in the current report: the 14 days ending with the patient's most recent reading."
+    definition: @aql cgm_readings.read_at >= patients.current_window_starts_on and cgm_readings.read_at < patients.current_window_ends_on + interval(1 day) ;;
+  }
+  // The treatment a report is read against: the last change to glucose-lowering treatment, a clinician's decision.
+  // A titration's dose steps are daily doses in insulin_doses, so a titration is one change.
+  dimension last_treatment_change_on {
+    model: patients
+    label: 'Last Glucose Treatment Change On'
+    type: 'date'
+    description: "Day of the most recent change to the patient's glucose-lowering treatment: a drug started, stopped or its dose changed, or a titration started."
+    definition: @aql treatment_events | where(treatment_events.lowers_glucose == true) | max(treatment_events.occurred_on) | dimensionalize(patients.id) ;;
+  }
+  dimension previous_treatment_change_on {
+    model: patients
+    label: 'Previous Glucose Treatment Change On'
+    type: 'date'
+    description: "Day of the change to glucose-lowering treatment before the most recent one: when the previous treatment began."
+    definition: @aql treatment_events
+      | where(treatment_events.lowers_glucose == true and treatment_events.occurred_on < patients.last_treatment_change_on)
+      | max(treatment_events.occurred_on) | dimensionalize(patients.id) ;;
+  }
+  dimension in_last_treatment_change {
+    model: treatment_events
+    label: 'Is Last Glucose Treatment Change'
+    type: 'truefalse'
+    description: 'The event is part of the most recent change to glucose-lowering treatment (several drugs can change on one day, such as a sulfonylurea stopped as basal insulin starts).'
+    definition: @aql treatment_events.lowers_glucose == true and treatment_events.occurred_on == patients.last_treatment_change_on ;;
+  }
+  dimension previous_treatment_window_ends_on {
+    model: patients
+    label: 'Previous Treatment Window Ends On'
+    type: 'date'
+    description: 'Last day on the previous treatment: the day before the last change to glucose-lowering treatment.'
+    definition: @aql patients.last_treatment_change_on - interval(1 day) ;;
+  }
+  dimension previous_treatment_window_starts_on {
+    model: patients
+    label: 'Previous Treatment Window Starts On'
+    type: 'date'
+    description: "First day of the window on the previous treatment: 14 days before the last change to glucose-lowering treatment, or the day the previous treatment began if that is later, so the whole window is on one treatment. A window under 14 days is not a full report."
+    definition: @aql case(
+      when: patients.previous_treatment_change_on > patients.last_treatment_change_on - interval(${report_days()} days), then: patients.previous_treatment_change_on,
+      else: patients.last_treatment_change_on - interval(${report_days()} days)
+    ) ;;
+  }
+  dimension in_previous_treatment_window {
+    model: cgm_readings
+    label: 'In 14 Days on Previous Treatment'
+    type: 'truefalse'
+    description: 'The reading falls in the window on the previous treatment: up to 14 days before the last change to glucose-lowering treatment, all on one treatment.'
+    definition: @aql cgm_readings.read_at >= patients.previous_treatment_window_starts_on and cgm_readings.read_at < patients.previous_treatment_window_ends_on + interval(1 day) ;;
+  }
+  dimension in_current_window {
+    model: insulin_doses
+    label: 'In Current 14-Day Window'
+    type: 'truefalse'
+    description: "The dose was given in the 14 days ending with the patient's most recent CGM reading: the current report window."
+    definition: @aql insulin_doses.given_at >= patients.current_window_starts_on and insulin_doses.given_at < patients.current_window_ends_on + interval(1 day) ;;
+  }
+  dimension previous_visit_window_starts_on {
+    model: patients
+    label: 'Previous Visit Window Starts On'
+    type: 'date'
+    description: "First day of the 14-day report ending on the patient's previous clinic visit."
+    definition: @aql patients.previous_visit_on - interval(${report_days()} days) + interval(1 day) ;;
+  }
+  dimension in_previous_visit_window {
+    model: cgm_readings
+    label: 'In 14 Days Up To Previous Visit'
+    type: 'truefalse'
+    description: "The reading falls in the 14 days ending on the patient's previous clinic visit: the report the clinician saw at that visit."
+    definition: @aql cgm_readings.read_at >= patients.previous_visit_window_starts_on and cgm_readings.read_at < patients.previous_visit_on + interval(1 day) ;;
+  }
+
+  metric readings_count {
+    label: 'CGM Readings'
+    type: 'number'
+    description: 'Number of CGM readings in the period. A sensor reports every 5 minutes, so a full day is 288.'
+    definition: @aql cgm_readings | count(cgm_readings.id) ;;
+  }
+  metric reading_interval_minutes {
+    label: 'Reading Interval (minutes)'
+    type: 'number'
+    description: 'Minutes between two CGM readings: each reading stands for this much of the day.'
+    definition: @aql 1440 / ${readings_per_day()} ;;
+  }
+  metric sensor_wear_pct {
+    label: 'Sensor Wear (%)'
+    type: 'number'
+    description: "How much of a 14-day report the CGM sensor was recording: readings against 288 a day (one every 5 minutes) for 14 days. Under 70% the readings are too sparse to judge glucose control, so the status falls back to a lab HbA1c."
+    definition: @aql readings_count * 100.0 / (${report_days()} * ${readings_per_day()}) ;;
+  }
+  // Any window: correct when a query filters cgm_readings.read_at and patient_days.day to the same days, so the day spine
+  // counts every day of the window, days without a reading included.
+  metric window_days {
+    label: 'Days in Window'
+    type: 'number'
+    description: 'Number of days in the chosen window, days without a CGM reading included.'
+    definition: @aql patient_days | count(patient_days.id) ;;
+  }
+  metric window_sensor_wear_pct {
+    label: 'Sensor Wear in Window (%)'
+    type: 'number'
+    description: 'How much of the chosen window the CGM sensor was recording: readings against 288 a day (one every 5 minutes) for every day of the window.'
+    definition: @aql readings_count * 100.0 / (window_days * ${readings_per_day()}) ;;
+  }
+  metric window_data_sufficiency {
+    label: 'Enough Data in Window'
+    type: 'text'
+    description: "Whether the chosen window can be read as a CGM report: \"enough\" with at least 14 days and at least 70% sensor wear, \"too_few_days\" under 14 days, \"too_little_wear\" under 70% wear (International Consensus on Time in Range, 2019)."
+    definition: @aql case(
+      when: coalesce(window_days, 0) < ${report_days()}, then: 'too_few_days',
+      when: coalesce(window_sensor_wear_pct, 0) < sensor_wear_target_pct, then: 'too_little_wear',
+      else: 'enough'
+    ) ;;
+  }
+  metric tir_pct {
+    label: 'Time in Range (%)'
+    type: 'number'
+    description: "Time in range: the share of CGM readings from 70 to 180 mg/dL over the last 14 days. Target for most adults with diabetes: 70% or more (International Consensus on Time in Range, 2019)."
+    definition: @aql (cgm_readings | count_if(cgm_readings.in_range == true)) * 100.0 / readings_count ;;
+  }
+  metric tbr_pct {
+    label: 'Time Below Range (%)'
+    type: 'number'
+    description: "Time below range: the share of CGM readings under 70 mg/dL (hypoglycemia) over the last 14 days. Over the patient's time below range target means \"Act now\", whatever the time in range."
+    definition: @aql (cgm_readings | count_if(cgm_readings.below_range == true)) * 100.0 / readings_count ;;
+  }
+  metric tbr_severe_pct {
+    label: 'Time Very Low (%)'
+    type: 'number'
+    description: 'Share of readings under 54 mg/dL (level 2 hypoglycemia). Target: under 1%. Included in time below range.'
+    definition: @aql (cgm_readings | count_if(cgm_readings.very_low == true)) * 100.0 / readings_count ;;
+  }
+  metric tar_pct {
+    label: 'Time Above Range (%)'
+    type: 'number'
+    description: 'Share of readings over 180 mg/dL. Target: under 25%.'
+    definition: @aql (cgm_readings | count_if(cgm_readings.above_range == true)) * 100.0 / readings_count ;;
+  }
+  metric tar_severe_pct {
+    label: 'Time Very High (%)'
+    type: 'number'
+    description: 'Share of readings over 250 mg/dL (level 2 hyperglycemia). Target: under 5%. Included in time above range.'
+    definition: @aql (cgm_readings | count_if(cgm_readings.very_high == true)) * 100.0 / readings_count ;;
+  }
+  metric titr_pct {
+    label: 'Time in Tight Range (%)'
+    type: 'number'
+    description: 'Share of readings from 70 to 140 mg/dL, the part of the target range near normal glucose (AGP Report, 2025). Target: over 50%. Included in time in range.'
+    definition: @aql (cgm_readings | count_if(cgm_readings.in_tight_range == true)) * 100.0 / readings_count ;;
+  }
+  metric mean_glucose {
+    label: 'Mean Glucose (mg/dL)'
+    type: 'number'
+    description: 'Average of all CGM readings in the period.'
+    definition: @aql avg(cgm_readings.glucose_mgdl) ;;
+  }
+  metric gmi {
+    label: 'GMI (%)'
+    type: 'number'
+    description: "Glucose Management Indicator: the HbA1c the mean glucose predicts, 3.31 + 0.02392 × mean glucose in mg/dL (Bergenstal 2018). Target: the patient's HbA1c target."
+    definition: @aql 3.31 + 0.02392 * mean_glucose ;;
+  }
+  metric cv_pct {
+    label: 'Glucose Variability, CV (%)'
+    type: 'number'
+    description: 'Coefficient of variation: standard deviation of readings as a share of the mean. Target: 36% or less; above that, lows are more likely.'
+    definition: @aql (cgm_readings | stdev(cgm_readings.glucose_mgdl)) * 100.0 / mean_glucose ;;
+  }
+
+  // Ambulatory Glucose Profile (AGP Report): every day of a window laid over one 24-hour day, in time-of-day slots,
+  // with the spread of the readings in each slot as percentiles.
+  dimension time_of_day_slot {
+    model: cgm_readings
+    label: 'Time of Day Slot (minutes after midnight)'
+    type: 'number'
+    description: 'Start of the 30-minute slot of the day the reading falls in, in minutes after midnight (0 = 00:00, 90 = 01:30). The readings of every day in a window share these slots.'
+    definition: @aql date_part('hour', cgm_readings.read_at) * 60
+      + floor(date_part('minute', cgm_readings.read_at) / ${time_of_day_slot_minutes()}) * ${time_of_day_slot_minutes()} ;;
+  }
+  metric time_of_day_slot_minutes {
+    label: 'Time of Day Slot Length (minutes)'
+    type: 'number'
+    description: 'Length of each time-of-day slot in the AGP. With 14 days of readings every 5 minutes, a 30-minute slot holds about 80 readings, enough for steady 5th and 95th percentiles.'
+    definition: @aql ${time_of_day_slot_minutes()} ;;
+  }
+  metric glucose_p5_mgdl {
+    label: 'Glucose, 5th Percentile (mg/dL)'
+    type: 'number'
+    description: 'Glucose that 5% of readings fall under. In the AGP, the lower edge of the outer band: where it dips under 70 mg/dL, lows happen at that time of day.'
+    definition: @aql cgm_readings | percentile_cont(cgm_readings.glucose_mgdl, 0.05) ;;
+  }
+  metric glucose_p25_mgdl {
+    label: 'Glucose, 25th Percentile (mg/dL)'
+    type: 'number'
+    description: 'Glucose that 25% of readings fall under. In the AGP, the lower edge of the inner band, which holds the middle half of the readings.'
+    definition: @aql cgm_readings | percentile_cont(cgm_readings.glucose_mgdl, 0.25) ;;
+  }
+  metric glucose_median_mgdl {
+    label: 'Glucose, Median (mg/dL)'
+    type: 'number'
+    description: 'Middle reading: half the readings are under it, half over. In the AGP, the line through the bands.'
+    definition: @aql cgm_readings | percentile_cont(cgm_readings.glucose_mgdl, 0.5) ;;
+  }
+  metric glucose_p75_mgdl {
+    label: 'Glucose, 75th Percentile (mg/dL)'
+    type: 'number'
+    description: 'Glucose that 75% of readings fall under. In the AGP, the upper edge of the inner band, which holds the middle half of the readings.'
+    definition: @aql cgm_readings | percentile_cont(cgm_readings.glucose_mgdl, 0.75) ;;
+  }
+  metric glucose_p95_mgdl {
+    label: 'Glucose, 95th Percentile (mg/dL)'
+    type: 'number'
+    description: 'Glucose that 95% of readings fall under. In the AGP, the upper edge of the outer band: where it rises over 250 mg/dL, very high readings happen at that time of day.'
+    definition: @aql cgm_readings | percentile_cont(cgm_readings.glucose_mgdl, 0.95) ;;
+  }
+
+  // Targets the status rule uses, named so a threshold change is a one-line diff.
+  metric uses_older_targets {
+    label: 'Uses Older / High-Risk Targets'
+    type: 'truefalse'
+    description: "The patient's clinician set the older / high-risk glucose targets: time in range at least 50%, below range under 1%, HbA1c under 8.0% (ADA Standards of Care 2026, Table 13.2, complex or intermediate health; International Consensus on Time in Range, 2019)."
+    definition: @aql (patients | count_if(patients.glucose_target_set == 'older_high_risk')) > 0 ;;
+  }
+  metric sensor_wear_target_pct {
+    label: 'Sensor Wear Target (%)'
+    type: 'number'
+    description: 'Minimum sensor wear for a 14-day report to count.'
+    definition: @aql 70 ;;
+  }
+  metric tbr_target_pct {
+    label: 'Time Below Range Target (%)'
+    type: 'number'
+    description: "Time below range over this means \"Act now\", whatever the time in range: lows come first (AGP Report; International Consensus on Time in Range, 2019). 4% on the standard targets, 1% on the older / high-risk targets (ADA Standards of Care 2026, Table 13.2)."
+    definition: glucose_target_rule('4', '1')
+  }
+  metric tir_target_pct {
+    label: 'Time in Range Target (%)'
+    type: 'number'
+    description: "Time in range at or above this is \"On target\"; under it, \"Review\" (AGP Report; International Consensus on Time in Range, 2019). 70% on the standard targets, 50% on the older / high-risk targets (ADA Standards of Care 2026, Table 13.2)."
+    definition: glucose_target_rule('70', '50')
+  }
+  // The glucose limits as metrics, each read from its one definition in cgm_readings.model.aml.
+  metric glucose_very_low_mgdl {
+    label: 'Very Low Limit (mg/dL)'
+    type: 'number'
+    description: 'Readings under this are very low (level 2 hypoglycemia).'
+    definition: @aql ${glucose_very_low_mgdl()} ;;
+  }
+  metric glucose_range_low_mgdl {
+    label: 'Target Range, Low End (mg/dL)'
+    type: 'number'
+    description: 'Readings under this are below range (hypoglycemia).'
+    definition: @aql ${glucose_range_low_mgdl()} ;;
+  }
+  metric glucose_tight_high_mgdl {
+    label: 'Tight Range, High End (mg/dL)'
+    type: 'number'
+    description: 'Readings from the target range low end up to this are in the tight range.'
+    definition: @aql ${glucose_tight_high_mgdl()} ;;
+  }
+  metric glucose_range_high_mgdl {
+    label: 'Target Range, High End (mg/dL)'
+    type: 'number'
+    description: 'Readings over this are above range.'
+    definition: @aql ${glucose_range_high_mgdl()} ;;
+  }
+  metric glucose_very_high_mgdl {
+    label: 'Very High Limit (mg/dL)'
+    type: 'number'
+    description: 'Readings over this are very high (level 2 hyperglycemia).'
+    definition: @aql ${glucose_very_high_mgdl()} ;;
+  }
+  metric tbr_severe_target_pct {
+    label: 'Time Very Low Target (%)'
+    type: 'number'
+    description: "Time very low under this is on target (International Consensus on Time in Range, 2019): 1% on the standard targets; none on the older / high-risk targets, whose time below range target (1%) already covers it. Shown beside the time very low; it does not change the glucose status, which follows the AGP Report's \"Is action needed?\" (time in range and time below range)."
+    definition: glucose_target_rule('1', 'null')
+  }
+  metric tar_severe_target_pct {
+    label: 'Time Very High Target (%)'
+    type: 'number'
+    description: "Time very high under this is on target (International Consensus on Time in Range, 2019): 5% on the standard targets, 10% on the older / high-risk targets. Shown beside the time very high; it does not change the glucose status."
+    definition: glucose_target_rule('5', '10')
+  }
+  metric titr_target_pct {
+    label: 'Time in Tight Range Target (%)'
+    type: 'number'
+    description: "Time in tight range over this is on target (AGP Report, 2025): 50% on the standard targets; none on the older / high-risk targets. Shown beside the time in tight range; it does not change the glucose status."
+    definition: glucose_target_rule('50', 'null')
+  }
+  metric mean_glucose_target_mgdl {
+    label: 'Mean Glucose Target (mg/dL)'
+    type: 'number'
+    description: "Mean glucose under this is on target (AGP Report): 154 mg/dL on the standard targets; none on the older / high-risk targets. Shown beside the mean glucose; it does not change the glucose status."
+    definition: glucose_target_rule('154', 'null')
+  }
+  metric tar_target_pct {
+    label: 'Time Above Range Target (%)'
+    type: 'number'
+    description: "Time above range under this is on target (International Consensus on Time in Range, 2019): 25% on the standard targets, 50% on the older / high-risk targets. Shown beside the time above range; it does not change the glucose status."
+    definition: glucose_target_rule('25', '50')
+  }
+  metric tir_meaningful_change_pts {
+    label: 'Meaningful Time in Range Change (points)'
+    type: 'number'
+    description: 'A change in time in range of at least this many percentage points between two report windows is clinically meaningful (5 points is about 72 minutes a day). A smaller change is within normal variation.'
+    definition: @aql 5 ;;
+  }
+  metric cv_target_pct {
+    label: 'Glucose Variability Target (%)'
+    type: 'number'
+    description: 'CV at or under this is stable glucose (International Consensus on Time in Range, 2019). Shown beside the CV; it does not change the glucose status.'
+    definition: @aql 36 ;;
+  }
+  metric cgm_status {
+    label: 'CGM Status'
+    type: 'text'
+    description: "From CGM alone. \"Not enough data\" when sensor wear is under 70% or there are no readings. Otherwise \"Act now\" when time below range is over the patient's time below range target (lows first), \"Review\" when time in range is under the patient's time in range target, \"On target\" otherwise."
+    definition: cgm_status_rule('sensor_wear_pct', 'tbr_pct', 'tir_pct')
+  }
+
+  metric current_cgm_status {
+    label: 'CGM Status, Current'
+    type: 'text'
+    description: 'CGM status over the current 14-day window.'
+    definition: @aql cgm_status | where(cgm_readings.in_current_window == true) ;;
+  }
+
+  // Overnight lows. Nocturnal hypoglycemia is counted from 00:00 to 06:00 (International Consensus on Time in Range, 2019).
+  dimension in_overnight_hours {
+    model: cgm_readings
+    label: 'Overnight Reading'
+    type: 'truefalse'
+    description: 'The reading was taken between 00:00 and 06:00, when a low is nocturnal hypoglycemia.'
+    definition: @aql date_part('hour', cgm_readings.read_at) < 6 ;;
+  }
+  metric overnight_tbr_pct {
+    label: 'Overnight Time Below Range (%)'
+    type: 'number'
+    description: 'Share of readings between 00:00 and 06:00 that are under 70 mg/dL. Target: the same as for the whole day.'
+    definition: @aql (cgm_readings | count_if(cgm_readings.in_overnight_hours == true and cgm_readings.below_range == true)) * 100.0
+      / (cgm_readings | count_if(cgm_readings.in_overnight_hours == true)) ;;
+  }
+  metric low_nights_count {
+    label: 'Nights With a Low'
+    type: 'number'
+    description: 'Number of nights with at least one reading under 70 mg/dL between 00:00 and 06:00. Empty without CGM readings.'
+    definition: @aql case(
+      when: readings_count > 0, then: coalesce(cgm_readings | where(cgm_readings.in_overnight_hours == true and cgm_readings.below_range == true) | count_distinct(cgm_readings.read_at | day()), 0),
+      else: null
+    ) ;;
+  }
+  metric current_overnight_tbr_pct {
+    label: 'Overnight Time Below Range, Current (%)'
+    type: 'number'
+    description: "Overnight time below range (00:00 to 06:00, under 70 mg/dL) over the last 14 days. Target: the patient's time below range target."
+    definition: @aql overnight_tbr_pct | where(cgm_readings.in_current_window == true) ;;
+  }
+  metric current_low_nights_count {
+    label: 'Nights With a Low, Last 14 Days'
+    type: 'number'
+    description: 'Nights in the last 14 days with at least one reading under 70 mg/dL between 00:00 and 06:00.'
+    definition: @aql low_nights_count | where(cgm_readings.in_current_window == true) ;;
+  }
+  metric previous_treatment_overnight_tbr_pct {
+    label: 'Overnight Time Below Range, Previous Treatment (%)'
+    type: 'number'
+    description: 'Overnight time below range (00:00 to 06:00, under 70 mg/dL) in the 14 days on the previous treatment, before the last change to glucose-lowering treatment, to compare with now.'
+    definition: @aql overnight_tbr_pct | where(cgm_readings.in_previous_treatment_window == true) ;;
+  }
+  metric treatment_changes_since_previous_visit {
+    label: 'Glucose Treatment Changes Since Previous Visit'
+    type: 'number'
+    description: "Days since the patient's previous clinic visit on which the glucose-lowering treatment changed (a drug started, stopped or its dose changed, or a titration started)."
+    definition: @aql coalesce(treatment_events | where(treatment_events.lowers_glucose == true and treatment_events.occurred_on > patients.previous_visit_on) | count_distinct(treatment_events.occurred_on), 0) ;;
+  }
+  metric basal_units_latest {
+    label: 'Basal Insulin, Latest Dose (U)'
+    type: 'number'
+    description: 'The most recent daily basal insulin dose the patient took, in units.'
+    definition: @aql insulin_doses | where(insulin_doses.kind == 'basal') | max_by(insulin_doses.units, insulin_doses.given_at) ;;
+  }
+  metric current_basal_units_min {
+    label: 'Basal Insulin, Lowest Dose in Current Report (U)'
+    type: 'number'
+    description: 'The lowest daily basal insulin dose in the current 14-day report. Different from the highest when the dose changed during the report.'
+    definition: @aql insulin_doses | where(insulin_doses.kind == 'basal' and insulin_doses.in_current_window == true) | min(insulin_doses.units) ;;
+  }
+  metric current_basal_units_max {
+    label: 'Basal Insulin, Highest Dose in Current Report (U)'
+    type: 'number'
+    description: 'The highest daily basal insulin dose in the current 14-day report. Different from the lowest when the dose changed during the report.'
+    definition: @aql insulin_doses | where(insulin_doses.kind == 'basal' and insulin_doses.in_current_window == true) | max(insulin_doses.units) ;;
+  }
+  // The drug list: grouped by treatment_events.drug, one row per drug the patient has been on.
+  metric drug_status {
+    label: 'Drug Status'
+    type: 'text'
+    description: "\"active\" when the drug's most recent event is not a stop, \"stopped\" otherwise."
+    definition: @aql case(when: (treatment_events | where(treatment_events.drug is not null) | max_by(treatment_events.kind, treatment_events.occurred_on)) == 'drug_stopped', then: 'stopped', else: 'active') ;;
+  }
+  metric drug_dose_latest {
+    label: 'Drug, Latest Prescribed Dose'
+    type: 'number'
+    description: 'The most recent dose recorded for the drug, in its dose unit. A titrated insulin has its latest daily dose in Basal Insulin, Latest Dose instead.'
+    definition: @aql treatment_events | where(treatment_events.dose_after is not null) | max_by(treatment_events.dose_after, treatment_events.occurred_on) ;;
+  }
+  metric nocturnal_hypo_flag {
+    label: 'Flag: Night-Time Lows'
+    type: 'text'
+    description: "Raised as \"Act now\" when, over the last 14 days with enough sensor wear (70%), more of the readings between 00:00 and 06:00 than the patient's time below range target are under 70 mg/dL. Empty otherwise. It does not look at the treatment itself: the flag shows the last change to glucose-lowering treatment and the overnight lows on the treatment before it, so the clinician can judge whether the change is the cause."
+    definition: @aql case(
+      when: current_cgm_status != 'not_enough_data' and current_overnight_tbr_pct > tbr_target_pct, then: 'act_now',
+      else: null
+    ) ;;
+  }
+
+  // Lab HbA1c, the fallback when CGM is missing. It reflects about three months of glucose, so an older result no longer describes control.
+  dimension days_before_data_as_of {
+    model: lab_results
+    label: 'Days Before Data As Of'
+    type: 'number'
+    description: "Whole days between the sample and the day the patient's record is current to."
+    definition: @aql date_diff('day', lab_results.taken_on, patients.data_as_of) ;;
+  }
+  metric hba1c_latest_pct {
+    label: 'HbA1c, Latest (%)'
+    type: 'number'
+    description: 'Lab HbA1c from the most recent blood test, however old.'
+    definition: @aql lab_results | where(lab_results.test == 'hba1c') | max_by(lab_results.value, lab_results.taken_on) ;;
+  }
+  metric days_since_hba1c {
+    label: 'Days Since HbA1c'
+    type: 'number'
+    description: "Days from the most recent HbA1c sample to the day the patient's record is current to."
+    definition: @aql lab_results | where(lab_results.test == 'hba1c') | min(lab_results.days_before_data_as_of) ;;
+  }
+  metric hba1c_recent_days {
+    label: 'HbA1c Recent For (days)'
+    type: 'number'
+    description: 'An HbA1c counts as recent for this many days; an older one no longer describes current glucose control (it reflects about 3 months of glucose).'
+    definition: @aql 120 ;;
+  }
+  metric hba1c_recent_pct {
+    label: 'HbA1c, Recent (%)'
+    type: 'number'
+    description: "Lab HbA1c from the most recent blood test in the last 120 days (it reflects about 3 months of glucose). Used when there is not enough CGM data. Target: under the patient's HbA1c target."
+    definition: hba1c_recent_rule('hba1c_latest_pct', 'days_since_hba1c')
+  }
+  metric hba1c_target_pct {
+    label: 'HbA1c Target (%)'
+    type: 'number'
+    description: "HbA1c under this is \"On target\"; at or over it, \"Review\": 7.0% for most adults with diabetes (ADA), 8.0% on the older / high-risk targets (ADA Standards of Care 2026, Table 13.2)."
+    definition: glucose_target_rule('7', '8')
+  }
+  metric hba1c_status {
+    label: 'HbA1c Status'
+    type: 'text'
+    description: "From lab HbA1c alone. \"Review\" at or over the patient's HbA1c target, or without a result in the last 120 days (an HbA1c is due); \"On target\" under it."
+    definition: hba1c_status_rule('hba1c_recent_pct')
+  }
+  metric glycemic_status {
+    label: 'Glycemic Status'
+    type: 'text'
+    description: "Glucose control today. With at least 70% sensor wear over the last 14 days, from CGM: \"Act now\" when time below 70 mg/dL is over the patient's time below range target (lows first), \"Review\" when time in range is under the patient's time in range target, otherwise \"On target\". With less, from lab HbA1c: \"Review\" at or over the patient's HbA1c target, or with no result in the last 120 days (an HbA1c is due); \"On target\" under it."
+    definition: glycemic_status_rule('current_cgm_status', 'hba1c_status')
+  }
+
+  metric glycemic_status_source {
+    label: 'Glycemic Status Source'
+    type: 'text'
+    description: "Which data glycemic_status comes from: \"cgm\", \"lab_hba1c\", or empty when there is not enough of either (an HbA1c is due)."
+    definition: glycemic_status_source_rule('current_cgm_status', 'hba1c_recent_pct')
+  }
+
+  // Kidneys. Latest results, whenever they were taken: labs are quarterly, so there is no 14-day window here.
+  // Thresholds follow the ADA/KDIGO CKD heat map (Diabetes management in CKD, consensus report, Kidney Int 2022).
+  metric egfr_latest {
+    label: 'eGFR, Latest (mL/min/1.73m²)'
+    type: 'number'
+    description: "Estimated glomerular filtration rate from the most recent blood test: how well the kidneys filter, in mL/min/1.73m². 90 or more is normal; under 60 is chronic kidney disease stage 3."
+    definition: @aql lab_results | where(lab_results.test == 'egfr') | max_by(lab_results.value, lab_results.taken_on) ;;
+  }
+  metric uacr_latest {
+    label: 'UACR, Latest (mg/g)'
+    type: 'number'
+    description: "Urine albumin-to-creatinine ratio from the most recent urine test, in mg/g: protein leaking into the urine, an early sign of kidney damage. Under 30 is normal; 30 to 300 is moderately increased; over 300 is severely increased. One test varies by more than 20% from the next, so the kidney status reads the last three (UACR, Last 3 Tests)."
+    definition: @aql lab_results | where(lab_results.test == 'uacr') | max_by(lab_results.value, lab_results.taken_on) ;;
+  }
+  metric uacr_last_3_median {
+    label: 'UACR, Last 3 Tests (mg/g)'
+    type: 'number'
+    description: "The median of the last three UACR results, in mg/g (fewer when fewer are on record): at or over 30 exactly when 2 of the 3 are. Urine albumin varies by more than 20% between tests, so albuminuria counts when 2 of 3 specimens over 3 to 6 months are raised (ADA Standards of Care, sec. 11); quarterly tests put the last three within 6 months."
+    definition: @aql lab_results | where(lab_results.test == 'uacr' and lab_results.newer_results_count < 3) | percentile_cont(lab_results.value, 0.5) ;;
+  }
+  metric has_ckd {
+    label: 'Chronic Kidney Disease on Record'
+    type: 'truefalse'
+    description: 'eGFR under 60, or UACR 30 mg/g or more in 2 of the last 3 tests.'
+    definition: ckd_rule('egfr_latest', 'uacr_last_3_median')
+  }
+  metric egfr_slope_per_year {
+    label: 'eGFR Trend (per year)'
+    type: 'number'
+    description: 'How fast eGFR is changing: the least-squares slope through all eGFR results in the period, in mL/min/1.73m² per year. Negative means falling. A fall of more than 5 a year is rapid decline.'
+    definition: @aql (lab_results | where(lab_results.test == 'egfr') | corr(epoch(lab_results.taken_on), lab_results.value))
+      * (lab_results | where(lab_results.test == 'egfr') | stdev(lab_results.value))
+      / (lab_results | where(lab_results.test == 'egfr') | stdev(epoch(lab_results.taken_on)))
+      * 365.25 * 86400 ;;
+  }
+
+  metric egfr_target {
+    label: 'eGFR Target'
+    type: 'number'
+    description: "eGFR under this is chronic kidney disease (stage G3a or worse): \"Review\"."
+    definition: @aql 60 ;;
+  }
+  metric egfr_floor {
+    label: 'eGFR Floor'
+    type: 'number'
+    description: "eGFR under this (stage G3b) with UACR 30 mg/g or more is very high risk, treat and refer: \"Act now\"."
+    definition: @aql 45 ;;
+  }
+  metric egfr_severe_floor {
+    label: 'eGFR Severe Floor'
+    type: 'number'
+    description: "eGFR under this (stage G4, severely decreased) is very high risk whatever the UACR, treat and refer: \"Act now\"."
+    definition: @aql 30 ;;
+  }
+  metric egfr_rapid_decline_per_year {
+    label: 'eGFR Rapid Decline (per year)'
+    type: 'number'
+    description: "An eGFR trend under this (falling more than 5 mL/min/1.73m² a year) over at least 12 months of results is rapid decline, a reason to consider referral: \"Act now\"."
+    definition: @aql -5 ;;
+  }
+  metric egfr_slope_min_span_months {
+    label: 'eGFR Slope, Minimum Span (months)'
+    type: 'number'
+    description: 'The eGFR trend counts as rapid decline only when the eGFR results it is drawn through span at least this many months: a sustained fall, not two close results.'
+    definition: @aql 12 ;;
+  }
+  metric egfr_slope_span_months {
+    label: 'eGFR Slope Span (months)'
+    type: 'number'
+    description: 'Months between the first and the last eGFR result the trend is drawn through.'
+    definition: @aql patients | min(date_diff('month', patients.first_egfr_on, patients.last_egfr_on)) ;;
+  }
+  metric uacr_target {
+    label: 'UACR Target (mg/g)'
+    type: 'number'
+    description: "UACR at or above this (albuminuria category A2) is chronic kidney disease: \"Review\"."
+    definition: @aql 30 ;;
+  }
+  metric uacr_ceiling {
+    label: 'UACR Ceiling (mg/g)'
+    type: 'number'
+    description: "UACR at or above this (albuminuria category A3) is high or very high risk, treat and refer: \"Act now\"."
+    definition: @aql 300 ;;
+  }
+  metric kidney_test_interval_months {
+    label: 'Kidney Test Interval (months)'
+    type: 'number'
+    description: 'eGFR and UACR are due at least once a year (ADA Standards of Care); a test older than this is due.'
+    definition: @aql 12 ;;
+  }
+  metric months_since_egfr {
+    label: 'Months Since eGFR'
+    type: 'number'
+    description: "Months since the last eGFR blood test. Due every 12 months."
+    definition: @aql patients | min(date_diff('month', patients.last_egfr_on, patients.data_as_of)) ;;
+  }
+  metric months_since_uacr {
+    label: 'Months Since UACR'
+    type: 'number'
+    description: "Months since the last UACR urine test. Due every 12 months."
+    definition: @aql patients | min(date_diff('month', patients.last_uacr_on, patients.data_as_of)) ;;
+  }
+  metric kidney_tests_overdue {
+    label: 'Kidney Tests Overdue'
+    type: 'truefalse'
+    description: 'The last eGFR or UACR is more than 12 months old, or the patient has none on record.'
+    definition: @aql coalesce(months_since_egfr > kidney_test_interval_months, true) or coalesce(months_since_uacr > kidney_test_interval_months, true) ;;
+  }
+  metric kidney_status {
+    label: 'Kidney Status'
+    type: 'text'
+    description: "Kidney health from the latest eGFR and the last three UACR tests (their median, so 2 of 3 must agree), by the ADA/KDIGO heat map. \"Act now\" (treat and refer) when UACR is 300 mg/g or more, eGFR is under 30, eGFR is under 45 with UACR 30 mg/g or more, or eGFR has fallen more than 5 a year over at least 12 months. \"Review\" (treat) when eGFR is under 60 or UACR is 30 mg/g or more, or when either test is more than 12 months old or missing (due). Otherwise \"On target\"."
+    definition: kidney_status_rule('egfr_latest', 'uacr_last_3_median', 'egfr_slope_per_year', 'egfr_slope_span_months', 'months_since_egfr', 'months_since_uacr')
+  }
+
+  metric ldl_latest {
+    label: 'LDL Cholesterol, Latest (mg/dL)'
+    type: 'number'
+    description: "LDL ('bad') cholesterol from the most recent blood test, in mg/dL. Target: under 70 with an ASCVD risk factor, under 100 otherwise."
+    definition: @aql lab_results | where(lab_results.test == 'ldl') | max_by(lab_results.value, lab_results.taken_on) ;;
+  }
+  metric systolic_latest {
+    label: 'Systolic BP, Latest (mmHg)'
+    type: 'number'
+    description: "Blood pressure at the most recent clinic visit, in mmHg (systolic, the top number). Target: under 130/80, systolic under 120 with chronic kidney disease."
+    definition: @aql blood_pressure_readings | max_by(blood_pressure_readings.systolic_mmhg, blood_pressure_readings.measured_on) ;;
+  }
+  metric diastolic_latest {
+    label: 'Diastolic BP, Latest (mmHg)'
+    type: 'number'
+    description: 'Diastolic blood pressure at the most recent clinic measurement.'
+    definition: @aql blood_pressure_readings | max_by(blood_pressure_readings.diastolic_mmhg, blood_pressure_readings.measured_on) ;;
+  }
+  metric blood_pressure_latest {
+    label: 'Blood Pressure, Latest (mmHg)'
+    type: 'text'
+    description: "Blood pressure at the most recent clinic visit, in mmHg, as systolic/diastolic (the top and bottom numbers). Target: under 130/80, systolic under 120 with chronic kidney disease."
+    definition: @aql concat(cast(systolic_latest, 'text'), '/', cast(diastolic_latest, 'text')) ;;
+  }
+  metric ldl_target_without_risk_factor {
+    label: 'LDL Target Without a Risk Factor (mg/dL)'
+    type: 'number'
+    description: "LDL target without an ASCVD risk factor on record: at or above it means \"Review\" (ACC/AHA 2026: under 100 at intermediate risk)."
+    definition: @aql 100 ;;
+  }
+  metric ldl_target_with_risk_factor {
+    label: 'LDL Target With a Risk Factor (mg/dL)'
+    type: 'number'
+    description: "LDL target with an ASCVD risk factor on record: at or above it means \"Review\" (ADA Standards of Care: under 70 from age 40 to 75 with one or more risk factors)."
+    definition: @aql 70 ;;
+  }
+  metric systolic_target_without_ckd {
+    label: 'Systolic BP Target Without CKD (mmHg)'
+    type: 'number'
+    description: "Systolic goal without chronic kidney disease on record: at or above it means \"Review\" (ADA Standards of Care 2026, rec. 10.4: under 130/80). 130/80 is also where hypertension starts, an ASCVD risk factor."
+    definition: @aql 130 ;;
+  }
+  metric systolic_target_with_ckd {
+    label: 'Systolic BP Target With CKD (mmHg)'
+    type: 'number'
+    description: "Systolic goal with chronic kidney disease on record: at or above it means \"Review\" (ADA Standards of Care 2026, rec. 10.4: under 120 encouraged at high kidney risk, if it can be safely attained)."
+    definition: @aql 120 ;;
+  }
+  metric systolic_target {
+    label: 'Systolic BP Target (mmHg)'
+    type: 'number'
+    description: 'The systolic goal that applies to the patient: under 120 with chronic kidney disease on record, under 130 otherwise and on the older / high-risk targets (ADA Standards of Care 2026, Table 13.2: under 130/80 in complex or intermediate health).'
+    definition: systolic_target_rule('has_ckd')
+  }
+  metric diastolic_target {
+    label: 'Diastolic BP Target (mmHg)'
+    type: 'number'
+    description: "Diastolic pressure at or above this means \"Review\"."
+    definition: @aql 80 ;;
+  }
+  metric active_blood_pressure_drugs_count {
+    label: 'Blood-Pressure-Lowering Drugs'
+    type: 'number'
+    description: 'How many blood-pressure-lowering drugs the patient is on: started and not stopped.'
+    definition: @aql coalesce(treatment_events | count_if(treatment_events.lowers_blood_pressure == true and treatment_events.kind == 'drug_started'), 0)
+      - coalesce(treatment_events | count_if(treatment_events.lowers_blood_pressure == true and treatment_events.kind == 'drug_stopped'), 0) ;;
+  }
+  metric has_ascvd_risk_factor {
+    label: 'ASCVD Risk Factor on Record'
+    type: 'truefalse'
+    description: 'The patient has a risk factor for atherosclerotic cardiovascular disease on record: chronic kidney disease (eGFR under 60, or UACR 30 mg/g or more in 2 of the last 3 tests) or hypertension (a blood-pressure-lowering drug, or blood pressure at or over 130/80). Smoking, family history and weight are not recorded here.'
+    definition: ascvd_risk_factor_rule('has_ckd', 'systolic_latest', 'diastolic_latest', 'active_blood_pressure_drugs_count')
+  }
+  metric active_statins_count {
+    label: 'Statins'
+    type: 'number'
+    description: 'How many statins the patient is on: started and not stopped.'
+    definition: @aql coalesce(treatment_events | count_if(treatment_events.drug_class == 'statin' and treatment_events.kind == 'drug_started'), 0)
+      - coalesce(treatment_events | count_if(treatment_events.drug_class == 'statin' and treatment_events.kind == 'drug_stopped'), 0) ;;
+  }
+  metric age_years {
+    label: 'Age (years)'
+    type: 'number'
+    description: "Age in the year the patient's record is current to, from the birth year."
+    definition: @aql patients | min(date_part('year', patients.data_as_of) - patients.birth_year) ;;
+  }
+  metric statin_age_min {
+    label: 'Statin Age, From (years)'
+    type: 'number'
+    description: 'From this age to Statin Age, To, everyone with diabetes should be on a statin, whatever their LDL (ADA Standards of Care 2026, rec. 10.18: moderate intensity; 10.20: high intensity with a risk factor).'
+    definition: @aql 40 ;;
+  }
+  metric statin_age_max {
+    label: 'Statin Age, To (years)'
+    type: 'number'
+    description: 'The last age at which every patient with diabetes should be on a statin (ADA Standards of Care 2026, rec. 10.18). Past it, a statin is continued or considered case by case.'
+    definition: @aql 75 ;;
+  }
+  metric statin_intensity_latest {
+    label: 'Statin Intensity, Latest'
+    type: 'text'
+    description: 'Intensity of the most recent statin start or dose change: "high" or "moderate" (ADA Standards of Care 2026, Table 10.1). Empty with no statin on record.'
+    definition: @aql treatment_events | where(treatment_events.statin_intensity is not null) | max_by(treatment_events.statin_intensity, treatment_events.occurred_on) ;;
+  }
+  metric ldl_next_step {
+    label: 'LDL, Next Step'
+    type: 'text'
+    description: "What lowers an LDL over its target next (ADA Standards of Care 2026): \"start_statin\" on no statin (rec. 10.18; past 75, rec. 10.23: consider a moderate-intensity statin); \"raise_statin_intensity\" on a moderate-intensity statin (rec. 10.20); \"add_non_statin\" on a high-intensity statin, the maximum: add ezetimibe or a PCSK9 inhibitor (rec. 10.21)."
+    definition: @aql case(
+      when: active_statins_count <= 0, then: 'start_statin',
+      when: statin_intensity_latest == 'high', then: 'add_non_statin',
+      else: 'raise_statin_intensity'
+    ) ;;
+  }
+  metric no_statin {
+    label: 'No Statin'
+    type: 'truefalse'
+    description: 'The patient is 40 to 75 and on no statin. With diabetes at these ages a statin is recommended whatever the LDL (ADA Standards of Care 2026, rec. 10.18).'
+    definition: no_statin_rule('age_years', 'active_statins_count')
+  }
+  metric ldl_target {
+    label: 'LDL Target (mg/dL)'
+    type: 'number'
+    description: 'The LDL target that applies to the patient: under 70 with an ASCVD risk factor on record, under 100 otherwise.'
+    definition: ldl_target_rule('has_ascvd_risk_factor')
+  }
+  metric lipid_test_interval_months {
+    label: 'Lipid Test Interval (months)'
+    type: 'number'
+    description: 'A lipid profile is due once a year on a statin (ADA Standards of Care); an LDL older than this is due.'
+    definition: @aql 12 ;;
+  }
+  metric blood_pressure_interval_months {
+    label: 'Blood Pressure Interval (months)'
+    type: 'number'
+    description: 'Blood pressure is measured at every routine visit, or at least every 6 months (ADA Standards of Care); a reading older than this is due.'
+    definition: @aql 6 ;;
+  }
+  metric months_since_ldl {
+    label: 'Months Since LDL'
+    type: 'number'
+    description: 'Months since the last LDL cholesterol blood test. Due every 12 months.'
+    definition: @aql patients | min(date_diff('month', patients.last_ldl_on, patients.data_as_of)) ;;
+  }
+  metric months_since_blood_pressure {
+    label: 'Months Since Blood Pressure'
+    type: 'number'
+    description: 'Months since blood pressure was last measured in clinic. Due every 6 months.'
+    definition: @aql patients | min(date_diff('month', patients.last_blood_pressure_on, patients.data_as_of)) ;;
+  }
+  metric lipid_test_overdue {
+    label: 'Lipid Test Overdue'
+    type: 'truefalse'
+    description: 'The last LDL is more than 12 months old, or the patient has none on record.'
+    definition: @aql coalesce(months_since_ldl > lipid_test_interval_months, true) ;;
+  }
+  metric blood_pressure_overdue {
+    label: 'Blood Pressure Overdue'
+    type: 'truefalse'
+    description: 'The last clinic blood pressure is more than 6 months old, or the patient has none on record.'
+    definition: @aql coalesce(months_since_blood_pressure > blood_pressure_interval_months, true) ;;
+  }
+  metric heart_status {
+    label: 'Heart Status'
+    type: 'text'
+    description: "Heart and blood vessel risk from the latest LDL cholesterol and blood pressure, and statin use. \"Review\" when LDL is at or over the patient's target (70 mg/dL with an ASCVD risk factor on record, 100 otherwise), blood pressure is at or over the patient's goal (130/80, systolic 120 with chronic kidney disease), the patient is 40 to 75 and on no statin, the LDL is more than 12 months old or the blood pressure more than 6 months old, or either is missing (due). Otherwise \"On target\"."
+    definition: heart_status_rule('ldl_latest', 'systolic_latest', 'diastolic_latest', 'ldl_target', 'systolic_target', 'no_statin', 'months_since_ldl', 'months_since_blood_pressure')
+  }
+
+  // Screenings are due by calendar months, counted to the patient's latest data rather than today's date
+  // (the same anchor the CGM report window uses), so a status does not drift while nothing new is recorded.
+  dimension last_read_at {
+    model: patients
+    label: 'Last CGM Reading At'
+    type: 'datetime'
+    description: "Time of the patient's most recent CGM reading."
+    definition: @aql cgm_readings | max(cgm_readings.read_at) | dimensionalize(patients.id) ;;
+  }
+  dimension first_read_at {
+    model: patients
+    label: 'First CGM Reading At'
+    type: 'datetime'
+    description: "Time of the patient's first CGM reading."
+    definition: @aql cgm_readings | min(cgm_readings.read_at) | dimensionalize(patients.id) ;;
+  }
+  dimension last_lab_on {
+    model: patients
+    label: 'Last Lab On'
+    type: 'date'
+    description: "Day of the patient's most recent lab sample."
+    definition: @aql lab_results | max(lab_results.taken_on) | dimensionalize(patients.id) ;;
+  }
+  dimension data_as_of {
+    model: patients
+    label: 'Data As Of'
+    type: 'datetime'
+    description: "The patient's most recent CGM reading or lab sample, whichever is later: the day the patient's record is current to."
+    definition: @aql case(
+      when: patients.last_lab_on > patients.last_read_at, then: patients.last_lab_on,
+      else: coalesce(patients.last_read_at, patients.last_lab_on)
+    ) ;;
+  }
+  // The day each routine test and screening was last done, read from patients so that the months since it, and every
+  // status built on them, have a row for every patient, also one never tested (the lab tables alone give no row).
+  dimension last_egfr_on {
+    model: patients
+    label: 'Last eGFR On'
+    type: 'date'
+    definition: @aql lab_results | where(lab_results.test == 'egfr') | max(lab_results.taken_on) | dimensionalize(patients.id) ;;
+  }
+  dimension first_egfr_on {
+    model: patients
+    label: 'First eGFR On'
+    type: 'date'
+    definition: @aql lab_results | where(lab_results.test == 'egfr') | min(lab_results.taken_on) | dimensionalize(patients.id) ;;
+  }
+  dimension last_uacr_on {
+    model: patients
+    label: 'Last UACR On'
+    type: 'date'
+    definition: @aql lab_results | where(lab_results.test == 'uacr') | max(lab_results.taken_on) | dimensionalize(patients.id) ;;
+  }
+  dimension last_ldl_on {
+    model: patients
+    label: 'Last LDL On'
+    type: 'date'
+    definition: @aql lab_results | where(lab_results.test == 'ldl') | max(lab_results.taken_on) | dimensionalize(patients.id) ;;
+  }
+  dimension last_blood_pressure_on {
+    model: patients
+    label: 'Last Blood Pressure On'
+    type: 'date'
+    definition: @aql blood_pressure_readings | max(blood_pressure_readings.measured_on) | dimensionalize(patients.id) ;;
+  }
+  dimension last_retinal_screening_on {
+    model: patients
+    label: 'Last Retinal Screening On'
+    type: 'date'
+    definition: @aql complication_screenings | where(complication_screenings.kind == 'retinal') | max(complication_screenings.screened_on) | dimensionalize(patients.id) ;;
+  }
+  dimension last_foot_exam_on {
+    model: patients
+    label: 'Last Foot Exam On'
+    type: 'date'
+    definition: @aql complication_screenings | where(complication_screenings.kind == 'foot') | max(complication_screenings.screened_on) | dimensionalize(patients.id) ;;
+  }
+
+  // Visits: days with a lab sample or a clinic blood pressure. The latest visit is the one the clinician is reviewing,
+  // so "since previous visit" starts at the visit before it.
+  dimension last_visit_on {
+    model: patients
+    label: 'Latest Visit On'
+    type: 'date'
+    description: "Day of the patient's most recent clinic visit (a lab sample or a clinic blood pressure)."
+    definition: @aql patient_days | where(patient_days.had_visit == true) | max(patient_days.day) | dimensionalize(patients.id) ;;
+  }
+  dimension previous_visit_on {
+    model: patients
+    label: 'Previous Visit On'
+    type: 'date'
+    description: "Day of the clinic visit before the most recent one: where \"Since previous visit\" starts. Empty for a patient with only one visit."
+    definition: @aql patient_days | where(patient_days.had_visit == true and patient_days.day < patients.last_visit_on) | max(patient_days.day) | dimensionalize(patients.id) ;;
+  }
+
+  metric months_since_retinal_screening {
+    label: 'Months Since Retinal Screening'
+    type: 'number'
+    description: "Months since the last retinal screening (dilated eye exam or retinal photo). Due every 12 months."
+    definition: @aql patients | min(date_diff('month', patients.last_retinal_screening_on, patients.data_as_of)) ;;
+  }
+  metric retinal_result_latest {
+    label: 'Retinal Screening Result, Latest'
+    type: 'text'
+    description: "What the most recent retinal screening found: \"No retinopathy\" or \"Retinopathy\"."
+    definition: @aql complication_screenings | where(complication_screenings.kind == 'retinal') | max_by(complication_screenings.result, complication_screenings.screened_on) ;;
+  }
+  metric retinal_screening_interval_months {
+    label: 'Retinal Screening Interval (months)'
+    type: 'number'
+    description: 'A retinal screening older than this is due (ADA Standards of Care: once a year; every 1 to 2 years may be considered with no retinopathy and glucose at target).'
+    definition: @aql 12 ;;
+  }
+  metric eye_status {
+    label: 'Eye Status'
+    type: 'text'
+    description: "Diabetic eye disease screening. \"Review\" when the last retinal screening is more than 12 months old or missing (due), or found retinopathy; otherwise \"On target\"."
+    definition: screening_status_rule('months_since_retinal_screening', 'retinal_result_latest', 'retinal_screening_interval_months', 'retinopathy')
+  }
+
+  metric months_since_foot_exam {
+    label: 'Months Since Foot Exam'
+    type: 'number'
+    description: "Months since the last foot exam. Due every 12 months."
+    definition: @aql patients | min(date_diff('month', patients.last_foot_exam_on, patients.data_as_of)) ;;
+  }
+  metric foot_result_latest {
+    label: 'Foot Exam Result, Latest'
+    type: 'text'
+    description: "Result of the most recent foot exam, including the monofilament test for lost sensation: \"Normal\" or \"Abnormal\"."
+    definition: @aql complication_screenings | where(complication_screenings.kind == 'foot') | max_by(complication_screenings.result, complication_screenings.screened_on) ;;
+  }
+  metric foot_exam_interval_months {
+    label: 'Foot Exam Interval (months)'
+    type: 'number'
+    description: 'A foot exam older than this is due (ADA Standards of Care: at least once a year).'
+    definition: @aql 12 ;;
+  }
+  metric foot_status {
+    label: 'Foot Status'
+    type: 'text'
+    description: "Diabetic foot and nerve screening. \"Review\" when the last foot exam is more than 12 months old or missing (due), or was abnormal; otherwise \"On target\"."
+    definition: screening_status_rule('months_since_foot_exam', 'foot_result_latest', 'foot_exam_interval_months', 'abnormal')
+  }
+
+  metric organs_act_now_count {
+    label: 'Organs: Act Now'
+    type: 'number'
+    description: "How many of the five organs (glucose, kidneys, heart, eyes, feet) are marked \"Act now\": a safety issue or a referral that comes first at this visit."
+    definition: organs_with_status_rule('act_now', 'glycemic_status', 'kidney_status', 'heart_status', 'eye_status', 'foot_status')
+  }
+  metric organs_review_count {
+    label: 'Organs: Review'
+    type: 'number'
+    description: "How many of the five organs are marked \"Review\": a measure past its target, or a test or screening due, to raise at this visit."
+    definition: organs_with_status_rule('review', 'glycemic_status', 'kidney_status', 'heart_status', 'eye_status', 'foot_status')
+  }
+  metric organs_on_target_count {
+    label: 'Organs: On Target'
+    type: 'number'
+    description: "How many of the five organs are \"On target\"."
+    definition: organs_with_status_rule('on_target', 'glycemic_status', 'kidney_status', 'heart_status', 'eye_status', 'foot_status')
+  }
+
+  // Flags for this visit: rule-based prompts for the clinician, each Act now, Review or empty (no flag).
+  metric a1c_above_target_flag {
+    label: 'Flag: HbA1c Above Target'
+    type: 'text'
+    description: "Raised as \"Review\" when glucose status comes from a lab HbA1c (not enough CGM) and that HbA1c is at or over the patient's HbA1c target. Empty otherwise."
+    definition: @aql case(
+      when: glycemic_status_source == 'lab_hba1c' and hba1c_status == 'review', then: 'review',
+      else: null
+    ) ;;
+  }
+  metric ckd_progression_flag {
+    label: 'Flag: Kidney Function'
+    type: 'text'
+    description: "Raised as \"Act now\" when the kidney status is \"Act now\" (treat and refer, or eGFR falling more than 5 a year over at least 12 months), as \"Review\" when eGFR is under 60 or UACR is 30 mg/g or more in 2 of the last 3 tests. Empty otherwise; tests that are only due raise the tests-overdue flag instead."
+    definition: @aql case(
+      when: kidney_status == 'act_now', then: 'act_now',
+      when: has_ckd, then: 'review',
+      else: null
+    ) ;;
+  }
+  metric ldl_above_target_flag {
+    label: 'Flag: LDL Above Target'
+    type: 'text'
+    description: "Raised as \"Review\" when the latest LDL cholesterol is at or over the patient's target (70 mg/dL with an ASCVD risk factor on record, 100 otherwise). Empty otherwise, including when there is no LDL result. Blood pressure alone does not raise it."
+    definition: @aql case(
+      when: ldl_latest >= ldl_target, then: 'review',
+      else: null
+    ) ;;
+  }
+  metric no_statin_flag {
+    label: 'Flag: No Statin'
+    type: 'text'
+    description: "Raised as \"Review\" when the patient is 40 to 75 and on no statin (ADA Standards of Care 2026, rec. 10.18 and 10.20). Empty otherwise."
+    definition: @aql case(
+      when: no_statin, then: 'review',
+      else: null
+    ) ;;
+  }
+  metric retinal_screening_overdue {
+    label: 'Retinal Screening Overdue'
+    type: 'truefalse'
+    description: 'The last retinal screening is more than 12 months old, or the patient has none on record.'
+    definition: @aql coalesce(months_since_retinal_screening > retinal_screening_interval_months, true) ;;
+  }
+  metric foot_exam_overdue {
+    label: 'Foot Exam Overdue'
+    type: 'truefalse'
+    description: 'The last foot exam is more than 12 months old, or the patient has none on record.'
+    definition: @aql coalesce(months_since_foot_exam > foot_exam_interval_months, true) ;;
+  }
+  metric screening_overdue_flag {
+    label: 'Flag: Screening Overdue'
+    type: 'text'
+    description: "Raised as \"Review\" when the retinal screening or the foot exam is due: more than 12 months since the last one, or none on record. Empty otherwise."
+    definition: @aql case(
+      when: retinal_screening_overdue or foot_exam_overdue, then: 'review',
+      else: null
+    ) ;;
+  }
+  metric hba1c_overdue {
+    label: 'HbA1c Overdue'
+    type: 'truefalse'
+    description: 'Not enough CGM data to judge glucose and no lab HbA1c in the last 120 days.'
+    definition: @aql glycemic_status_source is null ;;
+  }
+  metric tests_overdue_flag {
+    label: 'Flag: Tests Overdue'
+    type: 'text'
+    description: "Raised as \"Review\" when a routine test is due: HbA1c (no recent result and not enough CGM), eGFR or UACR (12 months), LDL cholesterol (12 months) or blood pressure (6 months), or none on record. Empty otherwise."
+    definition: @aql case(
+      when: hba1c_overdue or kidney_tests_overdue or lipid_test_overdue or blood_pressure_overdue, then: 'review',
+      else: null
+    ) ;;
+  }
+
+  // Glucose timeline: glucose since the previous visit or since CGM started (patients.first_read_at), one day or week per
+  // period, from patient_days. Group by patient_days.day (a date drill can make it a week) and date-filter it to the
+  // range; the shares match the report metrics over the same days.
+  dimension glucose_timeline_starts_on {
+    model: patients
+    label: 'Glucose Timeline Since Previous Visit Starts On'
+    type: 'date'
+    description: "First day of the glucose timeline since the previous visit: the first day of the report seen at the previous visit, so that report and everything since are on it; the first CGM reading when there was no previous visit or the sensor started later."
+    definition: @aql case(
+      when: patients.previous_visit_window_starts_on > patients.first_read_at, then: patients.previous_visit_window_starts_on,
+      else: patients.first_read_at | day()
+    ) ;;
+  }
+  metric period_readings_count {
+    label: 'Period: CGM Readings'
+    type: 'number'
+    description: 'CGM readings in the period (a day or a week of the glucose timeline). The shares below are empty for a period with none.'
+    definition: @aql patient_days | sum(patient_days.readings) ;;
+  }
+  metric period_sensor_wear_pct {
+    label: 'Period: Sensor Wear (%)'
+    type: 'number'
+    description: 'How much of the period the CGM sensor was recording: readings against 288 a day for every day of the period, days without a reading included.'
+    definition: @aql period_readings_count * 100.0 / (window_days * ${readings_per_day()}) ;;
+  }
+  metric period_tbr_pct {
+    label: 'Period: Time Below Range (%)'
+    type: 'number'
+    description: 'Share of CGM readings under 70 mg/dL in the period. Includes the time very low.'
+    definition: @aql (patient_days | sum(patient_days.readings_below_range)) * 100.0 / nullif(period_readings_count, 0) ;;
+  }
+  metric period_tbr_severe_pct {
+    label: 'Period: Time Very Low (%)'
+    type: 'number'
+    description: 'Share of CGM readings under 54 mg/dL in the period.'
+    definition: @aql (patient_days | sum(patient_days.readings_very_low)) * 100.0 / nullif(period_readings_count, 0) ;;
+  }
+  metric period_tar_pct {
+    label: 'Period: Time Above Range (%)'
+    type: 'number'
+    description: 'Share of CGM readings over 180 mg/dL in the period. Includes the time very high.'
+    definition: @aql (patient_days | sum(patient_days.readings_above_range)) * 100.0 / nullif(period_readings_count, 0) ;;
+  }
+  metric period_tar_severe_pct {
+    label: 'Period: Time Very High (%)'
+    type: 'number'
+    description: 'Share of CGM readings over 250 mg/dL in the period.'
+    definition: @aql (patient_days | sum(patient_days.readings_very_high)) * 100.0 / nullif(period_readings_count, 0) ;;
+  }
+
+  // Time-lapse frames: each organ's status as it stood on each day, from patient_days, through the same rules as today.
+  // Group by patient_days.day and never date-filter: a date filter cuts the first 14-day windows short.
+  metric frame_readings_count {
+    label: 'Frame: CGM Readings'
+    type: 'number'
+    description: 'CGM readings in the 14 days ending on the frame day.'
+    definition: @aql (patient_days | sum(patient_days.readings)) | trailing_period(patient_days.day, interval(14 days)) ;;
+  }
+  metric frame_sensor_wear_pct {
+    label: 'Frame: Sensor Wear (%)'
+    type: 'number'
+    description: 'How much of the 14 days ending on the frame day the CGM sensor was recording.'
+    definition: @aql frame_readings_count * 100.0 / (${report_days()} * ${readings_per_day()}) ;;
+  }
+  metric frame_tir_pct {
+    label: 'Frame: Time in Range (%)'
+    type: 'number'
+    description: 'Share of CGM readings from 70 to 180 mg/dL in the 14 days ending on the frame day.'
+    definition: @aql ((patient_days | sum(patient_days.readings_in_range)) | trailing_period(patient_days.day, interval(14 days))) * 100.0 / frame_readings_count ;;
+  }
+  metric frame_tbr_pct {
+    label: 'Frame: Time Below Range (%)'
+    type: 'number'
+    description: 'Share of CGM readings under 70 mg/dL in the 14 days ending on the frame day.'
+    definition: @aql ((patient_days | sum(patient_days.readings_below_range)) | trailing_period(patient_days.day, interval(14 days))) * 100.0 / frame_readings_count ;;
+  }
+  metric frame_cgm_status {
+    label: 'Frame: CGM Status'
+    type: 'text'
+    description: 'The CGM status (same rule as today) over the 14 days ending on the frame day.'
+    definition: cgm_status_rule('frame_sensor_wear_pct', 'frame_tbr_pct', 'frame_tir_pct')
+  }
+  metric frame_hba1c_latest_pct {
+    label: 'Frame: HbA1c, Latest (%)'
+    type: 'number'
+    description: 'Lab HbA1c from the most recent blood test on or before the frame day.'
+    definition: @aql patient_days | max(patient_days.hba1c_pct) ;;
+  }
+  metric frame_days_since_hba1c {
+    label: 'Frame: Days Since HbA1c'
+    type: 'number'
+    description: 'Days from that HbA1c sample to the frame day.'
+    definition: @aql date_diff('day', patient_days | max(patient_days.hba1c_taken_on), patient_days | max(patient_days.day)) ;;
+  }
+  metric frame_hba1c_recent_pct {
+    label: 'Frame: HbA1c, Recent (%)'
+    type: 'number'
+    description: 'The HbA1c on the frame day, if it was taken in the 120 days before it.'
+    definition: hba1c_recent_rule('frame_hba1c_latest_pct', 'frame_days_since_hba1c')
+  }
+  metric frame_hba1c_status {
+    label: 'Frame: HbA1c Status'
+    type: 'text'
+    description: 'The HbA1c status (same rule as today) on the frame day.'
+    definition: hba1c_status_rule('frame_hba1c_recent_pct')
+  }
+  metric frame_glycemic_status {
+    label: 'Frame: Glycemic Status'
+    type: 'text'
+    description: "Glucose control as it stood on the frame day, by the same rule as today: from CGM with at least 70% sensor wear over the 14 days ending that day, else from lab HbA1c (\"Review\" when none was taken in the 120 days before it)."
+    definition: glycemic_status_rule('frame_cgm_status', 'frame_hba1c_status')
+  }
+  metric frame_glycemic_status_source {
+    label: 'Frame: Glycemic Status Source'
+    type: 'text'
+    description: "Which data the frame's glycemic status comes from: \"cgm\", \"lab_hba1c\", or empty when there is not enough of either."
+    definition: glycemic_status_source_rule('frame_cgm_status', 'frame_hba1c_recent_pct')
+  }
+  metric frame_egfr_latest {
+    label: 'Frame: eGFR'
+    type: 'number'
+    description: 'eGFR from the most recent blood test on or before the frame day.'
+    definition: @aql patient_days | max(patient_days.egfr) ;;
+  }
+  metric frame_uacr_latest {
+    label: 'Frame: UACR (mg/g)'
+    type: 'number'
+    description: 'UACR from the most recent urine test on or before the frame day.'
+    definition: @aql patient_days | max(patient_days.uacr) ;;
+  }
+  metric frame_egfr_slope_per_year {
+    label: 'Frame: eGFR Trend (per year)'
+    type: 'number'
+    description: 'The eGFR trend through every eGFR on or before the frame day.'
+    definition: @aql patient_days | max(patient_days.egfr_slope_per_year) ;;
+  }
+  metric frame_egfr_slope_span_months {
+    label: 'Frame: eGFR Slope Span (months)'
+    type: 'number'
+    description: 'Months between the first eGFR and the last one on or before the frame day.'
+    definition: @aql date_diff('month', patient_days | max(patient_days.first_egfr_on), patient_days | max(patient_days.egfr_taken_on)) ;;
+  }
+  metric frame_uacr_last_3_median {
+    label: 'Frame: UACR, Last 3 Tests (mg/g)'
+    type: 'number'
+    description: 'The median of the last three UACR results on or before the frame day.'
+    definition: @aql patient_days | max(patient_days.uacr_last_3_median) ;;
+  }
+  metric frame_has_ckd {
+    label: 'Frame: Chronic Kidney Disease on Record'
+    type: 'truefalse'
+    description: 'Chronic kidney disease (same rule as today) on record on the frame day.'
+    definition: ckd_rule('frame_egfr_latest', 'frame_uacr_last_3_median')
+  }
+  metric frame_months_since_egfr {
+    label: 'Frame: Months Since eGFR'
+    type: 'number'
+    description: 'Calendar months from the last eGFR on or before the frame day to that day.'
+    definition: @aql date_diff('month', patient_days | max(patient_days.egfr_taken_on), patient_days | max(patient_days.day)) ;;
+  }
+  metric frame_months_since_uacr {
+    label: 'Frame: Months Since UACR'
+    type: 'number'
+    description: 'Calendar months from the last UACR on or before the frame day to that day.'
+    definition: @aql date_diff('month', patient_days | max(patient_days.uacr_taken_on), patient_days | max(patient_days.day)) ;;
+  }
+  metric frame_kidney_status {
+    label: 'Frame: Kidney Status'
+    type: 'text'
+    description: 'The kidney status (same rule as today) from the tests as they stood on the frame day.'
+    definition: kidney_status_rule('frame_egfr_latest', 'frame_uacr_last_3_median', 'frame_egfr_slope_per_year', 'frame_egfr_slope_span_months', 'frame_months_since_egfr', 'frame_months_since_uacr')
+  }
+  metric frame_ldl_latest {
+    label: 'Frame: LDL (mg/dL)'
+    type: 'number'
+    description: 'LDL cholesterol from the most recent blood test on or before the frame day.'
+    definition: @aql patient_days | max(patient_days.ldl) ;;
+  }
+  metric frame_systolic_latest {
+    label: 'Frame: Systolic BP (mmHg)'
+    type: 'number'
+    description: 'Systolic blood pressure from the most recent measurement on or before the frame day.'
+    definition: @aql patient_days | max(patient_days.systolic_mmhg) ;;
+  }
+  metric frame_diastolic_latest {
+    label: 'Frame: Diastolic BP (mmHg)'
+    type: 'number'
+    description: 'Diastolic blood pressure from the most recent measurement on or before the frame day.'
+    definition: @aql patient_days | max(patient_days.diastolic_mmhg) ;;
+  }
+  metric frame_blood_pressure_latest {
+    label: 'Frame: Blood Pressure (mmHg)'
+    type: 'text'
+    description: 'Blood pressure from the most recent measurement on or before the frame day, as systolic/diastolic.'
+    definition: @aql concat(cast(frame_systolic_latest, 'text'), '/', cast(frame_diastolic_latest, 'text')) ;;
+  }
+  metric frame_active_blood_pressure_drugs_count {
+    label: 'Frame: Blood-Pressure-Lowering Drugs'
+    type: 'number'
+    description: 'How many blood-pressure-lowering drugs the patient was on on the frame day.'
+    definition: @aql patient_days | max(patient_days.active_blood_pressure_drugs_count) ;;
+  }
+  metric frame_has_ascvd_risk_factor {
+    label: 'Frame: ASCVD Risk Factor on Record'
+    type: 'truefalse'
+    description: 'An ASCVD risk factor (same rule as today) on record on the frame day.'
+    definition: ascvd_risk_factor_rule('frame_has_ckd', 'frame_systolic_latest', 'frame_diastolic_latest', 'frame_active_blood_pressure_drugs_count')
+  }
+  metric frame_systolic_target {
+    label: 'Frame: Systolic BP Target (mmHg)'
+    type: 'number'
+    description: 'The systolic goal that applied to the patient on the frame day.'
+    definition: systolic_target_rule('frame_has_ckd')
+  }
+  metric frame_active_statins_count {
+    label: 'Frame: Statins'
+    type: 'number'
+    description: 'How many statins the patient was on on the frame day.'
+    definition: @aql patient_days | max(patient_days.active_statins_count) ;;
+  }
+  metric frame_age_years {
+    label: 'Frame: Age (years)'
+    type: 'number'
+    description: 'Age in the year of the frame day.'
+    definition: @aql patient_days | max(patient_days.age_years) ;;
+  }
+  metric frame_no_statin {
+    label: 'Frame: No Statin'
+    type: 'truefalse'
+    description: 'No statin at 40 to 75 (same rule as today) on the frame day.'
+    definition: no_statin_rule('frame_age_years', 'frame_active_statins_count')
+  }
+  metric frame_ldl_target {
+    label: 'Frame: LDL Target (mg/dL)'
+    type: 'number'
+    description: 'The LDL target that applied to the patient on the frame day.'
+    definition: ldl_target_rule('frame_has_ascvd_risk_factor')
+  }
+  metric frame_months_since_ldl {
+    label: 'Frame: Months Since LDL'
+    type: 'number'
+    description: 'Calendar months from the last LDL on or before the frame day to that day.'
+    definition: @aql date_diff('month', patient_days | max(patient_days.ldl_taken_on), patient_days | max(patient_days.day)) ;;
+  }
+  metric frame_months_since_blood_pressure {
+    label: 'Frame: Months Since Blood Pressure'
+    type: 'number'
+    description: 'Calendar months from the last clinic blood pressure on or before the frame day to that day.'
+    definition: @aql date_diff('month', patient_days | max(patient_days.blood_pressure_measured_on), patient_days | max(patient_days.day)) ;;
+  }
+  metric frame_heart_status {
+    label: 'Frame: Heart Status'
+    type: 'text'
+    description: 'The heart status (same rule as today) from LDL and blood pressure as they stood on the frame day.'
+    definition: heart_status_rule('frame_ldl_latest', 'frame_systolic_latest', 'frame_diastolic_latest', 'frame_ldl_target', 'frame_systolic_target', 'frame_no_statin', 'frame_months_since_ldl', 'frame_months_since_blood_pressure')
+  }
+  metric frame_months_since_retinal_screening {
+    label: 'Frame: Months Since Retinal Screening'
+    type: 'number'
+    description: 'Calendar months from the last retinal screening on or before the frame day to that day.'
+    definition: @aql date_diff('month', patient_days | max(patient_days.retinal_screened_on), patient_days | max(patient_days.day)) ;;
+  }
+  metric frame_retinal_result_latest {
+    label: 'Frame: Retinal Screening Result'
+    type: 'text'
+    description: 'What that retinal screening found.'
+    definition: @aql patient_days | max(patient_days.retinal_result) ;;
+  }
+  metric frame_eye_status {
+    label: 'Frame: Eye Status'
+    type: 'text'
+    description: 'The eye status (same rule as today) on the frame day.'
+    definition: screening_status_rule('frame_months_since_retinal_screening', 'frame_retinal_result_latest', 'retinal_screening_interval_months', 'retinopathy')
+  }
+  metric frame_months_since_foot_exam {
+    label: 'Frame: Months Since Foot Exam'
+    type: 'number'
+    description: 'Calendar months from the last foot exam on or before the frame day to that day.'
+    definition: @aql date_diff('month', patient_days | max(patient_days.foot_screened_on), patient_days | max(patient_days.day)) ;;
+  }
+  metric frame_foot_result_latest {
+    label: 'Frame: Foot Exam Result'
+    type: 'text'
+    description: 'What that foot exam found.'
+    definition: @aql patient_days | max(patient_days.foot_result) ;;
+  }
+  metric frame_foot_status {
+    label: 'Frame: Foot Status'
+    type: 'text'
+    description: 'The foot status (same rule as today) on the frame day.'
+    definition: screening_status_rule('frame_months_since_foot_exam', 'frame_foot_result_latest', 'foot_exam_interval_months', 'abnormal')
+  }
+  metric frame_organs_act_now_count {
+    label: 'Frame: Organs: Act Now'
+    type: 'number'
+    description: "How many of the five organs were \"Act now\" on the frame day."
+    definition: organs_with_status_rule('act_now', 'frame_glycemic_status', 'frame_kidney_status', 'frame_heart_status', 'frame_eye_status', 'frame_foot_status')
+  }
+  metric frame_organs_review_count {
+    label: 'Frame: Organs: Review'
+    type: 'number'
+    description: "How many of the five organs were \"Review\" on the frame day."
+    definition: organs_with_status_rule('review', 'frame_glycemic_status', 'frame_kidney_status', 'frame_heart_status', 'frame_eye_status', 'frame_foot_status')
+  }
+  metric frame_organs_on_target_count {
+    label: 'Frame: Organs: On Target'
+    type: 'number'
+    description: "How many of the five organs were \"On target\" on the frame day."
+    definition: organs_with_status_rule('on_target', 'frame_glycemic_status', 'frame_kidney_status', 'frame_heart_status', 'frame_eye_status', 'frame_foot_status')
+  }
+}

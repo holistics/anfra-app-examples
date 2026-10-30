@@ -1,0 +1,39 @@
+Model insulin_doses {
+  type: 'table'
+  label: 'Insulin Doses'
+  description: 'One row per insulin injection a patient gave, in units.'
+  data_source_name: 'health'
+  table_name: 'insulin_doses'
+
+  dimension id {
+    label: 'Dose Id'
+    type: 'number'
+    hidden: true
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension patient_id {
+    label: 'Patient Id'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.patient_id }};;
+  }
+  dimension given_at {
+    label: 'Given At'
+    type: 'datetime'
+    description: 'When the patient injected the dose (local clinic time).'
+    definition: @sql {{ #SOURCE.given_at }};;
+  }
+  dimension kind {
+    label: 'Kind'
+    type: 'text'
+    description: 'basal (long-acting, once a day) or bolus (with a meal).'
+    definition: @sql {{ #SOURCE.kind }};;
+  }
+  dimension units {
+    label: 'Units'
+    type: 'number'
+    description: 'Insulin units injected.'
+    definition: @sql {{ #SOURCE.units }};;
+  }
+}

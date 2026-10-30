@@ -1,0 +1,51 @@
+Model lab_results {
+  type: 'table'
+  label: 'Lab Results'
+  description: 'One row per lab test result (eGFR, UACR, ...) from a blood or urine sample.'
+  data_source_name: 'health'
+  table_name: 'lab_results'
+
+  dimension id {
+    label: 'Result Id'
+    type: 'number'
+    hidden: true
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension patient_id {
+    label: 'Patient Id'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.patient_id }};;
+  }
+  dimension taken_on {
+    label: 'Taken On'
+    type: 'date'
+    description: 'Day the sample was taken.'
+    definition: @sql {{ #SOURCE.taken_on }};;
+  }
+  dimension test {
+    label: 'Test'
+    type: 'text'
+    description: 'egfr (kidney filtration, mL/min/1.73m²), uacr (urine albumin-to-creatinine ratio, mg/g) or ldl (LDL cholesterol, mg/dL).'
+    definition: @sql {{ #SOURCE.test }};;
+  }
+  dimension value {
+    label: 'Value'
+    type: 'number'
+    description: 'The result, in the unit of its test.'
+    definition: @sql {{ #SOURCE.value }};;
+  }
+  dimension newer_results_count {
+    label: 'Newer Results of the Same Test'
+    type: 'number'
+    description: "How many results of the same test the patient has after this one: 0 is the latest. Lets a rule read the last few results, such as UACR's last three."
+    definition: @sql (select count(*) from lab_results newer
+      where newer.patient_id = {{ #SOURCE.patient_id }} and newer.test = {{ #SOURCE.test }} and newer.taken_on > {{ #SOURCE.taken_on }}) ;;
+  }
+  dimension unit {
+    label: 'Unit'
+    type: 'text'
+    definition: @sql {{ #SOURCE.unit }};;
+  }
+}

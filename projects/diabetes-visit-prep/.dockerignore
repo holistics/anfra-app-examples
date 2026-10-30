@@ -1,0 +1,9 @@
+.git
+node_modules
+notes
+test
+data
+.anfra/data_sources.yml
+Dockerfile
+.dockerignore
+docker/deploy.sh

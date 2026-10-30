@@ -1,0 +1,38 @@
+Model blood_pressure_readings {
+  type: 'table'
+  label: 'Blood Pressure Readings'
+  description: 'One row per blood pressure measurement taken at a clinic visit, in mmHg.'
+  data_source_name: 'health'
+  table_name: 'blood_pressure_readings'
+
+  dimension id {
+    label: 'Reading Id'
+    type: 'number'
+    hidden: true
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension patient_id {
+    label: 'Patient Id'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.patient_id }};;
+  }
+  dimension measured_on {
+    label: 'Measured On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.measured_on }};;
+  }
+  dimension systolic_mmhg {
+    label: 'Systolic (mmHg)'
+    type: 'number'
+    description: 'Pressure while the heart beats (the top number).'
+    definition: @sql {{ #SOURCE.systolic_mmhg }};;
+  }
+  dimension diastolic_mmhg {
+    label: 'Diastolic (mmHg)'
+    type: 'number'
+    description: 'Pressure between beats (the bottom number).'
+    definition: @sql {{ #SOURCE.diastolic_mmhg }};;
+  }
+}

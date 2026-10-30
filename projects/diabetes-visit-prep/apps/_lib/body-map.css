@@ -1,0 +1,63 @@
+/* Styles for VisitPrep.bodyMap (body-map.js). Uses the page's tokens: --body, --ink, --ink-muted, --surface, --line, --accent,
+   --callout, --line-callout, --platform. */
+.body-map-stage { position: relative; }
+.body-map-canvas { position: absolute; top: 0; left: 50%; width: 680px; height: 660px; transform-origin: top center; }
+.body-map-stage .body-map-canvas > svg { position: absolute; inset: 0; }
+.body-map-stage .organ { transition: fill .25s ease; }
+.body-map-stage .ring { opacity: 0; }
+.body-map-stage .ring.on { animation: hm-pulse 1.8s ease-out infinite; }
+@keyframes hm-pulse { 0% { opacity: .9; stroke-width: 2px; } 100% { opacity: 0; stroke-width: 10px; } }
+@media (prefers-reduced-motion: reduce) { .body-map-stage .ring.on { animation: none; opacity: 1; } }
+.body-map-stage .callout { position: absolute; width: 200px; min-height: 92px; box-sizing: border-box; background: var(--callout); border: 1px solid var(--line-callout); border-radius: 16px; box-shadow: 0 10px 24px -14px #1d3a5c55; backdrop-filter: blur(6px); padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.body-map-stage .callout { transition: border-color .15s ease, box-shadow .15s ease; }
+/* Not while one of its metrics is hovered: that metric's own outline is the only thing lit. */
+.body-map-stage .callout:hover:not(:has([data-metric]:hover)) { border-color: var(--accent); box-shadow: 0 2px 10px color-mix(in srgb, var(--ink) 12%, transparent); }
+.body-map-stage .callout[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 6%, var(--surface)); border-color: var(--accent); }
+.body-map-stage .callout-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.body-map-stage .callout-more { font-size: 12px; font-weight: 600; color: var(--accent); }
+.body-map-stage .callout[aria-pressed="true"] .callout-more { color: var(--ink-muted); font-weight: 400; }
+.body-map-stage .organ { cursor: pointer; }
+.body-map-stage .callout-name { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-muted); }
+.body-map-stage .callout-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.body-map-stage .callout-value { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.body-map-stage .callout-sub { font-size: 13px; color: var(--ink-muted); }
+.body-map-stage .callout-status { font-size: 12px; font-weight: 600; }
+/* Narrow: the callouts stack beside the silhouette in body order, which does the leaders' job. */
+.body-map-stage.narrow .body-map-canvas { position: static; width: auto; height: auto; display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 8px 10px; }
+.body-map-stage.narrow .body-map-canvas > svg { position: static; grid-column: 1; grid-row: 1 / span 5; align-self: center; width: 104px; height: auto; aspect-ratio: 228 / 660; }
+.body-map-stage.narrow .leaders { display: none; }
+/* A platform under the feet: a lit disc and a fainter outer ring. */
+.body-map-canvas::before { content: ''; position: absolute; left: 50%; top: 612px; width: 250px; height: 46px; transform: translateX(-50%); border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--platform) 67%, transparent); background: radial-gradient(ellipse at center, color-mix(in srgb, var(--platform) 33%, transparent) 0%, color-mix(in srgb, var(--platform) 9%, transparent) 55%, transparent 72%); box-shadow: 0 0 24px color-mix(in srgb, var(--platform) 33%, transparent), inset 0 0 18px color-mix(in srgb, var(--platform) 27%, transparent); pointer-events: none; }
+.body-map-canvas::after { content: ''; position: absolute; left: 50%; top: 600px; width: 360px; height: 70px; transform: translateX(-50%); border-radius: 50%; border: 1px solid color-mix(in srgb, var(--platform) 27%, transparent); pointer-events: none; }
+.body-map-stage.narrow .body-map-canvas::before, .body-map-stage.narrow .body-map-canvas::after { display: none; }
+.body-map-stage.narrow .callout { position: static; grid-column: 2; width: auto; min-height: 0; }
+/* The 3D figure (body-3d.js) sits under the leaders, which take no pointer so a drag on the body turns it. */
+.body-map-stage .body-3d { position: absolute; inset: 0; width: 680px; height: 660px; cursor: grab; touch-action: pan-y; }
+.body-map-stage.has-figure .body-map-canvas > svg { z-index: 1; pointer-events: none; }
+.body-map-stage.has-figure .callout { z-index: 2; }
+.body-map-stage .callout.organ-hovered { border-color: var(--accent); box-shadow: 0 2px 10px color-mix(in srgb, var(--ink) 12%, transparent); }
+.body-map-stage.has-figure.narrow .body-map-canvas > svg { display: none; }
+.body-map-stage.narrow .body-3d { position: static; grid-column: 1; grid-row: 1 / span 5; align-self: center; width: 104px; height: auto; aspect-ratio: 228 / 660; }
+.body-map-no-webgl { margin: 8px 0 0; font-size: 13px; color: var(--ink-muted); text-align: center; }
+.body-map-credit { margin: 8px 0 0; font-size: 11px; color: var(--ink-muted); }
+.body-map-credit a { color: inherit; text-decoration: none; }
+.body-map-credit a:hover { text-decoration: underline; }
+/* Dashed and tinted so it reads as history rather than as one more organ. Capped at the body map's bottom (660px), it
+   scrolls inside when a hover unclamps the notes. */
+.body-map-stage .body-map-events { position: absolute; left: 480px; top: 392px; max-height: 268px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; width: 200px; box-sizing: border-box; z-index: 3; padding: 10px 12px; border: 1.5px dashed color-mix(in srgb, var(--visit) 55%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--visit) 7%, var(--surface)); display: flex; flex-direction: column; opacity: 0; transition: opacity .25s ease; pointer-events: none; }
+.body-map-stage .body-map-events.shown { opacity: 1; pointer-events: auto; }
+.body-map-stage .body-map-events-head { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--visit); margin-bottom: 6px; }
+.body-map-stage .body-map-events:hover .body-map-event-details { -webkit-line-clamp: none; }
+.body-map-stage .body-map-events:hover .body-map-event-label { white-space: normal; }
+.body-map-stage .body-map-event { position: relative; display: flex; flex-direction: column; margin-left: 4px; padding: 0 0 10px 16px; border-left: 2px solid var(--line); }
+.body-map-stage .body-map-event:last-child { padding-bottom: 0; border-left-color: transparent; }
+.body-map-stage .body-map-event::before { content: ''; position: absolute; left: -6px; top: 3px; width: 10px; height: 10px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--surface); }
+.body-map-stage .body-map-event.newest::before { border-color: var(--visit); background: var(--visit); }
+.body-map-stage .body-map-event.arrived::before { animation: body-map-event-arrived 1.2s ease-out; }
+.body-map-stage .body-map-event-day { font-size: 12px; color: var(--ink-muted); }
+.body-map-stage .body-map-event-label { font-size: 13px; color: var(--ink-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.body-map-stage .body-map-event.newest .body-map-event-label { font-size: 14px; font-weight: 600; color: var(--ink); white-space: normal; }
+.body-map-stage .body-map-event-details { font-size: 12px; color: var(--ink-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+@keyframes body-map-event-arrived { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--visit) 60%, transparent); } to { box-shadow: 0 0 0 10px transparent; } }
+.body-map-stage.narrow .body-map-events { display: none; }
+@media (prefers-reduced-motion: reduce) { .body-map-stage .body-map-events { transition: none; } .body-map-stage .body-map-event.arrived::before { animation: none; } }

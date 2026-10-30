@@ -1,0 +1,2289 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Diabetes Visit Prep</title>
+  <meta name="description" content="A diabetes patient's body, organ by organ, colored by governed clinical status.">
+  <meta property="og:image" content="diabetes-visit-prep.jpg">
+  <link rel="stylesheet" href="_lib/body-map.css">
+  <link rel="stylesheet" href="_lib/metric-descriptions.css">
+  <link rel="stylesheet" href="_lib/time-lapse.css">
+  <link rel="stylesheet" href="_lib/diverging-timeline.css">
+  <link rel="stylesheet" href="_lib/stacked-bars.css">
+  <link rel="stylesheet" href="_lib/agp-chart.css">
+  <link rel="stylesheet" href="_lib/daily-profiles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #15202b; --ink-muted: #4f5b67; --surface: #fff; --page: #edf2f7; --line: #e3e9f0;
+      --surface-muted: #f7f8fa; --surface-showing-today: #f9fafb;
+      --line-muted: #e8edf3; --line-faint: #eef1f4; --line-strong: #b9c1ca; --line-control: #c4ccd5; --line-center: #898781;
+      --accent: #1f6fb8; --accent-strong: #123f63; --visit: #2c74b4; --error: #b42318;
+      /* A blue wash behind the page, near-white cards over it (solid, so the table's sticky column matches), and the body
+         card see-through, lit from the middle. */
+      --page-wash: linear-gradient(160deg, #e9f1f9 0%, #d3e3f3 45%, #bcd3eb 100%);
+      --card: #f8fbfe; --line-card: #ffffff99; --card-shadow: 0 1px 2px #10284610, 0 16px 40px -16px #10284640;
+      --body-map-surface: radial-gradient(ellipse 520px 520px at 50% 320px, #ffffffd9 0%, #ffffff66 50%, #ffffff33 100%);
+      --callout: #ffffffe6; --line-callout: #fff; --platform: #2f7fd0; --tray: #fffffff2; --line-tray: #c5d6e8;
+      --body: #e3e8ee; --organ-pending: #c4ccd5;
+      --on-target: #0ca30c; --review: #fab219; --act-now: #d03b3b;
+      --hatch-stripe: #b9c1ca; --hatch-ground: #eef1f4;
+      --hatch: repeating-linear-gradient(45deg, var(--hatch-stripe) 0 2px, var(--hatch-ground) 2px 4px);
+      --glucose-very-high: #b9471a; --glucose-high: #f2b33d; --glucose-in-range: #86d0a2; --glucose-tight: #1a7f4b; --glucose-low: #f08a89; --glucose-very-low: #9e1f1f;
+      --agp-outer: #c9dcf0; --agp-inner: #6f9fd1; --agp-median: #1d4f86; --agp-earlier: #8a9099; --agp-target: #1a7f4b;
+      color-scheme: light dark;
+    }
+    /* Follows the OS: the host's theme toggle never reaches the app frame (anfra 0.10.2). The surfaces are navy, to match
+       light mode's blue wash; status colors stay (each at least 3:1 here), the darkest glucose bands lighten (very low was
+       2:1), the AGP ramp flips. */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --ink: #ececef; --ink-muted: #9fb0c4; --surface: #152131; --page: #0d1520; --line: #22324a;
+        --surface-muted: #1a283a; --surface-showing-today: #172537;
+        --line-muted: #1f2e43; --line-faint: #1c2a3d; --line-strong: #3a4d66; --line-control: #2c3f59; --line-center: #6e7a8a;
+        --accent: #6cb6f2; --accent-strong: #a5ccf0; --visit: #5aa9e6; --error: #f97066;
+        --body: #2a3b52; --organ-pending: #3a4d66;
+        --hatch-stripe: #4a5d78; --hatch-ground: #1a283a;
+        --page-wash: linear-gradient(160deg, #0d1520 0%, #10203a 55%, #16304f 100%);
+        --card: #152131; --line-card: #ffffff14; --card-shadow: 0 1px 2px #0006, 0 16px 40px -16px #000a;
+        --body-map-surface: radial-gradient(ellipse 520px 520px at 50% 320px, #23406acc 0%, #18304f99 50%, #15213166 100%);
+        --callout: #182a40e6; --line-callout: #2c4466; --platform: #6cb6f2; --tray: #152131f2; --line-tray: #2c4466;
+        --glucose-very-high: #d0602a; --glucose-tight: #2a9a5e; --glucose-very-low: #cf3d3d;
+        --agp-outer: #2b4a6b; --agp-inner: #4f86c0; --agp-median: #e3eef9; --agp-earlier: #8f96a0; --agp-target: #2a9a5e;
+      }
+    }
+    body { margin: 0; padding: 24px; font: 14px/1.4 Geist, system-ui, sans-serif; color: var(--ink); background: var(--page-wash) fixed var(--page); }
+    main { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+    /* The header and the content below share two columns, so the header's parts line up with the cards under them. */
+    header, .columns { display: flex; flex-wrap: wrap; gap: 20px; }
+    /* The two columns end level: the body card stretches by itself, the side column's last card fills to the bottom. */
+    .columns { align-items: stretch; }
+    .columns > aside > :last-child { flex: 1; }
+    .column-main { box-sizing: border-box; flex: 3 1 562px; max-width: 764px; min-width: 0; }
+    .column-side { box-sizing: border-box; flex: 1 1 320px; min-width: 0; }
+    /* Very wide frames (a 1080p recording at 80% zoom) give the extra width to the body column, so the time-lapse lanes widen. */
+    @media (min-width: 1688px) {
+      main { max-width: 1640px; }
+      .column-main { max-width: 1180px; }
+    }
+    /* Under 950px the columns stack (562 + 20 + 320, plus the page padding), so the picker stays on the name's row. */
+    @media (max-width: 949px) {
+      header { flex-wrap: nowrap; }
+      .header-main { flex: 1 1 auto; max-width: none; }
+      .header-side { flex: none; }
+    }
+    .columns > aside { display: flex; flex-direction: column; gap: 20px; }
+    .panel { background: var(--card); border: 0; box-shadow: var(--card-shadow); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+    .panel-note { margin: 0; font-size: 14px; color: var(--ink-muted); }
+    .flag-list { display: flex; flex-direction: column; gap: 12px; }
+    /* Side by side, the body card alone sets the row's height: the flags take what the organ panel leaves and scroll,
+       so a long list never stretches the body card or moves it when the flags arrive. The most urgent flags come first. */
+    @media (min-width: 950px) {
+      .flags-panel { contain: size; min-height: 260px; }
+      .flags-panel .flag-list { flex: 1; min-height: 0; overflow-y: auto; }
+    }
+    .flags-panel .flag-list.has-more { mask-image: linear-gradient(#000 calc(100% - 56px), transparent); }
+    .flag { display: flex; gap: 12px; padding: 14px 14px 14px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 6px 16px -12px #1d3a5c66; }
+    .flag-bar { width: 5px; border-radius: 3px; flex: none; }
+    .flag-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .flag-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+    .flag-title { font-size: 15px; font-weight: 600; }
+    .flag-status { font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+    .flag-body { font-size: 13px; line-height: 1.45; }
+    .flag-action { font-size: 13px; font-weight: 600; }
+    .flag-rule { align-self: flex-start; font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--ink-muted); background: var(--surface-muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+    /* A fixed height, so switching organs never moves the flags below; longer content scrolls inside. */
+    #organ-detail { height: 510px; box-sizing: border-box; background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--card)) 0, var(--card) 120px); }
+    #organ-detail .section-head { flex-wrap: nowrap; align-items: center; gap: 12px; }
+    #organ-detail .section-head h2 { flex: 1; min-width: 0; display: flex; }
+    .organ-detail-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    /* Sized like the patient picker above it. */
+    .organ-select { box-sizing: border-box; width: 100%; font: inherit; font-size: 15px; font-weight: 600; color: var(--ink); background: var(--card); border: 1px solid var(--line-control); border-radius: 8px; padding: 0 8px; min-height: 36px; cursor: pointer; }
+    .organ-select:hover { border-color: var(--accent); }
+    .status-pill { flex: none; box-sizing: border-box; min-height: 26px; white-space: nowrap; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 8%, var(--surface)); border: 1px solid var(--line); }
+    .measures { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .measures th { font-size: 12px; font-weight: 400; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .05em; text-align: left; padding: 0 0 6px; border-bottom: 1px solid var(--line-muted); }
+    .measures td { padding: 9px 0; border-bottom: 1px solid var(--line-faint); }
+    .measures th + th, .measures td + td { text-align: right; padding-left: 8px; }
+    .measures td.measure-value { font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .measures td.measure-value.off-target { font-weight: 600; }
+    .measures td.measure-target { color: var(--ink-muted); white-space: nowrap; }
+    .organ-rule { margin: 0; font-size: 13px; color: var(--ink-muted); line-height: 1.5; }
+    .disclaimer { margin: 0; font-size: 12px; color: var(--ink-muted); line-height: 1.5; }
+    header { align-items: flex-end; }
+    .header-main { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+    .header-side { display: flex; justify-content: flex-end; }
+    h1 { margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -0.035em; }
+    .subtitle { font-size: 15px; color: var(--ink-muted); }
+    .view-tabs { display: flex; gap: 20px; margin-top: 10px; }
+    .view-tab { font: inherit; font-size: 14px; font-weight: 600; color: var(--ink-muted); background: none; border: 0; border-bottom: 2px solid transparent; padding: 0 0 3px; cursor: pointer; }
+    .view-tab:hover, .view-tab[aria-pressed="true"] { color: var(--ink); }
+    .view-tab[aria-pressed="true"] { border-bottom-color: var(--accent); }
+    label.patient { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-muted); }
+    /* As wide as the side column, so it lines up with the card under it and its width never waits for the names. */
+    .header-side label.patient { flex: 1; }
+    .patient-picker { position: relative; display: flex; }
+    .patient-icon { position: absolute; left: 10px; top: 50%; width: 16px; height: 16px; margin-top: -8px; fill: none; stroke: var(--ink-muted); stroke-width: 1.5; pointer-events: none; }
+    label.patient select { box-sizing: border-box; width: 100%; min-width: 160px; font: inherit; font-size: 15px; font-weight: 600; min-height: 36px; padding: 0 8px 0 34px; border: 1px solid var(--line-control); border-radius: 8px; background: var(--card); color: var(--ink); }
+    /* Laid out like the patient picker beside it: caption above, content the height of the picker's box. */
+    .summary { margin-left: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+    .summary-label { font-size: 12px; color: var(--ink-muted); }
+    .organ-counts { box-sizing: border-box; height: 36px; display: inline-flex; flex-direction: column; gap: 5px; }
+    .organ-count-cells { display: flex; gap: 3px; min-height: 12px; }
+    .organ-count-cell { flex: 1; min-width: 28px; height: 12px; border-radius: 4px; }
+    .organ-count-text { display: flex; gap: 8px; align-items: baseline; font-size: 13px; line-height: 18px; color: var(--ink-muted); white-space: nowrap; }
+    .organ-count + .organ-count::before { content: '·'; margin-right: 8px; color: var(--line-strong); }
+    .organ-count-value { font-size: 15px; font-weight: 600; color: var(--ink); margin-right: 4px; }
+    .summary .error { margin: 0; }
+    section.body-map { background: var(--body-map-surface); border: 0; box-shadow: inset 0 0 0 1px var(--line-card), var(--card-shadow); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+    .section-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+    h2 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--ink-muted); }
+    .legend span { display: flex; align-items: center; gap: 6px; }
+    .swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+    /* The dates get a line of their own, kept when empty, so the heading is one height whatever they say. */
+    .body-status-head { display: grid; grid-template-columns: auto 1fr; align-items: baseline; row-gap: 2px; }
+    .body-status-head .legend { justify-content: flex-end; }
+    .body-status-dates { grid-column: 1 / -1; min-height: 20px; font-size: 14px; color: var(--ink-muted); }
+    #time-lapse-hint { text-align: right; }
+    /* Hidden until the script has built the body map and the time-lapse and painted the placeholders, all in one task:
+       the browser can paint the page while the scripts download, and that half-built page jumps as they fill it in. */
+    main:has(#stage:empty) { visibility: hidden; }
+    .placeholder { display: inline-block; vertical-align: middle; border-radius: 4px; background: var(--organ-pending); }
+    .placeholder-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .flag.flag-placeholder .flag-text { flex: 1; gap: 9px; padding: 3px 0; }
+    /* The glucose report's placeholders stand at each chart's loaded height. What is known before the data is drawn for
+       real (measure names, bar labels, the time axis, the AGP's limits); the data areas are flat. */
+    .chart-placeholder { display: flex; flex-direction: column; }
+    .placeholder-area { border-radius: 8px; background: color-mix(in srgb, var(--organ-pending) 45%, var(--card)); }
+    .placeholder-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-bottom: 4px; }
+    .placeholder-legend .placeholder { margin: 4px 0 3px; }
+    .placeholder-timeline-plot { position: relative; height: 180px; margin-top: 40px; }
+    .placeholder-center { position: absolute; left: 0; right: 0; top: 120px; border-top: 1px solid var(--line-center); }
+    .placeholder-timeline-ticks, .placeholder-timeline-brackets { display: flex; justify-content: space-between; align-items: flex-start; height: 18px; margin-top: 4px; }
+    .placeholder-timeline-brackets { height: 36px; }
+    .stacked-bar-track.placeholder-area { border-radius: 10px; }
+    /* Once loaded, the empty note under the table still takes the panel's gap. */
+    .chart-placeholder .glucose-measures { margin-bottom: 12px; }
+    .placeholder-agp-stage { display: grid; grid-template-columns: var(--label-column-width) 1fr 32px; gap: 6px; margin-top: 13px; }
+    .placeholder-agp-plot { position: relative; height: 260px; }
+    .placeholder-limit { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line-strong); }
+    .placeholder-limit.emphasis { border-top: 1px dashed var(--accent); }
+    .placeholder-limit-labels { position: relative; font-size: 11px; line-height: 14px; }
+    .placeholder-limit-labels span { position: absolute; left: 0; transform: translateY(-50%); }
+    .placeholder-days { display: grid; grid-template-columns: var(--label-column-width) 1fr; gap: 3px 6px; margin: 4px 38px 0 0; align-items: center; }
+    .placeholder-days > .placeholder { justify-self: end; }
+    .placeholder-strip { height: 26px; background: linear-gradient(var(--line-center), var(--line-center)) center / 100% 1px no-repeat; }
+    .placeholder-hour-ticks { position: relative; height: 18px; margin: 4px 38px 0 calc(var(--label-column-width) + 6px); font-size: 12px; color: var(--ink-muted); container-type: inline-size; }
+    .placeholder-hour-ticks span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+    .placeholder-hour-ticks span:first-child { transform: none; }
+    .placeholder-hour-ticks span:last-child { transform: translateX(-100%); }
+    @container (max-width: 400px) { .placeholder-hour-ticks span:nth-child(even) { visibility: hidden; } }
+    .placeholder-hint { height: 20px; margin-top: 12px; }
+    .error { color: var(--error); }
+    .toast { position: fixed; z-index: 20; bottom: 16px; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(480px, calc(100vw - 32px)); box-sizing: border-box; display: flex; align-items: flex-start; gap: 12px; padding: 10px 8px 10px 14px; border-radius: 8px; background: var(--ink); color: var(--surface); font-size: 14px; line-height: 1.45; box-shadow: 0 4px 16px rgb(0 0 0 / 0.18); }
+    .toast[hidden] { display: none; }
+    .toast p { margin: 0; padding-top: 2px; }
+    .toast button { flex: none; font: inherit; font-weight: 600; color: inherit; background: none; border: 0; border-radius: 4px; padding: 2px 6px; min-height: 28px; cursor: pointer; }
+    .toast button:focus-visible { outline: 2px solid var(--surface); outline-offset: 1px; }
+    /* The time-lapse sits in its own solid tray with a clear edge, so it reads apart from the lit stage above. */
+    .time-lapse-tray { margin: 4px -8px 0; padding: 12px; border-radius: 14px; background: var(--tray); border: 1px solid var(--line-tray); }
+    /* While the body shows an earlier day, the panels that always show today say so, without changing their height. */
+    .today-panel { position: relative; }
+    .today-panel.showing-today { background: var(--surface-showing-today); }
+    .today-pill { position: absolute; top: -9px; right: 16px; font-size: 11px; font-weight: 600; line-height: 16px; color: var(--surface); background: var(--ink-muted); border-radius: 999px; padding: 1px 8px; }
+    .link-button { align-self: flex-start; font: inherit; font-size: 14px; font-weight: 600; color: var(--accent); background: none; border: 0; padding: 0; min-height: 28px; cursor: pointer; }
+    .link-button:hover { color: var(--accent-strong); text-decoration: underline; }
+    /* The AGP and the daily profiles share one time axis, so their label columns are one width. */
+    .glucose-view { display: flex; flex-direction: column; gap: 16px; --label-column-width: 76px; }
+    .columns[hidden], .glucose-view[hidden], .daily-run[hidden], .timeline-controls[hidden], .compare-row[hidden], .glucose-measures[hidden] { display: none; }
+    .view-title { display: flex; flex-direction: column; gap: 4px; }
+    .view-title h2 { display: flex; align-items: center; gap: 10px; font-size: 22px; }
+    .compare-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+    .options { display: flex; flex-wrap: wrap; border: 1px solid var(--line-control); border-radius: 8px; overflow: hidden; }
+    .option { font: inherit; font-size: 13px; font-weight: 500; color: var(--ink); background: var(--surface); border: 0; padding: 0 12px; min-height: 32px; cursor: pointer; }
+    .option + .option { border-left: 1px solid var(--line-control); }
+    .option:hover { background: var(--page); }
+    .option[aria-pressed="true"] { color: var(--surface); background: var(--ink); }
+    .option[aria-disabled="true"] { color: var(--ink-muted); background: var(--surface); cursor: not-allowed; }
+    .timeline-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+    .glucose-measures { display: flex; gap: 24px; align-items: flex-start; }
+    #range-bars, .range-bars-placeholder { flex: none; height: 260px; padding-top: 8px; }
+    /* Wider than a phone: the table scrolls sideways there, its measure names staying in view. */
+    .measures-scroll { flex: 1 1 auto; min-width: 0; overflow-x: auto; }
+    .measures-scroll td.measure-name, .measures-scroll th:first-child { position: sticky; left: 0; z-index: 1; background: var(--card); }
+    /* Read with the current value beside it: left-aligned under a left-aligned heading, set off by a wider gap. */
+    .measures td.measure-change { min-width: 128px; padding-left: 20px; font-size: 13px; color: var(--ink-muted); text-align: left; }
+    .measures td.measure-change.emphasis { font-weight: 600; color: var(--ink); }
+    .measures th.change-head { position: relative; padding-left: 20px; text-align: left; vertical-align: bottom; white-space: nowrap; }
+    .info-tip { position: relative; margin-left: 6px; width: 16px; height: 16px; padding: 0; border: 1px solid var(--ink-muted); border-radius: 50%; background: var(--surface); color: var(--ink-muted); font: italic 600 11px/14px Georgia, serif; text-transform: none; cursor: help; vertical-align: 1px; }
+    .info-tip:hover, .info-tip:focus-visible { color: var(--ink); border-color: var(--ink); }
+    /* The tooltip opens leftward: the column sits at the table's right edge. */
+    .info-tip:hover::after, .info-tip:focus-visible::after { content: attr(data-tip); position: absolute; z-index: 3; right: -4px; top: 22px; width: 240px; white-space: normal; text-align: left; font: 400 12px/1.45 Geist, system-ui, sans-serif; letter-spacing: 0; color: var(--surface); background: var(--ink); border-radius: 6px; padding: 6px 8px; }
+    .measures td.measure-change .change-judgement { display: block; font-weight: 400; color: var(--ink-muted); }
+    .measures td.measure-name { white-space: nowrap; }
+    .measures th.window-head { text-transform: none; letter-spacing: 0; font-size: 12px; line-height: 1.35; vertical-align: bottom; }
+    .window-head strong { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; font-weight: 400; }
+    .window-head .not-full { display: block; font-weight: 600; color: var(--ink); }
+    .measures tr.section-row td { padding-top: 14px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-muted); }
+    .measures td.measure-name .swatch { display: inline-block; margin-right: 8px; vertical-align: -1px; }
+    .measures td.measure-name .measure-target { margin-left: 6px; font-size: 13px; white-space: nowrap; }
+    .measures tr.nested td.measure-name { padding-left: 18px; }
+    #glucose-timeline.refreshing, #glucose-measures.refreshing, #glucose-agp.refreshing, #glucose-daily.refreshing { opacity: .5; }
+    .daily-run { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 10px; background: var(--surface-muted); }
+    .daily-run-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; font-size: 14px; }
+    .daily-run-head strong { font-weight: 600; }
+    .close-button { flex: none; width: 28px; height: 28px; margin: -4px -6px 0 auto; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--ink-muted); font: 400 20px/28px Geist, system-ui, sans-serif; cursor: pointer; }
+    .close-button:hover, .close-button:focus-visible { color: var(--ink); background: color-mix(in srgb, var(--ink) 6%, transparent); }
+    .daily-run-readings { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 0; padding: 0; list-style: none; font: 500 12px/1.5 'Geist Mono', monospace; color: var(--ink-muted); }
+    .daily-run-readings b { font-weight: 500; color: var(--ink); }
+    /* Phones. Last, so it beats the rules above at equal specificity. */
+    @media (max-width: 480px) {
+      body { padding: 12px; }
+      .panel, section.body-map { padding: 14px; }
+      .glucose-measures { flex-direction: column; align-items: stretch; }
+      #time-lapse-hint { text-align: left; }
+      header { flex-wrap: wrap; }
+      .header-side { flex: 1 1 100%; }
+      #range-bars, .range-bars-placeholder { height: 200px; }
+      .placeholder-timeline-brackets { height: 72px; }
+    }
+  </style>
+</head>
+<body>
+  <main data-anfra-container="page" data-anfra-label="Diabetes Visit Prep">
+    <header data-anfra-container="header" data-anfra-label="Patient">
+      <div class="header-main column-main">
+        <div>
+          <div data-anfra-block="patient-name" data-anfra-label="Patient name" data-anfra-query="patients">
+            <h1 id="patient-name"><span class="placeholder" style="width: 180px; height: 26px"><span class="placeholder-label">Loading…</span></span></h1>
+            <div class="subtitle" id="patient-subtitle"><span class="placeholder" style="width: 230px; height: 11px"></span></div>
+          </div>
+          <div class="view-tabs" role="group" aria-label="View">
+            <button class="view-tab" id="view-body" type="button" aria-pressed="true">Body map</button>
+            <button class="view-tab" id="view-glucose" type="button" aria-pressed="false">Glucose report</button>
+          </div>
+        </div>
+        <section class="summary" data-anfra-block="summary" data-anfra-label="Patient summary" data-anfra-query="patientSummary bodyFrames" aria-label="Organs by status">
+          <span class="summary-label">Organs</span>
+          <div class="organ-counts">
+            <div class="organ-count-cells" id="organ-count-cells" aria-hidden="true"></div>
+            <div class="organ-count-text" id="organ-count-text"><span class="placeholder" style="width: 150px; height: 10px"><span class="placeholder-label">Loading…</span></span></div>
+          </div>
+          <p class="error" id="summary-error" hidden>Couldn't load the organ counts. Please reload the page.</p>
+        </section>
+      </div>
+      <div class="header-side column-side">
+        <label class="patient" data-anfra-block="patient-picker" data-anfra-label="Patient picker" data-anfra-control="patient">
+          Patient
+          <span class="patient-picker">
+            <svg class="patient-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5.5" r="2.75"></circle><path d="M2.75 14c.6-2.9 2.7-4.5 5.25-4.5s4.65 1.6 5.25 4.5"></path></svg>
+            <select id="patient-select" data-anfra-query="patients"></select>
+          </span>
+        </label>
+      </div>
+    </header>
+
+    <div class="columns" id="body-view">
+      <section class="body-map column-main" data-anfra-container="body-map" data-anfra-label="Body status">
+        <div class="section-head body-status-head" data-anfra-block="body-status-title" data-anfra-label="Body status dates and legend" data-anfra-query="glucoseStatus bodyFrames">
+          <h2 id="body-status-title">Body status</h2>
+          <div class="legend" id="legend"></div>
+          <div class="body-status-dates" id="body-status-dates"><span class="placeholder" style="width: 190px; height: 11px"><span class="placeholder-label">Loading…</span></span></div>
+        </div>
+        <div id="stage"></div>
+        <p class="panel-note" id="time-lapse-hint">Drag or click the time-lapse to see the body then; press Space to play or pause.</p>
+        <div class="time-lapse-tray" data-anfra-block="time-lapse" data-anfra-label="Time-lapse" data-anfra-query="bodyFrames treatmentEvents">
+          <div id="time-lapse"></div>
+          <p class="panel-note" id="time-lapse-note">Loading the time-lapse…</p>
+        </div>
+      </section>
+
+      <aside class="column-side">
+        <section class="panel today-panel" id="organ-detail" data-anfra-block="organ-detail" data-anfra-label="Selected organ" aria-label="Selected organ" aria-live="polite">
+          <span class="today-pill" hidden></span>
+          <div class="section-head">
+            <h2><select class="organ-select" id="organ-select" aria-label="Organ"></select></h2>
+            <span class="status-pill" id="organ-detail-status"></span>
+          </div>
+          <div class="organ-detail-body" id="organ-detail-body">
+          <table class="measures">
+            <thead><tr><th scope="col">Measure</th><th scope="col">Latest</th><th scope="col">Target</th></tr></thead>
+            <tbody id="organ-detail-measures"></tbody>
+          </table>
+          <p class="organ-rule" id="organ-detail-rule"></p>
+          </div>
+          <button class="link-button" id="organ-detail-open" type="button" hidden>Glucose report →</button>
+        </section>
+        <section class="panel today-panel flags-panel" data-anfra-block="flags" data-anfra-label="Flags for this visit" data-anfra-query="visitFlags lastTreatmentChangeEvents" aria-label="Flags for this visit">
+          <span class="today-pill" hidden></span>
+          <h2>Flags for this visit</h2>
+          <div class="flag-list" id="flag-list"></div>
+          <button class="link-button" id="flag-more" type="button" hidden></button>
+          <p class="disclaimer">Rule-based flags from the clinic's governed definitions. Not medical advice; the clinician decides.</p>
+        </section>
+      </aside>
+    </div>
+
+    <section class="glucose-view" id="glucose-view" hidden data-anfra-container="glucose-detail" data-anfra-label="Glucose detail">
+      <div class="view-title" data-anfra-block="glucose-header" data-anfra-label="Current report" data-anfra-query="glucoseHeader drugList">
+        <h2>Glucose <span class="status-pill" id="glucose-status"></span></h2>
+        <span class="subtitle" id="glucose-window"></span>
+        <span class="panel-note" id="glucose-treatment"></span>
+      </div>
+      <section class="panel" data-anfra-block="glucose-timeline" data-anfra-label="Glucose timeline" data-anfra-query="glucoseTimeline glucoseVisits treatmentEvents lastTreatmentChangeEvents" data-anfra-control="timelineRange timelineGrain currentWindow earlierWindow" aria-labelledby="glucose-timeline-title">
+        <div class="section-head">
+          <h2 id="glucose-timeline-title">Glucose timeline</h2>
+          <div class="timeline-controls" id="timeline-controls">
+            <div class="options" id="timeline-range-options" role="group" aria-label="Time range"></div>
+            <div class="options" id="grain-options" role="group" aria-label="Each column is"></div>
+          </div>
+        </div>
+        <div id="glucose-timeline"></div>
+        <div class="panel-note" id="glucose-timeline-note" hidden></div>
+        <div class="compare-row" id="compare-row">
+          <span class="summary-label" id="compare-label">Compare with</span>
+          <div class="options" id="compare-options" role="group" aria-labelledby="compare-label"></div>
+          <span class="panel-note" id="compare-window"></span>
+        </div>
+      </section>
+      <section class="panel" data-anfra-block="glucose-measures" data-anfra-label="Time in Ranges and Glucose Metrics" data-anfra-query="glucoseCurrent glucoseEarlier glucoseHeader visitFlags lastTreatmentChangeEvents" aria-labelledby="glucose-measures-title">
+        <h2 id="glucose-measures-title">Time in Ranges and Glucose Metrics</h2>
+        <div class="glucose-measures" id="glucose-measures">
+          <div id="range-bars"></div>
+          <div class="measures-scroll">
+            <table class="measures">
+              <thead id="glucose-measures-head"></thead>
+              <tbody id="glucose-measures-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel-note" id="glucose-measures-note"></div>
+        <div class="flag-list" id="glucose-flags"></div>
+      </section>
+      <section class="panel" data-anfra-block="glucose-agp" data-anfra-label="Ambulatory Glucose Profile (AGP)" data-anfra-query="glucoseAgpCurrent glucoseAgpEarlier glucoseCurrent glucoseHeader" aria-labelledby="glucose-agp-title">
+        <h2 id="glucose-agp-title">Ambulatory Glucose Profile (AGP)</h2>
+        <p class="panel-note" id="glucose-agp-windows"></p>
+        <div id="glucose-agp"></div>
+        <div class="panel-note" id="glucose-agp-note" hidden></div>
+      </section>
+      <section class="panel" data-anfra-block="glucose-daily" data-anfra-label="Daily Glucose Profiles" data-anfra-query="glucoseDailyReadings glucoseHeader" aria-labelledby="glucose-daily-title">
+        <h2 id="glucose-daily-title">Daily Glucose Profiles</h2>
+        <div id="glucose-daily"></div>
+        <div class="panel-note" id="glucose-daily-note" hidden></div>
+        <p class="panel-note" id="glucose-daily-hint" hidden>Hover a day to draw it on the AGP above · click a high or low to see its readings</p>
+        <div class="daily-run" id="glucose-daily-run" aria-live="polite" hidden></div>
+      </section>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status" hidden>
+    <p id="toast-message"></p>
+    <button type="button" id="toast-dismiss" aria-label="Dismiss">✕</button>
+  </div>
+
+  <!-- three.js and the anatomy model for the 3D body, async so neither holds the page; until both load, or if either
+       never does, the body map shows its SVG silhouette. -->
+  <script async id="three-script" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+  <script async id="body-model-script" src="_lib/body-model.js"></script>
+  <script src="_lib/svg-paint.js"></script>
+  <script src="_lib/body-3d.js"></script>
+  <script src="_lib/body-map.js"></script>
+  <script src="_lib/metric-descriptions.js"></script>
+  <script src="_lib/time-lapse-frames.js"></script>
+  <script src="_lib/time-lapse.js"></script>
+  <script src="_lib/period-comparison.js"></script>
+  <script src="_lib/timeline-periods.js"></script>
+  <script src="_lib/diverging-timeline.js"></script>
+  <script src="_lib/stacked-bars.js"></script>
+  <script src="_lib/agp-slots.js"></script>
+  <script src="_lib/agp-chart.js"></script>
+  <script src="_lib/daily-readings.js"></script>
+  <script src="_lib/daily-profiles.js"></script>
+  <script>
+    // Display only: how each governed status value looks. The rules that pick a status live in AML.
+    // no_record is the page's own: a day before the patient's first record, when there is no row to read a status from.
+    const STATUS = {
+      on_target: { label: 'On target', color: 'var(--on-target)', swatch: 'var(--on-target)' },
+      review: { label: 'Review', color: 'var(--review)', swatch: 'var(--review)' },
+      act_now: { label: 'Act now', color: 'var(--act-now)', swatch: 'var(--act-now)', pulse: true },
+      no_record: { label: 'No record', color: VisitPrep.bodyMap.HATCH_FILL, swatch: 'var(--hatch)' },
+    };
+    const app = Anfra.createApp({ title: 'Diabetes Visit Prep' });
+    function createLoggedQuery (name, declaration) {
+      const query = app.createQuery(name, declaration);
+      let loggedError;
+      query.subscribe(() => {
+        if (query.state !== 'error' || query.error === loggedError) return;
+        loggedError = query.error;
+        console.error(`${name} query failed`, query.error);
+      });
+      return query;
+    }
+    const patients = createLoggedQuery('patients', {
+      dataset: 'diabetes',
+      aql: `explore {
+        dimensions {
+          id: patients.id, name: patients.display_name, diabetes_type: patients.diabetes_type, birth_year: patients.birth_year,
+          glucose_target_set: patients.glucose_target_set, sex: patients.sex,
+          previous_visit_on: patients.previous_visit_on, last_treatment_change_on: patients.last_treatment_change_on,
+          current_window_starts_on: patients.current_window_starts_on, current_window_ends_on: patients.current_window_ends_on,
+          previous_treatment_window_starts_on: patients.previous_treatment_window_starts_on, previous_treatment_window_ends_on: patients.previous_treatment_window_ends_on,
+          previous_visit_window_starts_on: patients.previous_visit_window_starts_on,
+          glucose_timeline_starts_on: patients.glucose_timeline_starts_on, first_read_at: patients.first_read_at, data_as_of: patients.data_as_of
+        }
+        sorts { name asc }
+      }`,
+    });
+    const formatWhole = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format;
+    const formatOneDecimal = new Intl.NumberFormat(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format;
+    // Datetimes arrive as zoneless 'YYYY-MM-DD hh:mm:ss' strings in clinic time; read only the date so the browser's zone can't shift it.
+    const formatDay = (datetime) => new Date(`${datetime.slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    const patientSelect = document.getElementById('patient-select');
+    const { paintOrgan, selectOrgan, showRecentEvents, setBody } = VisitPrep.bodyMap.mount(document.getElementById('stage'), { onOrganClick: showOrganDetail, figureScripts: [document.getElementById('three-script'), document.getElementById('body-model-script')] });
+    for (const organ of VisitPrep.bodyMap.ORGANS) {
+      Object.assign(document.querySelector(`.callout[data-organ="${organ.id}"]`).dataset,
+        { anfraBlock: `${organ.id}-callout`, anfraLabel: organ.name, anfraQuery: `${organ.id}Status bodyFrames` });
+    }
+
+    document.getElementById('legend').append(...Object.values(STATUS)
+      .map(({ label, swatch }) => {
+        const item = document.createElement('span');
+        item.append(Object.assign(document.createElement('span'), { className: 'swatch', style: `background: ${swatch}` }), label);
+        return item;
+      }));
+
+    // Measures vs targets in the organ panel. Target values come from AML; each comparison uses the boundary its status rule uses.
+    // Query values can arrive as strings, so comparisons convert to numbers first.
+    const COMPARISONS = {
+      at_least: { sign: '≥', meets: (value, target) => value >= target },
+      at_most: { sign: '≤', meets: (value, target) => value <= target },
+      under: { sign: '<', meets: (value, target) => value < target },
+      over: { sign: '>', meets: (value, target) => value > target },
+    };
+    function compareToTarget ({ label, metric, value, target, comparison, format }) {
+      const { sign, meets } = COMPARISONS[comparison];
+      return {
+        label, metric,
+        valueText: value == null ? '—' : format(value),
+        targetText: target == null ? '—' : `${sign} ${format(target)}`,
+        offTarget: value != null && target != null && !meets(Number(value), Number(target)),
+      };
+    }
+    const formatPercent = (value) => `${formatWhole(value)}%`;
+    const formatPercentOneDecimal = (value) => `${formatOneDecimal(value)}%`;
+    const formatMonths = (value) => `${formatWhole(value)} mo`;
+    const formatMonthCount = (value) => `${formatWhole(value)} ${Number(value) === 1 ? 'month' : 'months'}`;
+
+    // frameMetrics: the callout's columns on a time-lapse frame, each named by today's metric (the frame query reads frame_<metric>).
+    const ORGAN_STATUS_QUERIES = [
+      {
+        organId: 'glucose', organName: 'glucose', statusMetric: 'glycemic_status',
+        laneName: 'Glucose',
+        frameMetrics: { status: 'glycemic_status', source: 'glycemic_status_source', hba1c: 'hba1c_recent_pct', tir: 'tir_pct', tbr: 'tbr_pct', wear: 'sensor_wear_pct' },
+        measures: `
+          status: glycemic_status,
+          source: glycemic_status_source,
+          hba1c: hba1c_recent_pct,
+          tir: tir_pct | where(cgm_readings.in_current_window == true),
+          tbr: tbr_pct | where(cgm_readings.in_current_window == true),
+          wear: sensor_wear_pct | where(cgm_readings.in_current_window == true),
+          window_start: min(cgm_readings.read_at) | where(cgm_readings.in_current_window == true),
+          window_end: max(cgm_readings.read_at) | where(cgm_readings.in_current_window == true),
+          gmi: gmi | where(cgm_readings.in_current_window == true),
+          cv: cv_pct | where(cgm_readings.in_current_window == true),
+          tir_target: tir_target_pct, tbr_target: tbr_target_pct, hba1c_target: hba1c_target_pct,
+          cv_target: cv_target_pct, wear_target: sensor_wear_target_pct`,
+        detailRows (row) {
+          const wear = compareToTarget({ label: 'Sensor wear', metric: 'sensor_wear_pct', value: row.wear, target: row.wear_target, comparison: 'at_least', format: formatPercent });
+          // Also with no source: too little CGM and no recent HbA1c, so the HbA1c row reads "—" (overdue).
+          if (row.source !== 'cgm') {
+            return [compareToTarget({ label: 'HbA1c (lab)', metric: 'hba1c_recent_pct', value: row.hba1c, target: row.hba1c_target, comparison: 'under', format: formatPercentOneDecimal }), wear];
+          }
+          return [
+            compareToTarget({ label: 'Time in range', metric: 'tir_pct', value: row.tir, target: row.tir_target, comparison: 'at_least', format: formatPercent }),
+            compareToTarget({ label: 'Time below range', metric: 'tbr_pct', value: row.tbr, target: row.tbr_target, comparison: 'at_most', format: formatPercentOneDecimal }),
+            compareToTarget({ label: 'GMI (estimated HbA1c)', metric: 'gmi', value: row.gmi, target: row.hba1c_target, comparison: 'under', format: formatPercentOneDecimal }),
+            compareToTarget({ label: 'Variability (CV)', metric: 'cv_pct', value: row.cv, target: row.cv_target, comparison: 'at_most', format: formatPercent }),
+            wear,
+          ];
+        },
+        formatCallout (row) {
+          if (row?.source === 'lab_hba1c') {
+            // No readings at all: null today, 0 in a frame before the sensor started.
+            return !Number(row.wear)
+              ? { value: `HbA1c ${formatOneDecimal(row.hba1c)}%`, sub: 'Lab result · no CGM', metrics: { value: 'hba1c_recent_pct' } }
+              : { value: `HbA1c ${formatOneDecimal(row.hba1c)}%`, sub: `Lab result · sensor wear ${formatWhole(row.wear)}%`, metrics: { value: 'hba1c_recent_pct', sub: 'sensor_wear_pct' } };
+          }
+          if (!row?.source) {
+            const wear = row?.wear == null ? 'no readings' : `sensor wear ${formatWhole(row.wear)}%`;
+            const sub = wear[0].toUpperCase() + wear.slice(1);
+            return row ? { value: 'HbA1c overdue', sub, metrics: { sub: 'sensor_wear_pct' } } : { value: 'TIR —', sub, metrics: { value: 'tir_pct', sub: 'sensor_wear_pct' } };
+          }
+          return { value: `TIR ${formatWhole(row.tir)}%`, sub: `Below range ${formatOneDecimal(row.tbr)}%`, metrics: { value: 'tir_pct', sub: 'tbr_pct' } };
+        },
+      },
+      {
+        organId: 'kidneys', organName: 'kidney', statusMetric: 'kidney_status',
+        laneName: 'Kidneys',
+        frameMetrics: { status: 'kidney_status', egfr: 'egfr_latest', uacr: 'uacr_latest' },
+        measures: `status: kidney_status, egfr: egfr_latest, uacr: uacr_latest, uacr_last_3_median: uacr_last_3_median, slope: egfr_slope_per_year,
+          egfr_months: months_since_egfr, uacr_months: months_since_uacr,
+          egfr_target: egfr_target, uacr_target: uacr_target, rapid_decline: egfr_rapid_decline_per_year, test_interval: kidney_test_interval_months`,
+        detailRows: (row) => [
+          compareToTarget({ label: 'eGFR', metric: 'egfr_latest', value: row.egfr, target: row.egfr_target, comparison: 'at_least', format: formatWhole }),
+          compareToTarget({ label: 'eGFR trend', metric: 'egfr_slope_per_year', value: row.slope, target: row.rapid_decline, comparison: 'at_least', format: (value) => `${formatOneDecimal(value)} /yr` }),
+          compareToTarget({ label: 'UACR', metric: 'uacr_latest', value: row.uacr, target: row.uacr_target, comparison: 'under', format: (value) => `${formatWhole(value)} mg/g` }),
+          compareToTarget({ label: 'UACR, last 3 tests', metric: 'uacr_last_3_median', value: row.uacr_last_3_median, target: row.uacr_target, comparison: 'under', format: (value) => `${formatWhole(value)} mg/g` }),
+          compareToTarget({ label: 'Since eGFR', metric: 'months_since_egfr', value: row.egfr_months, target: row.test_interval, comparison: 'at_most', format: formatMonths }),
+          compareToTarget({ label: 'Since UACR', metric: 'months_since_uacr', value: row.uacr_months, target: row.test_interval, comparison: 'at_most', format: formatMonths }),
+        ],
+        formatCallout: (row) => ({
+          value: row?.egfr == null ? 'eGFR —' : `eGFR ${formatWhole(row.egfr)}`,
+          sub: row?.uacr == null ? 'No UACR result' : `UACR ${formatWhole(row.uacr)} mg/g`,
+          metrics: { value: 'egfr_latest', sub: 'uacr_latest' },
+        }),
+      },
+      {
+        organId: 'heart', organName: 'heart', statusMetric: 'heart_status',
+        laneName: 'Heart & vessels',
+        frameMetrics: { status: 'heart_status', ldl: 'ldl_latest', systolic: 'systolic_latest', diastolic: 'diastolic_latest' },
+        measures: `status: heart_status, ldl: ldl_latest, systolic: systolic_latest, diastolic: diastolic_latest,
+          ldl_months: months_since_ldl, blood_pressure_months: months_since_blood_pressure,
+          ldl_target: ldl_target, systolic_target: systolic_target, diastolic_target: diastolic_target,
+          lipid_interval: lipid_test_interval_months, blood_pressure_interval: blood_pressure_interval_months,
+          statins: active_statins_count, no_statin: no_statin, age: age_years, statin_age_min: statin_age_min, statin_age_max: statin_age_max`,
+        detailRows: (row) => [
+          compareToTarget({ label: 'LDL cholesterol', metric: 'ldl_latest', value: row.ldl, target: row.ldl_target, comparison: 'under', format: (value) => `${formatWhole(value)} mg/dL` }),
+          {
+            label: 'Blood pressure', metric: 'blood_pressure_latest',
+            valueText: row.systolic == null ? '—' : `${formatWhole(row.systolic)}/${formatWhole(row.diastolic)}`,
+            targetText: row.systolic_target == null ? '—' : `< ${formatWhole(row.systolic_target)}/${formatWhole(row.diastolic_target)}`,
+            offTarget: row.systolic != null && (Number(row.systolic) >= Number(row.systolic_target) || Number(row.diastolic) >= Number(row.diastolic_target)),
+          },
+          {
+            label: 'Statin', metric: 'active_statins_count',
+            valueText: Number(row.statins) > 0 ? 'Yes' : 'None',
+            targetText: Number(row.age) >= Number(row.statin_age_min) && Number(row.age) <= Number(row.statin_age_max)
+              ? `Yes, age ${formatWhole(row.statin_age_min)}–${formatWhole(row.statin_age_max)}` : '—',
+            offTarget: row.no_statin,
+          },
+          compareToTarget({ label: 'Since LDL', metric: 'months_since_ldl', value: row.ldl_months, target: row.lipid_interval, comparison: 'at_most', format: formatMonths }),
+          compareToTarget({ label: 'Since blood pressure', metric: 'months_since_blood_pressure', value: row.blood_pressure_months, target: row.blood_pressure_interval, comparison: 'at_most', format: formatMonths }),
+        ],
+        formatCallout: (row) => ({
+          value: row?.ldl == null ? 'LDL —' : `LDL ${formatWhole(row.ldl)}`,
+          sub: row?.systolic == null ? 'No blood pressure reading' : `BP ${formatWhole(row.systolic)}/${formatWhole(row.diastolic)}`,
+          metrics: { value: 'ldl_latest', sub: 'blood_pressure_latest' },
+        }),
+      },
+      {
+        organId: 'eyes', organName: 'eye', statusMetric: 'eye_status',
+        laneName: 'Eyes',
+        frameMetrics: { status: 'eye_status', months: 'months_since_retinal_screening', result: 'retinal_result_latest' },
+        measures: 'status: eye_status, months: months_since_retinal_screening, result: retinal_result_latest, interval: retinal_screening_interval_months',
+        detailRows: (row) => [
+          compareToTarget({ label: 'Since retinal screening', metric: 'months_since_retinal_screening', value: row.months, target: row.interval, comparison: 'at_most', format: formatMonths }),
+          {
+            label: 'Last result', metric: 'retinal_result_latest',
+            valueText: { no_retinopathy: 'No retinopathy', retinopathy: 'Retinopathy' }[row.result] ?? '—',
+            targetText: 'No retinopathy', offTarget: row.result === 'retinopathy',
+          },
+        ],
+        formatCallout: (row) => row?.months == null
+          ? { value: '—', sub: 'No retinal screening' }
+          : row.result === 'retinopathy'
+            ? { value: formatMonthCount(row.months), sub: 'Retinopathy found', metrics: { value: 'months_since_retinal_screening', sub: 'retinal_result_latest' } }
+            : { value: formatMonthCount(row.months), sub: 'since retinal screening', metrics: { value: 'months_since_retinal_screening' } },
+      },
+      {
+        organId: 'feet', organName: 'foot', statusMetric: 'foot_status',
+        laneName: 'Feet & nerves',
+        frameMetrics: { status: 'foot_status', months: 'months_since_foot_exam', result: 'foot_result_latest' },
+        measures: 'status: foot_status, months: months_since_foot_exam, result: foot_result_latest, interval: foot_exam_interval_months',
+        detailRows: (row) => [
+          compareToTarget({ label: 'Since foot exam', metric: 'months_since_foot_exam', value: row.months, target: row.interval, comparison: 'at_most', format: formatMonths }),
+          {
+            label: 'Last result', metric: 'foot_result_latest',
+            valueText: { normal: 'Normal', abnormal: 'Abnormal' }[row.result] ?? '—',
+            targetText: 'Normal', offTarget: row.result === 'abnormal',
+          },
+        ],
+        formatCallout: (row) => row?.months == null
+          ? { value: '—', sub: 'No foot exam' }
+          : { value: { normal: 'Normal', abnormal: 'Abnormal' }[row.result] ?? 'Result —', sub: `Foot exam ${formatWhole(row.months)} mo ago`, metrics: { value: 'foot_result_latest', sub: 'months_since_foot_exam' } },
+      },
+    ];
+
+    // label: the bar's screen-reader text, given to one bar per block.
+    function buildPlaceholder (width, height, { label } = {}) {
+      const bar = Object.assign(document.createElement('span'), { className: 'placeholder' });
+      Object.assign(bar.style, { width, height: `${height}px` });
+      if (label) bar.append(Object.assign(document.createElement('span'), { className: 'placeholder-label', textContent: label }));
+      return bar;
+    }
+
+    function paintOrganLoading (organId) {
+      paintOrgan(organId, {
+        fill: 'var(--organ-pending)', dotColor: 'var(--organ-pending)',
+        value: buildPlaceholder('104px', 16, { label: 'Loading…' }), sub: buildPlaceholder('128px', 10), statusLabel: buildPlaceholder('56px', 10),
+      });
+    }
+
+    for (const { organId } of ORGAN_STATUS_QUERIES) paintOrganLoading(organId);
+
+    // Frame metrics are named frame_<today's metric>, so a frame's callout is tagged with metricPrefix 'frame_'.
+    function paintOrganFromRow ({ organId, statusMetric, formatCallout }, row, metricPrefix = '') {
+      const status = row ? STATUS[row.status] : STATUS.no_record;
+      const { metrics, ...callout } = formatCallout(row);
+      const taggedMetrics = Object.fromEntries(Object.entries({ ...metrics, status: statusMetric }).map(([part, metric]) => [part, metricPrefix + metric]));
+      paintOrgan(organId, { fill: status.color, dotColor: status.swatch, pulse: status.pulse, statusLabel: status.label, ...callout, metrics: taggedMetrics });
+    }
+
+    function paintOrganFromQuery (organ, query) {
+      const { organId, organName } = organ;
+      if (query.state === 'executing') {
+        paintOrganLoading(organId);
+      } else if (query.state === 'error') {
+        paintOrgan(organId, { fill: 'var(--organ-pending)', dotColor: 'var(--organ-pending)', value: '—', sub: `Couldn't load ${organName} status. Please reload the page.`, statusLabel: '' });
+      } else if (query.state === 'success') {
+        // A patient with no record gets no row; formatCallout handles the undefined row.
+        paintOrganFromRow(organ, query.result.rows[0]);
+      }
+    }
+
+    let selectedOrganId = 'glucose';
+    let metricDescriptions;
+    const organSelect = document.getElementById('organ-select');
+    organSelect.append(...ORGAN_STATUS_QUERIES.map(({ organId }) => new Option(getOrganDisplayName(organId), organId)));
+    organSelect.addEventListener('change', () => showOrganDetail(organSelect.value));
+
+    function getOrganDisplayName (organId) {
+      return VisitPrep.bodyMap.ORGANS.find((organ) => organ.id === organId).name;
+    }
+
+    function showOrganDetail (organId) {
+      selectedOrganId = organId;
+      selectOrgan(organId);
+      organSelect.value = organId;
+      document.getElementById('organ-detail-open').hidden = organId !== 'glucose';
+      document.getElementById('organ-detail-body').scrollTop = 0;
+      paintOrganDetail();
+    }
+
+    function paintOrganDetail () {
+      const organ = ORGAN_STATUS_QUERIES.find((candidate) => candidate.organId === selectedOrganId);
+      const query = statusQueries[organ.organId];
+      document.getElementById('organ-detail').dataset.anfraQuery = `${organ.organId}Status`;
+      const statusPill = document.getElementById('organ-detail-status');
+      const detailTableBody = document.getElementById('organ-detail-measures');
+      const buildMessageRow = (className, text) => {
+        const tableRow = document.createElement('tr');
+        tableRow.append(Object.assign(document.createElement('td'), { className, textContent: text, colSpan: 3 }));
+        return tableRow;
+      };
+      if (query?.state === 'success') {
+        const row = query.result.rows[0];
+        const status = row ? STATUS[row.status] : STATUS.no_record;
+        const swatch = Object.assign(document.createElement('span'), { className: 'swatch' });
+        swatch.style.background = status.swatch;
+        statusPill.replaceChildren(swatch, buildTaggedSpan(status.label, organ.statusMetric));
+        // A patient with no record gets no row; every measure then reads "—".
+        detailTableBody.replaceChildren(...organ.detailRows(row ?? {}).map(({ label, metric, valueText, targetText, offTarget }) => {
+          const tableRow = document.createElement('tr');
+          const valueCell = Object.assign(document.createElement('td'), { className: `measure-value${offTarget ? ' off-target' : ''}` });
+          valueCell.append(buildTaggedSpan(`${offTarget ? '▲ ' : ''}${valueText}`, metric));
+          tableRow.append(Object.assign(document.createElement('td'), { textContent: label }), valueCell,
+            Object.assign(document.createElement('td'), { className: 'measure-target', textContent: targetText }));
+          return tableRow;
+        }));
+      } else if (query?.state === 'error') {
+        statusPill.replaceChildren();
+        detailTableBody.replaceChildren(buildMessageRow('error', `Couldn't load ${organ.organName} measures. Please reload the page.`));
+      } else {
+        statusPill.replaceChildren(buildPlaceholder('72px', 12));
+        detailTableBody.replaceChildren(...Array.from({ length: 5 }, (_, i) => {
+          const tableRow = document.createElement('tr');
+          tableRow.append(...[['110px', i === 0 ? 'Loading…' : undefined], ['44px'], ['56px']].map(([width, label]) => {
+            const cell = document.createElement('td');
+            cell.append(buildPlaceholder(width, 10, { label }));
+            return cell;
+          }));
+          return tableRow;
+        }));
+      }
+      document.getElementById('organ-detail-rule').textContent = metricDescriptions?.get(organ.statusMetric)?.text ?? '';
+    }
+
+    // Without a CGM window (lab HbA1c only), today's statuses are as of the day the record is current to.
+    function paintBodyStatusDates (glucoseStatus) {
+      const dates = document.getElementById('body-status-dates');
+      if (!isShowingLatestFrame()) {
+        dates.textContent = `As of ${formatDay(frames[selectedFrameIndex].day)}`;
+      } else if (glucoseStatus.state === 'success') {
+        const row = glucoseStatus.result.rows[0];
+        dates.textContent = row?.window_start ? `${formatDay(row.window_start)} – ${formatDay(row.window_end)}`
+          : `As of ${formatDay(selectedPatientRow.data_as_of)}`;
+      } else if (glucoseStatus.state === 'error') {
+        dates.textContent = '';
+      } else {
+        dates.replaceChildren(buildPlaceholder('190px', 11, { label: 'Loading…' }));
+      }
+    }
+
+    // Time-lapse: one query of the governed status on every day, shown as daily or weekly frames, so scrubbing and
+    // switching ranges never query. At the newest frame the body shows today's governed status queries; at an earlier
+    // frame, that frame's status.
+    // A range starts at the previous visit (firstDayColumn, from the patients query) or at the patient's first record,
+    // or has a fixed frame count.
+    const TIME_LAPSE_RANGES = [
+      { key: 'visit', label: 'Since previous visit', daysPerFrame: 1, firstDayColumn: 'previous_visit_on', tickEveryMonths: 1, unavailableReason: 'No earlier visit on record' },
+      { key: '1y', label: '1 year', daysPerFrame: 7, frameCount: 52, tickEveryMonths: 3 },
+      { key: 'all', label: 'All', daysPerFrame: 7, startsAtFirstRecord: true, tickEveryMonths: 6 },
+    ];
+    // Where a patient without a previous visit starts.
+    const FALLBACK_RANGE_KEY = 'all';
+    const FRAME_METRIC_PREFIX = 'frame_';
+    let frames = [];
+    let frameEvents = new Map();
+    let selectedFrameIndex = 0;
+    let selectedRangeKey = TIME_LAPSE_RANGES[0].key;
+    let selectedPatientRow;
+    const timeLapseQueries = {};
+    const timeLapse = VisitPrep.timeLapse.mount(document.getElementById('time-lapse'), {
+      onFrameSelect: showFrame, onRangeSelect: selectRange, floatOver: document.querySelector('section.body-map'),
+    });
+
+    // Display copy built from an event's own columns: the long form reads in a sentence ("Insulin glargine titration from
+    // 18 U"), the marker form fits on the time-lapse ("Basal titration"), whose hover shows the recorded description.
+    const MARKER_DRUG_NAMES = { 'basal insulin': 'Basal' };
+    const EVENT_LABELS = {
+      drug_started: { long: (event) => `${event.drug} started`, marker: (name) => `${name} started` },
+      drug_stopped: { long: (event) => `${event.drug} stopped`, marker: (name) => `${name} stopped` },
+      dose_changed: {
+        long: (event) => `${event.drug} ${formatWhole(event.dose_before)} → ${formatWhole(event.dose_after)} ${event.dose_unit}`,
+        marker: (name, event) => `${name} ${Number(event.dose_after) > Number(event.dose_before) ? '↑' : '↓'}`,
+      },
+      titration_started: {
+        long: (event) => `${event.drug} titration from ${formatWhole(event.dose_before)} ${event.dose_unit.split('/')[0]}`,
+        marker: (name) => `${name} titration`,
+      },
+      cgm_started: { long: () => 'CGM started' },
+      cgm_interrupted: { long: () => 'Sensor off' },
+      cgm_resumed: { long: () => 'Sensor back' },
+      visit: { long: () => 'Clinic visit', marker: () => 'Visit' },
+      previous_visit: { long: () => 'Previous visit', marker: () => 'Previous visit' },
+      latest_visit: { long: () => 'Latest visit', marker: () => 'Latest visit' },
+    };
+    const isTreatmentEvent = (event) => event.drug != null;
+    const getEventLabel = (event) => EVENT_LABELS[event.kind]?.long(event) ?? event.description;
+    const getEventMarkerLabel = (event) => {
+      const labels = EVENT_LABELS[event.kind];
+      return labels?.marker?.(MARKER_DRUG_NAMES[event.drug_class] ?? event.drug, event) ?? getEventLabel(event);
+    };
+    const TREATMENT_EVENT_DIMENSIONS = `occurred_on: treatment_events.occurred_on, kind: treatment_events.kind, description: treatment_events.description,
+          drug: treatment_events.drug, drug_class: treatment_events.drug_class, dose_before: treatment_events.dose_before,
+          dose_after: treatment_events.dose_after, dose_unit: treatment_events.dose_unit`;
+    // Same-week labels that end in the same word share it, in order of first appearance: "Basal + CGM started · Gliclazide stopped".
+    function joinEventLabels (labels) {
+      const byLastWord = new Map();
+      for (const label of labels) {
+        const lastWord = label.split(' ').at(-1);
+        if (!byLastWord.has(lastWord)) byLastWord.set(lastWord, []);
+        byLastWord.get(lastWord).push(label === lastWord ? label : label.slice(0, -lastWord.length - 1));
+      }
+      return [...byLastWord].map(([lastWord, heads]) => heads.length < 2 ? (heads[0] === lastWord ? lastWord : `${heads[0]} ${lastWord}`)
+        : `${heads.join(' + ')} ${lastWord}`).join(' · ');
+    }
+
+    function isShowingLatestFrame () {
+      return !frames.length || selectedFrameIndex === frames.length - 1;
+    }
+
+    function getOrganFrameRow ({ organId, frameMetrics }, frame) {
+      if (!frame.row) return undefined;
+      return Object.fromEntries(Object.keys(frameMetrics).map((column) => [column, frame.row[`${organId}_${column}`]]));
+    }
+
+    function getSummaryFrameRow (frame) {
+      if (!frame.row) return undefined;
+      return Object.fromEntries(ORGAN_COUNTS.map(({ status }) => [status, frame.row[`summary_${status}`]]));
+    }
+
+    function isRangeAvailable (range) {
+      return !range.firstDayColumn || !selectedPatientRow || Boolean(selectedPatientRow[range.firstDayColumn]);
+    }
+
+    function getSelectedRange () {
+      return TIME_LAPSE_RANGES.find((range) => range.key === selectedRangeKey);
+    }
+
+    // The Space key is bound in time-lapse.js; a touch screen has none to press.
+    if (matchMedia('(hover: none)').matches) document.getElementById('time-lapse-hint').textContent = 'Tap or drag the time-lapse to see the body then.';
+
+    function buildTimeLapseNote (range, firstDay) {
+      const rangeText = range.firstDayColumn ? `Since the previous visit on ${formatDay(firstDay)}`
+        : range.startsAtFirstRecord ? `Since the first record on ${formatDay(firstDay)}`
+          : `Over ${range.label}`;
+      return `${rangeText}. Each cell is the status as it stood on its day, by the same governed rules as today.`;
+    }
+
+    // So every range shows where "Since previous visit" lies.
+    function buildVisitGuides (row, days, daysPerFrame) {
+      return [
+        { kind: 'previous_visit', day: row?.previous_visit_on, note: '\n"Since previous visit" starts here' },
+        { kind: 'latest_visit', day: row?.latest_visit_on, note: '' },
+      ].flatMap(({ kind, day, note }) => {
+        const index = day ? VisitPrep.timeLapseFrames.findFrameIndexOfDay(days, day.slice(0, 10), daysPerFrame) : -1;
+        const label = EVENT_LABELS[kind].long();
+        return index === -1 ? [] : [{ index, label, details: `${label} · ${formatDay(day)}${note}` }];
+      });
+    }
+
+    function paintTimeLapseRanges () {
+      timeLapse.paintRanges(TIME_LAPSE_RANGES.map((range) => ({
+        key: range.key, label: range.label, unavailableReason: isRangeAvailable(range) ? undefined : range.unavailableReason,
+      })), selectedRangeKey);
+    }
+
+    function selectRange (key) {
+      const selectedDay = isShowingLatestFrame() ? null : frames[selectedFrameIndex].day;
+      selectedRangeKey = key;
+      paintTimeLapseRanges();
+      paintTimeLapse(selectedDay);
+    }
+
+    // content: text, or a list of nodes.
+    function paintTimeLapseNote (content, isError = false) {
+      const note = document.getElementById('time-lapse-note');
+      note.replaceChildren(...[content].flat());
+      note.className = isError ? 'error' : 'panel-note';
+    }
+
+    // Before a patient is picked there are no time-lapse queries yet: that is loading too.
+    function paintTimeLapse (selectedDay = null) {
+      const queries = Object.values(timeLapseQueries);
+      const state = queries.length ? getCombinedState(queries) : 'executing';
+      if (state !== 'success') {
+        frames = [];
+        frameEvents = new Map();
+        showRecentEvents(null);
+        const loading = state === 'executing';
+        timeLapse.paintLanes({ loading, lanes: loading ? ORGAN_STATUS_QUERIES.map((organ) => ({ name: organ.laneName, cells: [] })) : [], frameLabels: [], ticks: [], markers: [], guides: [] });
+        paintTodayPills();
+        // Two bars too wide to share a line take the note's two lines.
+        paintTimeLapseNote(loading ? [buildPlaceholder('92%', 10, { label: 'Loading the time-lapse…' }), buildPlaceholder('55%', 10)]
+          : "Couldn't load the time-lapse. Please reload the page.", !loading);
+        return;
+      }
+      const range = getSelectedRange();
+      const { daysPerFrame, frameCount } = range;
+      const { rows } = timeLapseQueries.frames.result;
+      const firstDay = range.firstDayColumn ? selectedPatientRow[range.firstDayColumn].slice(0, 10)
+        : range.startsAtFirstRecord ? rows[0]?.day.slice(0, 10) : undefined;
+      frames = VisitPrep.timeLapseFrames.pickFrames(rows, { daysPerFrame, frameCount, firstDay });
+      const days = frames.map((frame) => frame.day);
+      const placedEvents = VisitPrep.timeLapseFrames.placeEvents(days, daysPerFrame, timeLapseQueries.events.result.rows);
+      frameEvents = new Map(placedEvents.map(({ index, events }) => [index, events]));
+      timeLapse.paintLanes({
+        lanes: ORGAN_STATUS_QUERIES.map((organ) => ({
+          name: organ.laneName,
+          cells: frames.map((frame) => {
+            const frameRow = getOrganFrameRow(organ, frame);
+            const status = frameRow ? STATUS[frameRow.status] : STATUS.no_record;
+            return { fill: status.swatch, label: status.label };
+          }),
+        })),
+        frameLabels: days.map((day) => daysPerFrame === 1 ? formatDay(day) : `Week ending ${formatDay(day)}`),
+        scrubberLabel: daysPerFrame === 1 ? 'Day' : 'Week',
+        cellCaption: daysPerFrame === 1 ? 'Each cell: 1 day' : 'Each cell: 1 week (status on its last day)',
+        ticks: VisitPrep.timeLapseFrames.buildMonthTicks(days, range.tickEveryMonths),
+        startLabel: days.length ? formatDay(days[0]) : '',
+        endLabel: days.length ? formatDay(days.at(-1)) : '',
+        markers: placedEvents.map(({ index, events }) => ({ index, ...describeEvents(events) })),
+        guides: buildVisitGuides(rows[0], days, daysPerFrame),
+      });
+      const selectedDayIndex = selectedDay ? VisitPrep.timeLapseFrames.findFrameIndexOfDay(days, selectedDay, daysPerFrame) : -1;
+      selectedFrameIndex = selectedDayIndex === -1 ? frames.length - 1 : selectedDayIndex;
+      timeLapse.selectFrame(selectedFrameIndex);
+      showFrame(selectedFrameIndex);
+      paintTimeLapseNote(frames.length ? buildTimeLapseNote(range, firstDay) : 'No data to replay for this patient.');
+      // Hidden, not removed, so the body map keeps its height when there is a single frame and nothing to replay.
+      document.getElementById('time-lapse-hint').style.visibility = frames.length > 1 ? '' : 'hidden';
+    }
+
+    function showFrame (index) {
+      // Arrived only on moving onto the frame, so a repaint of the same frame doesn't mark it again.
+      const arrived = index !== selectedFrameIndex && frameEvents.has(index);
+      selectedFrameIndex = index;
+      showRecentEvents(isShowingLatestFrame() ? null : { days: getRecentEventDays(index), arrived });
+      for (const organ of ORGAN_STATUS_QUERIES) {
+        if (isShowingLatestFrame()) paintOrganFromQuery(organ, statusQueries[organ.organId]);
+        else paintOrganFromRow(organ, getOrganFrameRow(organ, frames[selectedFrameIndex]), FRAME_METRIC_PREFIX);
+      }
+      if (isSummaryShowingToday()) paintSummary(summaryQuery);
+      else paintSummaryFromRow(getSummaryFrameRow(frames[selectedFrameIndex]), FRAME_METRIC_PREFIX);
+      paintBodyStatusDates(statusQueries.glucose);
+      paintTodayPills();
+    }
+
+    const RECENT_EVENT_DAY_COUNT = 3;
+    // A day's details (the record's own words) only when it has one event and they say more than its label.
+    function getRecentEventDays (index) {
+      const events = [...frameEvents].filter(([frameIndex]) => frameIndex <= index).flatMap(([, eventsOnFrame]) => eventsOnFrame);
+      const byDay = new Map();
+      for (const event of events.sort((a, b) => b.occurred_on.localeCompare(a.occurred_on))) {
+        const day = event.occurred_on.slice(0, 10);
+        if (!byDay.has(day)) byDay.set(day, []);
+        byDay.get(day).push(event);
+      }
+      return [...byDay.values()].slice(0, RECENT_EVENT_DAY_COUNT).map((dayEvents) => {
+        const labels = dayEvents.map(getEventLabel);
+        const details = dayEvents.length === 1 && dayEvents[0].description?.toLowerCase() !== labels[0].toLowerCase() ? dayEvents[0].description : null;
+        return { day: formatDay(dayEvents[0].occurred_on), labels, details };
+      });
+    }
+
+    function isSummaryShowingToday () {
+      return currentView === 'glucose' || isShowingLatestFrame();
+    }
+
+    function paintTodayPills () {
+      for (const panel of document.querySelectorAll('.today-panel')) {
+        panel.classList.toggle('showing-today', !isShowingLatestFrame());
+        const pill = panel.querySelector('.today-pill');
+        pill.hidden = isShowingLatestFrame();
+        if (!pill.hidden) pill.textContent = `Today, not ${formatDay(frames[selectedFrameIndex].day)}`;
+      }
+    }
+
+    // In the order to raise them at the visit: "Act now" first, then "Review".
+    const ORGAN_COUNTS = [
+      { status: 'act_now', metric: 'organs_act_now_count' },
+      { status: 'review', metric: 'organs_review_count' },
+      { status: 'on_target', metric: 'organs_on_target_count' },
+    ];
+    function buildOrganCountCell (background) {
+      const cell = Object.assign(document.createElement('span'), { className: 'organ-count-cell' });
+      cell.style.background = background;
+      return cell;
+    }
+
+    function paintSummary (query) {
+      document.getElementById('summary-error').hidden = query.state !== 'error';
+      const row = query.state === 'success' ? query.result.rows[0] : null;
+      if (row) {
+        paintSummaryFromRow(row);
+        return;
+      }
+      // Placeholder cells keep the block the shape it has once the counts arrive.
+      document.getElementById('organ-count-cells').replaceChildren(...ORGAN_STATUS_QUERIES.map(() => buildOrganCountCell('var(--organ-pending)')));
+      document.getElementById('organ-count-text').replaceChildren(query.state === 'executing' ? buildPlaceholder('150px', 10, { label: 'Loading…' }) : '—');
+    }
+
+    // row holds one count per status, under the status's name (act_now, review, ...). Without a row (a day before the
+    // patient's first record) every organ has no record, as the body shows.
+    function paintSummaryFromRow (row, metricPrefix = '') {
+      if (!row) {
+        document.getElementById('organ-count-cells').replaceChildren(...ORGAN_STATUS_QUERIES.map(() => buildOrganCountCell(STATUS.no_record.swatch)));
+        document.getElementById('organ-count-text').textContent = STATUS.no_record.label;
+        return;
+      }
+      const counts = ORGAN_COUNTS.map((organCount) => ({ ...organCount, count: Number(row[organCount.status]) }));
+      document.getElementById('organ-count-cells').replaceChildren(...counts.flatMap(({ status, count }) => Array.from({ length: count }, () => buildOrganCountCell(STATUS[status].swatch))));
+      document.getElementById('organ-count-text').replaceChildren(...counts.filter(({ count }) => count > 0).map(({ status, metric, count }) => {
+        const item = Object.assign(document.createElement('span'), { className: 'organ-count' });
+        item.append(Object.assign(document.createElement('span'), { className: 'organ-count-value', textContent: formatWhole(count) }), buildTaggedSpan(STATUS[status].label, metricPrefix + metric));
+        return item;
+      }));
+    }
+
+    const ROUTINE_TESTS = [
+      { metric: 'hba1c_overdue', name: 'HbA1c', action: 'order an HbA1c' },
+      { metric: 'kidney_tests_overdue', name: 'eGFR and UACR', action: 'order eGFR and UACR' },
+      { metric: 'lipid_test_overdue', name: 'LDL cholesterol', action: 'order a lipid profile' },
+      { metric: 'blood_pressure_overdue', name: 'blood pressure', action: 'measure blood pressure' },
+    ];
+    // Each flag's status is a governed metric (Act now, Review, or empty); the wording here only puts its numbers in a sentence.
+    // A body is a list of plain strings and [text, metric] pairs; the pairs are tagged so their descriptions show on hover.
+    const VISIT_FLAGS = [
+      {
+        metric: 'nocturnal_hypo_flag',
+        measures: ['current_overnight_tbr_pct', 'current_low_nights_count', 'previous_treatment_overnight_tbr_pct', 'tbr_target_pct'],
+        title: () => 'Night-time lows',
+        body: (row) => [
+          'Overnight time below range ', [`${formatOneDecimal(row.current_overnight_tbr_pct)}%`, 'current_overnight_tbr_pct'],
+          ` (target under ${formatWhole(row.tbr_target_pct)}%), with a low on `, [`${formatWhole(row.current_low_nights_count)} nights`, 'current_low_nights_count'],
+          ' of this report.',
+          ...(lastTreatmentChangeEvents.length ? [
+            ` Last treatment change on ${formatDay(row.last_treatment_change_on)}: ${lastTreatmentChangeEvents.map(getEventLabel).join(', ')}; overnight below range on the treatment before it was `,
+            [row.previous_treatment_overnight_tbr_pct == null ? 'not measured' : `${formatOneDecimal(row.previous_treatment_overnight_tbr_pct)}%`, 'previous_treatment_overnight_tbr_pct'], '.',
+          ] : []),
+        ],
+        action: () => lastTreatmentChangeEvents.some((event) => event.drug_class === 'basal insulin') ? 'Consider reducing the basal dose.' : 'Review overnight insulin and bedtime snacks.',
+      },
+      {
+        metric: 'a1c_above_target_flag',
+        measures: ['hba1c_recent_pct', 'hba1c_target_pct'],
+        title: () => 'HbA1c above target',
+        body: (row) => ['Lab HbA1c ', [`${formatOneDecimal(row.hba1c_recent_pct)}%`, 'hba1c_recent_pct'], ` (target under ${formatOneDecimal(row.hba1c_target_pct)}%); not enough CGM data to judge from the sensor.`],
+        action: () => 'Review therapy; check sensor use.',
+      },
+      {
+        metric: 'ckd_progression_flag',
+        measures: ['egfr_latest', 'egfr_slope_per_year', 'uacr_latest'],
+        title: () => 'Kidney disease',
+        body: (row) => [
+          'eGFR ', [formatWhole(row.egfr_latest), 'egfr_latest'],
+          ...(row.egfr_slope_per_year == null ? [] : [`, ${row.egfr_slope_per_year < 0 ? 'falling' : 'rising'} `, [`${formatOneDecimal(Math.abs(row.egfr_slope_per_year))} per year`, 'egfr_slope_per_year']]),
+          '; UACR ', [`${formatWhole(row.uacr_latest)} mg/g`, 'uacr_latest'], '.',
+        ],
+        action: (row) => row.ckd_progression_flag === 'act_now' ? 'Consider referral to nephrology and an SGLT2 inhibitor.' : 'Consider an SGLT2 inhibitor.',
+      },
+      {
+        metric: 'ldl_above_target_flag',
+        measures: ['ldl_latest', 'ldl_target', 'has_ascvd_risk_factor', 'ldl_next_step'],
+        title: () => 'LDL above target',
+        body: (row) => [
+          'LDL ', [`${formatWhole(row.ldl_latest)} mg/dL`, 'ldl_latest'], ' (target under ', [formatWhole(row.ldl_target), 'ldl_target'],
+          row.has_ascvd_risk_factor ? [' with a risk factor on record', 'has_ascvd_risk_factor'] : '', ').',
+        ],
+        action: (row) => ({
+          start_statin: 'Start a statin.',
+          raise_statin_intensity: 'Raise the statin to high intensity.',
+          add_non_statin: 'Consider adding ezetimibe or a PCSK9 inhibitor to the statin.',
+        })[row.ldl_next_step],
+      },
+      {
+        metric: 'no_statin_flag',
+        measures: ['age_years', 'statin_age_min', 'statin_age_max'],
+        title: () => 'No statin',
+        body: (row) => [
+          'Age ', [formatWhole(row.age_years), 'age_years'], ' with no statin on record; with diabetes, every patient from ',
+          [formatWhole(row.statin_age_min), 'statin_age_min'], ' to ', [formatWhole(row.statin_age_max), 'statin_age_max'], ' should take one, whatever the LDL.',
+        ],
+        action: () => 'Start a statin: moderate intensity, or high intensity with a risk factor.',
+      },
+      {
+        metric: 'screening_overdue_flag',
+        measures: ['retinal_screening_overdue', 'foot_exam_overdue', 'months_since_retinal_screening', 'months_since_foot_exam',
+          'retinal_screening_interval_months', 'foot_exam_interval_months'],
+        title: (row) => row.retinal_screening_overdue && row.foot_exam_overdue ? 'Screenings overdue'
+          : row.retinal_screening_overdue ? 'Retinal screening overdue' : 'Foot exam overdue',
+        body: (row) => [
+          ['retinal_screening_overdue', 'months_since_retinal_screening', 'retinal_screening_interval_months', 'Retinal screening', 'No retinal screening on record'],
+          ['foot_exam_overdue', 'months_since_foot_exam', 'foot_exam_interval_months', 'Foot exam', 'No foot exam on record'],
+        ].filter(([overdue]) => row[overdue]).flatMap(([, months, interval, name, none], i) => [
+          i ? ' ' : '',
+          ...(row[months] == null ? [none, '.'] : [`${name} `, [`${formatWhole(row[months])} months ago`, months], `; due every ${formatWhole(row[interval])} months.`]),
+        ]),
+        action: (row) => `Book ${[row.retinal_screening_overdue && 'a retinal screening', row.foot_exam_overdue && 'a foot exam'].filter(Boolean).join(' and ')}.`,
+      },
+      {
+        metric: 'tests_overdue_flag',
+        measures: ROUTINE_TESTS.map(({ metric }) => metric),
+        title: () => 'Tests overdue',
+        body: (row) => ['Overdue: ', ...ROUTINE_TESTS.filter(({ metric }) => row[metric]).flatMap(({ name, metric }, i) => [i ? ', ' : '', [name, metric]]), '.'],
+        action: (row) => {
+          const actions = ROUTINE_TESTS.filter(({ metric }) => row[metric]).map(({ action }) => action).join('; ');
+          return `${actions[0].toUpperCase()}${actions.slice(1)}.`;
+        },
+      },
+    ];
+    const FLAG_STATUS_ORDER = ['act_now', 'review'];
+    let lastTreatmentChangeQuery;
+    let visitFlags;
+    // The events of the last change to glucose-lowering treatment (several drugs can change on one day).
+    let lastTreatmentChangeEvents = [];
+
+    function buildTaggedSpan (text, metric) {
+      const span = Object.assign(document.createElement('span'), { textContent: text });
+      span.dataset.metric = metric;
+      return span;
+    }
+
+    function buildFlag (flag, row) {
+      const status = STATUS[row[flag.metric]];
+      const item = document.createElement('div');
+      item.className = 'flag';
+      item.innerHTML = `<span class="flag-bar"></span><div class="flag-text"><div class="flag-head"><strong class="flag-title"></strong></div>
+        <span class="flag-body"></span><span class="flag-action"></span><span class="flag-rule">rule: </span></div>`;
+      item.querySelector('.flag-bar').style.background = status.color;
+      item.querySelector('.flag-title').textContent = flag.title(row);
+      item.querySelector('.flag-head').append(Object.assign(buildTaggedSpan(status.label, flag.metric), { className: 'flag-status' }));
+      item.querySelector('.flag-body').append(...flag.body(row).map((part) => typeof part === 'string'
+        ? part
+        : buildTaggedSpan(...part)));
+      item.querySelector('.flag-action').textContent = flag.action(row);
+      item.querySelector('.flag-rule').append(buildTaggedSpan(flag.metric, flag.metric));
+      return item;
+    }
+
+    function getCombinedState (queries) {
+      return queries.some((query) => query?.state === 'error') ? 'error' : queries.every((query) => query?.state === 'success') ? 'success' : 'executing';
+    }
+
+    // The night-lows flag names the last treatment change, so the flags wait for that query too.
+    function paintFlags (query) {
+      const list = document.getElementById('flag-list');
+      const state = getCombinedState([query, lastTreatmentChangeQuery]);
+      if (state === 'executing') {
+        list.replaceChildren(...[0, 1].map((i) => {
+          const item = Object.assign(document.createElement('div'), { className: 'flag flag-placeholder' });
+          const bar = Object.assign(document.createElement('span'), { className: 'flag-bar' });
+          bar.style.background = 'var(--organ-pending)';
+          const text = Object.assign(document.createElement('div'), { className: 'flag-text' });
+          text.append(buildPlaceholder('45%', 12, { label: i === 0 ? 'Loading flags…' : undefined }),
+            ...['100%', '85%', '60%'].map((width) => buildPlaceholder(width, 10)), buildPlaceholder('35%', 8));
+          item.append(bar, text);
+          return item;
+        }));
+      } else if (state === 'error') {
+        list.replaceChildren(Object.assign(document.createElement('p'), { className: 'error', textContent: "Couldn't load the flags. Please reload the page." }));
+      } else {
+        const row = query.result.rows[0] ?? {};
+        const raised = VISIT_FLAGS.filter((flag) => FLAG_STATUS_ORDER.includes(row[flag.metric]))
+          .sort((a, b) => FLAG_STATUS_ORDER.indexOf(row[a.metric]) - FLAG_STATUS_ORDER.indexOf(row[b.metric]));
+        list.replaceChildren(...(raised.length
+          ? raised.map((flag) => buildFlag(flag, row))
+          : [Object.assign(document.createElement('p'), { className: 'panel-note', textContent: 'No flags this visit. Every organ is on target and every check is up to date.' })]));
+      }
+      list.scrollTop = 0;
+      paintFlagMore();
+    }
+
+    // Says how many flags sit below the scrolled list, and fades its foot while any do.
+    const flagList = document.getElementById('flag-list');
+    const flagMore = document.getElementById('flag-more');
+    const getFlagsBelow = () => {
+      const listBottom = flagList.getBoundingClientRect().bottom;
+      return [...flagList.querySelectorAll('.flag:not(.flag-placeholder)')].filter((flag) => flag.getBoundingClientRect().bottom > listBottom + 1);
+    };
+    function paintFlagMore () {
+      const count = getFlagsBelow().length;
+      flagList.classList.toggle('has-more', count > 0);
+      flagMore.hidden = !count;
+      flagMore.textContent = `↓ ${count} more flag${count > 1 ? 's' : ''}`;
+    }
+    flagList.addEventListener('scroll', paintFlagMore, { passive: true });
+    new ResizeObserver(paintFlagMore).observe(flagList);
+    flagMore.addEventListener('click', () => getFlagsBelow()[0]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+
+    // A window is a pair of governed dates applied as a date filter on the readings and the day spine, so the same
+    // governed metrics compute any window, preset or dragged. Every earlier window is offered; one whose date the patient
+    // lacks says so instead of comparing.
+    const GLUCOSE_CURRENT_WINDOW = { fromColumn: 'current_window_starts_on', toColumn: 'current_window_ends_on' };
+    const GLUCOSE_EARLIER_WINDOWS = [
+      {
+        key: 'previous_treatment', label: 'Previous treatment', fromColumn: 'previous_treatment_window_starts_on', toColumn: 'previous_treatment_window_ends_on',
+        missingText: 'No change to glucose-lowering treatment on record, so nothing to compare with',
+        describe: (row) => `on the treatment before ${formatDay(row.last_treatment_change_on)}, when it changed: ${lastTreatmentChangeEvents.map(getEventLabel).join(', ')}`,
+      },
+      {
+        key: 'previous_visit', label: 'At previous visit', fromColumn: 'previous_visit_window_starts_on', toColumn: 'previous_visit_on',
+        missingText: 'No earlier visit on record, so nothing to compare with',
+        describe: (row) => `up to the visit on ${formatDay(row.previous_visit_on)}`,
+      },
+    ];
+    const DRAGGED_WINDOW_KEY = 'dragged';
+    const TIMELINE_GRAINS = [{ grain: 'day', label: 'Day', daysPerPeriod: 1 }, { grain: 'week', label: 'Week', daysPerPeriod: 7 }];
+    // Each range starts on a governed date of the patient (startColumn) and ends on the day the record is current to.
+    const TIMELINE_RANGES = [
+      { key: 'visit', label: 'Since previous visit', title: 'Time above and below range, since the previous visit', startColumn: 'glucose_timeline_starts_on', unavailableReason: 'No earlier visit on record' },
+      { key: 'cgm', label: 'Since CGM started', title: 'Time above and below range, since CGM started', startColumn: 'first_read_at' },
+    ];
+    // A range longer than this opens in weeks, so its columns stay wide enough to read and to drag; the reader can switch.
+    const MAX_DAY_COLUMNS = 120;
+    // Display only: the AGP Report's band colors, checked for color-blind separation. The light bands are under 3:1
+    // contrast, so every band is also named in a legend or a table row.
+    const GLUCOSE_BAND_COLORS = { very_high: 'var(--glucose-very-high)', high: 'var(--glucose-high)', in_range: 'var(--glucose-in-range)', tight: 'var(--glucose-tight)', low: 'var(--glucose-low)', very_low: 'var(--glucose-very-low)' };
+    // decimals: the precision of the change shown; time in range gets one so its meaningful-change judgement reads true.
+    // A row without a target or with noChange is shown, never compared.
+    const GLUCOSE_MEASURE_SECTIONS = [
+      {
+        title: 'Time in ranges',
+        rows: [
+          { label: 'Above range', limit: (h) => `> ${formatWhole(h.glucose_range_high_mgdl)}`, color: GLUCOSE_BAND_COLORS.high, metric: 'tar_pct', target: 'tar_target_pct', comparison: 'under', format: formatPercent, decimals: 0 },
+          { label: 'Very high', nested: true, limit: (h) => `> ${formatWhole(h.glucose_very_high_mgdl)}`, color: GLUCOSE_BAND_COLORS.very_high, metric: 'tar_severe_pct', target: 'tar_severe_target_pct', comparison: 'under', format: formatPercentOneDecimal, decimals: 1 },
+          { label: 'In range', limit: (h) => `${formatWhole(h.glucose_range_low_mgdl)}–${formatWhole(h.glucose_range_high_mgdl)}`, color: GLUCOSE_BAND_COLORS.in_range, metric: 'tir_pct', target: 'tir_target_pct', comparison: 'at_least', format: formatPercent, decimals: 1, meaningfulChange: 'tir_meaningful_change_pts' },
+          { label: 'Tight range', nested: true, limit: (h) => `${formatWhole(h.glucose_range_low_mgdl)}–${formatWhole(h.glucose_tight_high_mgdl)}`, color: GLUCOSE_BAND_COLORS.tight, metric: 'titr_pct', target: 'titr_target_pct', comparison: 'over', format: formatPercent, decimals: 0 },
+          { label: 'Below range', limit: (h) => `< ${formatWhole(h.glucose_range_low_mgdl)}`, color: GLUCOSE_BAND_COLORS.low, metric: 'tbr_pct', target: 'tbr_target_pct', comparison: 'at_most', format: formatPercentOneDecimal, decimals: 1 },
+          { label: 'Very low', nested: true, limit: (h) => `< ${formatWhole(h.glucose_very_low_mgdl)}`, color: GLUCOSE_BAND_COLORS.very_low, metric: 'tbr_severe_pct', target: 'tbr_severe_target_pct', comparison: 'under', format: formatPercentOneDecimal, decimals: 1 },
+        ],
+      },
+      {
+        title: 'Glucose metrics',
+        rows: [
+          { label: 'Average glucose', limit: () => 'mg/dL', metric: 'mean_glucose', target: 'mean_glucose_target_mgdl', comparison: 'under', format: formatWhole, decimals: 0, changeUnit: 'mg/dL' },
+          { label: 'GMI', limit: () => 'estimated HbA1c', metric: 'gmi', target: 'hba1c_target_pct', comparison: 'under', format: formatPercentOneDecimal, decimals: 1 },
+          { label: 'Variability (CV)', metric: 'cv_pct', target: 'cv_target_pct', comparison: 'at_most', format: formatPercent, decimals: 0 },
+          { label: 'Sensor wear', metric: 'window_sensor_wear_pct', target: 'sensor_wear_target_pct', comparison: 'at_least', format: formatPercent, noChange: true },
+          { label: 'Days', metric: 'window_days', format: formatWhole, noChange: true },
+        ],
+      },
+    ];
+    const GLUCOSE_MEASURE_ROWS = GLUCOSE_MEASURE_SECTIONS.flatMap(({ rows }) => rows);
+    const getMeasureRow = (metric) => GLUCOSE_MEASURE_ROWS.find((row) => row.metric === metric);
+    const GLUCOSE_LIMIT_METRICS = ['glucose_very_low_mgdl', 'glucose_range_low_mgdl', 'glucose_tight_high_mgdl', 'glucose_range_high_mgdl', 'glucose_very_high_mgdl'];
+    let glucoseHeader;
+    let glucoseTimeline;
+    let glucoseVisits;
+    let glucoseCurrent;
+    let glucoseEarlier;
+    let glucoseAgpCurrent;
+    let glucoseAgpEarlier;
+    let glucoseDailyReadings;
+    let currentWindowFilter;
+    let earlierWindowFilter;
+    let timelineGrain;
+    let drugList;
+    // Set before any patient is selected, so the compare window can be named from the start.
+    let selectedEarlierWindowKey = GLUCOSE_EARLIER_WINDOWS[0].key;
+    let draggedWindow;
+    let selectedGrain = TIMELINE_GRAINS[0].grain;
+    let selectedTimelineRangeKey = TIMELINE_RANGES[0].key;
+    let timelineRangeFilter;
+    // The periods last drawn on the timeline, so a drag over them reads back as days.
+    let timelinePeriods = { starts: [], bounds: null };
+    let currentView = 'body';
+    const glucoseTimelineChart = VisitPrep.divergingTimeline.mount(document.getElementById('glucose-timeline'), { onDrag: selectDraggedWindow });
+    const glucoseAgpChart = VisitPrep.agpChart.mount(document.getElementById('glucose-agp'));
+    // Display only: the AGP Report's value axis; it grows when a 95th percentile goes higher.
+    const AGP_MIN_Y_MAX_MGDL = 350;
+    // Display only: which side of the daily profiles' center line each governed band (cgm_readings.glucose_band) takes,
+    // as on the timeline; in range sits on the line.
+    const GLUCOSE_BAND_SIDES = { very_high: 'up', high: 'up', low: 'down', very_low: 'down' };
+    // The days last drawn as daily profiles, so a hovered strip reads back as that day's readings.
+    let dailyProfileDays = [];
+    let hoveredDailyDayIndex = null;
+    // The clicked reading, by day and minute, so a repaint finds it again in the new rows or drops it.
+    let selectedDailyReading = null;
+    const glucoseDailyChart = VisitPrep.dailyProfiles.mount(document.getElementById('glucose-daily'), {
+      onDayHover: (dayIndex) => {
+        hoveredDailyDayIndex = dayIndex;
+        paintDailyTrace();
+      },
+      onReadingClick: selectDailyRunAt,
+      keyboardLabel: 'Days. Up and down arrows pick a day to draw on the AGP; left and right arrows step through its highs and lows.',
+    });
+
+    function buildGlucoseHeaderQuery () {
+      const constants = [...new Set(GLUCOSE_MEASURE_ROWS.flatMap(({ target, meaningfulChange }) => [target, meaningfulChange]).filter(Boolean))];
+      return `explore {
+        dimensions { patient_id: patients.id }
+        measures {
+          status: glycemic_status, source: glycemic_status_source, treatment_changes: treatment_changes_since_previous_visit,
+          basal_units_latest: basal_units_latest, current_basal_units_min: current_basal_units_min, current_basal_units_max: current_basal_units_max,
+          ${[...constants, ...GLUCOSE_LIMIT_METRICS].map((metric) => `${metric}: ${metric}`).join(', ')}
+        }
+      }`;
+    }
+
+    // One query per side; each side's window filter reaches both the readings and the day spine, so its day count and
+    // sensor wear count the window's days without a reading too.
+    function buildGlucoseWindowQuery () {
+      return `explore {
+        dimensions { patient_id: patients.id }
+        measures {
+          ${GLUCOSE_MEASURE_ROWS.map(({ metric }) => `${metric}: ${metric}`).join(', ')},
+          sufficiency: window_data_sufficiency, readings: readings_count
+        }
+      }`;
+    }
+
+    function buildGlucoseAgpQuery () {
+      return `explore {
+        dimensions { slot: cgm_readings.time_of_day_slot }
+        measures {
+          slot_minutes: time_of_day_slot_minutes, p5: glucose_p5_mgdl, p25: glucose_p25_mgdl, p50: glucose_median_mgdl,
+          p75: glucose_p75_mgdl, p95: glucose_p95_mgdl
+        }
+        sorts { slot asc }
+      }`;
+    }
+
+    const getEarlierWindowPreset = () => GLUCOSE_EARLIER_WINDOWS.find((candidate) => candidate.key === selectedEarlierWindowKey);
+    const getEarlierWindowTitle = () => selectedEarlierWindowKey === DRAGGED_WINDOW_KEY ? 'Dragged window' : getEarlierWindowPreset().label;
+
+    function getWindowOfColumns (row, { fromColumn, toColumn }) {
+      return row?.[fromColumn] && row[toColumn] ? { from: row[fromColumn].slice(0, 10), to: row[toColumn].slice(0, 10) } : null;
+    }
+
+    function getEarlierWindow () {
+      return selectedEarlierWindowKey === DRAGGED_WINDOW_KEY ? draggedWindow : getWindowOfColumns(selectedPatientRow, getEarlierWindowPreset());
+    }
+
+    // Without a window the earlier-window query runs unfiltered, and nothing reads it.
+    function applyGlucoseWindows () {
+      for (const [filter, window] of [[currentWindowFilter, getWindowOfColumns(selectedPatientRow, GLUCOSE_CURRENT_WINDOW)], [earlierWindowFilter, getEarlierWindow()]]) {
+        filter.setCondition({ operator: 'between', values: window ? [window.from, window.to] : [] });
+      }
+    }
+
+    function selectEarlierWindow (key) {
+      selectedEarlierWindowKey = key;
+      applyGlucoseWindows();
+      paintGlucoseView();
+      app.execute();
+    }
+
+    function selectDraggedWindow (a, b) {
+      // A drag on a drawing whose periods were since replaced (a refresh still on screen) picks nothing.
+      if (Math.max(a, b) >= timelinePeriods.starts.length) return;
+      draggedWindow = VisitPrep.timelinePeriods.getWindowOfPeriods(timelinePeriods.starts, a, b, timelinePeriods.bounds);
+      selectEarlierWindow(DRAGGED_WINDOW_KEY);
+    }
+
+    function selectGrain (grain) {
+      selectedGrain = grain;
+      timelineGrain.setGrain(grain);
+      paintGlucoseView();
+      app.execute();
+    }
+
+    const getTimelineRange = () => TIMELINE_RANGES.find((range) => range.key === selectedTimelineRangeKey);
+    // "Since previous visit" needs an earlier visit; a patient without one sees the timeline since CGM started.
+    const isTimelineRangeAvailable = (range) => !range.unavailableReason || Boolean(selectedPatientRow?.previous_visit_on);
+
+    function applyTimelineRange () {
+      if (!isTimelineRangeAvailable(getTimelineRange())) selectedTimelineRangeKey = TIMELINE_RANGES.find(isTimelineRangeAvailable).key;
+      const range = getTimelineRange();
+      const start = selectedPatientRow?.[range.startColumn]?.slice(0, 10);
+      const end = selectedPatientRow?.data_as_of?.slice(0, 10);
+      timelineRangeFilter.setCondition({ operator: 'between', values: start ? [start, end] : [] });
+      const days = start ? (Date.parse(end) - Date.parse(start)) / 86400000 + 1 : 0;
+      selectedGrain = days > MAX_DAY_COLUMNS ? 'week' : 'day';
+      timelineGrain.setGrain(selectedGrain);
+    }
+
+    function selectTimelineRange (key) {
+      const range = TIMELINE_RANGES.find((candidate) => candidate.key === key);
+      if (!isTimelineRangeAvailable(range)) return;
+      selectedTimelineRangeKey = key;
+      applyTimelineRange();
+      paintGlucoseView();
+      app.execute();
+    }
+
+    // Shared parts said once: "7–20 Aug 2026", "27 Jun – 10 Jul 2026".
+    const formatWindowDates = ({ from, to }) => new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+      .formatRange(new Date(`${from.slice(0, 10)}T00:00:00Z`), new Date(`${to.slice(0, 10)}T00:00:00Z`));
+
+    // A report is read against the treatment in use during it (the AGP Report's "therapy" line).
+    function buildTreatmentLine (row) {
+      const drugs = drugList.result.rows.filter((drug) => drug.status === 'active' && drug.lowers_glucose);
+      const parts = drugs.flatMap((drug, i) => [i ? ' + ' : '', drug.drug_class === 'basal insulin'
+        ? [`${drug.drug} ${formatWhole(row.basal_units_latest)} U/day`, 'basal_units_latest']
+        : [`${drug.drug} ${formatWhole(drug.dose)} ${drug.dose_unit}`, 'drug_dose_latest']]);
+      if (row.current_basal_units_min != null && Number(row.current_basal_units_min) !== Number(row.current_basal_units_max)) {
+        parts.push(' · ', [`basal dose changed during this report, ${formatWhole(row.current_basal_units_min)} → ${formatWhole(row.current_basal_units_max)} U`, 'current_basal_units_max']);
+      }
+      const changes = Number(row.treatment_changes);
+      if (changes) parts.push(' · ', [`${formatWhole(changes)} treatment ${changes === 1 ? 'change' : 'changes'} since the previous visit`, 'treatment_changes_since_previous_visit']);
+      return parts.filter((part) => part !== '').map((part) => typeof part === 'string' ? part : buildTaggedSpan(...part));
+    }
+
+    function buildOptions (container, options, onSelect) {
+      container.replaceChildren(...options.map(({ key, label, pressed, unavailableReason }) => {
+        const option = Object.assign(document.createElement('button'), { type: 'button', className: 'option', textContent: label });
+        option.setAttribute('aria-pressed', String(pressed));
+        if (unavailableReason) {
+          option.title = unavailableReason;
+          option.setAttribute('aria-disabled', 'true');
+        }
+        option.addEventListener('click', () => onSelect(key));
+        return option;
+      }));
+    }
+
+    function buildEarlierWindowHint () {
+      const preset = getEarlierWindowPreset();
+      return preset && !getWindowOfColumns(selectedPatientRow, preset) ? preset.missingText : 'or drag across the days';
+    }
+
+    // From a result row, not selectedPatientRow: page state names the next patient while the queries still hold the
+    // previous one's rows.
+    function markDrawnPatient (box) {
+      box.dataset.patientId = glucoseHeader.result.rows[0]?.patient_id ?? '';
+    }
+
+    // 'refreshing' keeps the same patient's last drawing, labels included, dimmed; 'loading' never shows another
+    // patient's. A success with app.hasChanges is stale: a control changed and execute() hasn't run yet.
+    function applyRefreshPhase (box, state) {
+      const isRefreshing = state === 'executing' || (state === 'success' && app.hasChanges);
+      const isOtherPatient = box.dataset.patientId !== selectedPatientRow.id;
+      box.classList.toggle('refreshing', isRefreshing && !isOtherPatient);
+      return !isRefreshing ? 'ready' : isOtherPatient ? 'loading' : 'refreshing';
+    }
+
+    function paintChartNote (chartBox, note, text, className = 'panel-note') {
+      chartBox.hidden = true;
+      note.hidden = false;
+      note.className = className;
+      note.textContent = text;
+    }
+
+    // A patient without CGM readings gets a one-line note in each block, so a one-line placeholder. Before the patient
+    // list is in, assume CGM, as most patients have it.
+    const isPatientWithoutCgm = () => Boolean(selectedPatientRow) && !getWindowOfColumns(selectedPatientRow, GLUCOSE_CURRENT_WINDOW);
+
+    function paintChartPlaceholder (chartBox, note, buildChartPlaceholder) {
+      chartBox.hidden = true;
+      note.hidden = false;
+      note.className = isPatientWithoutCgm() ? 'panel-note' : '';
+      note.replaceChildren(isPatientWithoutCgm() ? buildPlaceholder('min(360px, 100%)', 10, { label: 'Loading…' }) : buildChartPlaceholder());
+    }
+
+    const buildDiv = (className) => Object.assign(document.createElement('div'), { className });
+
+    function wrapChartPlaceholder (...children) {
+      const box = buildDiv('chart-placeholder');
+      box.append(Object.assign(document.createElement('span'), { className: 'placeholder-label', textContent: 'Loading…' }), ...children);
+      return box;
+    }
+
+    // widths: one bar per legend item, about as wide as its text, so the bars wrap where the legend will.
+    function buildPlaceholderBars (className, widths) {
+      const row = buildDiv(className);
+      row.append(...widths.map((width) => buildPlaceholder(`${width}px`, 10)));
+      return row;
+    }
+    const RANGE_LEGEND_BAR_WIDTHS = [110, 100, 44, 108, 38, 84];
+
+    function buildHourTicks () {
+      const ticks = buildDiv('placeholder-hour-ticks');
+      ticks.append(...Array.from({ length: 9 }, (_, i) => {
+        const tick = Object.assign(document.createElement('span'), { textContent: VisitPrep.agpSlots.formatHourTick(i * 180) });
+        tick.style.left = `${i * 12.5}%`;
+        return tick;
+      }));
+      return ticks;
+    }
+
+    function buildTimelinePlaceholder () {
+      const plot = buildDiv('placeholder-area placeholder-timeline-plot');
+      plot.append(buildDiv('placeholder-center'));
+      return wrapChartPlaceholder(buildPlaceholderBars('placeholder-legend', [...RANGE_LEGEND_BAR_WIDTHS, 130]), plot,
+        buildPlaceholderBars('placeholder-timeline-ticks', [76, 30, 30, 76]), buildPlaceholderBars('placeholder-timeline-brackets', [160, 200]));
+    }
+
+    function buildMeasuresPlaceholder () {
+      const bars = buildDiv('range-bars-placeholder stacked-bars');
+      bars.append(...['Compare', 'Current'].map((label) => {
+        const bar = buildDiv('stacked-bar');
+        bar.append(buildDiv('stacked-bar-track placeholder-area'), Object.assign(document.createElement('span'), { className: 'stacked-bar-label', textContent: label }));
+        return bar;
+      }));
+      const buildCell = (tag, className, ...content) => {
+        const cell = Object.assign(document.createElement(tag), { className });
+        cell.append(...content);
+        return cell;
+      };
+      const buildWindowHead = (title) => buildCell('th', 'window-head', Object.assign(document.createElement('strong'), { textContent: title }), buildPlaceholder('96px', 10));
+      const headRow = document.createElement('tr');
+      headRow.append(buildCell('th', '', 'Measure'), buildCell('th', '', 'Target'), buildWindowHead(getEarlierWindowTitle()), buildWindowHead('Current report'), buildCell('th', 'change-head', 'Change'));
+      const head = document.createElement('thead');
+      head.append(headRow);
+      const body = document.createElement('tbody');
+      body.append(...GLUCOSE_MEASURE_SECTIONS.flatMap(({ title, rows }) => {
+        const sectionRow = Object.assign(document.createElement('tr'), { className: 'section-row' });
+        sectionRow.append(Object.assign(buildCell('td', '', title), { colSpan: 5 }));
+        return [sectionRow, ...rows.map((measure) => {
+          const tableRow = Object.assign(document.createElement('tr'), { className: measure.nested ? 'nested' : '' });
+          const name = buildCell('td', 'measure-name', measure.label);
+          if (measure.color) {
+            const swatch = Object.assign(document.createElement('span'), { className: 'swatch' });
+            swatch.style.background = measure.color;
+            name.prepend(swatch);
+          }
+          const isCompared = measure.target && !measure.noChange;
+          tableRow.append(name, buildCell('td', 'measure-target', ...(measure.target ? [buildPlaceholder('40px', 10)] : [])),
+            buildCell('td', 'measure-value', buildPlaceholder('36px', 10)), buildCell('td', 'measure-value', buildPlaceholder('36px', 10)),
+            buildCell('td', 'measure-change', ...(isCompared ? [buildPlaceholder('80px', 10)] : [])));
+          return tableRow;
+        })];
+      }));
+      const table = Object.assign(document.createElement('table'), { className: 'measures' });
+      table.append(head, body);
+      const scroll = buildDiv('measures-scroll');
+      scroll.append(table);
+      const measures = buildDiv('glucose-measures');
+      measures.append(bars, scroll);
+      return wrapChartPlaceholder(measures);
+    }
+
+    // The glucose_* limits in cgm_readings.model.aml, on the AGP's usual scale.
+    const AGP_PLACEHOLDER_LIMITS = [{ mgdl: 250 }, { mgdl: 180, emphasis: true }, { mgdl: 70, emphasis: true }, { mgdl: 54 }];
+    const AGP_PLACEHOLDER_MAX_MGDL = 350;
+
+    function buildAgpPlaceholder () {
+      const plot = buildDiv('placeholder-area placeholder-agp-plot');
+      const labels = buildDiv('placeholder-limit-labels');
+      for (const { mgdl, emphasis } of AGP_PLACEHOLDER_LIMITS) {
+        const top = `${100 - (mgdl / AGP_PLACEHOLDER_MAX_MGDL) * 100}%`;
+        const line = buildDiv(`placeholder-limit${emphasis ? ' emphasis' : ''}`);
+        line.style.top = top;
+        plot.append(line);
+        const label = Object.assign(document.createElement('span'), { textContent: mgdl });
+        label.style.top = top;
+        labels.append(label);
+      }
+      const stage = buildDiv('placeholder-agp-stage');
+      stage.append(buildDiv(''), plot, labels);
+      return wrapChartPlaceholder(buildPlaceholderBars('placeholder-legend', [60, 64, 62, 176, 170]), stage, buildHourTicks());
+    }
+
+    // A report is 14 days.
+    function buildDailyPlaceholder () {
+      const days = buildDiv('placeholder-days');
+      for (let i = 0; i < 14; i++) days.append(buildPlaceholder('56px', 10), buildDiv('placeholder-strip'));
+      const hint = buildDiv('placeholder-hint');
+      hint.append(buildPlaceholder('min(440px, 100%)', 10));
+      return wrapChartPlaceholder(buildPlaceholderBars('placeholder-legend', RANGE_LEGEND_BAR_WIDTHS), days, buildHourTicks(), hint);
+    }
+
+    function paintGlucoseHeaderPlaceholder () {
+      document.getElementById('glucose-status').replaceChildren(buildPlaceholder('56px', 12));
+      const windowText = document.getElementById('glucose-window');
+      windowText.className = 'subtitle';
+      windowText.replaceChildren(buildPlaceholder('230px', 12, { label: 'Loading…' }));
+      document.getElementById('glucose-treatment').replaceChildren(buildPlaceholder('min(470px, 100%)', 11));
+    }
+
+    function paintAgpPlaceholder () {
+      document.getElementById('glucose-agp-windows').replaceChildren(...(isPatientWithoutCgm() ? [] : [buildPlaceholder('min(380px, 100%)', 11)]));
+      paintChartPlaceholder(document.getElementById('glucose-agp'), document.getElementById('glucose-agp-note'), buildAgpPlaceholder);
+    }
+
+    // The report can be opened before the patient list is in, so its controls and placeholders are there from the start.
+    paintGlucoseHeaderPlaceholder();
+    paintTimelineOptions();
+    paintChartPlaceholder(document.getElementById('glucose-timeline'), document.getElementById('glucose-timeline-note'), buildTimelinePlaceholder);
+    paintChartPlaceholder(document.getElementById('glucose-measures'), document.getElementById('glucose-measures-note'), buildMeasuresPlaceholder);
+    paintAgpPlaceholder();
+    paintChartPlaceholder(document.getElementById('glucose-daily'), document.getElementById('glucose-daily-note'), buildDailyPlaceholder);
+
+    function paintGlucoseView () {
+      paintGlucoseHeader();
+      paintGlucoseTimeline();
+      paintGlucoseMeasures();
+      paintGlucoseAgp();
+      paintDailyProfiles();
+    }
+
+    function paintGlucoseHeader () {
+      const windowText = document.getElementById('glucose-window');
+      const treatmentText = document.getElementById('glucose-treatment');
+      const statusPill = document.getElementById('glucose-status');
+      const state = getCombinedState([glucoseHeader, drugList]);
+      if (state === 'error') {
+        statusPill.replaceChildren();
+        treatmentText.replaceChildren();
+        windowText.textContent = "Couldn't load the glucose report. Please reload the page.";
+        windowText.className = 'error';
+        return;
+      }
+      if (state !== 'success') {
+        paintGlucoseHeaderPlaceholder();
+        return;
+      }
+      // A patient with no data gets no row; the header then names no status or treatment.
+      const row = glucoseHeader.result.rows[0] ?? {};
+      const status = glucoseHeader.result.rows.length ? STATUS[row.status] : STATUS.no_record;
+      const swatch = Object.assign(document.createElement('span'), { className: 'swatch' });
+      swatch.style.background = status.swatch;
+      statusPill.replaceChildren(swatch, buildTaggedSpan(status.label, 'glycemic_status'));
+      const currentWindow = getWindowOfColumns(selectedPatientRow, GLUCOSE_CURRENT_WINDOW);
+      windowText.className = 'subtitle';
+      windowText.textContent = !currentWindow ? 'No CGM readings on record'
+        : `Current report: ${formatWindowDates(currentWindow)}${row.source === 'cgm' ? ''
+          : row.source === 'lab_hba1c' ? ' · too little sensor wear to count; the status comes from lab HbA1c' : ' · too little sensor wear to count'}`;
+      treatmentText.replaceChildren(...buildTreatmentLine(row));
+    }
+
+    // Each event marker's label, hover text and placing priority: treatment changes come before device events, in a
+    // label and when labels crowd.
+    function describeEvents (events) {
+      const eventsTreatmentFirst = [...events.filter(isTreatmentEvent), ...events.filter((event) => !isTreatmentEvent(event))];
+      return {
+        label: joinEventLabels(eventsTreatmentFirst.map(getEventMarkerLabel)),
+        details: eventsTreatmentFirst.map((event) => `${formatDay(event.occurred_on)}: ${event.description}`).join('\n'),
+        priority: eventsTreatmentFirst.some(isTreatmentEvent) ? 0 : 1,
+      };
+    }
+
+    function paintTimelineOptions () {
+      const timelineRange = getTimelineRange();
+      buildOptions(document.getElementById('timeline-range-options'), TIMELINE_RANGES.map((range) => ({
+        key: range.key, label: range.label, pressed: range === timelineRange,
+        unavailableReason: isTimelineRangeAvailable(range) ? undefined : range.unavailableReason,
+      })), selectTimelineRange);
+      buildOptions(document.getElementById('grain-options'), TIMELINE_GRAINS.map(({ grain: key, label }) => ({ key, label, pressed: key === selectedGrain })), selectGrain);
+      buildOptions(document.getElementById('compare-options'), GLUCOSE_EARLIER_WINDOWS.map(({ key, label }) => ({ key, label, pressed: key === selectedEarlierWindowKey })), selectEarlierWindow);
+      document.getElementById('compare-window').textContent = buildEarlierWindowHint();
+    }
+
+    function paintGlucoseTimeline () {
+      const grain = TIMELINE_GRAINS.find((candidate) => candidate.grain === selectedGrain);
+      const timelineRange = getTimelineRange();
+      paintTimelineOptions();
+      const chartBox = document.getElementById('glucose-timeline');
+      const note = document.getElementById('glucose-timeline-note');
+      const controls = [document.getElementById('timeline-controls'), document.getElementById('compare-row')];
+      const state = getCombinedState([glucoseTimeline, glucoseVisits, timeLapseQueries.events, glucoseHeader]);
+      const phase = applyRefreshPhase(chartBox, state);
+      if (state === 'error') {
+        for (const element of controls) element.hidden = true;
+        paintChartNote(chartBox, note, "Couldn't load the glucose timeline. Please reload the page.", 'error');
+        return;
+      }
+      if (phase === 'loading') {
+        for (const element of controls) element.hidden = isPatientWithoutCgm();
+        paintChartPlaceholder(chartBox, note, buildTimelinePlaceholder);
+      }
+      if (phase !== 'ready') return;
+      markDrawnPatient(chartBox);
+      // Without CGM the range has no start and the spine comes back unfiltered: no timeline then.
+      const rows = glucoseTimeline.result.rows[0]?.first_read_at ? glucoseTimeline.result.rows : [];
+      for (const element of controls) element.hidden = !rows.length;
+      chartBox.hidden = !rows.length;
+      note.hidden = Boolean(rows.length);
+      note.className = 'panel-note';
+      note.replaceChildren();
+      document.getElementById('glucose-timeline-title').textContent = rows.length ? timelineRange.title : 'Glucose timeline';
+      if (!rows.length) {
+        note.textContent = 'No CGM readings on record, so there is no timeline.';
+        timelinePeriods = { starts: [], bounds: null };
+        return;
+      }
+      const header = glucoseHeader.result.rows[0];
+      const bounds = { daysPerPeriod: grain.daysPerPeriod, firstDay: rows[0][timelineRange.startColumn].slice(0, 10), lastDay: rows[0].data_as_of.slice(0, 10) };
+      const starts = rows.map((row) => row.period);
+      const spans = starts.map((start) => VisitPrep.timelinePeriods.getPeriodSpan(start, bounds));
+      timelinePeriods = { starts, bounds };
+      const share = (value) => value == null ? null : Number(value);
+      // Level 1: between the range limit and the severe limit (high, low).
+      const getLevel1Share = (total, severe) => total == null ? 0 : total - severe;
+      const below = getMeasureRow('tbr_pct'), veryLow = getMeasureRow('tbr_severe_pct');
+      const above = getMeasureRow('tar_pct'), veryHigh = getMeasureRow('tar_severe_pct');
+      const periods = rows.map((row, index) => {
+        const { from, to } = spans[index];
+        const [tar, tarSevere, tbr, tbrSevere] = [row.tar, row.tar_severe, row.tbr, row.tbr_severe].map(share);
+        const days = Number(row.days);
+        const label = grain.daysPerPeriod === 1 ? formatDay(from)
+          : `${formatWindowDates({ from, to })}${days < grain.daysPerPeriod ? ` (${formatWhole(days)} of ${grain.daysPerPeriod} days)` : ''}`;
+        const hatched = Number(row.wear) < Number(row.wear_target);
+        return {
+          label, hatched, partial: days < grain.daysPerPeriod,
+          up: [{ value: getLevel1Share(tar, tarSevere), color: above.color }, { value: tarSevere, color: veryHigh.color }],
+          down: [{ value: getLevel1Share(tbr, tbrSevere), color: below.color }, { value: tbrSevere, color: veryLow.color }],
+          details: tar == null ? ['No CGM readings'] : [
+            `${formatPercentOneDecimal(tar)} above range, ${formatPercentOneDecimal(tarSevere)} very high`,
+            `${formatPercentOneDecimal(tbr)} below range, ${formatPercentOneDecimal(tbrSevere)} very low`,
+            `Sensor wear ${formatPercent(row.wear)}${hatched ? ': too little to judge' : ''}`,
+          ],
+        };
+      });
+      const { tar_target: tarTarget, tbr_target: tbrTarget } = rows[0];
+      const getSideExtent = (values, target, step) => Math.ceil((Math.max(...values.map(Number), Number(target)) + 1) / step) * step;
+      const ends = spans.map(({ to }) => to);
+      const visits = glucoseVisits.result.rows.map((visit) => {
+        const day = visit.occurred_on.slice(0, 10);
+        return day === visit.latest_visit_on?.slice(0, 10) ? { ...visit, kind: 'latest_visit', description: 'Latest visit' }
+          : day === visit.previous_visit_on?.slice(0, 10) ? { ...visit, kind: 'previous_visit', description: 'Previous visit: its report is "At previous visit"' }
+            : { ...visit, kind: 'visit', description: 'Clinic visit' };
+      });
+      const earlierPreset = getEarlierWindowPreset();
+      const earlierWindow = getEarlierWindow();
+      const windows = [
+        { key: 'current', window: getWindowOfColumns(selectedPatientRow, GLUCOSE_CURRENT_WINDOW), name: 'Current report' },
+        { key: 'earlier', window: earlierWindow, name: earlierPreset?.label ?? 'Dragged', details: earlierWindow && earlierPreset?.describe(selectedPatientRow), emphasis: true },
+      ].flatMap(({ window, name, details, ...bracket }) => {
+        const periodsOfWindow = window && VisitPrep.timelinePeriods.findPeriodsOfWindow(starts, window, bounds);
+        const label = window && `${name} · ${formatWindowDates(window)}`;
+        return periodsOfWindow ? [{ ...bracket, ...periodsOfWindow, label, details: details ? `${label}\n${details[0].toUpperCase()}${details.slice(1)}` : label }] : [];
+      });
+      glucoseTimelineChart.paint({
+        periods,
+        scale: { up: getSideExtent(rows.map((row) => row.tar ?? 0), tarTarget, 10), down: getSideExtent(rows.map((row) => row.tbr ?? 0), tbrTarget, 5) },
+        referenceLines: [
+          { side: 'up', value: Number(tarTarget), label: `target ${COMPARISONS[above.comparison].sign} ${formatPercent(tarTarget)}` },
+          { side: 'down', value: Number(tbrTarget), label: `target ${COMPARISONS[below.comparison].sign} ${formatPercent(tbrTarget)}` },
+        ],
+        ticks: VisitPrep.timeLapseFrames.buildMonthTicks(spans.map(({ from }) => from), 1),
+        startLabel: formatDay(spans[0].from),
+        endLabel: formatDay(spans.at(-1).to),
+        markers: VisitPrep.timeLapseFrames.placeEvents(ends, grain.daysPerPeriod, [...timeLapseQueries.events.result.rows, ...visits])
+          .map(({ index, events }) => ({ index, ...describeEvents(events), emphasis: events.some((event) => event.kind === 'latest_visit') })),
+        windows,
+        legend: [...buildBandLegend(header), { label: 'Too little sensor data', hatched: true }],
+      });
+    }
+
+    function describeNotFullReport (row) {
+      if (row.sufficiency === 'enough') return null;
+      return !Number(row.readings) ? 'No CGM readings'
+        : row.sufficiency === 'too_few_days' ? `Not a full report: ${formatWhole(row.window_days)} days`
+          : `Not a full report: sensor wear ${formatPercent(row.window_sensor_wear_pct)}`;
+    }
+
+    function buildBandLegend (header) {
+      const below = getMeasureRow('tbr_pct'), veryLow = getMeasureRow('tbr_severe_pct');
+      const above = getMeasureRow('tar_pct'), veryHigh = getMeasureRow('tar_severe_pct');
+      return [
+        { label: `↑ Above range ${above.limit(header)}`, heading: true },
+        ...[veryHigh, above].map((band) => ({ label: band === above ? 'High' : `${band.label} ${band.limit(header)}`, color: band.color })),
+        { label: `↓ Below range ${below.limit(header)}`, heading: true },
+        ...[below, veryLow].map((band) => ({ label: band === below ? 'Low' : `${band.label} ${band.limit(header)}`, color: band.color })),
+      ];
+    }
+
+    function buildWindowHead (title, window, row) {
+      const head = Object.assign(document.createElement('th'), { scope: 'col', className: 'window-head' });
+      head.append(Object.assign(document.createElement('strong'), { textContent: title }), window ? formatWindowDates(window) : '—');
+      const reason = window && row && describeNotFullReport(row);
+      if (reason) head.append(Object.assign(buildTaggedSpan(reason, 'window_data_sufficiency'), { className: 'not-full' }));
+      return head;
+    }
+
+    // How to read the column, behind an info button: it explains the column, not a number.
+    function buildChangeHead (header) {
+      const head = Object.assign(document.createElement('th'), { scope: 'col', className: 'change-head', textContent: 'Change' });
+      const tip = `Only time in range has an agreed size for a meaningful change (${formatWhole(header.tir_meaningful_change_pts)} pts); other changes show direction only.`;
+      const info = Object.assign(document.createElement('button'), { type: 'button', className: 'info-tip', textContent: 'i' });
+      info.setAttribute('aria-label', tip);
+      info.dataset.tip = tip;
+      head.append(info);
+      return head;
+    }
+
+    function buildChangeText (measure, current, earlier, header) {
+      const change = VisitPrep.periodComparison.compareWindows({
+        current: current[measure.metric], earlier: earlier[measure.metric],
+        betterWhen: ['at_least', 'over'].includes(measure.comparison) ? 'higher' : 'lower', decimals: measure.decimals,
+        meaningfulChange: measure.meaningfulChange && header[measure.meaningfulChange],
+      });
+      if (!change) return null;
+      if (change.direction === 'same') return { parts: ['Same'] };
+      const size = Math.abs(change.change);
+      const unit = measure.changeUnit ?? (size === 1 ? 'pt' : 'pts');
+      const parts = [`${change.direction === 'up' ? '↑' : '↓'}${size.toFixed(measure.decimals)} ${unit} · ${change.verdict}`];
+      if (change.meaningful === true) parts.push(['A meaningful change', measure.meaningfulChange]);
+      if (change.meaningful === false) parts.push(['Within normal variation', measure.meaningfulChange]);
+      // A change under the governed meaningful size is not called out, even when it is for the worse.
+      return { parts, emphasis: change.verdict === 'worse' && change.meaningful !== false };
+    }
+
+    function paintGlucoseMeasures () {
+      const head = document.getElementById('glucose-measures-head');
+      const body = document.getElementById('glucose-measures-body');
+      const note = document.getElementById('glucose-measures-note');
+      const flagsBox = document.getElementById('glucose-flags');
+      const barsBox = document.getElementById('range-bars');
+      const state = getCombinedState([glucoseHeader, glucoseCurrent, glucoseEarlier, visitFlags, lastTreatmentChangeQuery]);
+      const currentWindow = getWindowOfColumns(selectedPatientRow, GLUCOSE_CURRENT_WINDOW);
+      const tableBox = document.getElementById('glucose-measures');
+      const phase = applyRefreshPhase(tableBox, state);
+      if (phase === 'refreshing') return;
+      tableBox.hidden = phase === 'loading' || state !== 'success' || !currentWindow;
+      if (tableBox.hidden) {
+        for (const element of [head, body, barsBox, flagsBox]) element.replaceChildren();
+        if (state !== 'error' && phase === 'loading') {
+          paintChartPlaceholder(tableBox, note, buildMeasuresPlaceholder);
+          return;
+        }
+        note.className = state === 'error' ? 'error' : 'panel-note';
+        note.textContent = state === 'error' ? "Couldn't load the glucose measures. Please reload the page." : 'No CGM readings on record, so there is no report to read.';
+        return;
+      }
+      markDrawnPatient(tableBox);
+      const header = glucoseHeader.result.rows[0] ?? {};
+      const earlierWindow = getEarlierWindow();
+      // A window with no readings gets no row; its values then read "—".
+      const current = glucoseCurrent.result.rows[0] ?? {};
+      const earlier = (earlierWindow && glucoseEarlier.result.rows[0]) || {};
+      const isComparable = current.sufficiency === 'enough' && earlier.sufficiency === 'enough';
+      const earlierTitle = getEarlierWindowTitle();
+      const headRow = document.createElement('tr');
+      headRow.append(...['Measure', 'Target'].map((text) => Object.assign(document.createElement('th'), { scope: 'col', textContent: text })),
+        buildWindowHead(earlierTitle, earlierWindow, earlierWindow && earlier),
+        buildWindowHead('Current report', currentWindow, current),
+        buildChangeHead(header));
+      head.replaceChildren(headRow);
+      const buildCell = (className, content) => {
+        const cell = Object.assign(document.createElement('td'), { className });
+        cell.append(...content);
+        return cell;
+      };
+      const buildSectionRow = (title) => {
+        const sectionRow = Object.assign(document.createElement('tr'), { className: 'section-row' });
+        sectionRow.append(Object.assign(buildCell('', [title]), { colSpan: 5 }));
+        return sectionRow;
+      };
+      body.replaceChildren(...GLUCOSE_MEASURE_SECTIONS.flatMap(({ title, rows }) => [
+        buildSectionRow(title),
+        ...rows.map((measure) => {
+          const tableRow = document.createElement('tr');
+          tableRow.className = measure.nested ? 'nested' : '';
+          const name = [measure.label];
+          if (measure.color) {
+            const swatch = Object.assign(document.createElement('span'), { className: 'swatch' });
+            swatch.style.background = measure.color;
+            name.unshift(swatch);
+          }
+          if (measure.limit) name.push(Object.assign(document.createElement('span'), { className: 'measure-target', textContent: measure.limit(header) }));
+          const buildValueCell = (row) => {
+            const value = row[measure.metric];
+            const { valueText, targetText, offTarget } = measure.target
+              ? compareToTarget({ label: measure.label, metric: measure.metric, value, target: header[measure.target], comparison: measure.comparison, format: measure.format })
+              : { valueText: value == null ? '—' : measure.format(value), targetText: '', offTarget: false };
+            return { cell: buildCell(`measure-value${offTarget ? ' off-target' : ''}`, [buildTaggedSpan(`${offTarget ? '▲ ' : ''}${valueText}`, measure.metric)]), targetText };
+          };
+          const currentValue = buildValueCell(current);
+          const change = isComparable && !measure.noChange && measure.target ? buildChangeText(measure, current, earlier, header) : null;
+          tableRow.append(buildCell('measure-name', name),
+            buildCell('measure-target', [currentValue.targetText]),
+            buildValueCell(earlier).cell, currentValue.cell,
+            buildCell(`measure-change${change?.emphasis ? ' emphasis' : ''}`, (change?.parts ?? []).map((part) => typeof part === 'string' ? part
+              : Object.assign(buildTaggedSpan(...part), { className: 'change-judgement' }))));
+          return tableRow;
+        }),
+      ]));
+      const buildBar = (label, row) => ({
+        label,
+        segments: row.tir_pct == null ? [] : [
+          { value: Number(row.tbr_severe_pct), color: GLUCOSE_BAND_COLORS.very_low, name: 'Very low' },
+          { value: row.tbr_pct - row.tbr_severe_pct, color: GLUCOSE_BAND_COLORS.low, name: 'Low' },
+          { value: Number(row.titr_pct), color: GLUCOSE_BAND_COLORS.tight, name: 'Tight range' },
+          { value: row.tir_pct - row.titr_pct, color: GLUCOSE_BAND_COLORS.in_range, name: 'In range, above tight range' },
+          { value: row.tar_pct - row.tar_severe_pct, color: GLUCOSE_BAND_COLORS.high, name: 'High' },
+          { value: Number(row.tar_severe_pct), color: GLUCOSE_BAND_COLORS.very_high, name: 'Very high' },
+        ],
+      });
+      VisitPrep.stackedBars.paint(barsBox, [buildBar('Compare', earlier), buildBar('Current', current)]);
+      note.className = 'panel-note';
+      note.replaceChildren(...(!isComparable && Number(current.readings) && Number(earlier.readings)
+        ? [buildTaggedSpan('Changes are judged only between two full reports.', 'window_data_sufficiency')] : []));
+      const flagRow = visitFlags.result.rows[0] ?? {};
+      const nightLows = VISIT_FLAGS.find((flag) => flag.metric === 'nocturnal_hypo_flag');
+      flagsBox.replaceChildren(...(FLAG_STATUS_ORDER.includes(flagRow[nightLows.metric]) ? [buildFlag(nightLows, flagRow)] : []));
+    }
+
+    function paintGlucoseAgp () {
+      const chartBox = document.getElementById('glucose-agp');
+      const windowsText = document.getElementById('glucose-agp-windows');
+      const note = document.getElementById('glucose-agp-note');
+      const state = getCombinedState([glucoseHeader, glucoseCurrent, glucoseAgpCurrent, glucoseAgpEarlier]);
+      const phase = applyRefreshPhase(chartBox, state);
+      if (state === 'error' || phase === 'loading') {
+        windowsText.textContent = '';
+        if (phase === 'loading') paintAgpPlaceholder();
+        else paintChartNote(chartBox, note, "Couldn't load the AGP. Please reload the page.", 'error');
+        return;
+      }
+      if (phase !== 'ready') return;
+      markDrawnPatient(chartBox);
+      const currentWindow = getWindowOfColumns(selectedPatientRow, GLUCOSE_CURRENT_WINDOW);
+      const currentRows = glucoseAgpCurrent.result.rows;
+      note.className = 'panel-note';
+      if (!currentWindow || !currentRows.length) {
+        chartBox.hidden = true;
+        windowsText.textContent = '';
+        note.hidden = false;
+        note.textContent = 'No CGM readings on record, so there is no AGP.';
+        return;
+      }
+      const earlierWindow = getEarlierWindow();
+      const earlierRows = earlierWindow ? glucoseAgpEarlier.result.rows : [];
+      const header = glucoseHeader.result.rows[0];
+      const windows = [
+        { name: 'Current report', rows: currentRows },
+        ...(earlierRows.length ? [{ name: getEarlierWindowTitle(), rows: earlierRows }] : []),
+      ];
+      windowsText.textContent = [
+        `Current report ${formatWindowDates(currentWindow)}`,
+        ...(earlierWindow ? [`${getEarlierWindowTitle()} ${formatWindowDates(earlierWindow)}${earlierRows.length ? '' : ': no CGM readings'}`] : []),
+      ].join(' · ');
+      const highestP95 = Math.max(...[...currentRows, ...earlierRows].map((row) => Number(row.p95)));
+      const getLimit = (metric) => Number(header[metric]);
+      chartBox.hidden = false;
+      glucoseAgpChart.paint({
+        windows,
+        slotMinutes: Number(currentRows[0].slot_minutes),
+        yMax: Math.max(AGP_MIN_Y_MAX_MGDL, Math.ceil(highestP95 / 50) * 50),
+        targetRange: {
+          from: getLimit('glucose_range_low_mgdl'), to: getLimit('glucose_range_high_mgdl'),
+          label: `Target range ${formatWhole(header.glucose_range_low_mgdl)}–${formatWhole(header.glucose_range_high_mgdl)} mg/dL`,
+        },
+        referenceLines: GLUCOSE_LIMIT_METRICS.filter((metric) => metric !== 'glucose_tight_high_mgdl').map((metric) => ({
+          value: getLimit(metric), label: formatWhole(header[metric]),
+          emphasis: ['glucose_range_low_mgdl', 'glucose_range_high_mgdl'].includes(metric),
+        })),
+        format: formatWhole,
+        unit: 'mg/dL',
+      });
+      // A sparse report draws gaps; the reason is the same as in the measures table.
+      const reason = describeNotFullReport(glucoseCurrent.result.rows[0]);
+      note.hidden = !reason;
+      note.textContent = reason;
+    }
+
+    const formatDayWithWeekday = (day) => new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+    const formatClockTime = (minute) => `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
+    const formatDuration = (minutes) => minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ''}`;
+
+    function paintDailyProfiles () {
+      const chartBox = document.getElementById('glucose-daily');
+      const note = document.getElementById('glucose-daily-note');
+      const runBox = document.getElementById('glucose-daily-run');
+      const state = getCombinedState([glucoseHeader, glucoseDailyReadings]);
+      const phase = applyRefreshPhase(chartBox, state);
+      if (state === 'error' || phase === 'loading') {
+        runBox.hidden = true;
+        document.getElementById('glucose-daily-hint').hidden = true;
+        if (phase === 'loading') paintChartPlaceholder(chartBox, note, buildDailyPlaceholder);
+        else paintChartNote(chartBox, note, "Couldn't load the daily glucose profiles. Please reload the page.", 'error');
+        return;
+      }
+      if (phase !== 'ready') return;
+      markDrawnPatient(chartBox);
+      const rows = glucoseDailyReadings.result.rows;
+      note.className = 'panel-note';
+      note.replaceChildren();
+      note.hidden = Boolean(rows.length);
+      chartBox.hidden = !rows.length;
+      if (!rows.length) {
+        dailyProfileDays = [];
+        selectedDailyReading = null;
+        runBox.hidden = true;
+        document.getElementById('glucose-daily-hint').hidden = true;
+        note.textContent = 'No CGM readings on record, so there are no daily profiles.';
+        paintDailyTrace();
+        return;
+      }
+      const intervalMinutes = Number(rows[0].interval_minutes);
+      dailyProfileDays = VisitPrep.dailyReadings.groupReadingsByDay(rows, { from: rows[0].starts_on.slice(0, 10), to: rows[0].ends_on.slice(0, 10) });
+      const selectedRun = findSelectedDailyRun(intervalMinutes);
+      if (!selectedRun) selectedDailyReading = null;
+      glucoseDailyChart.paint({
+        days: dailyProfileDays.map(({ day, readings }) => ({
+          label: formatDayWithWeekday(day),
+          readings: readings.map(({ minute, band }) => ({ minute, side: GLUCOSE_BAND_SIDES[band], color: GLUCOSE_BAND_COLORS[band] })),
+        })),
+        intervalMinutes,
+        outline: selectedRun && { dayIndex: selectedRun.dayIndex, from: selectedRun.run[0].minute, to: selectedRun.run.at(-1).minute + intervalMinutes },
+        selectedDayIndex: selectedRun?.dayIndex ?? null,
+        legend: buildBandLegend(glucoseHeader.result.rows[0]),
+      });
+      paintSelectedDailyRun(selectedRun, intervalMinutes);
+      paintDailyTrace();
+    }
+
+    function findSelectedDailyRun (intervalMinutes) {
+      if (!selectedDailyReading) return null;
+      const dayIndex = dailyProfileDays.findIndex(({ day }) => day === selectedDailyReading.day);
+      if (dayIndex === -1) return null;
+      const { readings } = dailyProfileDays[dayIndex];
+      const readingIndex = readings.findIndex(({ minute }) => minute === selectedDailyReading.minute);
+      if (readingIndex === -1) return null;
+      const side = GLUCOSE_BAND_SIDES[readings[readingIndex].band];
+      return { dayIndex, side, run: VisitPrep.dailyReadings.findRunAround(readings, readingIndex, intervalMinutes, ({ band }) => GLUCOSE_BAND_SIDES[band] === side) };
+    }
+
+    function paintSelectedDailyRun (selectedRun, intervalMinutes) {
+      const box = document.getElementById('glucose-daily-run');
+      box.hidden = !selectedRun;
+      document.getElementById('glucose-daily-hint').hidden = !box.hidden;
+      if (box.hidden) return;
+      const { run, side, dayIndex } = selectedRun;
+      const below = side === 'down';
+      const extreme = run.reduce((found, reading) => (below ? reading.value < found.value : reading.value > found.value) ? reading : found);
+      const end = run.at(-1).minute + intervalMinutes;
+      const head = Object.assign(document.createElement('div'), { className: 'daily-run-head' });
+      head.append(
+        Object.assign(document.createElement('strong'), { textContent: `${formatDayWithWeekday(dailyProfileDays[dayIndex].day)} · ${below ? 'below' : 'above'} range ${formatClockTime(run[0].minute)}–${formatClockTime(end)}` }),
+        `${formatDuration(end - run[0].minute)} · ${below ? 'lowest' : 'highest'} ${formatWhole(extreme.value)} mg/dL at ${formatClockTime(extreme.minute)}`,
+        Object.assign(document.createElement('button'), { type: 'button', className: 'close-button', textContent: '×', title: 'Clear selection', onclick: clearSelectedDailyRun }),
+      );
+      const list = Object.assign(document.createElement('ul'), { className: 'daily-run-readings' });
+      list.setAttribute('aria-label', 'Readings, mg/dL');
+      list.append(...run.map(({ minute, value }) => {
+        const item = document.createElement('li');
+        item.append(`${formatClockTime(minute)} `, Object.assign(document.createElement('b'), { textContent: formatWhole(value) }));
+        return item;
+      }));
+      box.replaceChildren(head, list);
+    }
+
+    // A click on a high or low selects its run; a click on the selected run, in range or on a gap clears it.
+    function selectDailyRunAt (dayIndex, readingIndex) {
+      const reading = dailyProfileDays[dayIndex].readings[readingIndex];
+      const current = findSelectedDailyRun(Number(glucoseDailyReadings.result.rows[0].interval_minutes));
+      const isSelected = current?.dayIndex === dayIndex && current.run.includes(reading);
+      selectedDailyReading = reading && GLUCOSE_BAND_SIDES[reading.band] && !isSelected ? { day: dailyProfileDays[dayIndex].day, minute: reading.minute } : null;
+      paintDailyProfiles();
+    }
+
+    function clearSelectedDailyRun () {
+      selectedDailyReading = null;
+      paintDailyProfiles();
+    }
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && selectedDailyReading && currentView === 'glucose') clearSelectedDailyRun();
+    });
+
+    function paintDailyTrace () {
+      const dayIndex = hoveredDailyDayIndex ?? (selectedDailyReading ? dailyProfileDays.findIndex(({ day }) => day === selectedDailyReading.day) : -1);
+      const day = dailyProfileDays[dayIndex];
+      // The queries the AGP is painted from, so the trace never lands on a chart that is still another patient's.
+      const queries = [glucoseHeader, glucoseCurrent, glucoseAgpCurrent, glucoseAgpEarlier, glucoseDailyReadings];
+      if (!day || getCombinedState(queries) !== 'success' || !glucoseAgpCurrent.result.rows.length) {
+        glucoseAgpChart.hideTrace();
+        return;
+      }
+      glucoseAgpChart.showTrace({ name: formatDayWithWeekday(day.day), intervalMinutes: Number(glucoseDailyReadings.result.rows[0].interval_minutes), readings: day.readings });
+    }
+
+    function showView (view) {
+      currentView = view;
+      timeLapse.stopPlaying();
+      document.getElementById('body-view').hidden = view !== 'body';
+      document.getElementById('glucose-view').hidden = view !== 'glucose';
+      document.getElementById('view-body').setAttribute('aria-pressed', String(view === 'body'));
+      document.getElementById('view-glucose').setAttribute('aria-pressed', String(view === 'glucose'));
+      // The header's organ counts follow the body's shown day; the glucose view is about today.
+      showFrame(selectedFrameIndex);
+      window.scrollTo(0, 0);
+    }
+    document.getElementById('organ-detail-open').addEventListener('click', () => showView('glucose'));
+    document.getElementById('view-body').addEventListener('click', () => showView('body'));
+    document.getElementById('view-glucose').addEventListener('click', () => showView('glucose'));
+
+    // Declared once the patient list is in, so the status queries never run across the whole panel.
+    let patient;
+    let summaryQuery;
+    const statusQueries = {};
+    function declareStatusQueries () {
+      patient = app.createFilter('patient', { dataset: 'diabetes', field: 'patients.id', label: 'Patient' });
+      for (const organ of ORGAN_STATUS_QUERIES) {
+        const query = createLoggedQuery(`${organ.organId}Status`, {
+          dataset: 'diabetes',
+          aql: `explore { dimensions { patient_id: patients.id } measures { ${organ.measures} } }`,
+        });
+        app.mapControl(patient, query, { field: 'patients.id' });
+        query.subscribe(() => {
+          // While an earlier frame is shown, the frame owns the body.
+          if (isShowingLatestFrame()) paintOrganFromQuery(organ, query);
+          if (organ.organId === selectedOrganId) paintOrganDetail();
+        });
+        statusQueries[organ.organId] = query;
+      }
+      statusQueries.glucose.subscribe(() => paintBodyStatusDates(statusQueries.glucose));
+
+      summaryQuery = createLoggedQuery('patientSummary', {
+        dataset: 'diabetes',
+        aql: `explore {
+          dimensions { patient_id: patients.id }
+          measures {
+            act_now: organs_act_now_count, review: organs_review_count, on_target: organs_on_target_count
+          }
+        }`,
+      });
+      app.mapControl(patient, summaryQuery, { field: 'patients.id' });
+      summaryQuery.subscribe(() => {
+        if (isSummaryShowingToday()) paintSummary(summaryQuery);
+      });
+
+      visitFlags = createLoggedQuery('visitFlags', {
+        dataset: 'diabetes',
+        aql: `explore {
+          dimensions { patient_id: patients.id, last_treatment_change_on: patients.last_treatment_change_on }
+          measures { ${VISIT_FLAGS.flatMap((flag) => [flag.metric, ...flag.measures]).map((metric) => `${metric}: ${metric}`).join(', ')} }
+        }`,
+      });
+      app.mapControl(patient, visitFlags, { field: 'patients.id' });
+      lastTreatmentChangeQuery = createLoggedQuery('lastTreatmentChangeEvents', {
+        dataset: 'diabetes',
+        aql: `explore {
+          dimensions { ${TREATMENT_EVENT_DIMENSIONS} }
+          filters { treatment_events.in_last_treatment_change == true }
+          sorts { drug asc }
+        }`,
+      });
+      app.mapControl(patient, lastTreatmentChangeQuery, { field: 'patients.id' });
+      lastTreatmentChangeQuery.subscribe(() => {
+        lastTreatmentChangeEvents = lastTreatmentChangeQuery.state === 'success' ? lastTreatmentChangeQuery.result.rows : [];
+        paintFlags(visitFlags);
+        paintGlucoseView();
+      });
+      visitFlags.subscribe(() => {
+        paintFlags(visitFlags);
+        paintGlucoseView();
+      });
+
+      // No date filter: it would cut the first frames' 14-day windows short.
+      timeLapseQueries.frames = createLoggedQuery('bodyFrames', {
+        dataset: 'diabetes',
+        aql: `explore {
+          dimensions { day: patient_days.day, previous_visit_on: patients.previous_visit_on, latest_visit_on: patients.last_visit_on }
+          measures {
+            ${ORGAN_STATUS_QUERIES.flatMap(({ organId, frameMetrics }) => Object.entries(frameMetrics)
+              .map(([column, metric]) => `${organId}_${column}: ${FRAME_METRIC_PREFIX}${metric}`)).join(', ')},
+            ${ORGAN_COUNTS.map(({ status, metric }) => `summary_${status}: ${FRAME_METRIC_PREFIX}${metric}`).join(', ')}
+          }
+          sorts { day asc }
+        }`,
+      });
+      timeLapseQueries.events = createLoggedQuery('treatmentEvents', {
+        dataset: 'diabetes',
+        aql: `explore {
+          dimensions { ${TREATMENT_EVENT_DIMENSIONS} }
+          sorts { occurred_on asc, kind asc, drug asc }
+        }`,
+      });
+      for (const query of Object.values(timeLapseQueries)) {
+        app.mapControl(patient, query, { field: 'patients.id' });
+        query.subscribe(() => paintTimeLapse());
+      }
+      timeLapseQueries.events.subscribe(() => paintGlucoseView());
+
+      glucoseHeader = createLoggedQuery('glucoseHeader', { dataset: 'diabetes', aql: buildGlucoseHeaderQuery() });
+      // Not mapped to the earlier window: the timeline is where it is picked. The date drill turns its days into weeks.
+      // Each row carries the ranges' first days and the last day, so its periods are never read against another patient's
+      // dates. The range is a date filter on the spine (timelineRange).
+      glucoseTimeline = createLoggedQuery('glucoseTimeline', {
+        dataset: 'diabetes',
+        aql: `explore {
+          dimensions {
+            period: patient_days.day, glucose_timeline_starts_on: patients.glucose_timeline_starts_on, first_read_at: patients.first_read_at,
+            data_as_of: patients.data_as_of
+          }
+          measures {
+            days: window_days, wear: period_sensor_wear_pct, tar: period_tar_pct, tar_severe: period_tar_severe_pct,
+            tbr: period_tbr_pct, tbr_severe: period_tbr_severe_pct,
+            wear_target: sensor_wear_target_pct, tar_target: tar_target_pct, tbr_target: tbr_target_pct
+          }
+          sorts { period asc }
+        }`,
+      });
+      timelineGrain = app.createDateDrill('timelineGrain', { default: selectedGrain, label: 'Each column' });
+      app.mapControl(timelineGrain, glucoseTimeline, { field: 'patient_days.day' });
+      glucoseVisits = createLoggedQuery('glucoseVisits', {
+        dataset: 'diabetes',
+        aql: `explore {
+          dimensions { occurred_on: patient_days.day, latest_visit_on: patients.last_visit_on, previous_visit_on: patients.previous_visit_on }
+          filters { patient_days.had_visit == true }
+          sorts { occurred_on asc }
+        }`,
+      });
+      timelineRangeFilter = app.createFilter('timelineRange', { dataset: 'diabetes', field: 'patient_days.day', label: 'Time range' });
+      for (const query of [glucoseTimeline, glucoseVisits]) app.mapControl(timelineRangeFilter, query, { field: 'patient_days.day' });
+      currentWindowFilter = app.createFilter('currentWindow', { dataset: 'diabetes', field: 'cgm_readings.read_at', label: 'Current report' });
+      earlierWindowFilter = app.createFilter('earlierWindow', { dataset: 'diabetes', field: 'cgm_readings.read_at', label: 'Compare with' });
+      glucoseCurrent = createLoggedQuery('glucoseCurrent', { dataset: 'diabetes', aql: buildGlucoseWindowQuery() });
+      glucoseEarlier = createLoggedQuery('glucoseEarlier', { dataset: 'diabetes', aql: buildGlucoseWindowQuery() });
+      for (const [filter, query] of [[currentWindowFilter, glucoseCurrent], [earlierWindowFilter, glucoseEarlier]]) {
+        app.mapControl(filter, query, { field: 'cgm_readings.read_at' });
+        app.mapControl(filter, query, { field: 'patient_days.day' });
+      }
+      glucoseAgpCurrent = createLoggedQuery('glucoseAgpCurrent', { dataset: 'diabetes', aql: buildGlucoseAgpQuery() });
+      glucoseAgpEarlier = createLoggedQuery('glucoseAgpEarlier', { dataset: 'diabetes', aql: buildGlucoseAgpQuery() });
+      app.mapControl(currentWindowFilter, glucoseAgpCurrent, { field: 'cgm_readings.read_at' });
+      app.mapControl(earlierWindowFilter, glucoseAgpEarlier, { field: 'cgm_readings.read_at' });
+      // Every reading of the current report, with the report's days, so the strips never read another patient's dates.
+      glucoseDailyReadings = createLoggedQuery('glucoseDailyReadings', {
+        dataset: 'diabetes',
+        aql: `explore {
+          dimensions {
+            read_at: cgm_readings.read_at, glucose_mgdl: cgm_readings.glucose_mgdl, band: cgm_readings.glucose_band,
+            starts_on: patients.current_window_starts_on, ends_on: patients.current_window_ends_on
+          }
+          measures { interval_minutes: reading_interval_minutes }
+          sorts { read_at asc }
+        }`,
+      });
+      app.mapControl(currentWindowFilter, glucoseDailyReadings, { field: 'cgm_readings.read_at' });
+      drugList = createLoggedQuery('drugList', {
+        dataset: 'diabetes',
+        aql: `explore {
+          dimensions { drug: treatment_events.drug, drug_class: treatment_events.drug_class, dose_unit: treatment_events.dose_unit, lowers_glucose: treatment_events.lowers_glucose }
+          measures { status: drug_status, dose: drug_dose_latest }
+          filters { treatment_events.drug is not null }
+          sorts { drug asc }
+        }`,
+      });
+      for (const query of [glucoseHeader, glucoseTimeline, glucoseVisits, glucoseCurrent, glucoseEarlier, glucoseAgpCurrent, glucoseAgpEarlier, glucoseDailyReadings, drugList]) {
+        app.mapControl(patient, query, { field: 'patients.id' });
+        query.subscribe(() => paintGlucoseView());
+      }
+    }
+
+    function selectPatient (id) {
+      patient.setCondition({ operator: 'is', values: [id] });
+      const row = patients.result.rows.find((p) => p.id === id);
+      selectedPatientRow = row;
+      if (row) setBody(row.sex);
+      selectedEarlierWindowKey = GLUCOSE_EARLIER_WINDOWS[0].key;
+      draggedWindow = null;
+      selectedDailyReading = null;
+      applyGlucoseWindows();
+      applyTimelineRange();
+      if (!isRangeAvailable(getSelectedRange())) selectedRangeKey = FALLBACK_RANGE_KEY;
+      paintTimeLapseRanges();
+      document.getElementById('patient-name').textContent = row?.name ?? 'Unknown patient';
+      document.getElementById('patient-subtitle').replaceChildren(...(row ? [
+        `Type ${row.diabetes_type.replace(/^T/, '')} diabetes · born ${row.birth_year}`,
+        ...(row.glucose_target_set === 'older_high_risk' ? [' · ', buildTaggedSpan('Older / high-risk targets', 'uses_older_targets')] : []),
+      ] : []));
+      app.execute();
+    }
+
+    patients.subscribe(() => {
+      if (patients.state === 'error') {
+        document.getElementById('patient-name').replaceChildren(Object.assign(document.createElement('span'), {
+          className: 'error', textContent: `Couldn't load patients: ${patients.error.message}`,
+        }));
+      } else if (patients.state === 'success' && !patientSelect.options.length) {
+        const { rows } = patients.result;
+        if (!rows.length) {
+          document.getElementById('patient-name').textContent = 'No patients';
+          return;
+        }
+        patientSelect.append(...rows.map((p) => new Option(p.name, p.id)));
+        declareStatusQueries();
+        selectPatient(rows[0].id);
+      }
+    });
+    patientSelect.addEventListener('change', () => selectPatient(patientSelect.value));
+
+    const toast = document.getElementById('toast');
+    document.getElementById('toast-dismiss').addEventListener('click', () => { toast.hidden = true; });
+    function showToast (message) {
+      document.getElementById('toast-message').textContent = message;
+      toast.hidden = false;
+    }
+
+    // Without the descriptions the page still works, but hovering a metric silently does nothing: say so.
+    if (Anfra.features.lineage) {
+      VisitPrep.metricDescriptions.load('diabetes', 'organs_act_now_count')
+        .then((descriptions) => {
+          metricDescriptions = descriptions;
+          VisitPrep.metricDescriptions.attachTooltips(document.querySelector('main'), descriptions);
+          paintOrganDetail();
+        })
+        .catch((error) => {
+          console.error('metric descriptions failed to load', error);
+          showToast("Couldn't load the metric descriptions, so hovering a metric won't explain it. Please reload the page to try again.");
+        });
+    } else {
+      showToast("Metric descriptions aren't available here, so hovering a metric won't explain it.");
+    }
+
+    paintSummary({ state: 'executing' });
+    showOrganDetail(selectedOrganId);
+    paintFlags(visitFlags);
+    paintTimeLapseRanges();
+    paintTimeLapse();
+    app.execute();
+  </script>
+</body>
+</html>

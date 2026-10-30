@@ -1,0 +1,38 @@
+Model complication_screenings {
+  type: 'table'
+  label: 'Complication Screenings'
+  description: 'One row per diabetes complication screening: a retinal (eye) exam or a foot exam.'
+  data_source_name: 'health'
+  table_name: 'complication_screenings'
+
+  dimension id {
+    label: 'Screening Id'
+    type: 'number'
+    hidden: true
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension patient_id {
+    label: 'Patient Id'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.patient_id }};;
+  }
+  dimension screened_on {
+    label: 'Screened On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.screened_on }};;
+  }
+  dimension kind {
+    label: 'Kind'
+    type: 'text'
+    description: 'retinal (dilated eye exam or retinal photo) or foot (foot exam with a monofilament test for lost sensation).'
+    definition: @sql {{ #SOURCE.kind }};;
+  }
+  dimension result {
+    label: 'Result'
+    type: 'text'
+    description: 'Retinal: no_retinopathy or retinopathy. Foot: normal or abnormal.'
+    definition: @sql {{ #SOURCE.result }};;
+  }
+}

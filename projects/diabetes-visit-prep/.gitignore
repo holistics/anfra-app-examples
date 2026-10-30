@@ -1,0 +1,9 @@
+# anfra: data source credentials (per machine; npm run setup writes it)
+.anfra/data_sources.yml
+
+data/
+
+node_modules/
+
+# demo video (2:37, rendered from the Remotion project; too large for git)
+diabetes-visit-prep-demo.mp4

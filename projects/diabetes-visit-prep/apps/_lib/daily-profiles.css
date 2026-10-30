@@ -1,0 +1,24 @@
+/* Styles for VisitPrep.dailyProfiles (daily-profiles.js). Uses the page's tokens: --ink, --ink-muted, --accent, --line-center.
+   The label column is as wide as the AGP's, so both charts share one time axis. */
+.daily-profiles { display: flex; flex-direction: column; gap: 4px; }
+.daily-profiles[hidden] { display: none; }
+.daily-profiles-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 4px; font-size: 12px; color: var(--ink-muted); }
+.daily-profiles-legend-heading { font-weight: 600; color: var(--ink); }
+.daily-profiles-legend-heading:not(:first-child) { margin-left: 12px; }
+.daily-profiles-legend-item { display: flex; align-items: center; gap: 6px; }
+.daily-profiles-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.daily-profiles-days { outline-offset: 2px; display: grid; grid-template-columns: var(--label-column-width, 32px) 1fr; column-gap: 6px; row-gap: 3px; margin-right: 38px; align-items: center; }
+.daily-profiles-day-label { font-size: 12px; color: var(--ink-muted); text-align: right; white-space: nowrap; }
+.daily-profiles-day-label.selected { color: var(--accent); font-weight: 600; }
+.daily-profiles-strip { display: block; width: 100%; height: 26px; cursor: pointer; }
+.daily-profiles-strip * { vector-effect: non-scaling-stroke; }
+.daily-profiles-strip:hover, .daily-profiles-strip.hovered, .daily-profiles-strip.selected { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.daily-profiles-line { stroke: var(--line-center); stroke-width: 1; }
+.daily-profiles-outline { fill: none; stroke: var(--accent); stroke-width: 2; }
+.daily-profiles-ticks { position: relative; height: 18px; margin: 0 38px 0 calc(var(--label-column-width, 32px) + 6px); font-size: 12px; color: var(--ink-muted); }
+.daily-profiles-tick { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.daily-profiles-tick:first-child { transform: none; }
+.daily-profiles-tick:last-child { transform: translateX(-100%); }
+/* On a narrow axis (a phone) every 6 hours, not 3, so the labels don't run into each other. */
+.daily-profiles-ticks { container-type: inline-size; }
+@container (max-width: 400px) { .daily-profiles-tick:nth-child(even) { visibility: hidden; } }

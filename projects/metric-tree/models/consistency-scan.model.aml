@@ -1,0 +1,97 @@
+Model cs_orders {
+  type: 'table'
+  label: 'Orders (consistency scan)'
+  data_source_name: 'ecommerce'
+  table_name: 'orders'
+
+  dimension order_id {
+    label: 'Order Id'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.order_id }};;
+  }
+  dimension customer_id {
+    label: 'Customer Id'
+    type: 'number'
+    definition: @sql {{ #SOURCE.customer_id }};;
+  }
+  dimension order_ts {
+    label: 'Order Timestamp (UTC)'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.order_ts }};;
+  }
+  dimension order_date {
+    label: 'Order Date (UTC)'
+    type: 'date'
+    definition: @sql {{ #SOURCE.order_date }};;
+  }
+  dimension local_order_date {
+    label: 'Order Date (Asia/Ho_Chi_Minh)'
+    type: 'date'
+    definition: @sql (CAST(({{ order_ts }}) + INTERVAL '7 hours' AS DATE));;
+  }
+  dimension in_window_30d {
+    label: 'Order in 30 days to 2025-12-31'
+    type: 'truefalse'
+    definition: @sql (({{ order_date }}) BETWEEN DATE '2025-12-02' AND DATE '2025-12-31');;
+  }
+  dimension in_window_90d {
+    label: 'Order in 90 days to 2025-12-31'
+    type: 'truefalse'
+    definition: @sql (({{ order_date }}) BETWEEN DATE '2025-10-03' AND DATE '2025-12-31');;
+  }
+  dimension country {
+    label: 'Country'
+    type: 'text'
+    definition: @sql {{ #SOURCE.country }};;
+  }
+  dimension device {
+    label: 'Device'
+    type: 'text'
+    definition: @sql {{ #SOURCE.device }};;
+  }
+  dimension channel {
+    label: 'Channel'
+    type: 'text'
+    definition: @sql {{ #SOURCE.channel }};;
+  }
+  dimension payment_method {
+    label: 'Payment Method'
+    type: 'text'
+    definition: @sql {{ #SOURCE.payment_method }};;
+  }
+  dimension status {
+    label: 'Status'
+    type: 'text'
+    definition: @sql {{ #SOURCE.status }};;
+  }
+  dimension is_refunded {
+    label: 'Is Refunded'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_refunded }};;
+  }
+}
+
+Model cs_order_items {
+  type: 'table'
+  label: 'Order items (consistency scan)'
+  data_source_name: 'ecommerce'
+  table_name: 'order_items'
+
+  dimension order_item_id {
+    label: 'Order Item Id'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.order_item_id }};;
+  }
+  dimension order_id {
+    label: 'Order Id'
+    type: 'number'
+    definition: @sql {{ #SOURCE.order_id }};;
+  }
+  dimension line_amount {
+    label: 'Line Amount'
+    type: 'number'
+    definition: @sql {{ #SOURCE.line_amount }};;
+  }
+}

@@ -23,6 +23,7 @@ Every app lives in its own folder under `projects/`.
 | [perfume-maker](projects/perfume-maker) | Be a perfumer: mix your own formula, watch the cost per bottle, then price it to make profit | [Demo](https://anfra-uwu.pages.holistics.dev/apps/composer) | Kaia Nguyen |
 | [an-eat-het](projects/an-eat-het) | Run a kitchen that tracks menu health, revenue, guests and every kg of food from farm to plate, to make better calls for the kitchen and the planet | [Demo](https://anfra-uwu.pages.holistics.dev/apps/kitchen) | Kaia Nguyen |
 | [metric-log](projects/metric-log) | A plugin for Metric Tree & Decompose that keeps a running history for each metric: decisions logged next to it, and every definition change in plain language | [Demo](https://anfra-metric-log-demo.pages.holistics.dev/) | Kaia Nguyen |
+| [metric-tree](projects/metric-tree) | Builds a metric tree from the metric definitions in the repo, shows what moved a business metric through a change path, and lists every metric in a catalog. | [Demo](https://meomeo-anfra.pages.holistics.dev/apps/metric-catalog-tree) | my-nguyen |
 
 Apps ship without data source credentials, so some need setup before they run. Each app README says which sample data it uses.
 

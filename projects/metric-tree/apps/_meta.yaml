@@ -1,0 +1,4 @@
+apps:
+  metric-catalog-tree.html:
+    name: Metric tree & catalog
+    order: 1

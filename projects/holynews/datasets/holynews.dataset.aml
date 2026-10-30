@@ -1,0 +1,116 @@
+Dataset holynews {
+  label: 'HolyNews'
+  description: '''
+What the company talked about on Slack (synthetic): public channels only, May 19 - Oct 15, 2026, local time (Asia/Ho_Chi_Minh).
+
+- **Now** is Oct 15, 2026. An edition is the day, 7 days or 30 days ending on it: filter `messages.sent_on` (posts and topics), `reactions.reacted_on` (emoji), `people.joined_at` (joiners) or `club_activity.day` (clubs) to that range.
+- **Trending** reads topic-tagged messages in work channels. A topic's growth is its messages in the edition divided by the average for the same span over the 4 spans before it. It qualifies only with at least 8 people in at least 2 channels; it makes the front page at 1.15x or more. Always-on topics (`topics.is_always_on`) are never ranked.
+- **Company, Business, Life & Leisure** rank posts by applause: reactions plus replies.
+- People are counted, never ranked or quoted from chatter.
+'''
+  data_source_name: 'holynews_duckdb'
+
+  models: [
+    channels,
+    people,
+    topics,
+    messages,
+    reactions,
+    posts,
+    topic_summaries,
+    topic_moments,
+    polls,
+    club_activity,
+    events,
+  ]
+
+  relationships: [
+    relationship(messages.channel_id > channels.channel_id, true),
+    relationship(messages.author_id > people.person_id, true),
+    relationship(messages.topic_id > topics.topic_id, true),
+    relationship(posts.message_id - messages.message_id, true),
+    relationship(reactions.message_id > messages.message_id, true),
+    relationship(topic_summaries.topic_id > topics.topic_id, true),
+    relationship(topic_moments.topic_id > topics.topic_id, true),
+    relationship(polls.channel_id > channels.channel_id, true),
+    relationship(club_activity.channel_id > channels.channel_id, true),
+  ]
+
+  metric message_count {
+    label: 'Messages'
+    type: 'number'
+    description: 'Messages posted, replies included.'
+    definition: @aql count(messages.message_id) ;;
+    format: '#,##0'
+  }
+  metric people_count {
+    label: 'People'
+    type: 'number'
+    description: 'Distinct people who posted. A count only: no one is ranked.'
+    definition: @aql count_distinct(messages.author_id) ;;
+    format: '#,##0'
+  }
+  metric channel_count {
+    label: 'Channels'
+    type: 'number'
+    description: 'Distinct channels with at least one message.'
+    definition: @aql count_distinct(messages.channel_id) ;;
+    format: '#,##0'
+  }
+  metric positive_share {
+    label: 'Positive share'
+    type: 'number'
+    description: 'Share of messages with positive sentiment: the office weather (60%+ sunny, 45%+ partly cloudy, below that showers).'
+    definition: @aql safe_divide(count_if(messages.sentiment == 'positive'), count(messages.message_id)) ;;
+    format: '0%'
+  }
+  metric reaction_count {
+    label: 'Reactions'
+    type: 'number'
+    description: 'Emoji reactions given.'
+    definition: @aql sum(reactions.count) ;;
+    format: '#,##0'
+  }
+  metric reply_total {
+    label: 'Replies'
+    type: 'number'
+    description: 'Replies in post threads.'
+    definition: @aql sum(posts.reply_count) ;;
+    format: '#,##0'
+  }
+  metric applause {
+    label: 'Applause'
+    type: 'number'
+    description: 'How a post ranks: its reactions plus its replies.'
+    definition: @aql coalesce(reaction_count, 0) + coalesce(reply_total, 0) ;;
+    format: '#,##0'
+  }
+  metric post_count {
+    label: 'Posts'
+    type: 'number'
+    description: 'Posts printed (announcements, welcomes, deals, launches, fun posts).'
+    definition: @aql count(posts.message_id) ;;
+    format: '#,##0'
+  }
+  metric deal_arr {
+    label: 'New ARR'
+    type: 'number'
+    description: 'New ARR from deals posted in #growth-announce, USD.'
+    definition: @aql sum(posts.deal_arr) ;;
+    format: '[$$]#,##0'
+  }
+  metric club_total {
+    label: 'Club total'
+    type: 'number'
+    description: 'Sum of club activity in its unit (km, game nights, photos). Group by club_activity.metric.'
+    definition: @aql sum(club_activity.value) ;;
+    format: '#,##0'
+  }
+  metric votes {
+    label: 'Votes'
+    type: 'number'
+    description: 'Poll votes.'
+    definition: @aql sum(polls.votes) ;;
+    format: '#,##0'
+  }
+}

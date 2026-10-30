@@ -1,0 +1,818 @@
+<title>HolyNews</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a newspaper in five sections. Teaser strip, uppercase masthead, section nav; each section is its own page built from the same posts, deals and topics. */
+:root {
+  --paper: #F3F5F7;
+  --sheet: #FBFCFD;
+  --ink: #14171C;
+  --ink-2: #4B525D;
+  --muted: #858D99;
+  --rule: #CDD3DB;
+  --accent: #B3122E;
+  --chart: #2B3038;
+  --ph-a: #E4E7EB;
+  --ph-b: #ECEEF1;
+  --hi: #FFE36E;
+  --hi-ink: #14171C;
+  --up: #0F7F55;
+  --down: #B5482F;
+  --neu: #A7AFBA;
+  --f-mast: "Playfair Display", Didot, Georgia, serif;
+  --f-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-sans: "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F1114; --sheet: #15181C; --ink: #ECEEF1; --ink-2: #AAB1BC; --muted: #7C8490;
+    --rule: #2C323A; --accent: #FF6B7A; --chart: #C9CFD8; --ph-a: #1C2026; --ph-b: #22272E; --hi: #5E5214; --hi-ink: #FFF3B8; --up: #4FC58F; --down: #E58368; --neu: #59616C;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0F1114; --sheet: #15181C; --ink: #ECEEF1; --ink-2: #AAB1BC; --muted: #7C8490;
+  --rule: #2C323A; --accent: #FF6B7A; --chart: #C9CFD8; --ph-a: #1C2026; --ph-b: #22272E; --hi: #5E5214; --hi-ink: #FFF3B8; --up: #4FC58F; --down: #E58368; --neu: #59616C;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-sans); font-size: 15px; line-height: 1.55;
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet { max-width: 1180px; margin: 0 auto; background: var(--sheet); border: 1px solid var(--rule); padding: 18px clamp(16px, 3vw, 36px) 32px; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+button:focus-visible, a:focus-visible, tr:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.label { font-family: var(--f-sans); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.num { font-variant-numeric: tabular-nums; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+h1, h3, .hl, .dek { font-family: var(--f-serif); }
+p { margin: 0; }
+
+/* Masthead */
+.strip { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--rule); padding-bottom: 12px; }
+.strip-item { min-width: 0; padding: 0 16px; border-left: 1px solid var(--rule); font-size: 12px; line-height: 1.4; color: var(--ink-2); }
+.strip-item:first-child { padding-left: 0; border-left: 0; }
+.strip-item .label { color: var(--accent); display: block; }
+.strip-item b { display: block; font-family: var(--f-serif); font-size: 16px; font-weight: 700; color: var(--ink); line-height: 1.2; margin: 2px 0; }
+.mast { text-align: center; padding: 14px 0 10px; }
+.title { font-family: var(--f-mast); font-weight: 900; font-size: clamp(34px, 6.6vw, 78px); line-height: 1; text-transform: uppercase; letter-spacing: -.01em; }
+.tagline { font-family: var(--f-serif); font-style: italic; font-size: 15px; color: var(--ink-2); margin-top: 6px; }
+.dateline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 7px 0; font-size: 13px; }
+.edition { display: inline-flex; border: 1px solid var(--ink); }
+.edition button { padding: 3px 12px; font-size: 13px; font-weight: 600; }
+.edition button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
+.nav { display: flex; flex-wrap: wrap; gap: 4px 24px; padding: 9px 0; border-bottom: 1px solid var(--rule); margin-bottom: 22px; }
+.nav button { font-size: 13.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); padding-bottom: 2px; border-bottom: 2px solid transparent; }
+.nav button:hover { color: var(--ink); }
+.nav button.on { color: var(--ink); border-bottom-color: var(--accent); }
+
+/* Shared pieces */
+.row { display: grid; border-bottom: 1px solid var(--rule); padding-bottom: 22px; margin-bottom: 22px; }
+.row:last-child { border-bottom: 0; margin-bottom: 0; }
+.row > * { min-width: 0; padding: 0 22px; border-left: 1px solid var(--rule); }
+.row > *:first-child { padding-left: 0; border-left: 0; }
+.row > *:last-child { padding-right: 0; }
+.c21 { grid-template-columns: 2fr 1fr; }
+.c3 { grid-template-columns: 1fr 1.6fr 1fr; }
+.c4 { grid-template-columns: repeat(4, 1fr); }
+.c2 { grid-template-columns: 1fr 1fr; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; border-bottom: 1px solid var(--ink); padding-bottom: 4px; margin-bottom: 12px; }
+.sec-head h2 { font-size: 13.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.sec-head .src { font-size: 12px; color: var(--muted); }
+.page-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.page-head h1 { font-size: clamp(30px, 4vw, 44px); font-weight: 700; line-height: 1.05; }
+.page-head p { margin-top: 4px; color: var(--ink-2); font-family: var(--f-serif); font-style: italic; font-size: 17px; }
+
+.story { cursor: pointer; display: block; width: 100%; }
+.story:hover .hl { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.lead .hl { font-size: clamp(30px, 4vw, 44px); line-height: 1.06; font-weight: 700; letter-spacing: -.01em; margin: 6px 0 10px; }
+.dek { font-size: 18px; line-height: 1.45; color: var(--ink-2); font-style: italic; max-width: 62ch; margin-bottom: 14px; }
+.photo { margin: 0 0 12px; }
+.photo .ph { aspect-ratio: var(--ratio, 16 / 9); max-width: 100%; background: repeating-linear-gradient(135deg, var(--ph-a) 0 12px, var(--ph-b) 12px 24px); border: 1px solid var(--rule); display: grid; place-items: center; padding: 12px; text-align: center; }
+.photo .ph span { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); background: var(--sheet); padding: 4px 8px; }
+.photo figcaption { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.4; }
+.slack { font-size: 13px; font-weight: 600; color: var(--accent); text-decoration: none; white-space: nowrap; }
+.slack:hover { text-decoration: underline; }
+.linkish { font-size: 13px; font-weight: 600; color: var(--accent); }
+.linkish:hover { text-decoration: underline; }
+.actions { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; margin-top: 6px; }
+.applause { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+.applause .em { font-size: 20px; line-height: 1; white-space: nowrap; }
+.applause .em span { font-size: 14px; font-weight: 600; margin-left: 4px; font-variant-numeric: tabular-nums; vertical-align: 3px; }
+.applause.small .em { font-size: 16px; }
+.applause.small .em span { font-size: 13px; vertical-align: 2px; }
+.meta { font-size: 13px; color: var(--ink-2); }
+.empty { font-family: var(--f-serif); font-style: italic; color: var(--muted); font-size: 15px; padding: 6px 0; }
+.bignum { font-size: 38px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.bignum small { font-size: 14px; font-weight: 500; color: var(--ink-2); margin-left: 6px; letter-spacing: 0; }
+.x { font-weight: 700; font-variant-numeric: tabular-nums; }
+.x.up { color: var(--up); } .x.down { color: var(--down); } .x.flat { color: var(--muted); }
+
+/* Lists */
+.item { padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.item:first-child { padding-top: 0; }
+.item:last-child { border-bottom: 0; }
+.item h3 { font-size: 21px; line-height: 1.2; font-weight: 700; margin: 3px 0 4px; }
+.item p { color: var(--ink-2); margin-bottom: 6px; }
+.brief h3 { font-size: 18px; line-height: 1.22; font-weight: 600; margin: 3px 0; }
+.brief p { font-size: 14px; color: var(--ink-2); }
+.briefs { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--rule); display: grid; grid-template-columns: 1fr 1fr; gap: 14px 22px; }
+.people { list-style: none; margin: 0; padding: 0; }
+.people li { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px dotted var(--rule); }
+.avatar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; color: #fff; }
+.people .who { font-weight: 600; line-height: 1.15; }
+.people .team { font-size: 13px; color: var(--ink-2); }
+.people .when { font-size: 12px; color: var(--muted); }
+.line { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 7px 0; border-bottom: 1px dotted var(--rule); }
+.line .v { font-weight: 700; font-variant-numeric: tabular-nums; }
+.line .m { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.block + .block { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--rule); }
+
+.trend-item { display: grid; grid-template-columns: 22px 1fr 96px; gap: 4px 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.trend-item .rk { font-weight: 700; font-size: 20px; color: var(--muted); align-self: start; }
+.trend-item .hl { font-size: 18px; line-height: 1.22; font-weight: 600; }
+.trend-item .meta { margin-top: 2px; }
+.trend-item.first .hl { font-size: 23px; font-weight: 700; }
+.trend-item.first .rk { color: var(--accent); }
+.cool-item { padding: 8px 0; border-bottom: 1px dotted var(--rule); display: grid; grid-template-columns: 1fr 72px; gap: 2px 10px; align-items: center; }
+.cool-item .hl { font-size: 16px; font-weight: 600; line-height: 1.2; }
+.cool-item .meta { font-size: 12px; grid-column: 1; }
+.cool-item svg { grid-row: 1 / span 2; grid-column: 2; }
+.always-row { display: grid; grid-template-columns: 1fr auto 48px; gap: 10px; align-items: center; font-size: 14px; padding: 4px 0; }
+
+.kpi .label { display: block; margin-bottom: 6px; }
+.kpi .meta { margin-top: 6px; }
+
+.cal { list-style: none; margin: 0; padding: 0; }
+.cal li { display: grid; grid-template-columns: 54px 1fr; gap: 12px; padding: 9px 0; border-bottom: 1px dotted var(--rule); align-items: start; }
+.cal .d { text-align: center; border: 1px solid var(--ink); line-height: 1.1; padding: 4px 0; }
+.cal .d b { display: block; font-size: 20px; font-family: var(--f-serif); }
+.cal .d span { font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.cal .w b { font-family: var(--f-serif); font-size: 17px; font-weight: 600; display: block; line-height: 1.2; }
+
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 680px; }
+th { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--ink); }
+th.l, td.l { text-align: left; }
+td { padding: 10px; border-bottom: 1px solid var(--rule); text-align: right; font-variant-numeric: tabular-nums; vertical-align: middle; }
+td.rk { text-align: left; color: var(--muted); font-weight: 700; width: 36px; }
+td .t { font-family: var(--f-serif); font-size: 17px; font-weight: 600; }
+td .c { font-size: 12px; color: var(--muted); }
+tr.click { cursor: pointer; }
+tr.click:hover td { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+tr.held td { color: var(--muted); }
+tr.held .t { font-weight: 400; }
+.why { font-size: 12px; color: var(--down); }
+tr.sep td { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); text-align: left; padding-top: 20px; border-bottom: 1px solid var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { font-size: 13px; font-weight: 600; border: 1px solid var(--rule); padding: 3px 10px; }
+.chips button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--sheet); }
+
+/* Leisure */
+.hi { background: var(--hi); color: var(--hi-ink); padding: 0 6px; }
+.chan { font-size: 13px; font-weight: 700; color: var(--accent); }
+.l-card h3 { font-size: 20px; line-height: 1.18; font-weight: 700; margin: 4px 0 6px; }
+.l-card p { margin-bottom: 8px; color: var(--ink-2); }
+.quote { font-family: var(--f-serif); font-style: italic; }
+.votes { display: grid; gap: 5px; margin: 4px 0 8px; }
+.vote { display: grid; grid-template-columns: 1fr 34px; gap: 8px; align-items: center; font-size: 13px; }
+.vote .bar { height: 20px; background: var(--rule); position: relative; }
+.vote .bar i { position: absolute; inset: 0 auto 0 0; background: var(--hi); }
+.vote .bar span { position: relative; padding-left: 6px; line-height: 20px; color: var(--hi-ink); white-space: nowrap; }
+.vote.win .bar span { font-weight: 700; }
+.emoji-row { display: grid; grid-template-columns: 28px 1fr 46px; gap: 8px; align-items: center; padding: 3px 0; }
+.emoji-row .e { font-size: 21px; line-height: 1; }
+.emoji-row .bar { height: 10px; background: var(--chart); opacity: .85; }
+.emoji-row .n { font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+.gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.gallery .photo { margin: 0; }
+.club { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 9px 0; border-bottom: 1px dotted var(--rule); align-items: baseline; }
+.club b { font-family: var(--f-serif); font-size: 17px; }
+.club .v { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.club .m { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+
+/* Article */
+.back { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 14px; }
+.art h1 { font-size: clamp(32px, 4.4vw, 50px); line-height: 1.05; font-weight: 700; margin: 6px 0 12px; }
+.tldr { border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule); padding: 10px 0; margin: 16px 0 20px; }
+.tldr ul { margin: 6px 0 0; padding-left: 20px; font-family: var(--f-serif); font-size: 17px; }
+.tldr li + li { margin-top: 4px; }
+.chart-box svg { width: 100%; height: auto; display: block; }
+.moments { list-style: none; margin: 10px 0 0; padding: 0; }
+.moments li { display: grid; grid-template-columns: 26px 60px 1fr auto; gap: 10px; padding: 9px 0; border-bottom: 1px dotted var(--rule); align-items: baseline; }
+.moments .dot { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--sheet); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.moments .d { font-size: 13px; color: var(--ink-2); }
+.moments .w b { font-family: var(--f-serif); font-weight: 600; font-size: 16px; }
+.moments .w span { display: block; font-size: 13.5px; color: var(--ink-2); }
+.moments .n { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stat .v { font-size: 28px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat .k { font-size: 12px; color: var(--ink-2); }
+.side section + section { margin-top: 22px; }
+.hbar { display: grid; gap: 3px; padding: 5px 0; }
+.hbar .top { display: flex; justify-content: space-between; font-size: 13px; }
+.hbar .track { height: 6px; background: var(--rule); }
+.hbar .track i { display: block; height: 100%; background: var(--chart); }
+.mood { display: flex; height: 14px; margin: 8px 0 6px; }
+.mood i { display: block; height: 100%; }
+.mood-key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--ink-2); }
+.mood-key span::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 5px; background: var(--c); }
+.privacy { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+.colophon { margin-top: 26px; padding-top: 10px; border-top: 1px solid var(--ink); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 20px; font-size: 12px; color: var(--muted); }
+
+@media (max-width: 900px) {
+  .c21, .c3, .c2 { grid-template-columns: 1fr; }
+  .c4 { grid-template-columns: 1fr 1fr; gap: 20px 0; }
+  .c21 > *, .c3 > *, .c2 > * { padding: 18px 0 0; border-left: 0; }
+  .c21 > *:first-child, .c3 > *:first-child, .c2 > *:first-child { padding-top: 0; }
+  .c21 > * + *, .c3 > * + *, .c2 > * + * { border-top: 1px solid var(--rule); margin-top: 18px; }
+  .c4 > *:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .c4 > *:nth-child(even) { padding-right: 0; }
+  .gallery { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 560px) {
+  .strip { grid-template-columns: 1fr 1fr; gap: 12px 0; }
+  .strip-item:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .briefs, .c4, .gallery { grid-template-columns: 1fr; }
+  .c4 > * { padding: 0 !important; border-left: 0 !important; }
+  .c4 > * + * { border-top: 1px solid var(--rule); padding-top: 16px !important; }
+  .trend-item { grid-template-columns: 22px 1fr 72px; }
+  .moments li { grid-template-columns: 26px 1fr; }
+  .moments .d, .moments .n { grid-column: 2; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .view { animation: rise .25s ease-out; }
+  @keyframes rise { from { opacity: .4; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+}
+</style>
+
+<div class="sheet">
+  <div class="strip" id="strip"></div>
+  <header class="mast">
+    <div class="title">HolyNews</div>
+    <div class="tagline">What the company talked about on Slack</div>
+  </header>
+  <div class="dateline">
+    <span id="dateline-date"></span>
+    <span class="edition" role="group" aria-label="Edition">
+      <button id="ed-daily" data-ed="daily" aria-pressed="false">Daily</button>
+      <button id="ed-weekly" data-ed="weekly" aria-pressed="true">Weekly</button>
+      <button id="ed-monthly" data-ed="monthly" aria-pressed="false">Monthly</button>
+    </span>
+    <span id="dateline-count"></span>
+  </div>
+  <nav class="nav" aria-label="Sections">
+    <button id="nav-front" data-go="front">Front page</button>
+    <button id="nav-company" data-go="company">Company</button>
+    <button id="nav-business" data-go="business">Business</button>
+    <button id="nav-trending" data-go="trending">Trending</button>
+    <button id="nav-leisure" data-go="leisure">Life &amp; Leisure</button>
+  </nav>
+  <main id="view"></main>
+  <footer class="colophon">
+    <span>Sketch with example data · photos and Slack links are placeholders · public channels only · individuals are never ranked</span>
+    <span>Trending: messages this edition ÷ the usual for the same span over the prior 4 · min 8 people in 2 channels</span>
+  </footer>
+</div>
+
+<script>
+// ---------- DATA-START ----------
+const N = 150;                    // days of history; index N-1 = Oct 15, 2026
+const TODAY = new Date(2026, 9, 15);
+const DAYS = { daily: 1, weekly: 7, monthly: 30 };
+
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+// base: daily baseline; climb: fn of x in [0,1]; adds: values added to the last days (last element = today)
+function makeSeries({ base = 0, climb, adds = [], seed = 1, noise = .18 }) {
+  const r = rng(seed), out = [];
+  for (let i = 0; i < N; i++) {
+    let v = climb ? climb(i / (N - 1)) : base;
+    v *= 1 + (r() - .5) * 2 * noise;
+    const k = i - (N - adds.length);
+    if (k >= 0) v += adds[k];
+    out.push(Math.max(0, Math.round(v)));
+  }
+  return out;
+}
+
+const TOPICS = {
+  dash: { name: 'New navigation', section: 'Product', channels: ['#product', '#design', '#product-announce', '#eng-frontend'],
+    people: { daily: 26, weekly: 31, monthly: 34 }, nch: { daily: 3, weekly: 3, monthly: 4 },
+    s: { base: 10, adds: [25, 170], seed: 3 },
+    headline: 'The new navigation lands, and everyone has an opinion on the sidebar',
+    dek: 'One sidebar for the whole app went live this morning. Design and Frontend are already trading notes on where things moved.',
+    tldr: ['The universal sidebar shipped today, announced in #product-announce.', 'Most feedback is about where Dashboards and Data moved, and the missing black header.', 'Design asks for screenshots in one thread to keep feedback in one place.'],
+    moments: [[148, 'Teaser in #product', 'A screenshot of the new sidebar with "tomorrow 👀"'], [149, 'New navigation ships', 'Announced in #product-announce with the release note']],
+    themes: [['Where things moved', 41], ['Sidebar space', 26], ['Builder mode', 18], ['Keyboard shortcuts', 9]], depts: [['Product', 38], ['Engineering', 31], ['Customer Success', 18], ['Sales', 13]], mood: [58, 30, 12] },
+
+  pricing: { name: 'New pricing tiers', section: 'Customers', channels: ['#sales', '#cs-team', '#growth-announce', '#finance', '#all-general'],
+    people: { daily: 38, weekly: 64, monthly: 71 }, nch: { daily: 5, weekly: 7, monthly: 7 },
+    s: { base: 40, adds: [60, 150, 200, 160, 230, 280, 320, 330, 350, 380], seed: 7 },
+    headline: 'New pricing tiers set Sales and CS talking',
+    dek: 'Reps want to know how grandfathered plans will work, and CS is preparing for a wave of renewal questions.',
+    tldr: ['The new tiers were announced on Oct 6 and take effect on Jan 1.', 'The open question is grandfathering: which existing plans keep their price, and for how long.', 'CS drafted a renewal FAQ. Finance confirmed the discount rules today.'],
+    moments: [[140, 'Pricing announced', 'Posted in #all-announce with the new tier table'], [143, 'Grandfathering questions pile up', 'Long thread in #sales, 140 replies'], [147, 'CS shares renewal FAQ draft', 'Pinned in #cs-team'], [149, 'Finance confirms discount rules', 'Posted in #finance, cross-posted to #sales']],
+    themes: [['Grandfathered plans', 38], ['Renewal timing', 24], ['Discount rules', 18], ['Competitor pricing', 12], ['Billing UI', 8]],
+    depts: [['Sales', 42], ['Customer Success', 31], ['Product', 15], ['Finance', 12]], mood: [28, 22, 50] },
+
+  ai: { name: 'AI Tasks and AI Block', section: 'Product', channels: ['#product', '#ai-team', '#cs-team', '#all-announce'],
+    people: { daily: 22, weekly: 41, monthly: 58 }, nch: { daily: 3, weekly: 4, monthly: 6 },
+    s: { climb: x => 6 + 70 * x ** 3, adds: [90, 60, 40, 30], seed: 11 },
+    headline: 'Six months of AI work reaches every customer',
+    dek: 'Talk has grown week after week since the second beta. The launch of AI Tasks and AI Block turned it into the busiest Product thread of the quarter.',
+    tldr: ['Discussion has grown steadily for 6 weeks, from the beta to the launch on Oct 12.', 'CS is collecting the first customer questions about scheduled tasks in one place.', 'The AI team is tracking narrative quality and cost per task.'],
+    moments: [[122, 'AI Tasks beta opens to 40 customers', 'Announced in #product'], [134, 'Release notes drafted', 'Review thread in #ai-team'], [146, 'AI Tasks and AI Block launch', 'Posted in #all-announce, 412 reactions'], [148, 'First customer feedback thread', 'Started by CS in #cs-team']],
+    themes: [['Scheduled tasks', 34], ['Dashboard narratives', 27], ['Cost & limits', 21], ['Docs', 18]],
+    depts: [['Product', 34], ['Engineering', 28], ['Customer Success', 24], ['Sales', 14]], mood: [61, 27, 12] },
+
+  eu: { name: 'EU login outage', section: 'Ops', channels: ['#incidents', '#eng-infra', '#cs-team', '#all-general'],
+    people: { daily: 9, weekly: 14, monthly: 83 }, nch: { daily: 2, weekly: 3, monthly: 9 },
+    s: { base: 5, adds: [880, 1235, 560, 240, 120, 60, 40, 30, 25, 20, 18, 15, 12, 10], seed: 5 },
+    headline: 'The day EU customers could not log in',
+    dek: 'Two hours of login errors on Oct 2 pulled 83 people into the incident channel. The postmortem is out.',
+    tldr: ['Login errors hit EU customers for two hours on Oct 2.', 'The cause was an expired certificate on the EU gateway.', 'The postmortem adds certificate expiry alerts and a status-page step to the runbook.'],
+    moments: [[136, 'Login errors reported', '#incidents opens, CS starts a customer thread'], [137, 'Root cause found', 'An expired certificate on the EU gateway'], [140, 'Postmortem published', 'Shared in #all-general']],
+    themes: [['Customer comms', 33], ['Root cause', 29], ['Alerting', 22], ['Status page', 16]],
+    depts: [['Engineering', 46], ['Customer Success', 32], ['Product', 12], ['Sales', 10]], mood: [14, 38, 48] },
+
+  soc2: { name: 'SOC 2 renewal prep', section: 'Ops', channels: ['#security', '#eng-infra', '#people-ops'],
+    people: { daily: 9, weekly: 19, monthly: 22 }, nch: { daily: 2, weekly: 3, monthly: 3 },
+    s: { base: 6, adds: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 25, 28, 30], seed: 13 },
+    headline: 'SOC 2 renewal: the evidence hunt begins', dek: 'Security asked every team for access reviews by Oct 30.',
+    themes: [['Access reviews', 40], ['Vendor list', 25], ['Laptop checks', 20], ['Policies', 15]], depts: [['Engineering', 48], ['People Ops', 30], ['Finance', 22]], mood: [30, 52, 18] },
+
+  oncall: { name: 'On-call rotation changes', section: 'Ops', channels: ['#eng-infra', '#engineering'],
+    people: { daily: 8, weekly: 14, monthly: 16 }, nch: { daily: 2, weekly: 2, monthly: 2 },
+    s: { base: 12, adds: [10, 15, 20, 18, 22], seed: 17 },
+    headline: 'On-call moves to follow-the-sun next month', dek: 'Engineering is splitting the rotation between Hanoi and Ho Chi Minh City.',
+    themes: [['Handover times', 38], ['Pay', 27], ['Tooling', 21], ['Runbooks', 14]], depts: [['Engineering', 86], ['People Ops', 14]], mood: [36, 40, 24] },
+
+  warehouse: { name: 'Data warehouse costs', section: 'Ops', channels: ['#data', '#finance'],
+    people: { daily: 6, weekly: 11, monthly: 13 }, nch: { daily: 2, weekly: 2, monthly: 2 },
+    s: { base: 9, adds: Array(20).fill(6), seed: 19 },
+    headline: 'Why the warehouse bill went up', dek: 'Data and Finance are tracing September’s spend to a handful of scheduled jobs.',
+    themes: [['Scheduled jobs', 44], ['Storage', 30], ['Budgets', 26]], depts: [['Engineering', 55], ['Finance', 45]], mood: [22, 50, 28] },
+
+  board: { name: 'Q3 board deck', section: 'Company', channels: ['#leadership', '#finance'],
+    people: { daily: 3, weekly: 6, monthly: 14 }, nch: { daily: 1, weekly: 2, monthly: 2 },
+    s: { base: 3, adds: [40, 80, 120, 90, 60, 30, 15, 8, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], seed: 23 },
+    headline: 'The Q3 board deck ships', dek: 'Finance and leadership closed the deck after a week of edits.',
+    themes: [['Revenue slides', 45], ['Hiring plan', 30], ['Product roadmap', 25]], depts: [['Finance', 50], ['Leadership', 50]], mood: [40, 50, 10] },
+
+  keyboards: { name: 'Mechanical keyboards', section: 'Ops', channels: ['#engineering'],
+    people: { daily: 2, weekly: 2, monthly: 3 }, nch: { daily: 1, weekly: 1, monthly: 1 },
+    s: { base: 2, adds: [30, 60, 80, 90, 110, 140], seed: 29 }, heldBack: true },
+
+  standup: { name: 'Daily standups', section: 'Ops', channels: ['#eng-standup'], people: { daily: 48, weekly: 52, monthly: 55 }, nch: { daily: 1, weekly: 1, monthly: 1 }, s: { base: 410, seed: 31, noise: .08 }, always: true },
+  deploys: { name: 'Deploy notices', section: 'Ops', channels: ['#deploys'], people: { daily: 21, weekly: 26, monthly: 30 }, nch: { daily: 1, weekly: 1, monthly: 1 }, s: { base: 350, seed: 37, noise: .1 }, always: true },
+  reviews: { name: 'PR review requests', section: 'Ops', channels: ['#eng-reviews'], people: { daily: 30, weekly: 34, monthly: 36 }, nch: { daily: 1, weekly: 1, monthly: 1 }, s: { base: 220, seed: 41, noise: .1 }, always: true },
+};
+for (const [id, t] of Object.entries(TOPICS)) { t.id = id; t.series = makeSeries(t.s); }
+
+const sum = (a) => a.reduce((x, y) => x + y, 0);
+function stats(t, ed) {
+  const d = DAYS[ed], s = t.series;
+  const now = sum(s.slice(N - d));
+  const prior = []; for (let k = 1; k <= 4; k++) prior.push(sum(s.slice(N - d * (k + 1), N - d * k)));
+  const usual = sum(prior) / 4;
+  const qualifies = t.people[ed] >= 8 && t.nch[ed] >= 2;
+  return { msgs: now, usual, growth: usual ? now / usual : 0, people: t.people[ed], nch: t.nch[ed], qualifies,
+    perDayNow: s[N - 1], peak30: Math.max(...s.slice(N - 30)), usualPerDay: usual / d };
+}
+function ranked(ed) {
+  return Object.values(TOPICS).filter(t => !t.always).map(t => ({ t, ...stats(t, ed) })).sort((a, b) => b.growth - a.growth);
+}
+// ---------- DATA-END ----------
+
+// Posts from announce and social channels. d = days before Oct 15. Every page filters these by edition.
+const ANNOUNCEMENTS = [
+  { ch: '#all-announce', d: 3, team: 'Product', title: 'AI Tasks and AI Block are live for every customer', dek: 'Define AI work once and run it on a schedule, and let a dashboard write its own story. Product thanked 40 beta customers by name.', r: [['🎉', 186], ['🚀', 112], ['❤️', 64], ['🙌', 50]], replies: 96, photo: ['Image from the launch post', 'AI Block, from the release note video.'], topic: 'ai' },
+  { ch: '#all-announce', d: 0, team: 'People Ops', title: 'The 2027 holiday calendar is out, with two extra days at Tết', dek: 'People Ops added two company days around Lunar New Year and moved the year-end break a day earlier.', r: [['🎉', 96], ['🧧', 58], ['🙌', 21], ['❤️', 13]], replies: 34, photo: ['Image attached to the post', 'The 2027 calendar, as attached to the post.'] },
+  { ch: '#all-general', d: 1, team: 'Workplace', title: 'All-hands moves to Thursday 4pm', dek: 'The calendar invite was updated for both offices, starting next week.', r: [['👍', 64], ['🙏', 12]], replies: 9 },
+  { ch: '#all-general', d: 6, team: 'Workplace', title: 'New parking cards at the Hanoi office', dek: 'Pick them up at reception before Friday.', r: [['🙏', 30], ['🚗', 12]], replies: 11 },
+  { ch: '#all-announce', d: 9, team: 'Product', title: 'New pricing tiers take effect on Jan 1', dek: 'Three tiers replace the current plans. Existing customers get a transition period.', r: [['👀', 88], ['🎉', 40], ['🙏', 22]], replies: 140, topic: 'pricing' },
+  { ch: '#all-announce', d: 13, team: 'Engineering', title: 'Postmortem: the EU login outage', dek: 'An expired certificate on the EU gateway. Three fixes are already live.', r: [['🙏', 80], ['💯', 31]], replies: 42, topic: 'eu' },
+  { ch: '#all-announce', d: 14, team: 'CEO', title: 'Q3 results: our best quarter yet', dek: 'New ARR beat plan by 18%, and net retention is back above 110%.', r: [['🎉', 240], ['🚀', 98], ['❤️', 77]], replies: 58, photo: ['Chart from the CEO post', 'The Q3 revenue chart shared with the post.'] },
+  { ch: '#all-general', d: 20, team: 'Workplace', title: 'The Hanoi office moves to floor 12 on Nov 2', dek: 'Boxes arrive next week. Label everything you want to keep.', r: [['🎉', 70], ['📦', 25]], replies: 31 },
+  { ch: '#all-announce', d: 25, team: 'People Ops', title: 'Da Nang offsite: dates and sign-up', dek: 'Nov 7 to 9. Sign up by Oct 20 so we can book flights.', r: [['🏖️', 150], ['🎉', 90]], replies: 77, photo: ['Photo from the sign-up post', 'The resort beach in Da Nang, from the sign-up post.'] },
+];
+const JOINERS = [ // celebrity stand-ins; avatars in holynews-photos/joiners/<slug>.jpg (Wikimedia Commons, credits in CREDITS.tsv)
+  ['Taylor Swift', 'Marketing', 'Remote', 0, '#3B6FE0', 'taylor-swift'], ['Lisa', 'Design', 'Singapore', 2, '#0F7F55', 'lisa'], ['Elon Musk', 'Engineering', 'Remote', 3, '#B5482F', 'elon-musk'],
+  ['Keanu Reeves', 'Customer Success', 'Ho Chi Minh City', 4, '#7A4FD0', 'keanu-reeves'], ['Sơn Tùng M-TP', 'Sales', 'Ho Chi Minh City', 6, '#0E7C86', 'son-tung-m-tp'], ['Zendaya', 'Product', 'Remote', 8, '#C2410C', 'zendaya'],
+  ['Lionel Messi', 'Sales', 'Singapore', 10, '#1D4ED8', 'lionel-messi'], ['Ryan Reynolds', 'Marketing', 'Remote', 12, '#9D174D', 'ryan-reynolds'], ['Beyoncé', 'People Ops', 'Remote', 15, '#15803D', 'beyonce'],
+  ['Cristiano Ronaldo', 'Sales', 'Singapore', 17, '#A16207', 'cristiano-ronaldo'], ['Tom Holland', 'Engineering', 'Hanoi', 20, '#4338CA', 'tom-holland'], ['Emma Watson', 'Data', 'Remote', 22, '#BE123C', 'emma-watson'],
+  ['Jackie Chan', 'Customer Success', 'Hanoi', 25, '#0369A1', 'jackie-chan'], ['Bill Gates', 'Finance', 'Remote', 28, '#6D28D9', 'bill-gates'],
+].map(([name, team, office, d, color, avatar]) => ({ name, team, office, d, color, avatar }));
+const DEALS = [
+  ['Northwind Logistics', 0, 'Expansion', 48, 'APAC', 31], ['Kappa Retail', 0, 'New logo', 16, 'APAC', 18], ['Umbrella Health', 1, 'New logo', 36, 'EMEA', 22],
+  ['Acme Corp', 2, 'New logo', 120, 'Americas', 64], ['Globex Finance', 4, 'Renewal + upsell', 44, 'EMEA', 28], ['Stark Retail', 5, 'New logo', 28, 'Americas', 19],
+  ['Hooli Media', 6, 'Expansion', 30, 'Americas', 15], ['Initech', 8, 'New logo', 96, 'Americas', 52], ['Vandelay Imports', 9, 'New logo', 22, 'EMEA', 12],
+  ['Soylent Foods', 10, 'Expansion', 34, 'APAC', 17], ['Pied Piper', 11, 'New logo', 58, 'Americas', 33], ['Wonka Brands', 12, 'Renewal + upsell', 41, 'EMEA', 20],
+  ['Tyrell Systems', 13, 'New logo', 75, 'APAC', 40], ['Cyberdyne', 14, 'Expansion', 27, 'Americas', 11], ['Gringotts Bank', 15, 'New logo', 88, 'EMEA', 47],
+  ['Oscorp', 16, 'New logo', 19, 'Americas', 9], ['Monarch Travel', 17, 'Expansion', 31, 'APAC', 14], ['Duff Beverages', 18, 'New logo', 24, 'APAC', 13],
+  ['Wayne Logistics', 19, 'New logo', 110, 'Americas', 58], ['Aperture Labs', 21, 'Expansion', 38, 'Americas', 16], ['Bluth Homes', 22, 'New logo', 21, 'Americas', 10],
+  ['Prestige Worldwide', 23, 'New logo', 46, 'EMEA', 21], ['Nakatomi Trading', 24, 'Renewal + upsell', 62, 'APAC', 29], ['Sterling Cooper', 26, 'New logo', 33, 'Americas', 15],
+  ['Massive Dynamic', 27, 'Expansion', 54, 'Americas', 26], ['Saigon Fresh', 29, 'New logo', 26, 'APAC', 30],
+].map(([name, d, type, arr, region, claps]) => ({ name, d, type, arr, region, claps }));
+const LAUNCHES = [ // real release notes, docs.holistics.io/release-notes/<slug>; d moved to fit the demo
+  ['New navigation', 0, 'Design', 'One universal sidebar for the whole app. Dashboards, data and tools live in one place, and the black header is gone.', 74, 'new-navigation', 'navigation'],
+  ['Branches replace the mode switch', 1, 'Engineering', 'Pick master to view Production, or any other branch to keep working on your changes. One control, no mode to remember.', 22, 'branch-selector', 'branches'],
+  ['Reference lines on dashboard charts', 2, 'Product', 'Add a reference line straight from a dashboard chart, without opening Explore.', 31, 'analyze-menu-reference-lines', 'reference-lines'],
+  ['Trend lines on dashboard charts', 2, 'Product', 'Pick a trend type and see right away whether a metric is going up or down.', 26, 'analyze-menu-trend-lines', 'trend-lines'],
+  ['AI Tasks', 3, 'AI', 'Define a piece of AI work once, then run it on a schedule or on demand.', 64, 'ai-tasks', 'ai-tasks'],
+  ['AI Block', 3, 'AI', 'Turns a dashboard\u2019s data into a written narrative, so viewers get the \u201cso what\u201d, not just bars to read.', 58, 'ai-block', 'ai-block'],
+  ['Images and files in AI chat', 4, 'AI', 'Attach a screenshot or a code file to an AI conversation for extra context.', 19, 'ai-chat-attachments', 'chat-attachments'],
+  ['HTML layout for dashboards (beta)', 5, 'Product', 'Design a dashboard with plain HTML and CSS instead of a fixed grid: reports, slides, even newspaper-style pages.', 47, 'html-layout-beta', 'html-layout'],
+  ['Switch chart types without losing your work', 8, 'Product', 'Explore now remembers every field you picked, so trying another chart type no longer resets it.', 21, 'viz-switching', 'viz-switching'],
+  ['AI dashboard building in Reporting', 9, 'AI', 'Describe, sketch or hand over a plan, and AI builds or edits the dashboard on governed data.', 52, 'ai-dashboard-building-upgrades', 'ai-dashboard'],
+  ['AI Cost Analytics', 12, 'AI', 'See AI spend by user and by chat, not just the total.', 24, 'ai-cost-analytics', 'cost-analytics'],
+  ['Cross-filters saved in the dashboard URL', 16, 'Product', 'Reload, bookmark or share a cross-filtered dashboard and land on the same view.', 27, 'cross-filters-save-in-dashboard-url', 'cross-filters'],
+  ['Snowflake semantic views', 19, 'Engineering', 'Sync governed dimensions and measures from Snowflake instead of defining them twice.', 33, 'snowflake-semantic-views-integration', 'snowflake'],
+  ['Databricks metric views', 19, 'Engineering', 'Sync a Databricks metric view to build dashboards and embeds on it.', 28, 'databricks-metric-views-integration', 'databricks'],
+  ['Exclude Endorse and Archive tags when duplicating', 23, 'Product', 'A copy no longer inherits the \u201creviewed\u201d or \u201carchived\u201d tag of the original.', 15, 'exclude-endorse-archive-tags-on-duplicate', 'exclude-tags'],
+  ['App dark mode', 27, 'Design', 'Light, dark or system mode for the whole app, set from your profile.', 58, 'app-dark-mode', 'dark-mode'],
+].map(([name, d, team, desc, claps, slug, img]) => ({ name, d, team, desc, claps, slug, img }));
+const LEISURE = [
+  { ch: '#food', d: 0, title: 'Grass jelly for the whole office', text: 'Someone brought sương sáo for the whole office: big bowls of grass jelly in sweet milk over ice, set out next to the coffee machine.', r: [['😋', 58], ['🙏', 31]], replies: 27, photo: 'Sương sáo for the office' },
+  { ch: '#random', d: 1, title: 'House rules for the office espresso machine', text: 'Workplace posted a labelled photo of the Breville: the tamper never goes on the cloth, and the distributor stays clean and dry.', r: [['☕', 141], ['🙏', 44]], replies: 63, photo: 'The office Breville, with the house rules labelled' },
+  { ch: '#food', d: 4, title: 'Phở or bánh mì? The poll that split the office', text: 'Hanoi voted phở, Ho Chi Minh City voted bánh mì. Singapore asked what either one is.', r: [['🍜', 80], ['😂', 26]], replies: 41 },
+  { ch: '#pets', d: 5, title: 'Two cats, two office chairs, zero work done', text: 'The afternoon shift was claimed by two cats, one curled up and one stretched out. Nobody had the heart to ask for the chairs back.', r: [['🐱', 120], ['😍', 52]], replies: 30, photo: 'Two cats asleep on the office chairs' },
+  { ch: '#random', d: 9, title: 'Typo of the week', text: '"Thanks for your patients" went out in a customer email. The customer replied that they are a hospital.', r: [['😂', 90]], replies: 22 },
+  { ch: '#food', d: 10, title: 'Team lunch: bún chả for twelve', text: 'Customer Success took over the back room of a bún chả place to celebrate the quarter.', r: [['🍜', 66], ['🎉', 20]], replies: 18, photo: 'Bún chả for twelve' },
+  { ch: '#random', d: 18, title: 'Who left the durian in the fridge?', text: 'The fridge was cleared by noon. The owner has not come forward.', r: [['🤢', 130], ['😂', 77]], replies: 70 },
+  { ch: '#food', d: 22, title: 'The Wagashi workshop for Mid-Autumn', text: 'For Mid-Autumn, the office got together for a wagashi workshop and shaped Japanese sweets by hand.', r: [['🥮', 300], ['🏮', 88]], replies: 140, photo: 'Shaping wagashi by hand' },
+];
+const applause = (p) => sum(p.r.map(x => x[1])) + p.replies;
+const FILM = {
+  vote: { daily: 'Film club: the vote closes tonight', weekly: 'Film club picks Past Lives', monthly: 'Film club picks Past Lives' },
+  options: [['Past Lives', 23], ['Dune: Part Two', 15], ['Perfect Days', 9]],
+  past: [['Oct 1', 'Spirited Away', 17], ['Sep 24', 'Parasite', 19], ['Sep 17', 'The Grand Budapest Hotel', 14]],
+};
+const EMOJI = { daily: [['🔥', 96], ['🎉', 88], ['😂', 74], ['👀', 51], ['🙏', 33]], weekly: [['🔥', 380], ['🎉', 290], ['😂', 244], ['👀', 171], ['🙏', 120]], monthly: [['🎉', 1420], ['🔥', 1310], ['😂', 980], ['🥮', 610], ['👀', 590]] };
+const CLUBS = {
+  daily: [['#running', 'Running club', 38, 'km logged'], ['#boardgames', 'Board games', 1, 'game night'], ['#pets', 'Pets of HolyGood', 6, 'photos']],
+  weekly: [['#running', 'Running club', 412, 'km logged'], ['#boardgames', 'Board games', 3, 'game nights'], ['#pets', 'Pets of HolyGood', 41, 'photos']],
+  monthly: [['#running', 'Running club', 1690, 'km logged'], ['#boardgames', 'Board games', 11, 'game nights'], ['#pets', 'Pets of HolyGood', 156, 'photos']],
+};
+const EDITIONS = {
+  daily: { date: 'Thursday, October 15, 2026', span: 'Oct 15', msgs: 6210, mood: 66, word: 'today' },
+  weekly: { date: 'Week of October 9 – 15, 2026', span: 'Oct 9 – 15', msgs: 41380, mood: 64, word: 'this week' },
+  monthly: { date: 'September 16 – October 15, 2026', span: 'Sep 16 – Oct 15', msgs: 176900, mood: 55, word: 'this month' },
+};
+const UPCOMING = [['Oct', 15, 'All-hands', 'Thursday 4pm, both offices'], ['Oct', 20, 'Offsite sign-up closes', '112 people signed up so far'], ['Oct', 30, 'SOC 2 access reviews due', 'Every team lead'], ['Nov', 2, 'Hanoi office moves to floor 12', 'Label your boxes'], ['Nov', 7, 'Da Nang offsite', 'Nov 7 to 9']];
+
+// ---------- helpers ----------
+let state = { ed: 'weekly', view: 'front', topic: null, from: 'front', section: 'All' };
+const $ = (s) => document.querySelector(s);
+const fmt = (n) => n.toLocaleString('en-US');
+const fx = (g) => g >= 10 ? Math.round(g) + '×' : g.toFixed(1) + '×';
+const xClass = (g) => g >= 1.15 ? 'up' : g <= .85 ? 'down' : 'flat';
+const inEd = (list) => list.filter(p => p.d < DAYS[state.ed]);
+const ago = (d) => { const x = new Date(TODAY); x.setDate(x.getDate() - d); return x.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
+const dateOf = (i) => ago(N - 1 - i);
+const initials = (n) => n.split(' ').map(w => w[0]).join('');
+const money = (k) => k >= 1000 ? '$' + (k / 1000).toFixed(2) + 'M' : '$' + k + 'k';
+
+// Slack links: fake channel ids and timestamps, shaped like real permalinks
+function hash(s) { let h = 7; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
+const chId = (ch) => 'C0' + hash(ch).toString(36).toUpperCase().padStart(7, '0');
+const slackUrl = (ch, key) => `https://holygood.slack.example/archives/${chId(ch)}${key ? '/p17' + String(hash(key)).padStart(14, '0').slice(0, 14) : ''}`;
+const slackLink = (ch, label, key) => `<a class="slack" href="${slackUrl(ch, key)}" target="_blank" rel="noopener">${label} ↗</a>`;
+const chLink = (ch) => `<a class="slack" href="${slackUrl(ch)}" target="_blank" rel="noopener">${ch}</a>`;
+const photo = (what, caption, ratio = '16 / 9') => `<figure class="photo"><div class="ph" style="--ratio:${ratio}"><span>${what}</span></div>${caption ? `<figcaption>${caption}</figcaption>` : ''}</figure>`;
+const reactions = (r, small) => `<span class="applause ${small ? 'small' : ''}">${r.map(([e, n]) => `<span class="em">${e}<span>${n}</span></span>`).join('')}</span>`;
+
+function spark(vals, w = 96, h = 28, color = 'var(--chart)') {
+  const max = Math.max(...vals, 1), step = w / (vals.length - 1);
+  const pts = vals.map((v, i) => [i * step, h - 2 - (v / max) * (h - 5)]);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const last = pts[pts.length - 1];
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+    <path d="${line} L${w} ${h} L0 ${h} Z" fill="${color}" opacity=".12"/>
+    <path d="${line}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.5" fill="${color}"/></svg>`;
+}
+const last30 = (t) => t.series.slice(N - 30);
+const weather = (pos) => pos >= 60 ? ['☀️', 'Sunny'] : pos >= 45 ? ['⛅', 'Partly cloudy'] : ['🌧️', 'Showers'];
+
+// Everything a page needs for the current edition
+function edition() {
+  const anns = inEd(ANNOUNCEMENTS).sort((a, b) => applause(b) - applause(a));
+  const deals = inEd(DEALS).sort((a, b) => b.arr - a.arr);
+  const launches = inEd(LAUNCHES).sort((a, b) => b.claps - a.claps);
+  const joiners = inEd(JOINERS);
+  const fun = inEd(LEISURE).sort((a, b) => applause(b) - applause(a));
+  const rows = ranked(state.ed);
+  return { E: EDITIONS[state.ed], anns, deals, launches, joiners, fun, rows,
+    arr: sum(deals.map(x => x.arr)),
+    top: rows.filter(r => r.qualifies && r.growth >= 1.15),
+    cooling: rows.filter(r => r.growth < .6 && r.usualPerDay >= 15),
+    always: Object.values(TOPICS).filter(t => t.always).map(t => ({ t, ...stats(t, state.ed) })) };
+}
+
+function renderChrome(x) {
+  const [icon, word] = weather(x.E.mood);
+  $('#strip').innerHTML = [
+    ['Office weather', `${icon} ${word}`, `${x.E.mood}% of messages positive`],
+    ['Business', `${x.deals.length} ${x.deals.length === 1 ? 'deal' : 'deals'} closed`, `${money(x.arr)} new ARR ${x.E.word}`],
+    ['Life & Leisure', FILM.vote[state.ed], '#bonding-film'],
+    ['Countdown', '23 days to Da Nang', 'Company offsite · 🏖️ 112 going'],
+  ].map(([k, h, s]) => `<div class="strip-item"><span class="label">${k}</span><b>${h}</b>${s}</div>`).join('');
+  $('#dateline-date').textContent = x.E.date;
+  $('#dateline-count').textContent = `${fmt(x.E.msgs)} messages · 42 public channels`;
+  document.querySelectorAll('.edition button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ed === state.ed)));
+  const tab = state.view === 'article' ? state.from : state.view;
+  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('on', b.dataset.go === tab));
+}
+
+// ---------- shared blocks ----------
+function trendItem(r, i, big = true) {
+  return `<button class="story trend-item ${i === 0 && big ? 'first' : ''}" data-topic="${r.t.id}">
+    <span class="rk">${i + 1}</span>
+    <span><span class="label">${r.t.section}</span><div class="hl">${i === 0 && big ? r.t.headline : r.t.name}</div>
+      <div class="meta"><span class="x ${xClass(r.growth)}">▲ ${fx(r.growth)} usual</span> · ${fmt(r.msgs)} msgs · ${r.people} people · ${r.nch} channels</div></span>
+    ${spark(last30(r.t), 96, 30)}</button>`;
+}
+function annItem(a, withPhoto) {
+  return `<article class="item">
+    ${withPhoto && a.photo ? photo(a.photo[0], a.photo[1]) : ''}
+    <span class="label">${a.ch} · ${a.team} · ${ago(a.d)}</span>
+    <h3>${a.title}</h3><p>${a.dek}</p>
+    <div class="actions">${reactions(a.r, true)}<span class="meta">${a.replies} replies</span>
+      ${a.topic ? `<button class="linkish" data-topic="${a.topic}">Read the story →</button>` : ''}
+      ${slackLink(a.ch, 'Open in Slack', a.title)}</div></article>`;
+}
+function personRow(p) {
+  return `<li><span class="avatar" style="background:${p.color}">${initials(p.name)}</span>
+    <span><div class="who">${p.name}</div><div class="team">${p.team} · ${p.office}</div></span><span class="when">${ago(p.d)}</span></li>`;
+}
+function funCard(p, ratio = '4 / 3') {
+  return `<div class="l-card">${p.photo ? photo(p.photo, '', ratio) : ''}<span class="chan">${p.ch}</span><h3>${p.title}</h3><p>${p.text}</p>
+    <div class="actions">${reactions(p.r, true)}<span class="meta">${p.replies} replies</span></div>
+    <div class="actions">${slackLink(p.ch, 'Join the thread', p.title)}</div></div>`;
+}
+function filmBlock(withPast) {
+  const max = Math.max(...FILM.options.map(o => o[1]));
+  return `<span class="chan">#bonding-film</span><h3 style="font-family:var(--f-serif);font-size:20px;margin:4px 0 6px">${FILM.vote[state.ed]}</h3>
+    <div class="votes">${FILM.options.map(([n, v]) => `<div class="vote ${v === max ? 'win' : ''}"><div class="bar"><i style="width:${v / max * 100}%"></i><span>${n}</span></div><span class="num">${v}</span></div>`).join('')}</div>
+    ${withPast ? `<div class="label" style="margin-top:12px">Past picks</div>${FILM.past.map(([d, n, v]) => `<div class="line"><span>${n}</span><span class="v">${v} votes</span><span class="m">${d}</span></div>`).join('')}` : ''}
+    <div class="actions">${slackLink('#bonding-film', 'Vote in Slack', 'film')}</div>`;
+}
+function emojiBlock() {
+  const list = EMOJI[state.ed], max = list[0][1];
+  return `<span class="chan">Emoji of the ${state.ed === 'daily' ? 'day' : state.ed === 'weekly' ? 'week' : 'month'}</span>
+    <h3 style="font-family:var(--f-serif);font-size:20px;margin:4px 0 8px">${list[0][0]} takes it</h3>
+    ${list.map(([e, n]) => `<div class="emoji-row"><span class="e">${e}</span><span class="bar" style="width:${n / max * 100}%"></span><span class="n">${fmt(n)}</span></div>`).join('')}`;
+}
+
+// ---------- pages ----------
+function renderFront(x) {
+  const lead = x.anns[0], briefs = x.anns.slice(1, 3);
+  const funTop = x.fun.slice(0, 2);
+  return `<div class="view">
+  <div class="row c21">
+    <article class="lead">
+      <div class="sec-head"><h2>Company News</h2><span class="src">most applauded post ${x.E.word}</span></div>
+      ${lead ? `<span class="label">${lead.ch} · ${lead.team} · ${ago(lead.d)}</span>
+        <h1 class="hl">${lead.title}</h1><p class="dek">${lead.dek}</p>
+        ${lead.photo ? photo(lead.photo[0], lead.photo[1]) : ''}
+        <div class="actions">${reactions(lead.r)}<span class="meta">${lead.replies} replies</span>
+          ${lead.topic ? `<button class="linkish" data-topic="${lead.topic}">Read the story →</button>` : ''}
+          ${slackLink(lead.ch, 'Open the post in Slack', lead.title)}</div>` : '<p class="empty">No company announcements in this edition.</p>'}
+      ${briefs.length ? `<div class="briefs">${briefs.map(b => `<div class="brief"><span class="label">${b.ch} · ${ago(b.d)}</span><h3>${b.title}</h3><p>${b.dek}</p>${slackLink(b.ch, 'View post', b.title)}</div>`).join('')}</div>` : ''}
+      <div class="actions" style="margin-top:12px"><button class="linkish" data-go="company">All company news →</button></div>
+    </article>
+    <aside>
+      <div class="sec-head"><h2>Welcome Aboard 👋</h2><span class="src">#all-general</span></div>
+      <p class="quote" style="color:var(--ink-2);margin-bottom:6px">${x.joiners.length === 1 ? 'One new face' : x.joiners.length + ' new faces'} ${x.E.word}.</p>
+      <ul class="people">${x.joiners.slice(0, 4).map(personRow).join('')}</ul>
+      ${x.joiners.length > 4 ? `<p class="meta" style="margin-top:8px">+ ${x.joiners.length - 4} more · <button class="linkish" data-go="company">See everyone →</button></p>` : ''}
+      <div class="actions">${slackLink('#all-general', 'Say hi in #all-general', 'welcome')}</div>
+    </aside>
+  </div>
+  <div class="row c3">
+    <section>
+      <div class="sec-head"><h2>Business</h2><span class="src">#growth-announce</span></div>
+      <div class="block"><div class="bignum">${x.deals.length}<small>deals · ${money(x.arr)} ARR</small></div>
+        ${x.deals.slice(0, 3).map(dl => `<div class="line"><span>${dl.name}</span><span class="v">${money(dl.arr)}</span><span class="m">${dl.type} · 🎉 ${dl.claps}</span></div>`).join('')}</div>
+      <div class="block"><span class="label">#product-announce</span>
+        <div class="bignum">${x.launches.length}<small>${x.launches.length === 1 ? 'launch' : 'launches'} shipped</small></div>
+        ${x.launches.slice(0, 3).map(l => `<div class="line"><span>${l.name}</span><span class="v">🚀 ${l.claps}</span></div>`).join('')}</div>
+      <div class="actions"><button class="linkish" data-go="business">The full deals board →</button></div>
+    </section>
+    <section>
+      <div class="sec-head"><h2>Trending in Discussions</h2><span class="src">work channels</span></div>
+      ${x.top.length ? x.top.slice(0, 5).map((r, i) => trendItem(r, i)).join('') : '<p class="empty">Nothing is rising faster than usual in this edition.</p>'}
+      <div class="actions"><button class="linkish" data-go="trending">Every topic and why it ranks →</button></div>
+    </section>
+    <aside>
+      <div class="sec-head"><h2>Cooling Off</h2><span class="src">was big, now quiet</span></div>
+      ${x.cooling.length ? x.cooling.map(r => `<button class="story cool-item" data-topic="${r.t.id}"><span class="hl">${r.t.name}</span>
+        <span class="meta num">peak ${fmt(r.peak30)}/day → ${fmt(r.perDayNow)}/day</span>${spark(last30(r.t), 72, 30, 'var(--muted)')}</button>`).join('')
+        : '<p class="empty">No big topic went quiet in this edition.</p>'}
+      <div class="sec-head" style="margin-top:18px"><h2>Always On</h2><span class="src">busy, never news</span></div>
+      ${x.always.map(r => `<div class="always-row"><span>${r.t.name}</span><span class="num">${fmt(r.msgs)}</span>${spark(last30(r.t), 48, 16, 'var(--muted)')}</div>`).join('')}
+    </aside>
+  </div>
+  <section class="row">
+    <div>
+      <div class="sec-head"><h2><span class="hi">Life &amp; Leisure</span></h2><span class="src">#food · #random · #bonding-film · ranked by reactions</span></div>
+      <div class="row c4" style="border:0;padding:0;margin:0">
+        ${funTop.map(p => funCard(p)).join('')}
+        ${funTop.length < 2 ? '<div class="l-card"><p class="empty">Quiet day in the fun channels.</p></div>' : ''}
+        <div class="l-card">${filmBlock(false)}</div>
+        <div class="l-card">${emojiBlock()}</div>
+      </div>
+      <div class="actions" style="margin-top:12px"><button class="linkish" data-go="leisure">More from Life &amp; Leisure →</button></div>
+    </div>
+  </section></div>`;
+}
+
+function renderCompany(x) {
+  const offices = {}; x.joiners.forEach(p => offices[p.office] = (offices[p.office] || 0) + 1);
+  return `<div class="view">
+    <div class="page-head"><div><h1>Company</h1><p>Every post in #all-announce and #all-general ${x.E.word}, ranked by reactions plus replies.</p></div></div>
+    <div class="row c21">
+      <section>
+        <div class="sec-head"><h2>Announcements</h2><span class="src">${x.anns.length} ${x.anns.length === 1 ? 'post' : 'posts'}</span></div>
+        ${x.anns.length ? x.anns.map((a, i) => annItem(a, i === 0)).join('') : '<p class="empty">No announcements in this edition.</p>'}
+      </section>
+      <aside>
+        <div class="sec-head"><h2>Welcome Aboard 👋</h2><span class="src">${x.joiners.length} joined</span></div>
+        ${x.joiners.length ? `<ul class="people">${x.joiners.map(personRow).join('')}</ul>
+          <p class="meta" style="margin-top:8px">${Object.entries(offices).map(([o, n]) => `${o} ${n}`).join(' · ')}</p>` : '<p class="empty">No one joined in this edition.</p>'}
+        <div class="actions">${slackLink('#all-general', 'Say hi in #all-general', 'welcome')}</div>
+        <div class="sec-head" style="margin-top:24px"><h2>Coming Up</h2><span class="src">from pinned posts</span></div>
+        <ul class="cal">${UPCOMING.map(([m, d, w, s]) => `<li><span class="d"><span>${m}</span><b>${d}</b></span><span class="w"><b>${w}</b><span class="meta">${s}</span></span></li>`).join('')}</ul>
+      </aside>
+    </div></div>`;
+}
+
+function renderBusiness(x) {
+  const biggest = x.deals[0], newLogos = x.deals.filter(dl => dl.type === 'New logo').length;
+  const regions = ['Americas', 'EMEA', 'APAC'].map(r => [r, sum(x.deals.filter(dl => dl.region === r).map(dl => dl.arr))]);
+  const maxR = Math.max(...regions.map(r => r[1]), 1);
+  return `<div class="view">
+    <div class="page-head"><div><h1>Business</h1><p>Deals from #growth-announce and launches from #product-announce, ${x.E.word}.</p></div></div>
+    <div class="row c4">
+      <div class="kpi"><span class="label">Deals closed</span><div class="bignum">${x.deals.length}</div><div class="meta">${newLogos} new logos</div></div>
+      <div class="kpi"><span class="label">New ARR</span><div class="bignum">${money(x.arr)}</div><div class="meta">from posted deals</div></div>
+      <div class="kpi"><span class="label">Biggest deal</span><div class="bignum">${biggest ? money(biggest.arr) : '–'}</div><div class="meta">${biggest ? biggest.name : 'none yet'}</div></div>
+      <div class="kpi"><span class="label">Launches shipped</span><div class="bignum">${x.launches.length}</div><div class="meta">${sum(x.launches.map(l => l.claps))} 🚀 reactions</div></div>
+    </div>
+    <div class="row c21">
+      <section>
+        <div class="sec-head"><h2>Deals Board</h2><span class="src">largest first</span></div>
+        ${x.deals.length ? `<div class="tbl-wrap"><table style="min-width:560px">
+          <thead><tr><th class="l">Customer</th><th class="l">Type</th><th class="l">Region</th><th>ARR</th><th>🎉</th><th></th></tr></thead>
+          <tbody>${x.deals.map(dl => `<tr><td class="l"><div class="t">${dl.name}</div><div class="c">${ago(dl.d)}</div></td><td class="l">${dl.type}</td><td class="l">${dl.region}</td>
+            <td><b>${money(dl.arr)}</b></td><td>${dl.claps}</td><td>${slackLink('#growth-announce', 'Post', dl.name)}</td></tr>`).join('')}</tbody></table></div>`
+          : '<p class="empty">No deals posted in this edition.</p>'}
+      </section>
+      <aside>
+        ${biggest ? `<div class="sec-head"><h2>Deal of the ${state.ed === 'daily' ? 'Day' : state.ed === 'weekly' ? 'Week' : 'Month'}</h2></div>
+          ${photo('Photo from the deal post', `The ${biggest.name} team call, shared in #growth-announce.`)}
+          <h3 style="font-family:var(--f-serif);font-size:24px;line-height:1.15">${biggest.name} signs for ${money(biggest.arr)}</h3>
+          <p class="meta" style="margin:4px 0 6px">${biggest.type} · ${biggest.region} · 🎉 ${biggest.claps}</p>
+          ${slackLink('#growth-announce', 'Open the post in Slack', biggest.name)}` : ''}
+        <div class="sec-head" style="margin-top:24px"><h2>ARR by Region</h2></div>
+        ${regions.map(([r, v]) => `<div class="hbar"><div class="top"><span>${r}</span><span class="num">${money(v)}</span></div><div class="track"><i style="width:${v / maxR * 100}%"></i></div></div>`).join('')}
+      </aside>
+    </div>
+    <section class="row">
+      <div>
+        <div class="sec-head"><h2>Launches</h2><span class="src">#product-announce</span></div>
+        ${x.launches.length ? `<div class="row c2" style="border:0;padding:0;margin:0">${[0, 1].map(col => `<div>${x.launches.filter((_, i) => i % 2 === col).map(l => `<article class="item">
+          <span class="label">${l.team} · ${ago(l.d)}</span><h3>${l.name}</h3><p>${l.desc}</p>
+          <div class="actions"><span class="meta">🚀 ${l.claps}</span>${slackLink('#product-announce', 'Open in Slack', l.name)}</div></article>`).join('')}</div>`).join('')}</div>`
+          : '<p class="empty">No launches in this edition.</p>'}
+      </div>
+    </section></div>`;
+}
+
+function renderTrending(x) {
+  const rows = x.rows.filter(r => state.section === 'All' || r.t.section === state.section);
+  const shown = rows.filter(r => r.qualifies), held = rows.filter(r => !r.qualifies);
+  const always = x.always.filter(r => state.section === 'All' || r.t.section === state.section);
+  const row = (r, i, cls = 'click') => `<tr class="${cls}" ${cls === 'click' ? `data-topic="${r.t.id}" tabindex="0"` : ''}>
+    <td class="rk">${i ?? ''}</td><td class="l"><div class="t">${r.t.name}</div><div class="c">${r.t.section} · ${r.t.channels.slice(0, 3).map(chLink).join(' ')}</div>
+      ${cls === 'held' ? `<div class="why">Held back: ${r.people} ${r.people === 1 ? 'person' : 'people'} in ${r.nch} channel${r.nch === 1 ? '' : 's'}</div>` : ''}</td>
+    <td>${fmt(r.msgs)}</td><td>${r.people}</td><td>${r.nch}</td><td><span class="x ${xClass(r.growth)}">${fx(r.growth)}</span></td>
+    <td>${spark(last30(r.t), 110, 26, cls === 'click' ? 'var(--chart)' : 'var(--muted)')}</td></tr>`;
+  return `<div class="view">
+    <div class="page-head"><div><h1>Trending</h1><p>Every work topic ${x.E.word}, ranked by how far it is above its usual level.</p></div>
+      <div class="chips" role="group" aria-label="Section">${['All', 'Product', 'Customers', 'Ops', 'Company'].map(s => `<button id="chip-${s}" data-section="${s}" aria-pressed="${s === state.section}">${s}</button>`).join('')}</div></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th class="l">#</th><th class="l">Topic</th><th>Messages</th><th>People</th><th>Channels</th><th>vs usual</th><th>Last 30 days</th></tr></thead>
+      <tbody>${shown.map((r, i) => row(r, i + 1)).join('') || '<tr><td></td><td colspan="6" class="l empty">No topics in this section.</td></tr>'}
+      ${held.length ? `<tr class="sep"><td colspan="7">Held back · busy but too few people or channels</td></tr>${held.map(r => row(r, null, 'held')).join('')}` : ''}
+      ${always.length ? `<tr class="sep"><td colspan="7">Always on · high volume, no change</td></tr>${always.map(r => row(r, null, 'held always')).join('')}` : ''}
+      </tbody></table></div></div>`;
+}
+
+function renderLeisure(x) {
+  const [feature, ...rest] = x.fun;
+  const food = rest.filter(p => p.ch === '#food'), random = rest.filter(p => p.ch === '#random');
+  const gallery = inEd(LEISURE).filter(p => p.photo);
+  return `<div class="view">
+    <div class="page-head"><div><h1><span class="hi">Life &amp; Leisure</span></h1><p>The fun channels ${x.E.word}: #food, #random, #bonding-film and the clubs.</p></div></div>
+    <div class="row c21">
+      <article class="lead">
+        <div class="sec-head"><h2>Most Reacted</h2><span class="src">across the fun channels</span></div>
+        ${feature ? `${feature.photo ? photo(feature.photo, '', '16 / 9') : ''}<span class="chan">${feature.ch} · ${ago(feature.d)}</span>
+          <h1 class="hl">${feature.title}</h1><p class="dek">${feature.text}</p>
+          <div class="actions">${reactions(feature.r)}<span class="meta">${feature.replies} replies</span>${slackLink(feature.ch, 'Join the thread', feature.title)}</div>`
+          : '<p class="empty">Quiet day in the fun channels.</p>'}
+      </article>
+      <aside>${filmBlock(true)}</aside>
+    </div>
+    <div class="row c3">
+      <section><div class="sec-head"><h2>#food</h2></div>${food.length ? food.map(p => `<article class="item"><span class="label">${ago(p.d)}</span><h3>${p.title}</h3><p>${p.text}</p><div class="actions">${reactions(p.r, true)}${slackLink('#food', 'Thread', p.title)}</div></article>`).join('') : '<p class="empty">Nothing else from #food in this edition.</p>'}</section>
+      <section><div class="sec-head"><h2>#random</h2></div>${random.length ? random.map(p => `<article class="item"><span class="label">${ago(p.d)}</span><h3>${p.title}</h3><p class="quote">${p.text}</p><div class="actions">${reactions(p.r, true)}${slackLink('#random', 'Thread', p.title)}</div></article>`).join('') : '<p class="empty">Nothing else from #random in this edition.</p>'}</section>
+      <aside>${emojiBlock()}
+        <div class="sec-head" style="margin-top:22px"><h2>Clubs</h2></div>
+        ${CLUBS[state.ed].map(([ch, n, v, unit]) => `<div class="club"><b>${n}</b><span class="v">${fmt(v)}</span><span class="m">${unit} · ${chLink(ch)}</span></div>`).join('')}
+      </aside>
+    </div>
+    ${gallery.length > 1 ? `<section class="row"><div><div class="sec-head"><h2>Photo Wall</h2><span class="src">images posted ${x.E.word}</span></div>
+      <div class="gallery">${gallery.map(p => photo(p.photo, `${p.ch} · ${ago(p.d)}`, '4 / 3')).join('')}</div></div></section>` : ''}
+  </div>`;
+}
+
+function volumeChart(t) {
+  const vals = last30(t), max = Math.max(...vals), W = 640, H = 190, padL = 38, padB = 22, padT = 26;
+  const ceil = Math.ceil(max / 100) * 100 || 10, bw = (W - padL) / 30;
+  const y = (v) => H - padB - (v / ceil) * (H - padB - padT);
+  const ms = (t.moments || []).filter(m => m[0] >= N - 30);
+  const font = 'font-family="Hanken Grotesk, sans-serif" font-size="11"';
+  let g = '';
+  [0, ceil / 2, ceil].forEach(v => { g += `<line x1="${padL}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)" stroke-width="1"/><text x="${padL - 6}" y="${y(v) + 4}" text-anchor="end" ${font} fill="var(--muted)">${fmt(v)}</text>`; });
+  vals.forEach((v, i) => { const isM = ms.some(m => m[0] === N - 30 + i); g += `<rect x="${padL + i * bw + 1.5}" y="${y(v)}" width="${bw - 3}" height="${Math.max(0, H - padB - y(v))}" fill="${isM ? 'var(--accent)' : 'var(--chart)'}" opacity="${isM ? 1 : .5}"><title>${dateOf(N - 30 + i)}: ${fmt(v)} messages</title></rect>`; });
+  ms.forEach((m, k) => { const i = m[0] - (N - 30), cx = padL + i * bw + bw / 2, cy = Math.max(10, y(vals[i]) - 12); g += `<circle cx="${cx}" cy="${cy}" r="9" fill="var(--accent)"/><text x="${cx}" y="${cy + 4}" text-anchor="middle" ${font} font-weight="700" fill="var(--sheet)">${k + 1}</text>`; });
+  [0, 14, 29].forEach(i => { g += `<text x="${padL + i * bw + bw / 2}" y="${H - 5}" text-anchor="${i === 0 ? 'start' : i === 29 ? 'end' : 'middle'}" ${font} fill="var(--muted)">${dateOf(N - 30 + i)}</text>`; });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Messages per day, last 30 days">${g}</svg>`;
+}
+
+function renderArticle() {
+  const t = TOPICS[state.topic], r = stats(t, state.ed);
+  const ms = (t.moments || []).filter(m => m[0] >= N - 30);
+  const hb = (list) => { const m = Math.max(...list.map(x => x[1])); return list.map(([k, v]) => `<div class="hbar"><div class="top"><span>${k}</span><span class="num">${v}%</span></div><div class="track"><i style="width:${v / m * 100}%"></i></div></div>`).join(''); };
+  const [p, n0, ng] = t.mood;
+  const names = { front: 'the front page', company: 'Company', business: 'Business', trending: 'Trending', leisure: 'Life & Leisure' };
+  return `<div class="view">
+    <button class="back" data-go="${state.from}">← Back to ${names[state.from]}</button>
+    <div class="row c21 art" style="border:0">
+      <div>
+        <span class="label">${t.section} · ${EDITIONS[state.ed].span} · AI summary</span>
+        <h1>${t.headline}</h1>
+        <p class="dek">${t.dek}</p>
+        <div class="tldr"><span class="label">In short</span><ul>${(t.tldr || [t.dek]).map(s => `<li>${s}</li>`).join('')}</ul></div>
+        <div class="sec-head"><h2>How the story unfolded</h2><span class="src">messages per day, last 30 days</span></div>
+        <div class="chart-box">${volumeChart(t)}</div>
+        ${ms.length ? `<ol class="moments">${ms.map((m, k) => `<li><span class="dot">${k + 1}</span><span class="d">${dateOf(m[0])}</span><span class="w"><b>${m[1]}</b><span>${m[2]}</span></span><span class="n">${fmt(t.series[m[0]])} msgs · ${slackLink(t.channels[0], 'Thread', t.id + m[1])}</span></li>`).join('')}</ol>` : ''}
+      </div>
+      <aside class="side">
+        <section><div class="sec-head"><h2>By the numbers</h2></div>
+          <div class="stat-grid">
+            <div class="stat"><div class="v">${fmt(r.msgs)}</div><div class="k">messages</div></div>
+            <div class="stat"><div class="v">${r.people}</div><div class="k">people</div></div>
+            <div class="stat"><div class="v">${r.nch}</div><div class="k">channels</div></div>
+            <div class="stat"><div class="v x ${xClass(r.growth)}">${fx(r.growth)}</div><div class="k">vs usual</div></div>
+          </div></section>
+        <section><div class="sec-head"><h2>Where it's discussed</h2></div><div class="actions">${t.channels.map(chLink).join('')}</div></section>
+        <section><div class="sec-head"><h2>Mood</h2></div>
+          <div class="mood"><i style="width:${p}%;background:var(--up)"></i><i style="width:${n0}%;background:var(--neu)"></i><i style="width:${ng}%;background:var(--down)"></i></div>
+          <div class="mood-key"><span style="--c:var(--up)">${p}% positive</span><span style="--c:var(--neu)">${n0}% neutral</span><span style="--c:var(--down)">${ng}% negative</span></div></section>
+        <section><div class="sec-head"><h2>Key themes</h2></div>${hb(t.themes)}</section>
+        <section><div class="sec-head"><h2>Who's talking</h2></div>${hb(t.depts)}<p class="privacy">By department. Individuals are never named or ranked.</p></section>
+      </aside>
+    </div></div>`;
+}
+
+const PAGES = { front: renderFront, company: renderCompany, business: renderBusiness, trending: renderTrending, leisure: renderLeisure, article: renderArticle };
+function render() {
+  const x = edition();
+  renderChrome(x);
+  $('#view').innerHTML = PAGES[state.view](x);
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target.closest('a')) return;
+  const ed = e.target.closest('[data-ed]'); if (ed) { state.ed = ed.dataset.ed; render(); return; }
+  const sec = e.target.closest('[data-section]'); if (sec) { state.section = sec.dataset.section; render(); return; }
+  const tp = e.target.closest('[data-topic]');
+  if (tp) { if (state.view !== 'article') state.from = state.view; state.topic = tp.dataset.topic; state.view = 'article'; render(); window.scrollTo({ top: 0 }); return; }
+  const go = e.target.closest('[data-go]');
+  if (go) { state.view = go.dataset.go; render(); window.scrollTo({ top: 0 }); }
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('tr[data-topic]')) e.target.click(); });
+render();
+</script>

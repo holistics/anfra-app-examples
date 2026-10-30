@@ -1,0 +1,147 @@
+Dataset love_line {
+  label: 'Love Line'
+  description: '''
+A dating app's funnel (synthetic, invented people): from profiles seen to a swapped number or a date. Hanoi, Ho Chi Minh City and Da Nang, swipes Jul 23 - Oct 14, 2026. Now is Oct 15, 2026.
+
+- **Grain.** The funnel counts swipes: one row per profile seen. A right swipe is matched when the other person also swiped right; both swipes then point at the same match, and every later stage (first message, real chat, off the app) is read from that match. So every stage is in one unit, profiles seen, and the stage metrics never disagree.
+- **Filters describe the swiper.** City, gender and age band come from `users` through `swipes.swiper_id`. The profile seen is described by the `swipes.target_*` fields, which are copied onto the swipe so there is only one path to `users`.
+- **Profile traits.** Ask trait questions from `swipe_traits` (one row per swipe and trait of the profile seen), never by joining `user_traits` to swipes.
+- **Chats.** Read `matches` through swipes: each match has two matched swipes, one per person. Message content exists only as categories plus invented example lines.
+'''
+  data_source_name: 'loveline_duckdb'
+
+  models: [
+    users,
+    user_traits,
+    swipes,
+    swipe_traits,
+    matches,
+  ]
+
+  relationships: [
+    relationship(swipes.swiper_id > users.user_id, true),
+    relationship(swipes.match_id > matches.match_id, true),
+    relationship(swipe_traits.swipe_id > swipes.swipe_id, true),
+    relationship(user_traits.user_id > users.user_id, true),
+  ]
+
+  metric profiles_seen {
+    label: 'Profiles seen'
+    type: 'number'
+    description: 'Swipes, left or right: the top of the line.'
+    definition: @aql swipes | count(swipes.swipe_id) ;;
+    format: '#,##0'
+  }
+  metric right_swipes {
+    label: 'Right swipes'
+    type: 'number'
+    description: 'Profiles liked.'
+    definition: @aql swipes | count(swipes.swipe_id) | where(swipes.is_right is true) ;;
+    format: '#,##0'
+  }
+  metric matched_swipes {
+    label: 'Matches'
+    type: 'number'
+    description: 'Right swipes that were liked back. Counted per swipe, so each match counts once for each person.'
+    definition: @aql swipes | count(swipes.swipe_id) | where(swipes.match_id is not null) ;;
+    format: '#,##0'
+  }
+  metric messaged {
+    label: 'First messages'
+    type: 'number'
+    description: 'Matched swipes whose match got a first message.'
+    definition: @aql swipes | count(swipes.swipe_id) | where(matches.first_message_at is not null) ;;
+    format: '#,##0'
+  }
+  metric replied {
+    label: 'Replies'
+    type: 'number'
+    description: 'Matched swipes whose first message got a reply.'
+    definition: @aql swipes | count(swipes.swipe_id) | where(matches.got_reply is true) ;;
+    format: '#,##0'
+  }
+  metric real_chats {
+    label: 'Real chats'
+    type: 'number'
+    description: 'Matched swipes whose chat reached 5 messages.'
+    definition: @aql swipes | count(swipes.swipe_id) | where(matches.reached_5 is true) ;;
+    format: '#,##0'
+  }
+  metric off_app {
+    label: 'Off the app'
+    type: 'number'
+    description: 'Matched swipes whose match swapped numbers or set a date: the end of the line.'
+    definition: @aql swipes | count(swipes.swipe_id) | where(matches.off_app_at is not null) ;;
+    format: '#,##0'
+  }
+  metric ghost_town {
+    label: 'Ghost Town'
+    type: 'number'
+    description: 'Chats that started (a first message) but never made it off the app.'
+    definition: @aql messaged - off_app ;;
+    format: '#,##0'
+  }
+  metric right_rate {
+    label: 'Right-swipe rate'
+    type: 'number'
+    description: 'Right swipes / profiles seen.'
+    definition: @aql safe_divide(right_swipes * 1.0, profiles_seen) ;;
+    format: '0.0%'
+  }
+  metric match_rate {
+    label: 'Match rate'
+    type: 'number'
+    description: 'Matches / right swipes: the share of likes that get a like back.'
+    definition: @aql safe_divide(matched_swipes * 1.0, right_swipes) ;;
+    format: '0.0%'
+  }
+  metric message_rate {
+    label: 'Message rate'
+    type: 'number'
+    description: 'First messages / matches.'
+    definition: @aql safe_divide(messaged * 1.0, matched_swipes) ;;
+    format: '0.0%'
+  }
+  metric reply_rate {
+    label: 'Reply rate'
+    type: 'number'
+    description: 'Replies / first messages.'
+    definition: @aql safe_divide(replied * 1.0, messaged) ;;
+    format: '0.0%'
+  }
+  metric real_chat_rate {
+    label: 'Real-chat rate'
+    type: 'number'
+    description: 'Real chats (5+ messages) / first messages.'
+    definition: @aql safe_divide(real_chats * 1.0, messaged) ;;
+    format: '0.0%'
+  }
+  metric off_app_rate {
+    label: 'Off-the-app rate'
+    type: 'number'
+    description: 'Off the app / real chats.'
+    definition: @aql safe_divide(off_app * 1.0, real_chats) ;;
+    format: '0.0%'
+  }
+  metric rule_break_rate {
+    label: 'Rule-break rate'
+    type: 'number'
+    description: 'Share of right swipes on a profile outside at least one of the swiper’s stated rules (age, height, distance, smoking, education).'
+    definition: @aql safe_divide((swipes | count(swipes.swipe_id) | where(swipes.is_right is true) | where(swipes.breaks_any is true)) * 1.0, right_swipes) ;;
+    format: '0.0%'
+  }
+  metric trait_views {
+    label: 'Trait views'
+    type: 'number'
+    description: 'Profiles seen that had the trait. Use with swipe_traits.trait.'
+    definition: @aql swipe_traits | count(swipe_traits.swipe_id) ;;
+    format: '#,##0'
+  }
+  metric trait_right_rate {
+    label: 'Trait right-swipe rate'
+    type: 'number'
+    description: 'Right-swipe rate on profiles with the trait. Compare with right_rate for the lift.'
+    definition: @aql safe_divide((swipe_traits | count(swipe_traits.swipe_id) | where(swipe_traits.is_right is true)) * 1.0, trait_views) ;;
+    format: '0.0%'
+  }
+}

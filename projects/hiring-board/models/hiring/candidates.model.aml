@@ -1,0 +1,289 @@
+Model candidates {
+  type: 'table'
+  label: 'Candidates'
+  description: 'One row per application (synthetic, invented people). Stage is where the candidate is; status is filled only while open, outcome only once closed, never both. Dates and day counts are as of Oct 19, 2026.'
+  data_source_name: 'hiring_duckdb'
+  table_name: 'main.candidates'
+
+  dimension candidate_id {
+    label: 'Candidate ID'
+    type: 'text'
+    primary_key: true
+    description: 'Surrogate key, e.g. C-1001.'
+  }
+  dimension position_id {
+    label: 'Position ID'
+    type: 'text'
+    description: 'The role applied for.'
+  }
+  dimension name {
+    label: 'Candidate'
+    type: 'text'
+    description: 'Invented name.'
+  }
+  dimension gender {
+    label: 'Gender'
+    type: 'text'
+    description: 'Self-reported and optional: Woman, Man, Non-binary or Not stated. Never an input to a decision; used only for the fairness check.'
+  }
+  dimension email {
+    label: 'Email'
+    type: 'text'
+    description: 'Placeholder address on example.com.'
+  }
+  dimension source {
+    label: 'Source'
+    type: 'text'
+    description: 'LinkedIn, Job board, Referral, Agency or Careers page. The Source filter.'
+  }
+  dimension applied_at {
+    label: 'Applied at'
+    type: 'datetime'
+    description: 'Application date. The Applied filter.'
+  }
+  dimension years_experience {
+    label: 'Years of experience'
+    type: 'number'
+    description: 'From the CV.'
+  }
+  dimension experience_band {
+    label: 'Experience'
+    type: 'text'
+    description: '0–2, 3–5, 6–8 or 9+ years.'
+  }
+  dimension degree {
+    label: 'Degree'
+    type: 'text'
+    description: 'Master\'s, Bachelor\'s, Certificate or No degree.'
+  }
+  dimension education {
+    label: 'Education'
+    type: 'text'
+    description: 'Degree and field, as shown on the profile.'
+  }
+  dimension key_skills_matched {
+    label: 'Key skills matched'
+    type: 'number'
+    description: 'How many of the role\'s 5 key skills the CV shows (3 to 5).'
+  }
+  dimension key_skills {
+    label: 'Key skills'
+    type: 'text'
+    description: 'Key skills matched as a label: 3 of 5, 4 of 5 or 5 of 5.'
+  }
+  dimension skills {
+    label: 'Skills'
+    type: 'text'
+    description: 'Skills listed on the CV, comma-separated.'
+  }
+  dimension location {
+    label: 'Based in'
+    type: 'text'
+    description: 'Where the candidate lives.'
+  }
+  dimension relocating {
+    label: 'Relocating'
+    type: 'truefalse'
+    description: 'Lives outside the role\'s city (never for remote roles).'
+  }
+  dimension location_fit {
+    label: 'Location'
+    type: 'text'
+    description: 'Local or remote, or Relocating.'
+  }
+  dimension current_company {
+    label: 'Current company'
+    type: 'text'
+    description: 'Invented employer.'
+  }
+  dimension summary {
+    label: 'CV summary'
+    type: 'text'
+    description: 'One-line CV summary.'
+  }
+  dimension highlight {
+    label: 'CV highlight'
+    type: 'text'
+    description: 'One achievement from the CV.'
+  }
+  dimension has_cover_letter {
+    label: 'Has cover letter'
+    type: 'truefalse'
+    description: 'A cover letter is attached.'
+  }
+  dimension has_portfolio {
+    label: 'Has portfolio'
+    type: 'truefalse'
+    description: 'A portfolio is attached (design and content roles).'
+  }
+  dimension stage {
+    label: 'Stage'
+    type: 'text'
+    description: 'Applied, Screening, Technical, Culture, Final or Offer.'
+  }
+  dimension stage_order {
+    label: 'Stage order'
+    type: 'number'
+    description: '0 (Applied) to 5 (Offer), for sorting stages.'
+  }
+  dimension status {
+    label: 'Stage status'
+    type: 'text'
+    description: 'Open candidates only: To do, Scheduled or Awaiting decision. Scheduled never appears at Applied or Offer.'
+  }
+  dimension status_order {
+    label: 'Status order'
+    type: 'number'
+    description: '1 To do, 2 Scheduled, 3 Awaiting decision, for sorting statuses.'
+  }
+  dimension outcome {
+    label: 'Outcome'
+    type: 'text'
+    description: 'Closed candidates only: Hired, Rejected or Withdrawn. Withdrawn at Offer means they declined the offer.'
+  }
+  dimension declined_offer {
+    label: 'Declined offer'
+    type: 'truefalse'
+    description: 'Withdrawn at the Offer stage.'
+  }
+  dimension cv_rejected {
+    label: 'Rejected at CV review'
+    type: 'truefalse'
+    description: 'Turned down at Applied, without a call.'
+  }
+  dimension status_detail {
+    label: 'Status detail'
+    type: 'text'
+    description: 'One line for the list, e.g. "Oct 20 with Priya Nair" or "Feedback from Quang Vo".'
+  }
+  dimension stage_entered_at {
+    label: 'Stage entered at'
+    type: 'datetime'
+    description: 'When the candidate reached the current stage.'
+  }
+  dimension status_changed_at {
+    label: 'Status changed at'
+    type: 'datetime'
+    description: 'When the status last changed. Drives days in status.'
+  }
+  dimension closed_at {
+    label: 'Closed at'
+    type: 'datetime'
+    description: 'When the outcome was set.'
+  }
+  dimension offer_sent_at {
+    label: 'Offer sent at'
+    type: 'datetime'
+    description: 'When an offer went out.'
+  }
+  dimension hired_at {
+    label: 'Hired at'
+    type: 'datetime'
+    description: 'When the offer was accepted.'
+  }
+  dimension next_round_at {
+    label: 'Next round at'
+    type: 'datetime'
+    description: 'Booked date of the next interview, while Scheduled.'
+  }
+  dimension next_interviewer {
+    label: 'Next interviewer'
+    type: 'text'
+    description: 'Who runs the booked interview.'
+  }
+  dimension reached_screening {
+    label: 'Had screening'
+    type: 'truefalse'
+    description: 'Funnel step 2: the screening interview was held (no-shows do not count).'
+  }
+  dimension reached_technical {
+    label: 'Had technical'
+    type: 'truefalse'
+    description: 'Funnel step 3: the technical interview was held.'
+  }
+  dimension reached_culture {
+    label: 'Had culture'
+    type: 'truefalse'
+    description: 'Funnel step 4: the culture interview was held.'
+  }
+  dimension reached_final {
+    label: 'Had final'
+    type: 'truefalse'
+    description: 'Funnel step 5: the final interview was held.'
+  }
+  dimension offer_sent {
+    label: 'Offer sent'
+    type: 'truefalse'
+    description: 'Funnel step 6.'
+  }
+  dimension hired {
+    label: 'Hired'
+    type: 'truefalse'
+    description: 'Funnel step 7.'
+  }
+  dimension furthest_step {
+    label: 'Furthest funnel step'
+    type: 'number'
+    description: '0 Applied, 1 Screening, 2 Technical, 3 Culture, 4 Final, 5 Offer, 6 Hired: the last funnel step reached.'
+  }
+  dimension is_open {
+    label: 'Open'
+    type: 'truefalse'
+    description: 'No outcome yet.'
+  }
+  dimension is_qualified {
+    label: 'Qualified'
+    type: 'truefalse'
+    description: 'Reached the Final stage: passed screening, technical and culture.'
+  }
+  dimension is_decided {
+    label: 'Decided'
+    type: 'truefalse'
+    description: 'Qualified, or closed before getting there. The denominator of qualification rates, so candidates still in process do not count as failures.'
+  }
+  dimension days_in_status {
+    label: 'Days in status'
+    type: 'number'
+    description: 'Open candidates: Oct 19, 2026 minus status changed at.'
+  }
+  dimension stuck {
+    label: 'Stuck'
+    type: 'truefalse'
+    description: 'Open and in the same status for more than 7 days.'
+  }
+  dimension days_to_hire {
+    label: 'Days to hire'
+    type: 'number'
+    description: 'Hired candidates: hired at minus applied at.'
+  }
+  dimension scored_rounds {
+    label: 'Scored rounds'
+    type: 'number'
+    description: 'Interviews with a score.'
+  }
+  dimension avg_score {
+    label: 'Average score'
+    type: 'number'
+    description: 'Average interview score, 1 to 5.'
+  }
+  dimension rank_score {
+    label: 'Rank score'
+    type: 'number'
+    description: '(sum of scores + 3) ÷ (scored rounds + 1): scores pulled toward 3, so two strong rounds rank above one lucky one.'
+  }
+  dimension rounds_passed {
+    label: 'Rounds passed'
+    type: 'number'
+    description: 'Interviews passed.'
+  }
+  dimension hire_chance {
+    label: 'Hire chance'
+    type: 'number'
+    description: 'Open candidates: the share of decided candidates who reached the same stage and were hired (per department when it has 15 or more, else overall).'
+  }
+  dimension counts_by_dec31 {
+    label: 'Could be hired by Dec 31'
+    type: 'truefalse'
+    description: 'Open candidates: the usual time from their stage to a hire fits before Dec 31, 2026.'
+  }
+}

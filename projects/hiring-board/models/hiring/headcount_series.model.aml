@@ -1,0 +1,28 @@
+Model headcount_series {
+  type: 'table'
+  label: 'Headcount over time'
+  description: 'Headcount per department at month ends: Actual up to Oct 19, 2026, Forecast from then to Dec 31, and Plan at quarter ends.'
+  data_source_name: 'hiring_duckdb'
+  table_name: 'main.headcount_series'
+
+  dimension department {
+    label: 'Department'
+    type: 'text'
+    description: 'The team.'
+  }
+  dimension as_of {
+    label: 'As of'
+    type: 'datetime'
+    description: 'The date of the point.'
+  }
+  dimension series {
+    label: 'Series'
+    type: 'text'
+    description: 'Actual, Forecast or Plan.'
+  }
+  dimension headcount {
+    label: 'Headcount'
+    type: 'number'
+    description: 'People on the team on that date. Forecast = on the team today + signed people who start by then + expected hires spread evenly − leavers at the department\'s yearly attrition rate.'
+  }
+}

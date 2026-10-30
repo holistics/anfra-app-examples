@@ -1,0 +1,28 @@
+Model club_activity {
+  type: 'table'
+  label: 'Club activity'
+  description: 'One row per club channel, day and metric: km logged in #running, game nights in #boardgames, photos in #pets.'
+  data_source_name: 'holynews_duckdb'
+  table_name: 'main.club_activity'
+
+  dimension channel_id {
+    label: 'Channel ID'
+    type: 'text'
+    description: 'The club\'s channel.'
+  }
+  dimension day {
+    label: 'Day'
+    type: 'date'
+    description: 'Local date.'
+  }
+  dimension metric {
+    label: 'Unit'
+    type: 'text'
+    description: 'km logged, game nights or photos.'
+  }
+  dimension value {
+    label: 'Value'
+    type: 'number'
+    description: 'Amount that day. Sum it.'
+  }
+}

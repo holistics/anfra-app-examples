@@ -1,0 +1,65 @@
+Model account_snapshots {
+  type: 'query'
+  label: 'Account snapshots'
+  description: 'Point-in-time status of each account, derived from subscriptions: one row per active account per month-end (Jan 31, 2019 to the data cut-off). Customer and ARR metrics take the last month-end inside the date range, so never sum across snapshots yourself: an account appears once per month.'
+  data_source_name: 'arcfield_duckdb'
+  models: []
+
+  dimension snapshot_id {
+    label: 'Snapshot ID'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    description: 'Month and account ID, e.g. "2026-09|17".'
+  }
+  dimension snapshot_at {
+    label: 'Snapshot at'
+    type: 'datetime'
+    description: 'The moment the status is taken: the last second of a month (UTC). The date filter applies here.'
+  }
+  dimension account_id {
+    label: 'Snapshot account ID'
+    type: 'number'
+    hidden: true
+    description: 'Links to Accounts.'
+  }
+  dimension mrr_usd {
+    label: 'Snapshot MRR (USD)'
+    type: 'number'
+    description: 'MRR of the subscriptions running at snapshot_at (started_at <= snapshot_at < ended_at).'
+    format: '[$$]#,##0'
+  }
+  dimension is_latest {
+    label: 'Is latest'
+    type: 'truefalse'
+    description: 'True for the data cut-off month: "today".'
+  }
+
+  query: @sql
+    -- Data cut-off: the end of the month of the last subscription event (Sep 30, 2026 23:59:59).
+    with cutoff as (
+      select last_day(max(greatest(started_at, coalesce(ended_at, started_at))))::timestamp
+             + interval 1 day - interval 1 second as as_of
+      from main.subscriptions
+    )
+
+    -- Month-ends from Jan 2019 to the cut-off.
+    , months as (
+      select (make_date(2019, 1, 1) + to_months(m.i + 1))::timestamp - interval 1 second as snapshot_at
+           , c.as_of
+      from cutoff c, range(0, datediff('month', date '2019-01-01', c.as_of::date) + 1) m(i)
+    )
+
+    -- A subscription is running at t when started_at <= t < ended_at.
+    select strftime(mo.snapshot_at, '%Y-%m') || '|' || cast(s.account_id as varchar) as snapshot_id
+         , mo.snapshot_at
+         , s.account_id
+         , sum(s.mrr_usd) as mrr_usd
+         , mo.snapshot_at = mo.as_of as is_latest
+    from months mo
+    join main.subscriptions s
+      on s.started_at <= mo.snapshot_at
+     and (s.ended_at is null or s.ended_at > mo.snapshot_at)
+    group by all
+  ;;
+}

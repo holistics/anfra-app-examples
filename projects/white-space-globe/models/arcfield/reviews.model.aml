@@ -1,0 +1,45 @@
+Model reviews {
+  type: 'table'
+  label: 'Reviews'
+  description: 'One row per customer review (synthetic). Every review comes from an account that was active when it was written. Themes are in Review themes; count reviews, never theme rows.'
+  data_source_name: 'arcfield_duckdb'
+  table_name: 'main.reviews'
+
+  dimension review_id {
+    label: 'Review ID'
+    type: 'number'
+    primary_key: true
+    description: 'Surrogate key.'
+  }
+  dimension account_id {
+    label: 'Review account ID'
+    type: 'number'
+    hidden: true
+    description: 'Links to Accounts.'
+  }
+  dimension created_at {
+    label: 'Reviewed at'
+    type: 'datetime'
+    description: 'When the review was written (UTC).'
+  }
+  dimension score {
+    label: 'Score'
+    type: 'number'
+    description: 'Rating from 1 to 5.'
+  }
+  dimension title {
+    label: 'Title'
+    type: 'text'
+    description: 'Short headline written by the customer.'
+  }
+  dimension body {
+    label: 'Body'
+    type: 'text'
+    description: 'Review text. Use as quotes in "What customers here say".'
+  }
+  dimension channel {
+    label: 'Channel'
+    type: 'text'
+    description: 'Where the review was collected: in-app, survey or CSM call.'
+  }
+}

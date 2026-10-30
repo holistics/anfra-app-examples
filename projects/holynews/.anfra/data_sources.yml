@@ -1,0 +1,5 @@
+data_sources:
+  holynews_duckdb:
+    type: duckdb
+    connection:
+      path: data/holynews.duckdb?access_mode=read_only

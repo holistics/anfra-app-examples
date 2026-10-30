@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" font-family="Helvetica Neue, Arial, sans-serif">
+<rect width="960" height="540" fill="#FBFCFD"/>
+<text x="60" y="56" font-size="26" font-weight="800" fill="#14171C">New ARR by quarter</text>
+<text x="60" y="84" font-size="16" fill="#4B525D">Q3 2026 beat plan by 18% · net retention 112%</text>
+<line x1="60" x2="900" y1="470" y2="470" stroke="#14171C"/>
+<rect x="120" y="271" width="96" height="199" fill="#2B3038" opacity="0.75"/><text x="168" y="261" font-size="20" font-weight="700" text-anchor="middle" fill="#14171C">$1.42M</text><text x="168" y="498" font-size="16" text-anchor="middle" fill="#4B525D">Q3 25</text><rect x="280" y="249" width="96" height="221" fill="#2B3038" opacity="0.75"/><text x="328" y="239" font-size="20" font-weight="700" text-anchor="middle" fill="#14171C">$1.58M</text><text x="328" y="498" font-size="16" text-anchor="middle" fill="#4B525D">Q4 25</text><rect x="440" y="259" width="96" height="211" fill="#2B3038" opacity="0.75"/><text x="488" y="249" font-size="20" font-weight="700" text-anchor="middle" fill="#14171C">$1.51M</text><text x="488" y="498" font-size="16" text-anchor="middle" fill="#4B525D">Q1 26</text><rect x="600" y="222" width="96" height="248" fill="#2B3038" opacity="0.75"/><text x="648" y="212" font-size="20" font-weight="700" text-anchor="middle" fill="#14171C">$1.77M</text><text x="648" y="498" font-size="16" text-anchor="middle" fill="#4B525D">Q2 26</text><rect x="760" y="147" width="96" height="323" fill="#B3122E" opacity="1"/><text x="808" y="137" font-size="20" font-weight="700" text-anchor="middle" fill="#14171C">$2.31M</text><text x="808" y="498" font-size="16" text-anchor="middle" fill="#4B525D">Q3 26</text>
+<line x1="740" x2="876" y1="196" y2="196" stroke="#14171C" stroke-dasharray="6 5" stroke-width="2"/>
+<text x="734" y="201" font-size="14" text-anchor="end" fill="#14171C">plan $1.96M</text>
+</svg>

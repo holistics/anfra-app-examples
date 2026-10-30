@@ -1,0 +1,94 @@
+Model interview_rounds {
+  type: 'table'
+  label: 'Interview rounds'
+  description: 'One row per interview round a candidate got to, including rounds they withdrew from before the interview. Wait days run from the previous step (CV review or last decision) to the interview, or to the withdrawal. Rounds still to be booked or held have no row.'
+  data_source_name: 'hiring_duckdb'
+  table_name: 'main.interview_rounds'
+
+  dimension round_id {
+    label: 'Round ID'
+    type: 'number'
+    primary_key: true
+    description: 'Surrogate key.'
+  }
+  dimension candidate_id {
+    label: 'Candidate ID'
+    type: 'text'
+    description: 'Who the round is for.'
+  }
+  dimension round_type {
+    label: 'Round'
+    type: 'text'
+    description: 'Screening, Technical, Culture or Final.'
+  }
+  dimension round_order {
+    label: 'Round order'
+    type: 'number'
+    description: '1 Screening to 4 Final.'
+  }
+  dimension interviewer {
+    label: 'Interviewer'
+    type: 'text'
+    description: 'Empty when the candidate withdrew before the interview.'
+  }
+  dimension interviewer_role {
+    label: 'Interviewer runs'
+    type: 'text'
+    description: 'The round this interviewer usually runs.'
+  }
+  dimension result {
+    label: 'Result'
+    type: 'text'
+    description: 'Pass, Fail, No-show, Awaiting decision or Withdrew before interview. Pass rates count only Pass and Fail.'
+  }
+  dimension score {
+    label: 'Score'
+    type: 'number'
+    description: '1 to 5, once decided.'
+  }
+  dimension feedback {
+    label: 'Feedback'
+    type: 'text'
+    description: 'The interviewer\'s note.'
+  }
+  dimension feedback_days {
+    label: 'Feedback days'
+    type: 'number'
+    description: 'Days from the interview to its decision.'
+  }
+  dimension wait_days {
+    label: 'Wait days'
+    type: 'number'
+    description: 'Days from the previous step to this interview, or to the withdrawal.'
+  }
+  dimension wait_bucket {
+    label: 'Wait'
+    type: 'text'
+    description: '0–3, 4–7, 8–14 or 15+ days.'
+  }
+  dimension withdrew {
+    label: 'Withdrew while waiting'
+    type: 'truefalse'
+    description: 'The candidate withdrew before this interview.'
+  }
+  dimension booked_at {
+    label: 'Booked at'
+    type: 'datetime'
+    description: 'When the interview was scheduled.'
+  }
+  dimension held_at {
+    label: 'Held at'
+    type: 'datetime'
+    description: 'When the interview took place.'
+  }
+  dimension decided_at {
+    label: 'Decided at'
+    type: 'datetime'
+    description: 'When the result came in.'
+  }
+  dimension ended_at {
+    label: 'Wait ended at'
+    type: 'datetime'
+    description: 'When the wait ended: the interview, or the withdrawal.'
+  }
+}

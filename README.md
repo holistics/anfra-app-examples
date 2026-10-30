@@ -26,6 +26,10 @@ Every app lives in its own folder under `projects/`.
 | [mouka](projects/mouka) | A personal-finance tracker: where the money went, what's coming up, how the investments are doing and where net worth is heading, every number traceable to its metric | [Demo](https://mouka.pages.holistics.dev/apps/mouka/app) | Nhi Tran |
 | [diabetes-visit-prep](projects/diabetes-visit-prep) | Prepares a diabetes clinic visit: the patient's body colored by clinical status, two years as a time-lapse, and a drill into the cause | [Demo](https://diabetes-visit-prep.pages.holistics.dev/apps/diabetes-visit-prep) | Quan Nguyen |
 | [library](projects/library) | Walk a book marketplace's catalogue as a low-poly 3D library: rooms sized by revenue, shelves filled by genre, and a book that opens into a spread with a price what-if | [Demo](https://anfra-library.pages.holistics.dev) | Zap |
+| [white-space-globe](projects/white-space-globe) | A 3D globe of a SaaS company's customers against each market's size: where it is strong, where the untapped revenue is, and what stands in the way | [Demo](https://anfra-heidi.pages.holistics.dev/apps/DIY/coverage-globe) | Di Hoang |
+| [hiring-board](projects/hiring-board) | Every hiring question on one page: where each candidate is, where good candidates come from, which interview steps are slow, and whether headcount lands on plan | [Demo](https://anfra-heidi.pages.holistics.dev/apps/DIY/hiring-board) | Di Hoang |
+| [love-line](projects/love-line) | A dating app's funnel as a metro line: of every 1,000 profiles members see, how many lead to a date, and why riders get off at each stop | [Demo](https://anfra-heidi.pages.holistics.dev/apps/DIY/love-line) | Di Hoang |
+| [holynews](projects/holynews) | A company's Slack as a newspaper: what everyone applauded, what is heating up, what blew over, and how the office feels | Coming soon | Di Hoang |
 
 Apps ship without data source credentials, so some need setup before they run. Each app README says which sample data it uses.
 

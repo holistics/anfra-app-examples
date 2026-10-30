@@ -1,0 +1,168 @@
+Model matches {
+  type: 'table'
+  label: 'Matches'
+  description: '''
+One row per match and how its chat went. Message content exists only as categories plus invented example lines.
+
+Read matches through swipes (swipes.match_id): each match has two matched swipes, one per person, so swiper filters pick the person whose side you are on.
+'''
+  data_source_name: 'loveline_duckdb'
+  table_name: 'main.matches'
+
+  dimension match_id {
+    label: 'Match ID'
+    type: 'number'
+    primary_key: true
+    description: 'Surrogate key.'
+  }
+  dimension matched_at {
+    label: 'Matched at'
+    type: 'datetime'
+    description: 'When the second right swipe made the match.'
+  }
+  dimension user_a {
+    label: 'Woman ID'
+    type: 'number'
+    description: 'The woman in the match.'
+  }
+  dimension user_b {
+    label: 'Man ID'
+    type: 'number'
+    description: 'The man in the match.'
+  }
+  dimension city {
+    label: 'City'
+    type: 'text'
+    description: 'Where they matched.'
+  }
+  dimension first_message_at {
+    label: 'First message at'
+    type: 'datetime'
+    description: 'When the first message was sent. Empty if nobody said hi.'
+  }
+  dimension first_sender_id {
+    label: 'First sender ID'
+    type: 'number'
+    description: 'Who sent the first message.'
+  }
+  dimension hours_to_first_bucket {
+    label: 'Wait for first message'
+    type: 'text'
+    description: 'Within 1 hour, 1–6 hours, 6–24 hours, 1–3 days or 3+ days.'
+  }
+  dimension opener_type {
+    label: 'Opener'
+    type: 'text'
+    description: 'photo_question, bio_reference, pun, gif, hows_your_week, looks_compliment or just_hey.'
+  }
+  dimension has_question {
+    label: 'Opener asks a question'
+    type: 'truefalse'
+    description: 'The first message asks a question.'
+  }
+  dimension mentions_profile {
+    label: 'Opener mentions profile'
+    type: 'truefalse'
+    description: 'The first message mentions a photo, the bio or a trip.'
+  }
+  dimension length_ok {
+    label: 'Opener 25-140 characters'
+    type: 'truefalse'
+    description: 'The first message is 25 to 140 characters.'
+  }
+  dimension just_hey {
+    label: 'Opener is just hey'
+    type: 'truefalse'
+    description: 'The first message is only “hey” or “hi”.'
+  }
+  dimension emoji_heavy {
+    label: 'Opener emoji heavy'
+    type: 'truefalse'
+    description: 'More than one emoji.'
+  }
+  dimension about_looks {
+    label: 'Opener about looks'
+    type: 'truefalse'
+    description: 'Compliments their looks.'
+  }
+  dimension got_reply {
+    label: 'Got a reply'
+    type: 'truefalse'
+    description: 'The first message got an answer.'
+  }
+  dimension message_count {
+    label: 'Messages'
+    type: 'number'
+    description: 'Messages in the chat, both sides. 0 if nobody said hi.'
+  }
+  dimension alive_at_10 {
+    label: 'Reached 10 messages'
+    type: 'truefalse'
+    description: 'Still talking at message 10.'
+  }
+  dimension reached_5 {
+    label: 'Real chat'
+    type: 'truefalse'
+    description: 'Reached 5 messages: a real chat.'
+  }
+  dimension last_message_type {
+    label: 'Last words'
+    type: 'text'
+    description: 'How the chat ended: no_reply, haha, double_text, plan_unconfirmed, asked_instagram, voice_note, wall_of_text, other, or moved_off_app.'
+  }
+  dimension last_words {
+    label: 'Last words example'
+    type: 'text'
+    description: 'An invented example line for the last-words category. Never real text.'
+  }
+  dimension last_sender_id {
+    label: 'Last sender ID'
+    type: 'number'
+    description: 'Who sent the last message.'
+  }
+  dimension last_message_at {
+    label: 'Last message at'
+    type: 'datetime'
+    description: 'When the last message was sent.'
+  }
+  dimension reply_within_hour {
+    label: 'Replies within an hour'
+    type: 'truefalse'
+    description: 'Replies usually came within the hour.'
+  }
+  dimension double_texted {
+    label: 'Double texted'
+    type: 'truefalse'
+    description: 'Someone sent two messages in a row without an answer.'
+  }
+  dimension double_text_answered {
+    label: 'Double text answered'
+    type: 'truefalse'
+    description: 'The double text got an answer.'
+  }
+  dimension off_app_at {
+    label: 'Off the app at'
+    type: 'datetime'
+    description: 'When they swapped numbers or set a date. Empty if they never did.'
+  }
+  dimension days_to_off_app {
+    label: 'Days to off the app'
+    type: 'number'
+    description: 'Whole days from match to swapped number or date.'
+  }
+  dimension days_to_off_app_bucket {
+    label: 'Time to off the app'
+    type: 'text'
+    description: 'Same day, 1–3 days, 4–7 days, 1–2 weeks or 2+ weeks.'
+  }
+  dimension asked_by_gender {
+    label: 'Who asked'
+    type: 'text'
+    description: 'woman or man: who asked for the number or the date.'
+  }
+  dimension led_to_date {
+    label: 'Led to a date'
+    type: 'truefalse'
+    description: 'They met in person.'
+  }
+}

@@ -1,0 +1,33 @@
+Model swipe_traits {
+  type: 'table'
+  label: 'Swipe traits'
+  description: 'One row per swipe and trait of the profile seen. Precomputed so trait questions never fan out through profile traits. Join to swipes for the swiper filters.'
+  data_source_name: 'loveline_duckdb'
+  table_name: 'main.swipe_traits'
+
+  dimension swipe_id {
+    label: 'Swipe ID'
+    type: 'number'
+    description: 'The swipe.'
+  }
+  dimension trait {
+    label: 'Trait'
+    type: 'text'
+    description: 'A trait on the profile seen (see Profile traits).'
+  }
+  dimension trait_kind {
+    label: 'Trait kind'
+    type: 'text'
+    description: 'helps or hurts.'
+  }
+  dimension is_right {
+    label: 'Swiped right'
+    type: 'truefalse'
+    description: 'Copied from the swipe.'
+  }
+  dimension swiped_at {
+    label: 'Swiped at'
+    type: 'datetime'
+    description: 'Copied from the swipe.'
+  }
+}

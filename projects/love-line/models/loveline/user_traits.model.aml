@@ -1,0 +1,23 @@
+Model user_traits {
+  type: 'table'
+  label: 'Profile traits'
+  description: 'One row per person and trait on their profile (photos and bio).'
+  data_source_name: 'loveline_duckdb'
+  table_name: 'main.user_traits'
+
+  dimension user_id {
+    label: 'User ID'
+    type: 'number'
+    description: 'The person.'
+  }
+  dimension trait {
+    label: 'Trait'
+    type: 'text'
+    description: 'Cooking a meal, Dog photo, Reading a book, Asks a question, Travel photo, Gym selfie, Sunglasses everywhere, Group photo first, Heavy filter or Holding a fish.'
+  }
+  dimension trait_kind {
+    label: 'Trait kind'
+    type: 'text'
+    description: 'helps or hurts the chance of a right swipe.'
+  }
+}

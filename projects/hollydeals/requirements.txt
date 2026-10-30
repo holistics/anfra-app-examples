@@ -1,0 +1,1 @@
+duckdb==1.4.4  # must match the DuckDB inside anfra's canal-query, or it cannot open the file

@@ -1,0 +1,15 @@
+Model sf_reports {
+  type: 'table'
+  label: 'Weekly reports'
+  description: 'From the weekly sales reports. One row per report week. Counts OK is false when the deals we parsed do not match the report\'s own counts.'
+  data_source_name: 'warehouse'
+  table_name: '"sales"."reports"'
+
+  dimension week { label: 'Week' type: 'text' primary_key: true definition: @sql {{ #SOURCE.week }};; }
+  dimension generated_on { label: 'Generated' type: 'date' definition: @sql {{ #SOURCE.generated_on }};; }
+  dimension window_start { label: 'Window start' type: 'date' definition: @sql {{ #SOURCE.window_start }};; }
+  dimension window_end { label: 'Window end' type: 'date' definition: @sql {{ #SOURCE.window_end }};; }
+  dimension month { label: 'Month' type: 'date' description: 'First day of the month of the report date.' definition: @sql {{ #SOURCE.month }};; }
+  dimension source_path { label: 'Report file' type: 'text' description: 'Path of the report file, e.g. fake/2026-W42.md in the sample data.' definition: @sql {{ #SOURCE.source_path }};; }
+  dimension counts_ok { label: 'Counts match the report' type: 'truefalse' description: "False when the parsed deal counts differ from the report's own counts." definition: @sql {{ #SOURCE.counts_ok }};; }
+}

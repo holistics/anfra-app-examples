@@ -1,0 +1,12 @@
+Model sf_feedback_deals {
+  type: 'table'
+  label: 'Feedback deals'
+  description: 'From the weekly sales reports. One row per deal a product-feedback bullet names; a bullet naming no deal has one row with no deal key. A deal key need not match a deal.'
+  data_source_name: 'warehouse'
+  table_name: '"sales"."v_feedback_deals"'
+
+  dimension key { label: 'Feedback deal id' type: 'text' primary_key: true hidden: true definition: @sql {{ #SOURCE.feedback_id }} || ':' || coalesce({{ #SOURCE.slug }}, '');; }
+  dimension feedback_id { label: 'Feedback id' type: 'number' hidden: true definition: @sql {{ #SOURCE.feedback_id }};; }
+  dimension week { label: 'Week' type: 'text' definition: @sql {{ #SOURCE.week }};; }
+  dimension slug { label: 'Deal key' type: 'text' hidden: true definition: @sql {{ #SOURCE.slug }};; }
+}

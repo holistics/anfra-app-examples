@@ -1,0 +1,20 @@
+# secrets and local state: never commit
+.env
+.env.local
+.env.*.local
+anfra/.anfra/data_sources.yml
+# the Supabase CLI's local link to the retired Supabase project (the app no longer uses it)
+supabase/
+# generated
+node_modules/
+web/dist/
+test-results/
+backups/
+exports/
+.DS_Store
+logs/
+# local-only documents: kept on disk, never committed or pushed
+/docs/
+
+# Exclude every environment file from the public example.
+.env*

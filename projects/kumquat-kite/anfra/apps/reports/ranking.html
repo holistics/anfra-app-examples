@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Project ranking (governed)</title>
+</head>
+<body>
+<main data-anfra-container="page" data-anfra-label="Project ranking">
+  <div id="filters" class="filters" data-anfra-container="controls" data-anfra-label="Filters"></div>
+  <header class="row spread" style="margin-bottom:12px">
+    <div><h1>Project ranking</h1><p class="small muted">Projects ranked by approved gross profit. Pick one to drill down to its service lines and supporting records.</p></div>
+    <div class="row"><button type="button" id="clear" hidden>Clear the selection</button><div class="small muted" id="fresh" style="text-align:right"></div></div>
+  </header>
+
+  <section class="block" data-anfra-block="ranking-chart" data-anfra-label="Ranking chart" data-anfra-query="ranking">
+    <h2>Gross profit by project</h2>
+    <div class="chart" id="c-ranking" role="img" aria-label="Approved gross profit by project; click a bar to select it"></div>
+    <p class="legend-note">Click a bar (or a row below) to select the project.</p>
+    <div class="status" id="ranking-status"></div></section>
+
+  <section class="block" data-anfra-block="ranking" data-anfra-label="Ranking by gross profit" data-anfra-query="ranking">
+    <h2>Ranking</h2><p class="small muted" id="population"></p><div id="ranking"></div></section>
+
+  <section class="block" data-anfra-block="services" data-anfra-label="Client → project → service line" data-anfra-query="services">
+    <h2>Client → project → service line</h2>
+    <p class="small muted">Revenue per service line and its share of the project and of the client; the lines add up to the project. A project's margin is computed at project level, never as an average of line percentages.</p>
+    <div id="services"></div><div class="status" id="services-status"></div></section>
+
+  <section class="block" data-anfra-block="support" data-anfra-label="Supporting records" data-anfra-query="support">
+    <h2>Supporting records (approved money lines)</h2><p class="small muted" id="support-scope"></p>
+    <div id="support"></div><div class="status" id="support-status"></div></section>
+
+  <section class="block" data-anfra-block="why" data-anfra-label="Why this number?" data-anfra-query="ranking services">
+    <details class="why"><summary>Why this number?</summary><div id="why"></div></details></section>
+</main>
+
+<script>
+  const kit = document.createElement('script');
+  kit.src = new URL('panel-kit.js', document.baseURI).href;
+  kit.onload = () => KK.start(main);
+  kit.onerror = () => { document.body.textContent = 'This panel could not load its helpers. Reload the page.'; };
+  document.head.append(kit);
+
+  function main(K) {
+    const { esc } = K;
+    const DS = 'kumquat_finance';
+    const app = Anfra.createApp({ title: 'Project ranking', timezone: 'Asia/Ho_Chi_Minh' });
+    const f = K.filters(app, DS);
+    const ranking = app.createQuery('ranking', { dataset: DS, aql: `explore {
+        dimensions { ref: projects.project_ref, title: projects.title, client: clients.display_name }
+        measures { gp: approved_gross_profit, gm: approved_gross_margin, mr: approved_matching_revenue, rank: gross_profit_rank, last: last_committed_at }
+        filters { projects.approved_inputs_complete is true }
+        sorts { gp desc, ref asc } }` });
+    const services = app.createQuery('services', { dataset: DS, aql: `explore {
+        dimensions { client: clients.display_name, ref: projects.project_ref, service: services.name }
+        measures { revenue: approved_revenue, cost: approved_known_cost,
+          share_project: safe_divide(approved_revenue, approved_revenue | exclude_grains(services.name)),
+          share_client: safe_divide(approved_revenue, approved_revenue | exclude_grains(projects.project_ref, services.name)) }
+        sorts { client asc, ref asc, service asc } }` });
+    const support = app.createQuery('support', { dataset: DS, pageSize: 40, aql: `explore {
+        dimensions { ref: projects.project_ref, line: money_facts.line_ref, kind: money_facts.fact_kind, description: money_facts.description,
+          service: services.name, state: money_facts.value_state, revision: money_facts.revision_ref, amount: money_facts.amount,
+          known: money_facts.amount_known, committed: money_facts.committed_at, complete: money_facts.inputs_complete }
+        filters { money_facts.basis == 'approved' }
+        sorts { ref asc, line asc } }` });
+    f.map(ranking, services, support);
+    // Selecting a project in the ranking drills the service lines and the supporting records down to it.
+    app.mapCrossFilter(ranking, services);
+    app.mapCrossFilter(ranking, support);
+    f.wire();
+
+    const pick = (row) => { ranking.select(ranking.selectedRows.includes(row) ? [] : [row], { fields: ['ref'] }); K.resetPage('services'); K.resetPage('support'); app.execute(); };
+    document.getElementById('clear').addEventListener('click', () => { app.clearSelection(); app.execute(); });
+
+    function renderRanking() {
+      if (!ranking.result) return;
+      const rows = ranking.result.rows;
+      const selected = new Set(ranking.selectedRows.map((x) => x.ref));
+      const ties = new Map(); rows.forEach((x) => ties.set(x.rank, (ties.get(x.rank) ?? 0) + 1));
+      document.getElementById('clear').hidden = !selected.size;
+      document.getElementById('population').textContent = `Population: ${rows.length} project(s) with complete approved inputs (at least one revenue and one cost line, no unknown amount), signed in the period. Ties share a rank and are ordered by project ID.`;
+      K.paged('ranking', { rows, pageSize: 10,
+        head: '<th class="n">Rank</th><th>Project</th><th class="n">Gross profit</th><th class="n">Margin</th><th class="n">Matching revenue</th>',
+        row: (x, i) => `<tr class="click ${selected.has(x.ref) ? 'sel' : selected.size ? 'dim' : ''}" data-i="${i}" tabindex="0" aria-selected="${selected.has(x.ref)}">
+          <td class="n"><b>${esc(x.rank)}</b>${ties.get(x.rank) > 1 ? ' <span class="chip info">tied</span>' : ''}</td>
+          <td><b>${esc(x.ref)}</b> ${esc(x.title)}<span class="sub">${esc(x.client)}</span></td><td class="n">${K.vnd(x.gp)}</td><td class="n">${K.pct(x.gm)}</td><td class="n">${K.vnd(x.mr)}</td></tr>`,
+        onDraw: (host) => host.querySelectorAll('tr[data-i]').forEach((tr) => {
+          const row = () => ranking.result.rows[Number(tr.dataset.i)];
+          tr.addEventListener('click', () => pick(row()));
+          tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(row()); } });
+        }),
+        note: '<p class="small muted note">Pick a project to see its service lines and supporting records; the app around this panel then offers its Job 360.</p>' });
+      const last = rows.reduce((a, m) => (m.last && (!a || m.last > a) ? m.last : a), null);
+      K.fresh('fresh', last, ranking);
+      const data = [...rows].reverse();
+      document.getElementById('c-ranking').style.height = `${Math.max(200, data.length * 28 + 50)}px`;
+      K.chart('c-ranking', {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: K.tipVnd },
+        xAxis: K.axisVnd,
+        yAxis: { type: 'category', data: data.map((x) => `#${x.rank} ${x.ref}`) },
+        series: [{ name: 'Gross profit', type: 'bar', barMaxWidth: 22, data: data.map((x) => ({ value: K.num(x.gp),
+          itemStyle: { color: K.COLORS.approved, opacity: selected.size === 0 || selected.has(x.ref) ? 1 : 0.3 } })),
+          label: { show: true, position: 'right', formatter: (p) => K.shortVnd(p.value) } }],
+      }).then((c) => { if (c && !c.__kkClick) { c.__kkClick = true; c.on('click', (p) => { const d = [...ranking.result.rows].reverse(); pick(d[p.dataIndex]); }); } });
+    }
+
+    function renderServices() {
+      if (!services.result) return;
+      K.paged('services', { rows: services.result.rows, pageSize: 10,
+        head: '<th>Client / project</th><th>Service line</th><th class="n">Revenue</th><th class="n">Attributed cost</th><th class="n">% of project</th><th class="n">% of client</th>',
+        row: (x) => `<tr><td><b>${esc(x.ref)}</b><span class="sub">${esc(x.client)}</span></td><td>${esc(x.service ?? 'No service line')}</td><td class="n">${K.vnd(x.revenue)}</td><td class="n">${K.vnd(x.cost)}</td>
+          <td class="n">${K.pct(x.share_project, '—')}</td><td class="n">${K.pct(x.share_client, '—')}</td></tr>` });
+    }
+
+    function renderSupport() {
+      if (!support.result) return;
+      const sel = ranking.selectedRows.map((x) => x.ref);
+      document.getElementById('support-scope').textContent = sel.length ? `Filtered to the selected project: ${sel.join(', ')}.` : 'Every project in the period; pick a project in the ranking to filter.';
+      K.paged('support', { rows: support.result.rows, pageSize: 10, query: support,
+        head: '<th>Project</th><th>Line</th><th>Service</th><th class="n">Amount</th><th>Value</th><th>Revision</th><th>In margin</th>',
+        row: (x) => `<tr><td class="ref">${esc(x.ref)}</td><td><b>${esc(x.line)}</b> ${esc(x.kind === 'revenue' ? 'Revenue' : 'Cost')}<span class="sub">${esc(x.description)}</span></td>
+          <td class="small">${esc(x.service ?? 'Not attributed')}</td><td class="n">${x.known === false || x.known === 'false' ? '<span class="chip warn">unknown</span>' : K.vnd(x.amount)}</td>
+          <td class="small">${esc({ imported: 'Imported as approved', approved: 'Approved by Finance' }[x.state] ?? x.state)}</td>
+          <td class="small nowrap">${esc(x.revision)}<span class="sub">${esc(K.when(x.committed))}</span></td>
+          <td>${K.isTrue(x.complete) ? '<span class="chip ok">yes</span>' : '<span class="chip warn">excluded</span>'}</td></tr>` });
+    }
+
+    function renderWhy() {
+      if (!ranking.result) return;
+      K.why('why', {
+        metrics: ['approved_gross_profit', 'approved_gross_margin', 'gross_profit_rank', 'approved_revenue'],
+        items: [
+          ['Ranking population', 'Projects with complete approved inputs, signed in the period, by gross profit descending. Ties share a rank and are ordered by project ID.'],
+          ['Level of detail', 'Service-line shares divide by the project\'s revenue (exclude_grains on the service) and by the client\'s (exclude_grains on project and service), so client → project → line reconcile.'],
+          ['Filters applied', `${f.describe()}${ranking.selectedRows.length ? ` · selected ${esc(ranking.selectedRows.map((x) => x.ref).join(', '))}` : ''}. The ranking AQL that ran:<pre class="aql">${esc(ranking.result.debug?.executedAql ?? '')}</pre>`],
+          ['Supporting records', 'The "Supporting records" table: each approved money line with its revision and commit time, filtered to the selected project.'],
+        ],
+      });
+    }
+
+    function render() {
+      K.status(ranking, 'ranking-status', 'No project with complete inputs in this period.');
+      K.status(services, 'services-status', 'No service line in this scope.');
+      K.status(support, 'support-status', 'No approved money line in this scope.');
+      [ranking, services, support].forEach(K.first);
+      renderRanking(); renderServices(); renderSupport(); renderWhy();
+    }
+    app.subscribe(render);
+    app.execute({ force: true });
+  }
+</script>
+</body>
+</html>

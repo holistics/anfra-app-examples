@@ -1,0 +1,30 @@
+Model sf_deals {
+  type: 'table'
+  label: 'Deals'
+  description: 'From the weekly sales reports and deal files. One row per deal.'
+  data_source_name: 'warehouse'
+  table_name: '"sales"."deals"'
+
+  dimension slug { label: 'Deal key' type: 'text' primary_key: true definition: @sql {{ #SOURCE.slug }};; }
+  dimension name { label: 'Deal' type: 'text' definition: @sql {{ #SOURCE.name }};; }
+  dimension owner { label: 'Deal owner' type: 'text' definition: @sql {{ #SOURCE.owner }};; }
+  dimension deal_stage { label: 'Deal stage' type: 'text' definition: @sql {{ #SOURCE.deal_stage }};; }
+  dimension amount { label: 'Amount' type: 'number' definition: @sql {{ #SOURCE.amount }};; }
+  dimension currency { label: 'Currency' type: 'text' definition: @sql {{ #SOURCE.currency }};; }
+  dimension amount_period { label: 'Amount period' type: 'text' description: 'mo or yr.' definition: @sql {{ #SOURCE.amount_period }};; }
+  dimension deal_created { label: 'Deal created' type: 'date' definition: @sql {{ #SOURCE.deal_created }};; }
+  dimension first_call { label: 'First call' type: 'date' definition: @sql {{ #SOURCE.first_call }};; }
+  dimension close_date { label: 'Close date' type: 'date' definition: @sql {{ #SOURCE.close_date }};; }
+  dimension last_responded { label: 'Last responded' type: 'date' definition: @sql {{ #SOURCE.last_responded }};; }
+  dimension trial_status { label: 'Trial status' type: 'text' definition: @sql {{ #SOURCE.trial_status }};; }
+  dimension trial_builders { label: 'Trial builders' type: 'number' definition: @sql {{ #SOURCE.trial_builders }};; }
+  dimension trial_active_users { label: 'Trial active users' type: 'number' definition: @sql {{ #SOURCE.trial_active_users }};; }
+  dimension trial_expiry { label: 'Trial expiry' type: 'date' definition: @sql {{ #SOURCE.trial_expiry }};; }
+  dimension health { label: 'Health' type: 'text' definition: @sql {{ #SOURCE.health }};; }
+  dimension win_probability_text { label: 'Win probability (text)' type: 'text' definition: @sql {{ #SOURCE.win_probability_text }};; }
+  dimension assessment { label: 'Assessment' type: 'text' definition: @sql {{ #SOURCE.assessment }};; }
+  dimension next_steps { label: 'Next steps' type: 'text' definition: @sql {{ #SOURCE.next_steps }};; }
+  dimension key_contacts { label: 'Key contacts' type: 'text' definition: @sql {{ #SOURCE.key_contacts }};; }
+  dimension file_path { label: 'File path' type: 'text' definition: @sql {{ #SOURCE.file_path }};; }
+  dimension location { label: 'File location' type: 'text' description: 'deals, deals-archive or customers.' definition: @sql {{ #SOURCE.location }};; }
+}

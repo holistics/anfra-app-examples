@@ -1,0 +1,4 @@
+client_id,display_name,client_type,data_classification
+demo-client-001,Sample Beauty Brand,brand,synthetic
+demo-client-002,Pink Cloud Milk Tea (sample),brand,synthetic
+demo-client-003,South Wind Fashion (sample),brand,synthetic

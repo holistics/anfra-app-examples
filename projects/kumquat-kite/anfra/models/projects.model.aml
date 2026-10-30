@@ -1,0 +1,168 @@
+Model projects {
+  type: 'table'
+  label: 'Projects and opportunities'
+  description: 'One row per project or opportunity (reporting.projects). It carries no amount: money is in money_facts.'
+  data_source_name: 'kumquat_poc'
+  table_name: '"reporting"."projects"'
+
+  dimension id {
+    label: 'Internal ID'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.id }}::text;;
+  }
+  dimension project_ref {
+    label: 'Project ID'
+    type: 'text'
+    description: 'Stable internal ID (NP-xxxx), present from the first conversation.'
+    definition: @sql {{ #SOURCE.project_ref }};;
+  }
+  dimension job_code {
+    label: 'Job code'
+    type: 'text'
+    description: 'Issued by Finance; empty until then.'
+    definition: @sql {{ #SOURCE.job_code }};;
+  }
+  dimension title {
+    label: 'Project'
+    type: 'text'
+    definition: @sql {{ #SOURCE.title }};;
+  }
+  dimension client_id {
+    label: 'Client ID'
+    type: 'text'
+    hidden: true
+    definition: @sql {{ #SOURCE.client_id }}::text;;
+  }
+  dimension service_group {
+    label: 'Service group'
+    type: 'text'
+    definition: @sql {{ #SOURCE.service_group }};;
+  }
+  dimension project_kind {
+    label: 'Project kind'
+    type: 'text'
+    description: 'commercial · sponsored · internal'
+    definition: @sql {{ #SOURCE.project_kind }};;
+  }
+  dimension commercial_stage {
+    label: 'Commercial stage'
+    type: 'text'
+    definition: @sql {{ #SOURCE.commercial_stage }};;
+  }
+  dimension delivery_state {
+    label: 'Delivery state'
+    type: 'text'
+    definition: @sql {{ #SOURCE.delivery_state }};;
+  }
+  dimension financial_verification {
+    label: 'Financial verification'
+    type: 'text'
+    definition: @sql {{ #SOURCE.financial_verification }};;
+  }
+  dimension payment_state {
+    label: 'Payment state'
+    type: 'text'
+    definition: @sql {{ #SOURCE.payment_state }};;
+  }
+  dimension owner_name {
+    label: 'Owner'
+    type: 'text'
+    definition: @sql {{ #SOURCE.owner_name }};;
+  }
+  dimension account_owner_name {
+    label: 'Account owner'
+    type: 'text'
+    definition: @sql {{ #SOURCE.account_owner_name }};;
+  }
+  dimension contract_signed_date {
+    label: 'Contract signed date'
+    type: 'date'
+    description: 'The date basis of period comparisons (Asia/Ho_Chi_Minh business date).'
+    definition: @sql {{ #SOURCE.contract_signed_date }};;
+  }
+  dimension next_action_overdue {
+    label: 'Next action overdue'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.next_action_overdue }};;
+  }
+  dimension approved_inputs_complete {
+    label: 'Inputs complete (approved)'
+    type: 'truefalse'
+    description: 'Approved basis: at least one revenue and one cost line, and no unknown amount.'
+    definition: @sql {{ #SOURCE.approved_inputs_complete }};;
+  }
+  dimension scenario_inputs_complete {
+    label: 'Inputs complete (scenario)'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.scenario_inputs_complete }};;
+  }
+  dimension proposed_lines {
+    label: 'Proposed lines'
+    type: 'number'
+    definition: @sql {{ #SOURCE.proposed_lines }};;
+  }
+  dimension open_readiness_checks {
+    label: 'Open readiness checks'
+    type: 'number'
+    definition: @sql {{ #SOURCE.open_readiness_checks }};;
+  }
+  dimension data_classification {
+    label: 'Data classification'
+    type: 'text'
+    definition: @sql {{ #SOURCE.data_classification }};;
+  }
+  dimension source_system {
+    label: 'Source system'
+    type: 'text'
+    definition: @sql {{ #SOURCE.source_system }};;
+  }
+  dimension source_key {
+    label: 'Source key'
+    type: 'text'
+    definition: @sql {{ #SOURCE.source_key }};;
+  }
+
+  dimension next_action {
+    label: 'Next action'
+    type: 'text'
+    definition: @sql {{ #SOURCE.next_action }};;
+  }
+  dimension next_action_due {
+    label: 'Next action due'
+    type: 'date'
+    description: 'Business date (Asia/Ho_Chi_Minh) by which the next action is due.'
+    definition: @sql {{ #SOURCE.next_action_due }};;
+  }
+  dimension stage_order {
+    label: 'Commercial stage order'
+    type: 'number'
+    description: 'Sort key of the commercial stages, from lead (1) to lost (9).'
+    hidden: true
+    definition: @sql case {{ #SOURCE.commercial_stage }} when 'lead' then 1 when 'qualified' then 2 when 'meeting' then 3 when 'proposal' then 4
+      when 'negotiation' then 5 when 'contract_sent' then 6 when 'on_hold' then 7 when 'won' then 8 when 'lost' then 9 end;;
+  }
+  dimension estimate_basis {
+    label: 'Estimate basis'
+    type: 'text'
+    description: 'How a pipeline estimate is expressed: total (one-off), monthly (per month) or range (from – to). An estimate is never revenue.'
+    definition: @sql {{ #SOURCE.estimate_basis }};;
+  }
+  dimension estimated_amount {
+    label: 'Estimate (VND)'
+    type: 'number'
+    description: 'A pipeline estimate: a one-off total or an amount per month, see Estimate basis. Never revenue, never added across bases.'
+    definition: @sql {{ #SOURCE.estimated_amount }};;
+  }
+  dimension estimate_low {
+    label: 'Estimate range, low (VND)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.estimate_low }};;
+  }
+  dimension estimate_high {
+    label: 'Estimate range, high (VND)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.estimate_high }};;
+  }
+}

@@ -1,0 +1,5 @@
+cost_line_id,project_id,description,cost_basis,amount,currency,review_state,version,data_classification
+demo-cost-001,demo-project-001,Sample complete forecast cost,forecast,60000000,VND,approved,1,synthetic
+demo-cost-002,demo-project-003,Film crew hire,forecast,50000000,VND,approved,1,synthetic
+demo-cost-003,demo-project-003,Post-production editing,forecast,,VND,approved,1,synthetic
+demo-cost-004,demo-project-003,Extra props,forecast,8000000,VND,submitted,1,synthetic

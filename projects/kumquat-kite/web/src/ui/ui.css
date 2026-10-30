@@ -1,0 +1,74 @@
+/* Tailwind CSS for the shadcn/ui components (web/src/ui), compiled by server/build.mjs into web/dist/ui.css.
+   - Theme and utilities only: Tailwind's preflight reset is left out, so the app's own screens keep their styles.
+     The resets the components need are applied to shadcn elements alone (they all carry data-slot), below.
+   - Colours, radius and fonts come from the shared tokens (anfra/apps/tokens.css), mapped to shadcn's theme names.
+   - The app's stylesheet sits in the first, lowest layer ("legacy", declared in styles.css), so these utilities win
+     wherever both apply. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "tw-animate-css";
+@source "./";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--ui-font);
+  --color-background: var(--ui-background);
+  --color-foreground: var(--ui-foreground);
+  --color-card: var(--ui-card);
+  --color-card-foreground: var(--ui-card-foreground);
+  --color-popover: var(--ui-popover);
+  --color-popover-foreground: var(--ui-popover-foreground);
+  --color-primary: var(--ui-primary);
+  --color-primary-foreground: var(--ui-primary-foreground);
+  --color-secondary: var(--ui-secondary);
+  --color-secondary-foreground: var(--ui-secondary-foreground);
+  --color-muted: var(--ui-muted);
+  --color-muted-foreground: var(--ui-muted-foreground);
+  --color-accent: var(--ui-accent);
+  --color-accent-foreground: var(--ui-accent-foreground);
+  --color-destructive: var(--ui-destructive);
+  --color-border: var(--ui-border);
+  --color-input: var(--ui-input);
+  --color-ring: var(--ui-ring);
+  --color-link: var(--ui-link);
+  --color-brand: var(--ui-brand);
+  --color-brand-soft: var(--ui-brand-soft);
+  --color-ok: var(--ui-ok);
+  --color-ok-soft: var(--ui-ok-soft);
+  --color-warn: var(--ui-warn);
+  --color-warn-soft: var(--ui-warn-soft);
+  --color-info: var(--ui-info);
+  --color-info-soft: var(--ui-info-soft);
+  --radius-sm: calc(var(--ui-radius) * 0.6);
+  --radius-md: calc(var(--ui-radius) * 0.8);
+  --radius-lg: var(--ui-radius);
+  --radius-xl: calc(var(--ui-radius) * 1.4);
+  --text-xs: var(--ui-fs-xs);
+  --text-sm: var(--ui-fs-body);
+  --text-base: var(--ui-fs-title);
+  --text-lg: var(--ui-fs-title);
+  --text-xl: var(--ui-fs-page);
+}
+
+@layer base {
+  [data-slot], [data-slot] *, [data-slot]::before, [data-slot]::after, [data-slot] *::before, [data-slot] *::after {
+    box-sizing: border-box;
+    border: 0 solid var(--color-border);
+  }
+  :is(button, input, select, textarea)[data-slot] {
+    margin: 0;
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    background-color: transparent;
+  }
+  [data-slot] :where(h1, h2, h3, h4, p, ul, ol, dl, dd, figure, blockquote) { margin: 0; }
+  [data-slot] :where(ul, ol) { padding: 0; list-style: none; }
+  /* A link drawn as a button or badge (asChild) takes the component's colour, without the browser's underline. */
+  a[data-slot] { color: inherit; text-decoration: none; }
+  /* The islands' own markup: no browser margins, so spacing comes from the layout utilities. */
+  :where([data-kk="case-study"], [data-kk="case-study-doc"], [data-kk="report-library"]) :where(h1, h2, h3, h4, p, ol, ul, dl, dd, figure) { margin: 0; }
+  :where([data-kk="case-study"], [data-kk="case-study-doc"], [data-kk="report-library"]) :where(ol, ul):not([class*="list-"]) { padding: 0; list-style: none; }
+  [data-slot="dialog-content"], [data-slot="dialog-overlay"] { font-family: var(--ui-font); font-size: var(--ui-fs-body); line-height: 1.45; }
+}

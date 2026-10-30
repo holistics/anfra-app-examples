@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Project money (governed)</title>
+</head>
+<body>
+<main data-anfra-container="page" data-anfra-label="Project money">
+  <header class="row spread" style="margin-bottom:12px">
+    <div><h1 id="title">Project money</h1><div class="small muted" id="scope"></div></div>
+    <div class="small muted" id="fresh" style="text-align:right"></div>
+  </header>
+  <div id="expect"></div>
+
+  <section class="grid cards" data-anfra-container="kpis" data-anfra-label="Approved, scenario, acceptance and cash">
+    <div class="block approved" data-anfra-block="approved" data-anfra-label="Approved (in force)" data-anfra-query="kpi">
+      <h2>Approved — in force</h2><div id="approved"></div><div class="status" id="kpi-status"></div></div>
+    <div class="block scenario" data-anfra-block="scenario" data-anfra-label="Scenario (with pending proposals)" data-anfra-query="kpi">
+      <h2 id="scenario-title">Scenario — if every proposal is approved</h2><div id="scenario"></div></div>
+    <div class="block recorded" data-anfra-block="recorded" data-anfra-label="Acceptance and cash" data-anfra-query="kpi">
+      <h2>Acceptance and cash received</h2><div id="recorded"></div></div>
+  </section>
+
+  <section class="block" data-anfra-block="versions" data-anfra-label="Committed versions" data-anfra-query="versions">
+    <h2>Committed versions</h2>
+    <p class="small muted">Every Finance approval (or imported baseline) makes a version; the same governed formula is applied to each one, so an earlier result stays explainable.</p>
+    <div class="chart short" id="versions-chart" role="img" aria-label="Gross profit and margin by committed version"></div>
+    <div id="versions"></div>
+    <div class="status" id="versions-status"></div></section>
+
+  <section class="block" data-anfra-block="why" data-anfra-label="Why this number?" data-anfra-query="kpi lines recorded">
+    <details class="why" id="why-box"><summary>Why this number?</summary><div id="why"></div></details></section>
+</main>
+
+<script>
+  const kit = document.createElement('script');
+  kit.src = new URL('panel-kit.js', document.baseURI).href;
+  kit.onload = () => KK.start(main);
+  kit.onerror = () => { document.body.textContent = 'This panel could not load its helpers. Reload the page.'; };
+  document.head.append(kit);
+
+  function main(K) {
+    const { ctx, esc, isNull } = K;
+    const DS = 'kumquat_finance';
+    const app = Anfra.createApp({ title: 'Project money', timezone: 'Asia/Ho_Chi_Minh' });
+
+    // The project scope is an SDK filter condition, so it appears in every query's executed AQL.
+    const project = app.createFilter('project', { dataset: DS, field: 'projects.project_ref', label: 'Project' });
+    project.setCondition({ operator: 'is', values: [ctx.projectRef || '__none__'] });
+
+    const kpi = app.createQuery('kpi', { dataset: DS, aql: `explore { measures {
+        revenue: approved_revenue, known_cost: approved_known_cost, unknown: approved_unknown_lines,
+        mr: approved_matching_revenue, cc: approved_complete_cost, gp: approved_gross_profit, gm: approved_gross_margin,
+        s_revenue: scenario_revenue, s_known_cost: scenario_known_cost, s_unknown: scenario_unknown_lines, s_gp: scenario_gross_profit,
+        s_gm: scenario_gross_margin, d_gp: scenario_gross_profit_change, d_gm: scenario_gross_margin_change, pending: pending_proposals,
+        last: last_committed_at } }` });
+    // Acceptance and cash: a small query of its own, started once the margins are in, so they appear first.
+    let cash = null;
+    const declareCash = () => cash ??= app.createQuery('cash', { dataset: DS, aql: `explore { measures {
+        acc: verified_acceptance, acc_pending: submitted_acceptance, net: receipts_net, gross: receipts_gross, residual: management_residual } }` });
+    // The cards and the version chart need kpi and versions only. The money lines (supporting records and the
+    // after-save check) and the recorded acceptance and cash are queried when "Why this number?" opens, or at once
+    // after a save that expects a revision, so a first view waits for two queries, not four.
+    let lines = null; let recorded = null;
+    const declareLines = () => lines ??= app.createQuery('lines', { dataset: DS, aql: `explore {
+        dimensions { key: money_facts.fact_key, basis: money_facts.basis, kind: money_facts.fact_kind, ref: money_facts.line_ref,
+          description: money_facts.description, service: services.name, stage: money_facts.cost_stage, state: money_facts.value_state,
+          revision: money_facts.revision_ref, revision_no: money_facts.revision_no, pending: money_facts.pending_request_ref,
+          known: money_facts.amount_known, amount: money_facts.amount, committed: money_facts.committed_at, complete: money_facts.inputs_complete,
+          source: money_facts.source }
+        filters { money_facts.basis in ['approved', 'scenario'] }
+        sorts { kind desc, ref asc, basis asc } }` });
+    const declareRecorded = () => recorded ??= app.createQuery('recorded', { dataset: DS, aql: `explore {
+        dimensions { key: money_facts.fact_key, kind: money_facts.fact_kind, ref: money_facts.line_ref, description: money_facts.description,
+          date: money_facts.effective_date, status: money_facts.status, tax: money_facts.tax_basis, rtype: money_facts.receipt_type,
+          amount: money_facts.amount, committed: money_facts.committed_at }
+        filters { money_facts.basis == 'recorded' }
+        sorts { date asc, ref asc } }` });
+    // Anfra works through concurrent queries largely one after another, so the panel asks in two steps: the key
+    // figures (kpi) alone first, then the version history, acceptance and cash, and the after-save check.
+    let versions = null;
+    const declareVersions = () => versions ??= app.createQuery('versions', { dataset: DS, aql: `explore {
+        dimensions { v: money_facts.version_no, label: money_facts.version_label, from: money_facts.version_from, until: money_facts.version_until }
+        measures { lines: version_line_count, mr: version_matching_revenue, cc: version_complete_cost, gp: version_gross_profit,
+          gm: version_gross_margin, unknown: version_unknown_lines }
+        sorts { v asc } }` });
+    app.mapControl(project, kpi, { field: 'projects.project_ref' });
+    let secondStep = false;
+    // Declares the detail queries a view needs (each once): the after-save check needs only the money lines.
+    const needDetail = ({ withRecorded = true } = {}) => {
+      let added = false;
+      if (!lines) { app.mapControl(project, declareLines(), { field: 'projects.project_ref' }); added = true; }
+      if (withRecorded && !recorded) { app.mapControl(project, declareRecorded(), { field: 'projects.project_ref' }); added = true; }
+      return added;
+    };
+
+    const STATE = { imported: ['info', 'Imported as approved'], approved: ['ok', 'Approved by Finance'], proposed: ['warn', 'Proposed — not approved'] };
+    const REASON = { saved: 'save', approved: 'Finance approval', rejected: 'Finance rejection', proposal_submitted: 'proposal submitted', withdrawn: 'proposal withdrawn',
+      scope: 'scope change', acceptance_submitted: 'acceptance submitted', receipt_recorded: 'receipt recorded', retry: 'retry' };
+
+    document.getElementById('title').textContent = `Project money ${ctx.projectRef ?? ''}`;
+    document.getElementById('scope').innerHTML = `${esc(ctx.projectTitle ?? '')} · VND, net of VAT · ${ctx.mode === 'review' ? `review mode${ctx.focusRequestRef ? ` for ${esc(ctx.focusRequestRef)}` : ''}` : 'Job 360'}`;
+    if (ctx.mode === 'review') document.getElementById('scenario-title').textContent = 'If Finance approves (scenario)';
+
+    // A list of label/value rows (dl.kpi in panel.css): labels are fixed text, values are already escaped.
+    const kv = (rows) => `<dl class="kpi">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
+
+    function renderKpi() {
+      const r = kpi.result?.rows?.[0]; if (!r) return;
+      const incomplete = isNull(r.mr) && !isNull(r.revenue);
+      document.getElementById('approved').innerHTML = `${kv([
+          ['Approved revenue', K.vnd(r.revenue, 'none')],
+          ['Approved cost (known amounts)', K.vnd(r.known_cost, 'none')],
+          ['Lines without an amount', Number(r.unknown ?? 0) ? `<span class="chip warn">${esc(r.unknown)} unknown</span>` : '0'],
+          ['Gross profit', K.vnd(r.gp, incomplete ? 'cannot be computed' : 'none')]])}
+        <div class="figure-line"><span class="figure" data-kk="approved-margin">${K.pct(r.gm, incomplete ? 'cannot be computed' : 'not applicable')}</span>
+          <span class="small muted">gross margin · ${incomplete ? 'a cost amount is missing, so this project is left out of margin (an unknown is never counted as 0)' : isNull(r.gm) && !isNull(r.gp) ? 'matching revenue is 0: no division' : 'matching revenue − complete cost'}</span></div>`;
+      const sIncomplete = isNull(r.s_gp) && !isNull(r.s_revenue);
+      document.getElementById('scenario').innerHTML = `${kv([
+          ['Pending proposals', Number(r.pending ?? 0) ? `<span class="chip warn">${esc(r.pending)}</span>` : '0'],
+          ['Revenue (scenario)', K.vnd(r.s_revenue, 'none')],
+          ['Cost (scenario, known amounts)', K.vnd(r.s_known_cost, 'none')],
+          ['Gross profit (scenario)', K.vnd(r.s_gp, sIncomplete ? 'cannot be computed' : 'none')],
+          ['Versus approved', K.signedVnd(r.d_gp)]])}
+        <div class="figure-line"><span class="figure" data-kk="scenario-margin">${K.pct(r.s_gm, sIncomplete ? 'cannot be computed' : 'not applicable')}</span>
+          <span class="small muted">scenario margin${isNull(r.d_gm) ? '' : ` · ${esc(K.pts(r.d_gm))} vs approved`} · not an approved figure</span></div>`;
+      const c = cash?.result?.rows?.[0];
+      if (!c) { document.getElementById('recorded').innerHTML = '<p class="small muted">Loading acceptance and cash…</p>'; }
+      else document.getElementById('recorded').innerHTML = `${kv([
+          ['Verified acceptance', K.vnd(c.acc, '0 VND')],
+          ['Acceptance waiting for Finance', K.vnd(c.acc_pending, '0 VND')],
+          ['Received, net of VAT', K.vnd(c.net, '0 VND')],
+          ['Received, incl. VAT', K.vnd(c.gross, '0 VND')],
+          ['Management residual', isNull(c.residual) ? '<span class="chip warn" title="A receipt in scope includes VAT, so it cannot be compared with acceptance, which is net of VAT.">not comparable</span>' : K.vnd(c.residual)]])}
+        <p class="small muted note">Acceptance − cash on the same tax basis. Not invoices or receivables; negative = paid in advance.${isNull(c.residual) ? ' Not comparable here: a receipt includes VAT.' : ''}</p>`;
+      document.getElementById('fresh').innerHTML = `Last committed: <b>${esc(K.when(r.last))}</b><br>Queried ${esc(K.when(kpi.result.debug?.executedAt))} · load ${esc(ctx.generation ?? 1)}${ctx.reason && ctx.reason !== 'mount' ? ` (after: ${esc(REASON[ctx.reason] ?? ctx.reason)})` : ''}`;
+    }
+
+    // After a save the app remounts this panel with what it expects to see; say whether the committed data shows it.
+    function renderExpect() {
+      const box = document.getElementById('expect');
+      const e = ctx.expect;
+      if (!e || !lines?.result) { box.innerHTML = ''; return; }
+      const rows = lines.result.rows;
+      if (e.revisionRef) {
+        const seen = rows.some((x) => x.basis === 'approved' && x.revision === e.revisionRef);
+        box.innerHTML = seen ? `<div class="banner ok">Showing revision <b>${esc(e.revisionRef)}</b>, just approved — the figures were re-read from the committed data.</div>`
+          : `<div class="banner warn">Revision <b>${esc(e.revisionRef)}</b> is not in the result yet: the figures may be stale. <button type="button" id="again">Reload the figures</button></div>`;
+      } else if (e.pendingRequestRef) {
+        const seen = rows.some((x) => x.basis === 'scenario' && (x.pending === e.pendingRequestRef || x.ref === e.pendingRequestRef));
+        box.innerHTML = seen ? `<div class="banner info">The scenario includes proposal <b>${esc(e.pendingRequestRef)}</b>; the approved value stays the same until Finance approves.</div>`
+          : `<div class="banner warn">Proposal <b>${esc(e.pendingRequestRef)}</b> is not in the scenario yet. <button type="button" id="again">Reload the figures</button></div>`;
+      }
+      document.getElementById('again')?.addEventListener('click', () => app.refresh());
+    }
+
+    function renderVersions() {
+      if (!versions?.result) return;
+      const rows = versions.result.rows;
+      K.paged('versions', { rows, pageSize: 6,
+        head: '<th>Version</th><th>Valid from → until</th><th class="n">Gross profit</th><th class="n">Margin</th>',
+        row: (v) => `<tr class="${v.until ? 'dim' : ''}"><td class="ref">v${esc(v.v)}<span class="sub">${esc(String(v.label ?? '').replace(/^v\d+ · /, ''))}</span></td>
+          <td class="small nowrap">${esc(K.when(v.from))} → ${v.until ? esc(K.day(v.until) === K.day(v.from) ? K.when(v.until).split(', ').pop() : K.when(v.until)) : '<b>now</b>'}</td>
+          <td class="n">${K.vnd(v.gp, 'incomplete inputs')}<span class="sub">${K.isNull(v.mr) ? '' : `${esc(K.plainVnd(v.mr))} − ${esc(K.plainVnd(v.cc))}`}</span></td>
+          <td class="n"><b>${K.pct(v.gm, isNull(v.gp) ? 'incomplete' : 'not applicable')}</b></td></tr>` });
+      if (rows.length) {
+        K.chart('versions-chart', {
+          tooltip: { trigger: 'axis' },
+          legend: { top: 0, data: ['Gross profit', 'Margin'] },
+          xAxis: { type: 'category', data: rows.map((v) => `v${v.v}${v.until ? '' : ' (now)'}`) },
+          yAxis: [K.axisVnd, K.axisPct],
+          series: [
+            { name: 'Gross profit', type: 'bar', barMaxWidth: 36, data: rows.map((v) => K.num(v.gp)), itemStyle: { color: K.COLORS.approved },
+              tooltip: { valueFormatter: K.tipVnd } },
+            { name: 'Margin', type: 'line', yAxisIndex: 1, data: rows.map((v) => K.num(v.gm)), itemStyle: { color: K.COLORS.info },
+              label: { show: true, formatter: (p) => (p.value === null ? '' : `${(p.value * 100).toFixed(1).replace(/\.0$/, '')}%`) },
+              tooltip: { valueFormatter: (x) => (x === null ? '—' : `${(x * 100).toFixed(1)}%`) } },
+          ],
+        });
+      }
+    }
+
+    function recordedTable() {
+      if (!recorded?.result) return '<p class="muted small">Loading the acceptance and cash records…</p>';
+      const rows = recorded.result.rows;
+      return rows.length ? K.table('<th>Record</th><th>Date</th><th class="n">Amount</th><th>Status</th>', rows.map((x) => `<tr>
+          <td class="ref">${esc(x.ref)} <span class="muted">${esc(x.kind === 'acceptance' ? 'Acceptance' : x.rtype === 'deposit' ? 'Deposit' : 'Payment')}</span><span class="sub">${esc(x.description)}</span></td>
+          <td class="small nowrap">${esc(K.day(x.date))}</td><td class="n">${K.vnd(x.amount)}<span class="sub">${x.tax === 'gross_incl_vat' ? 'incl. VAT' : 'net of VAT'}</span></td>
+          <td class="small">${esc({ verified: 'Verified', submitted: 'Waiting for Finance', rejected: 'Rejected', recorded: 'Recorded' }[x.status] ?? x.status)}</td></tr>`).join(''))
+        : '<p class="muted small">No acceptance or cash recorded yet.</p>';
+    }
+
+    function renderWhy() {
+      const r = kpi.result?.rows?.[0]; if (!r) return;
+      const incomplete = isNull(r.mr) && !isNull(r.revenue);
+      const lineRows = (lines?.result?.rows ?? []).filter((x) => x.basis === 'approved');
+      const supporting = !lines?.result ? '<p class="small muted">Loading the money lines…</p>' : lineRows.length ? K.table('<th>Line</th><th>Revision</th><th class="n">Amount</th><th>Value</th>', lineRows.map((x) => {
+        const st = STATE[x.state] ?? ['', x.state];
+        return `<tr><td class="ref">${esc(x.ref)}<span class="sub">${esc(x.kind === 'revenue' ? 'Revenue' : 'Cost')} · ${esc(x.description)}</span></td>
+          <td class="small nowrap">${esc(x.revision)} · rev. ${esc(x.revision_no)}<span class="sub">${esc(K.when(x.committed))}</span></td>
+          <td class="n">${x.known === false || x.known === 'false' ? '<span class="chip warn">unknown</span>' : K.vnd(x.amount)}</td>
+          <td><span class="chip ${st[0]}">${esc(st[1])}</span></td></tr>`; }).join('')) : '<p class="small muted">No approved money line yet.</p>';
+      K.why('why', {
+        metrics: ['approved_matching_revenue', 'approved_complete_cost', 'approved_gross_profit', 'approved_gross_margin', 'scenario_gross_margin', 'management_residual'],
+        items: [
+          ['Date basis', 'Values in force at query time (Asia/Ho_Chi_Minh). Each revision has its own effective date and approval time (supporting records).'],
+          ['Filters applied', `Project = <b>${esc(ctx.projectRef)}</b>, passed by the app as an SDK filter. The AQL that ran:<pre class="aql">${esc(kpi.result.debug?.executedAql ?? '')}</pre>`],
+          ['Source freshness', `Last committed ${esc(K.when(r.last))}; queried ${esc(K.when(kpi.result.debug?.executedAt))}. Anfra reads the reporting views of PostgreSQL through a read-only login.`],
+          ['Completeness', `${Number(r.unknown ?? 0) ? `<span class="chip warn">${esc(r.unknown)} line(s) without an amount</span> — not counted as 0.` : 'Every approved line has an amount.'}${incomplete ? ' So the project is <b>excluded</b> from the portfolio\'s matching revenue, gross profit and margin.' : ''}`],
+          ['Exclusions', `${incomplete ? 'This project is excluded from margin. ' : ''}Pipeline estimates, pending proposals and cash are not part of the approved figures.`],
+          ['Supporting records', `${supporting}<div style="margin-top:8px">${recordedTable()}</div>`],
+        ],
+      });
+    }
+
+    function render() {
+      K.status(kpi, 'kpi-status', 'No money data for this project yet.');
+      if (versions) K.status(versions, 'versions-status', 'No committed version yet.');
+      else { const el = document.getElementById('versions-status'); el.textContent = 'Loading…'; el.classList.add('visible'); }
+      [kpi, lines, versions, recorded, cash].filter(Boolean).forEach(K.first);
+      if (kpi.state === 'success' && !secondStep) {
+        secondStep = true;
+        for (const q of [declareVersions(), declareCash()]) app.mapControl(project, q, { field: 'projects.project_ref' });
+        if (ctx.mode === 'review' || document.getElementById('why-box').open) needDetail(); else if (ctx.expect) needDetail({ withRecorded: false });
+        app.execute();
+      }
+      renderKpi(); renderVersions(); renderExpect(); renderWhy();
+    }
+    app.subscribe(render);
+    const whyBox = document.getElementById('why-box');
+    if (ctx.mode === 'review') whyBox.open = true;
+    whyBox.addEventListener('toggle', () => { if (whyBox.open && secondStep && needDetail()) app.execute(); });
+    app.execute({ force: true });
+  }
+</script>
+</body>
+</html>

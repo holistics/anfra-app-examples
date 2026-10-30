@@ -1,0 +1,29 @@
+Model clients {
+  type: 'table'
+  label: 'Client'
+  data_source_name: 'kumquat_poc'
+  table_name: '"reporting"."clients"'
+
+  dimension id {
+    label: 'Client ID'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.id }}::text;;
+  }
+  dimension client_ref {
+    label: 'Client ID'
+    type: 'text'
+    definition: @sql {{ #SOURCE.client_ref }};;
+  }
+  dimension display_name {
+    label: 'Client'
+    type: 'text'
+    definition: @sql {{ #SOURCE.display_name }};;
+  }
+  dimension client_type {
+    label: 'Client type'
+    type: 'text'
+    definition: @sql {{ #SOURCE.client_type }};;
+  }
+}

@@ -1,0 +1,25 @@
+Model sf_deal_weeks {
+  type: 'table'
+  label: 'Deal weeks'
+  description: 'From the weekly sales reports. One row per deal per week it was mentioned, with its status that week.'
+  data_source_name: 'warehouse'
+  table_name: '"sales"."v_deal_weeks"'
+
+  dimension key { label: 'Deal week id' type: 'text' primary_key: true hidden: true definition: @sql {{ #SOURCE.week }} || ':' || {{ #SOURCE.slug }};; }
+  dimension week { label: 'Week' type: 'text' definition: @sql {{ #SOURCE.week }};; }
+  dimension slug { label: 'Deal key' type: 'text' definition: @sql {{ #SOURCE.slug }};; }
+  dimension name_shown { label: 'Name shown' type: 'text' definition: @sql {{ #SOURCE.name_shown }};; }
+  dimension owner { label: 'Owner' type: 'text' definition: @sql {{ #SOURCE.owner }};; }
+  dimension status { label: 'Status' type: 'text' description: 'Won, Lost, Close-lost due, New, Stuck, Good progress, Also moving or Quiet.' definition: @sql {{ #SOURCE.status }};; }
+  dimension sub_status { label: 'Sub-status' type: 'text' definition: @sql {{ #SOURCE.sub_status }};; }
+  dimension paragraph { label: 'Paragraph' type: 'text' definition: @sql {{ #SOURCE.paragraph }};; }
+  dimension first_sentence { label: 'First sentence' type: 'text' definition: @sql {{ #SOURCE.first_sentence }};; }
+  dimension source_path { label: 'Report file' type: 'text' description: 'Path of the weekly report file, e.g. fake/2026-W42.md in the sample data.' definition: @sql {{ #SOURCE.source_path }};; }
+  dimension win_pct { label: 'Win %' type: 'number' definition: @sql {{ #SOURCE.win_pct }};; }
+  dimension week_seq { label: 'Week number' type: 'number' description: 'Rank of the week among all reports, 1 is the first.' definition: @sql {{ #SOURCE.week_seq }};; }
+  dimension month { label: 'Month' type: 'date' hidden: true definition: @sql {{ #SOURCE.month }};; }
+  dimension is_first_new { label: 'First week as New' type: 'truefalse' definition: @sql {{ #SOURCE.is_first_new }};; }
+  dimension is_first_won { label: 'First week as Won' type: 'truefalse' definition: @sql {{ #SOURCE.is_first_won }};; }
+  dimension is_first_lost { label: 'First week as Lost' type: 'truefalse' definition: @sql {{ #SOURCE.is_first_lost }};; }
+  dimension is_live { label: 'Live' type: 'truefalse' description: 'Any status other than Won or Lost.' definition: @sql {{ #SOURCE.is_live }};; }
+}

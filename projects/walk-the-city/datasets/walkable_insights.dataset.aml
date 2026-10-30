@@ -1,0 +1,267 @@
+// Walkable insights. v2 models (wk_*) per competition/walkable-v2/SPEC.md; v1 models kept for walkable-insights-v1.html.
+// Mixed. Real: Althoff steps and gini, WHO obesity, UN WUP, UN-Habitat transit, city mode share, Boeing 2025 street networks, ERA5 heat, road and shop cases. See wk_provenance.
+// Nesting: wk_countries <- wk_cities <- wk_neighbourhoods <- wk_streets. Association only, not causation.
+Dataset walkable_insights {
+  label: 'Walkable neighbourhoods'
+  description: 'Real country and city anchors (Althoff, WHO, UN, UN-Habitat, city surveys, Boeing 2025, ERA5) plus calibrated synthetic neighbourhood and street data (see wk_provenance, wk_sources). Association only, not causation.'
+  data_source_name: 'walkable'
+  models: [
+    street_layout, walk_baseline, mixed_use_walk, parking_car, proximity_local,
+    wk_countries, wk_cities, wk_neighbourhoods, wk_streets, wk_traffic_friends, wk_speed_risk, wk_canopy_temp, wk_weather_walk, wk_older_walk_speed, wk_transit_walk_dist, wk_shop_spend_by_mode, wk_kids_roam_decade, wk_parking_car, wk_walk_minutes_twin, wk_overweight_trend, wk_ht_affordability, wk_home_value_walk, wk_street_connectivity_walk, wk_sources, wk_provenance, wk_regions, wk_design_corr, wk_road_cases, wk_shop_spend_local,
+  ]
+  relationships: [
+    relationship(wk_streets.nbhd_id > wk_neighbourhoods.nbhd_id, true),
+    relationship(wk_neighbourhoods.city_id > wk_cities.city_id, true),
+    relationship(wk_cities.iso3 > wk_countries.iso3, true),
+    relationship(wk_countries.sdg_region > wk_regions.sdg_region, true),
+    relationship(wk_shop_spend_local.iso3 > wk_countries.iso3, true),
+  ]
+
+  // ---- v2 metrics ----
+  metric country_count {
+    label: 'Countries'
+    type: 'number'
+    definition: @aql wk_countries | count(wk_countries.iso3) ;;
+    format: '#,##0'
+  }
+  metric city_count {
+    label: 'Cities'
+    type: 'number'
+    definition: @aql wk_cities | count(wk_cities.city_id) ;;
+    format: '#,##0'
+  }
+  metric neighbourhood_count {
+    label: 'Neighbourhoods'
+    type: 'number'
+    definition: @aql wk_neighbourhoods | count(wk_neighbourhoods.nbhd_id) ;;
+    format: '#,##0'
+  }
+  metric street_count {
+    label: 'Streets'
+    type: 'number'
+    definition: @aql wk_streets | count(wk_streets.street_id) ;;
+    format: '#,##0'
+  }
+  metric avg_steps_per_day {
+    label: 'Steps per day (mean of countries)'
+    type: 'number'
+    definition: @aql wk_countries | avg(wk_countries.steps_per_day) ;;
+    format: '#,##0'
+  }
+  metric nb_avg_people_near_services_pct {
+    label: 'People near services (%), mean of neighbourhoods'
+    type: 'number'
+    definition: @aql wk_neighbourhoods | avg(wk_neighbourhoods.people_near_services_pct) ;;
+    format: '0.0'
+  }
+  metric nb_avg_block_density_per_km2 {
+    label: 'Block density (per km2), mean of neighbourhoods'
+    type: 'number'
+    definition: @aql wk_neighbourhoods | avg(wk_neighbourhoods.block_density_per_km2) ;;
+    format: '0'
+  }
+  metric nb_avg_tree_canopy_pct {
+    label: 'Tree canopy (%), mean of neighbourhoods'
+    type: 'number'
+    definition: @aql wk_neighbourhoods | avg(wk_neighbourhoods.tree_canopy_pct) ;;
+    format: '0.0'
+  }
+  metric nb_avg_safe_speed_share_pct {
+    label: 'Safe speed streets (%), mean of neighbourhoods'
+    type: 'number'
+    definition: @aql wk_neighbourhoods | avg(wk_neighbourhoods.safe_speed_share_pct) ;;
+    format: '0.0'
+  }
+  metric nb_avg_car_free_space_pct {
+    label: 'Vehicle-free space (%), mean of neighbourhoods'
+    type: 'number'
+    definition: @aql wk_neighbourhoods | avg(wk_neighbourhoods.car_free_space_pct) ;;
+    format: '0.0'
+  }
+  metric nb_avg_transit_near_pct {
+    label: 'Transit nearness (%), mean of neighbourhoods'
+    type: 'number'
+    definition: @aql wk_neighbourhoods | avg(wk_neighbourhoods.transit_near_pct) ;;
+    format: '0.0'
+  }
+  metric nb_avg_walk_score {
+    label: 'Walk score, mean of neighbourhoods'
+    type: 'number'
+    definition: @aql wk_neighbourhoods | avg(wk_neighbourhoods.walk_score_0_100) ;;
+    format: '0.0'
+  }
+  metric city_avg_people_near_services_pct {
+    label: 'People near services (%), mean of cities'
+    type: 'number'
+    definition: @aql wk_cities | avg(wk_cities.people_near_services_pct) ;;
+    format: '0.0'
+  }
+  metric city_avg_block_density_per_km2 {
+    label: 'Block density (per km2), mean of cities'
+    type: 'number'
+    definition: @aql wk_cities | avg(wk_cities.block_density_per_km2) ;;
+    format: '0'
+  }
+  metric city_avg_tree_canopy_pct {
+    label: 'Tree canopy (%), mean of cities'
+    type: 'number'
+    definition: @aql wk_cities | avg(wk_cities.tree_canopy_pct) ;;
+    format: '0.0'
+  }
+  metric city_avg_safe_speed_share_pct {
+    label: 'Safe speed streets (%), mean of cities'
+    type: 'number'
+    definition: @aql wk_cities | avg(wk_cities.safe_speed_share_pct) ;;
+    format: '0.0'
+  }
+  metric city_avg_car_free_space_pct {
+    label: 'Vehicle-free space (%), mean of cities'
+    type: 'number'
+    definition: @aql wk_cities | avg(wk_cities.car_free_space_pct) ;;
+    format: '0.0'
+  }
+  metric city_avg_transit_near_pct {
+    label: 'Transit nearness (%), mean of cities'
+    type: 'number'
+    definition: @aql wk_cities | avg(wk_cities.transit_near_pct) ;;
+    format: '0.0'
+  }
+  metric city_avg_walk_index {
+    label: 'Walk index, mean of cities'
+    type: 'number'
+    definition: @aql wk_cities | avg(wk_cities.walk_index_0_100) ;;
+    format: '0.0'
+  }
+  metric st_avg_canopy_pct {
+    label: 'Tree canopy (%), mean of streets'
+    type: 'number'
+    definition: @aql wk_streets | avg(wk_streets.canopy_pct) ;;
+    format: '0.0'
+  }
+  metric st_safe_speed_share_pct {
+    label: 'Safe speed streets (%), share of streets'
+    type: 'number'
+    definition: @aql (wk_streets | count(wk_streets.street_id) | where(wk_streets.speed_kmh <= 30)) * 100.0 / (wk_streets | count(wk_streets.street_id)) ;;
+    format: '0.0'
+  }
+  metric st_avg_friends {
+    label: 'Friends per resident, mean of streets'
+    type: 'number'
+    definition: @aql wk_streets | avg(wk_streets.friends_per_resident) ;;
+    format: '0.00'
+  }
+  metric st_avg_traffic {
+    label: 'Traffic (veh/day), mean of streets'
+    type: 'number'
+    definition: @aql wk_streets | avg(wk_streets.traffic_veh_day) ;;
+    format: '#,##0'
+  }
+  metric nb_avg_local_trip_share {
+    label: 'Local trip share (%), mean of neighbourhoods'
+    type: 'number'
+    definition: @aql wk_neighbourhoods | avg(wk_neighbourhoods.local_trip_share_pct) ;;
+    format: '0.0'
+  }
+  metric nb_avg_home_value {
+    label: 'Home value (USD), mean of neighbourhoods'
+    type: 'number'
+    definition: @aql wk_neighbourhoods | avg(wk_neighbourhoods.home_value_usd) ;;
+    format: '#,##0'
+  }
+  metric city_avg_walk_min {
+    label: 'Transport walking (min/week), mean of cities'
+    type: 'number'
+    definition: @aql wk_cities | avg(wk_cities.transport_walk_min_week) ;;
+    format: '0.0'
+  }
+  metric city_avg_overweight_2001 {
+    label: 'Overweight 2001 (%), mean of cities'
+    type: 'number'
+    definition: @aql wk_cities | avg(wk_cities.overweight_pct_2001) ;;
+    format: '0.0'
+  }
+  metric city_avg_overweight_2012 {
+    label: 'Overweight 2012 (%), mean of cities'
+    type: 'number'
+    definition: @aql wk_cities | avg(wk_cities.overweight_pct_2012) ;;
+    format: '0.0'
+  }
+
+  // ---- v1 metrics (walkable-insights-v1.html) ----
+  metric street_neighbourhoods {
+    label: 'Neighbourhoods (street layout)'
+    type: 'number'
+    definition: @aql street_layout | count_distinct(street_layout.city_id) ;;
+    format: '#,##0'
+  }
+
+  metric avg_transport_walk_z {
+    label: 'Transport walking (mean z)'
+    type: 'number'
+    definition: @aql street_layout | avg(street_layout.transport_walk_z) ;;
+    format: '0.00'
+  }
+
+  metric avg_leisure_walk_z {
+    label: 'Leisure walking (mean z)'
+    type: 'number'
+    definition: @aql street_layout | avg(street_layout.leisure_walk_z) ;;
+    format: '0.00'
+  }
+
+  metric baseline_neighbourhoods {
+    label: 'Neighbourhoods (baseline walking)'
+    type: 'number'
+    definition: @aql walk_baseline | count_distinct(walk_baseline.row_id) ;;
+    format: '#,##0'
+  }
+
+  metric avg_baseline_walk_min {
+    label: 'Baseline transport walking (min/week)'
+    type: 'number'
+    definition: @aql walk_baseline | avg(walk_baseline.baseline_walk_min) ;;
+    format: '#,##0.0'
+  }
+
+  metric mixed_neighbourhoods {
+    label: 'Neighbourhoods (mixed use)'
+    type: 'number'
+    definition: @aql mixed_use_walk | count_distinct(mixed_use_walk.row_id) ;;
+    format: '#,##0'
+  }
+
+  metric avg_walk_change_5yr {
+    label: '5-year change in walking (min/week, mean)'
+    type: 'number'
+    definition: @aql mixed_use_walk | avg(mixed_use_walk.walk_change_5yr) ;;
+    format: '#,##0.0'
+  }
+
+  metric parking_neighbourhoods {
+    label: 'Neighbourhoods (parking)'
+    type: 'number'
+    definition: @aql parking_car | count_distinct(parking_car.row_id) ;;
+    format: '#,##0'
+  }
+
+  metric avg_car_share_pct {
+    label: 'Car commute share (%, mean)'
+    type: 'number'
+    definition: @aql parking_car | avg(parking_car.car_share_pct) ;;
+    format: '#,##0.0'
+  }
+
+  metric proximity_neighbourhoods {
+    label: 'Neighbourhoods (proximity)'
+    type: 'number'
+    definition: @aql proximity_local | count_distinct(proximity_local.row_id) ;;
+    format: '#,##0'
+  }
+
+  metric avg_local_share_pct {
+    label: 'Local consumption trips (%, mean)'
+    type: 'number'
+    definition: @aql proximity_local | avg(proximity_local.local_share_pct) ;;
+    format: '#,##0.0'
+  }
+}

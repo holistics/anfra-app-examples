@@ -1,0 +1,2495 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>an eat hết</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      --bg: #ffffff; --card: #f6f6f6; --ink: #1c1f1d; --muted: #7a807c; --faint: #a3a8a4; --track: #e2e4e2;
+      --green: #346e4f; --green-mid: #346e4f; --green-soft: #e4f1dc; --green-track: #d9e4dd;
+      --amber: #f5c542; --crimson: #b0224f; --crimson-soft: #fbe3ea;
+      --bar: 68px;
+      --surface: #ffffff; --fill: #eceeed; --fill-2: #e2e5e3; --line: #ececec; --text2: #5a605c; --dim: #8a8f8b; --green-bg: #346e4f; --green-strong: #245a3a; --edge: #cfd3d0;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #121413; --card: #1d201e; --surface: #272b28; --fill: #2b2f2c; --fill-2: #373c38; --line: #323734; --ink: #ecefed; --muted: #9ba19d; --faint: #6f7571; --track: #323734;
+      --text2: #b7bdb9; --dim: #858b87; --green: #74c492; --green-mid: #74c492; --green-bg: #2f6a4a; --green-strong: #8bd6a6; --edge: #4a504c; --green-soft: #213d2d; --green-track: #2e3d34;
+      --crimson: #f08aa8; --crimson-soft: #43212d;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 Nunito, system-ui, sans-serif; }
+    h1, h2 { font-weight: 600; margin: 0; }
+    main { max-width: 1280px; margin: 0 auto; padding: 28px 24px 56px; }
+    header { position: sticky; top: 0; z-index: 40; min-height: 68px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin: -28px -24px 20px; padding: 10px 24px; background: var(--bg); transition: box-shadow .15s; }
+    h1 { font-size: 22px; font-weight: 700; white-space: nowrap; }
+    h1.brand { position: relative; cursor: default; transition: color .15s; }
+    h1.brand:hover { color: var(--green, #1f6b45); }
+    h1.brand:hover::after { content: attr(data-tip); position: absolute; left: 0; top: calc(100% + 2px); width: 270px; padding: 12px 14px; background: var(--surface); color: var(--ink); border-radius: 14px; box-shadow: 0 8px 28px rgb(0 0 0 / .14); font: 500 13px/1.5 Nunito, sans-serif; text-align: left; white-space: pre-line; z-index: 40; }
+    .sub { color: var(--muted); margin-top: 2px; }
+    .sub:empty { display: none; }
+    .lead { display: flex; align-items: center; gap: 14px; }
+    .controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px; }
+    .dd-btn { white-space: nowrap; }
+    #modewrap .dd-list { left: auto; right: 0; min-width: 300px; }
+    .selchip { font: inherit; font-size: 13px; font-weight: 600; color: var(--green); background: var(--green-soft); border: 0; border-radius: 999px; padding: 7px 8px 7px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; max-width: 260px; }
+    .selchip[hidden] { display: none; }
+    .selchip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .selchip i { font-style: normal; width: 18px; height: 18px; border-radius: 50%; background: rgb(52 110 79 / .14); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; flex: none; }
+    .modewrap { position: relative; }
+    .seg { display: inline-flex; gap: 2px; padding: 4px; background: var(--fill); border-radius: 999px; }
+    .seg button, .dd-btn { font: inherit; font-size: 14px; font-weight: 500; color: var(--muted); background: transparent; border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+    .seg button svg { width: 16px; height: 16px; flex: none; }
+    .seg button .chev { margin-left: 2px; }
+    .seg button[aria-pressed="true"] { background: var(--green-bg); color: #fff; }
+    .seg button[aria-pressed="true"] .chev { border-color: var(--surface); }
+    .dd { position: relative; }
+    .dd-btn { background: var(--fill); color: var(--ink); padding: 11px 18px; }
+    .dd-btn small { color: var(--muted); font-size: 13px; font-weight: 500; }
+    .chev { width: 7px; height: 7px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(45deg) translateY(-2px); margin-left: 2px; }
+    .dd-sec { font-size: 15px; font-weight: 700; color: var(--ink); padding: 10px 14px 12px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
+    .dd-item small { color: var(--faint); font-size: 12px; margin-left: 12px; }
+    .info.right:hover::after { left: auto; right: -8px; }
+    .dd-list { position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 8px; box-shadow: 0 12px 32px rgb(0 0 0 / .12); z-index: 20; display: none; flex-direction: column; overflow: hidden; }
+    .modewrap.open .dd-list { display: flex; }
+    .dd-scroll { overflow: auto; max-height: 320px; }
+    .dd-foot { flex: none; background: var(--card); border-radius: 12px; margin-top: 8px; padding: 4px 4px 6px; }
+    .dd-foot .dd-item { padding: 9px 12px; }
+    .dd-foot .dd-item:hover { background: var(--line); }
+    .dd-item.stack { align-items: center; }
+    .dd-item.stack small { display: block; margin: 1px 0 0; }
+    .modewrap .seg { min-width: 300px; }
+    .modewrap .seg button { flex: 1; justify-content: center; white-space: nowrap; }
+    .dd-item { display: flex; justify-content: space-between; gap: 24px; align-items: center; padding: 11px 14px; border-radius: 12px; cursor: pointer; white-space: nowrap; font-size: 15px; }
+    .dd-item:hover { background: var(--card); }
+    .dd-item.disabled { color: var(--dim); cursor: not-allowed; }
+    .dd-item { position: relative; }
+    .cdate { position: absolute; left: 0; top: 100%; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; }
+    .dd-item .check { color: var(--green); font-weight: 700; }
+    .kpis { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, .85fr) minmax(0, 1.15fr) minmax(0, 1.15fr); gap: 16px; margin-bottom: 16px; }
+    .kpi { display: flex; flex-direction: column; }
+    .card.hero { grid-column: 1 / span 2; grid-row: 1 / span 2; background: radial-gradient(circle at 88% 18%, rgb(183 227 168 / .24), transparent 52%), linear-gradient(140deg, #1b4332, #2d6a4f); color: #fff; padding: 26px 30px; overflow: hidden; }
+    .ringwrap { position: relative; width: 130px; height: 130px; flex: none; }
+    .ringwrap .ring { width: 130px; height: 130px; }
+    .comps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 22px; }
+    .comp .cl { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: rgb(255 255 255 / .7); margin-bottom: 8px; }
+    .comp .cl b { color: #fff; font-size: 15px; font-weight: 700; }
+    .comp .cb { height: 5px; border-radius: 3px; background: rgb(255 255 255 / .16); overflow: hidden; }
+    .comp .cb span { display: block; height: 100%; width: 0; border-radius: 3px; background: #b7e3a8; }
+    .card.hero .info { color: rgb(255 255 255 / .6); }
+    .card.hero .value { color: #fff !important; font-size: 60px; margin: 0; padding: 0; letter-spacing: -0.02em; line-height: 1; }
+    .card.hero .figure { padding-top: 0; margin-top: 0; }
+    .card.hero .foot { color: rgb(255 255 255 / .75); font-size: 14px; }
+    .card.hero .delta { background: rgb(255 255 255 / .16); color: rgb(255 255 255 / .8); }
+    .card.hero .delta.good { background: var(--green-soft); color: var(--green); }
+    .card.hero .delta.bad { background: var(--crimson-soft); color: var(--crimson); }
+    .hero-body { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-top: auto; }
+    
+    .card { background: var(--card); border-radius: 24px; padding: 22px 24px; position: relative; }
+    /* a card whose queries are re-running: its numbers and charts dim and pulse until the new ones land */
+    .busy :is(.value, .foot, .delta-row, canvas) { opacity: .55; transition: opacity .15s; }
+    .busy .value { animation: kbusy 1s ease-in-out infinite; }
+    @keyframes kbusy { 50% { opacity: .3; } }
+    @media (prefers-reduced-motion: reduce) { .busy .value { animation: none; } }
+    .card h2 { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; line-height: 1.2; }
+    .card .hint { color: var(--muted); font-size: 13px; margin: 2px 0 10px; }
+    .kpi .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 28px; }
+    .kpi .title { font-size: 15px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .kpi .label { color: var(--muted); font-size: 13px; margin-top: 18px; }
+    .kpi .value, .spend .value { font-size: 30px; line-height: 1.15; font-weight: 600; color: var(--ink); margin: 0; letter-spacing: -0.01em; }
+    .figure { margin-top: auto; padding-top: 14px; }
+    .delta-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; min-height: 24px; }
+    .valueline { display: flex; align-items: baseline; gap: 8px; }
+    .valueline .of { font-size: 18px; font-weight: 600; color: rgb(255 255 255 / .6); }
+    .value.good, .row .score.good { color: var(--green); }
+    .value.bad, .row .score.bad { color: var(--crimson); }
+    .kpi .foot, .spend .foot { color: var(--muted); font-size: 13px; margin: 0; }
+    .showw { display: inline-flex; align-items: baseline; gap: 10px; opacity: 0; transition: opacity .15s; }
+    .showw .sep { font-size: 30px; line-height: 1.15; font-weight: 600; color: var(--ink); }
+    .value.good + .showw .sep { color: var(--green); }
+    .value.bad + .showw .sep { color: var(--crimson); }
+    .showbtn { font: inherit; font-size: 30px; line-height: 1.15; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); background: none; border: 0; padding: 0; cursor: pointer; white-space: nowrap; }
+    .card:hover .showw, .showw:focus-within, .showw.on { opacity: 1; }
+    .valrow { display: flex; align-items: baseline; gap: 0; }
+    .valrow .value { white-space: nowrap; }
+    .showw[hidden] { display: none; }
+    .delta { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 56px; font-size: 12px; font-weight: 600; padding: 3px 12px; border-radius: 999px; background: var(--fill); color: var(--muted); white-space: nowrap; }
+    .delta.good { background: var(--green-soft); color: var(--green); }
+    .delta.bad { background: var(--crimson-soft); color: var(--crimson); }
+    
+    .chart { width: 100%; height: 340px; }
+    .tools { display: flex; align-items: center; gap: 10px; }
+    .ctl-label { color: var(--muted); font-size: 13px; }
+    .tools .seg { padding: 3px; }
+    .tools .seg button { padding: 6px 14px; font-size: 13px; }
+    .pop-wrap { position: relative; }
+    .rangewrap .seg { min-width: 0; }
+    .rangewrap .seg button { padding: 8px 10px; }
+    .grainwrap .dd-list { right: auto; }
+    .rangewrap .dd-list { left: auto; right: 0; min-width: 220px; }
+    .grainwrap .dd-list { min-width: 200px; }
+    .grainwrap .dd-btn { padding: 10px 16px; font-size: 14px; }
+    .grainwrap .dd-btn svg { width: 16px; height: 16px; color: var(--muted); }
+    .seg button .chev.idle { visibility: hidden; }
+    .grainwrap .dd-btn { min-width: 124px; justify-content: space-between; }
+    .chip { display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: 13px; font-weight: 500; color: var(--ink); background: var(--fill); border: 0; border-radius: 999px; padding: 7px 8px 7px 14px; cursor: default; white-space: nowrap; }
+    .chip svg { width: 22px; height: 8px; flex: none; }
+    .chip.main { background: var(--green-bg); color: #fff; }
+    .chip.main svg line { stroke: var(--surface); }
+    .chip.nodata { color: var(--dim); }
+    .chip .x { font: inherit; width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; color: inherit; opacity: .65; cursor: pointer; line-height: 1; padding: 0; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+    .chip .x:hover { opacity: 1; background: rgb(0 0 0 / .1); }
+    .chip.add { cursor: pointer; padding: 7px 14px; color: var(--muted); }
+    .chip.add:hover { color: var(--ink); background: var(--fill-2); }
+    .cstrip { display: flex; align-items: center; gap: 8px; }
+    .sbtn { font: inherit; font-size: 12.5px; color: var(--ink); background: var(--fill); border: 0; border-radius: 999px; padding: 5px 8px 5px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; opacity: 0; transition: opacity .15s; }
+    .sbtn svg { width: 14px; height: 14px; color: var(--muted); }
+    .sbtn .chev { margin-left: 0; }
+    .card:hover .sbtn, .cstrip.own .sbtn, .sbtn.pinned { opacity: 1; }
+    .tl .chip.add.pinned { opacity: 1; background: var(--fill); }
+    .cstrip .reset { font: inherit; font-size: 12.5px; color: var(--muted); background: var(--fill); border: 0; border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+    .cstrip .reset:hover { color: var(--ink); }
+    .tl .chip { font-size: 12.5px; background: transparent; padding: 3px 4px 3px 8px; color: var(--muted); }
+    .tl .chip .x, .tl .chip.add { opacity: 0; transition: opacity .15s; }
+    .card:hover .tl .chip .x { opacity: .65; }
+    .card:hover .tl .chip.add { opacity: 1; background: var(--fill); }
+    .addmenu { position: fixed; z-index: 60; width: 300px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 6px; box-shadow: 0 12px 32px rgb(0 0 0 / .12); }
+    .addmenu[hidden] { display: none; }
+    .am-row { display: grid; grid-template-columns: 26px 1fr; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; cursor: pointer; }
+    .am-row:hover { background: var(--card); }
+    .am-row.off { cursor: not-allowed; color: var(--dim); }
+    .am-row.off:hover { background: none; }
+    .am-row svg { width: 26px; height: 8px; }
+    .am-row b { display: block; font-weight: 600; font-size: 14px; }
+    .am-row small { display: block; color: var(--text2); font-size: 12.5px; }
+    .am-row.off small { color: var(--dim); }
+    .am-row input { font: inherit; font-size: 13px; width: 54px; border: 0; background: var(--fill); border-radius: 8px; padding: 2px 6px; margin-right: 4px; }
+    .am-empty { padding: 12px; color: var(--text2); font-size: 13.5px; }
+    .cmp-btn { font: inherit; height: 36px; min-width: 36px; padding: 0 10px; border: 0; border-radius: 999px; background: var(--fill); color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .cmp-btn svg { width: 18px; height: 18px; }
+    .cmp-btn.on { background: var(--green-bg); color: #fff; }
+    .cmp-btn b { font-size: 12.5px; font-weight: 700; }
+    .cmp-pop { display: none; position: absolute; top: calc(100% + 8px); right: 0; width: 320px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 6px; box-shadow: 0 12px 32px rgb(0 0 0 / .12); z-index: 35; }
+    .pop-wrap.open .cmp-pop { display: block; }
+    .cmp-row { display: grid; grid-template-columns: 20px 26px 1fr; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; cursor: pointer; }
+    .cmp-row:hover { background: var(--card); }
+    .cmp-row.off { cursor: not-allowed; }
+    .cmp-row.off:hover { background: none; }
+    .cmp-row input { position: absolute; opacity: 0; pointer-events: none; }
+    .tick { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--faint); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; }
+    .cmp-row input:checked + .tick { background: var(--green-bg); border-color: var(--green-bg); }
+    .cmp-row input:checked + .tick::after { content: "✓"; }
+    .cmp-row input:focus-visible + .tick { outline: 2px solid var(--green); outline-offset: 2px; }
+    .cmp-row.off .tick { background: var(--fill); border-color: var(--fill-2); }
+    .cmp-row b { display: block; font-weight: 600; font-size: 14px; line-height: 1.25; }
+    .cmp-row small { display: block; color: var(--text2); font-size: 12.5px; line-height: 1.3; }
+    .cmp-row.off b, .cmp-row.off small { color: var(--dim); }
+    .cmp-row svg { width: 26px; height: 8px; }
+    .cmp-off { padding: 14px 12px 12px; }
+    .cmp-off p { margin: 0 0 12px; color: var(--text2); font-size: 13.5px; }
+    .cmp-off button { font: inherit; font-size: 13.5px; font-weight: 600; color: #fff; background: var(--green-bg); border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer; }
+    .chart.short { height: 250px; }
+    .zone-head { display: flex; align-items: baseline; gap: 10px; margin: 40px 4px 12px; }
+    .zone-head h3 { margin: 0; font-size: 18px; font-weight: 700; }
+    .zone-head span { color: var(--muted); font-size: 13px; }
+    .zone2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; }
+    .zone2 .guests-card { grid-row: 1 / span 2; }
+    .zone2 .card { align-self: stretch; }
+    .spend { display: flex; flex-direction: column; }
+    .spend .figure { margin-top: 0; padding: 6px 0 4px; }
+    .split { display: flex; height: 12px; border-radius: 6px; overflow: hidden; gap: 2px; margin: 22px 0 14px; background: var(--track); }
+    .split span { display: block; height: 100%; min-width: 3px; }
+    .srow { display: flex; gap: 12px; align-items: center; padding: 7px 0; }
+    .srow .l { color: var(--ink); flex: 1; }
+    .srow b { font-weight: 700; }
+    .srow .chip { min-width: 62px; text-align: center; }
+    .srow .pc { color: var(--muted); min-width: 40px; text-align: right; font-variant-numeric: tabular-nums; }
+    .prow { display: grid; grid-template-columns: 150px 1fr 76px 76px 84px; gap: 12px; align-items: center; padding: 8px 0; }
+    .cmp .prow { grid-template-columns: 150px 1fr 76px 62px 76px 84px; }
+    .prow.hd { color: var(--muted); font-size: 12px; padding: 0 0 2px; }
+    .prow.hd + .prow { padding-top: 2px; }
+    #pairs-segl { margin-bottom: 26px; }
+    .prow .l { display: flex; align-items: center; color: var(--ink); min-width: 0; }
+    .prow b, .prow span.n { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .prow.hd span { text-align: right; }
+    .prow .bar { height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+    .prow .bar span { display: block; height: 100%; border-radius: 3px; }
+    .prow.grp .bar { background: none; }
+    .prow .chip { min-width: 0; text-align: center; padding: 3px 6px; }
+    .prow.grp .l { color: var(--ink); font-weight: 700; }
+    .prow.grp { padding-top: 14px; }
+    .prow.child .l { padding-left: 14px; }
+    .split.lbl { margin: 0; }
+    .stip { position: fixed; z-index: 60; pointer-events: none; background: var(--surface); color: var(--ink); border-radius: 14px; box-shadow: 0 8px 28px rgb(0 0 0 / .14); padding: 12px 14px; min-width: 190px; max-width: 280px; font-size: 13px; }
+    .stip b { display: flex; align-items: center; font-size: 14px; margin-bottom: 6px; }
+    .stip div { display: flex; justify-content: space-between; gap: 16px; padding: 2px 0; }
+    .stip div span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .stip .more { color: var(--muted); }
+    .segl { display: flex; gap: 2px; margin: 8px 0 0; font-size: 12.5px; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .segl span { white-space: nowrap; overflow: hidden; min-width: 0; }
+    .cap { color: var(--muted); font-size: 12.5px; margin: 26px 0 14px; }
+    /* the first cause's text centres on the same line as the bar in the left column */
+    #dw-rows { margin-top: -7px; }
+    #dw-rows .crow:first-child { padding-top: 0; }
+    .layout + .dwaste { margin-top: 16px; }
+    .dw-body { display: grid; grid-template-columns: 1fr 1fr; column-gap: 56px; }
+    .dw-stats { grid-column: 1; }
+    .dw-where { grid-column: 1; grid-row: 2; }
+    .dw-why { grid-column: 2; grid-row: 2; }
+    .dw-where .cap { margin-bottom: 12px; }
+    .dw-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 4px 0 0; }
+    .dw-stats > div { display: flex; flex-direction: column; align-items: flex-start; }
+    .zone2 .guests-card { display: flex; flex-direction: column; }
+    .zone2 .guests-card .chart.short { height: 100%; min-height: 420px; flex: 1; }
+    .dw-stats span { display: block; color: var(--muted); font-size: 12.5px; }
+    .dw-stats .vr { display: flex; align-items: center; gap: 10px; margin: 2px 0 6px; min-height: 30px; }
+    .dw-stats b { display: block; font-size: 24px; font-weight: 600; line-height: 1.25; margin: 0; }
+    .crow { display: grid; grid-template-columns: 140px 1fr 64px 40px; gap: 12px; align-items: center; padding: 9px 0; }
+    .crow .l { color: var(--ink); }
+    .crow .t { height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+    .crow .t span { display: block; height: 100%; border-radius: 3px; background: #1c1f1d; }
+    .crow b { text-align: right; }
+    .crow .pc { text-align: right; color: var(--muted); }
+    .prow.hd { color: var(--muted); font-size: 12px; padding: 12px 0 2px; }
+    .prow .l { display: flex; align-items: center; color: var(--ink); min-width: 0; }
+    .prow b, .prow span.n { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .prow.hd span { text-align: right; }
+    .prow .chip { min-width: 0; text-align: center; padding: 3px 6px; }
+    .layout { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; align-items: stretch; }
+    .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .head { display: flex; justify-content: space-between; align-items: center; min-height: 40px; gap: 12px; margin-bottom: 8px; }
+    .rcol { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .rcol .side { align-self: stretch; }
+    .side { position: sticky; top: calc(var(--bar) + 16px); align-self: start; height: calc(100vh - var(--bar) - 32px); min-height: 460px; overflow: hidden; }
+    .side-inner { position: absolute; inset: 22px 14px 18px 14px; padding: 0 10px; overflow: auto; }
+    .back { font: inherit; font-size: 14px; font-weight: 500; color: var(--muted); background: none; border: 0; padding: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-left: -4px; }
+    .back:hover { color: var(--ink); }
+    /* hover and keyboard focus for every button */
+    button { transition: background-color .12s, color .12s; }
+    button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+    .seg button:not([aria-pressed="true"]):hover { background: var(--fill-2); color: var(--ink); }
+    .seg button[aria-pressed="true"]:hover { background: #2b5c43; }
+    .sortwrap .dd-btn:hover, .sortwrap.open > .dd-btn { background: var(--fill-2); }
+    .selchip:hover { background: var(--green-track); }
+    .showbtn:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 4px; }
+    .sbtn:hover { background: var(--fill-2); }
+    .sbtn:hover svg { color: var(--ink); }
+    .cstrip .reset:hover { background: var(--fill-2); }
+    .tl button:not([aria-pressed="true"]):hover { background: var(--fill); color: var(--ink); }
+    .tl button[aria-pressed="true"]:hover { background: var(--fill-2); }
+    .back:hover svg { transform: translateX(-2px); }
+    .back svg { transition: transform .12s; }
+    #detail-title { font-size: 26px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; margin-top: 22px; }
+    #detail-view > .head { position: sticky; top: 0; z-index: 3; background: var(--card); margin-bottom: 0; }
+    .sortwrap .dd-btn { padding: 7px 14px; font-size: 13px; }
+    .sortwrap .dd-list { left: auto; right: 0; min-width: 230px; }
+    .sortwrap .dd-item.disabled { color: var(--dim); }
+    .sortwrap .dd-item.disabled small { display: none; color: var(--text2); font-size: 13px; margin: 2px 0 0; }
+    .sortwrap .dd-item.disabled:hover small { display: block; }
+    .sortwrap .dd-item.disabled > span { white-space: normal; }
+    .row .no { display: inline-block; min-width: 22px; color: var(--faint); font-weight: 600; }
+    .status { position: absolute; inset: 70px 24px 20px; display: none; align-items: center; justify-content: center; text-align: center; background: color-mix(in srgb, var(--card) 88%, transparent); color: var(--muted); z-index: 2; }
+    .status.visible { display: flex; }
+    .status.error { color: var(--crimson); }
+    .card:hover { z-index: 3; }
+    .info { position: relative; display: inline-flex; width: 14px; height: 14px; color: var(--faint); align-items: center; justify-content: center; cursor: default; flex: none; }
+    .info svg { width: 14px; height: 14px; display: block; }
+    .card h2 .info { transform: translateY(-1px); }
+    .info:hover { z-index: 60; }
+    .info:hover::after { content: attr(data-tip); position: absolute; left: calc(100% + 10px); top: -6px; width: 210px; padding: 10px 12px; background: var(--surface); color: var(--ink); border-radius: 14px; box-shadow: 0 8px 28px rgb(0 0 0 / .14); font: 500 13px/1.4 Nunito, sans-serif; text-align: left; white-space: pre-line; z-index: 30; }
+    .side .info:hover::after, .xp-viz .info:hover::after { left: -8px; top: calc(100% + 8px); }
+    /* the tip opens to the right of its icon (below it, in the side card); when that would run past the edge of the page, a script adds .flip and it opens to the left instead (see the mouseover handler near the end) */
+    .info.flip:hover::after { left: auto; right: calc(100% + 10px); }
+    .side .info.flip:hover::after, .xp-viz .info.flip:hover::after { left: auto; right: -8px; }
+    .hint:empty { display: none; }
+    .legend { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 12.5px; margin-top: 6px; justify-content: center; }
+    .tl { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+    .tl button { font: inherit; font-size: 12.5px; color: var(--muted); background: transparent; border: 0; border-radius: 999px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; }
+    .tl button[aria-pressed="true"] { background: var(--fill); color: var(--ink); }
+    .tl .ovl { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); padding: 4px 10px; }
+    .tl .ovl svg { width: 26px; height: 8px; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .rank { margin: 0 -10px; }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 0 10px; padding: 10px 12px; border-radius: 14px; cursor: pointer; }
+    .row:hover { background: var(--fill); }
+    .row.selected { background: var(--fill-2); }
+    .row .name { font-weight: 600; color: var(--text2); }
+    .row .meta { color: var(--muted); font-size: 12.5px; }
+    .row .score { text-align: right; font-weight: 700; color: var(--muted); }
+    .row .score small { color: inherit; opacity: .85; font-weight: 600; margin-left: 6px; font-size: 12px; }
+    .track { height: 5px; border-radius: 3px; background: var(--track); grid-column: 1 / -1; overflow: hidden; margin-top: 8px; }
+    .track > span { display: block; height: 100%; border-radius: 3px; background: #1c1f1d; }
+    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 16px; margin: 14px 0 6px; }
+    .stats span { display: block; color: var(--muted); font-size: 12.5px; }
+    .stats b { font-size: 21px; font-weight: 700; }
+    .stats small { color: var(--muted); font-size: 12px; margin-left: 6px; }
+    .section-label { font-size: 13px; color: var(--muted); margin: 18px 0 10px; }
+    .stage { margin-bottom: 10px; }
+    .stage .line { display: grid; grid-template-columns: 78px 1fr 56px; gap: 12px; align-items: center; }
+    .stage .line .t { height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+    .stage .line .t span { display: block; height: 100%; border-radius: 3px; background: #1c1f1d; }
+    .stage .amt { text-align: right; font-size: 13px; margin-top: 2px; }
+    .dstack { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 1px; background: var(--track); }
+    .dstack span { display: block; height: 100%; min-width: 2px; }
+    .stage .amt { display: block; text-align: right; font-size: 13px; margin: 0; font-variant-numeric: tabular-nums; }
+    .dleg { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--muted); margin: -2px 0 12px; }
+    .dleg i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .reuse-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 6px 0; }
+    .reuse-row .t { font-weight: 600; }
+    .reuse-row.link { cursor: pointer; }
+    .reuse-row.link:hover .t { color: var(--green); text-decoration: underline; }
+    .reuse-row .g { color: var(--muted); font-size: 12.5px; text-align: right; }
+    .cy-wrap { position: relative; margin-top: 8px; }
+    .cy-wrap svg { display: block; width: 100%; height: auto; font-family: inherit; }
+    .cy-wrap text { fill: var(--ink); font-size: 11.5px; stroke: var(--card); stroke-width: 3px; paint-order: stroke; stroke-linejoin: round; }
+    .cy-wrap text.m { fill: var(--muted); }
+    .cy-wrap text.lp { font-size: 11px; font-weight: 600; stroke-width: 7px; }
+    .cy-wrap .ribbon { fill: none; opacity: .5; transition: opacity .12s; }
+    .cy-wrap .ribbon:hover, .cy-wrap .ribbon.on { opacity: .9; }
+    .cy-wrap.hov .ribbon:not(.on) { opacity: .16; }
+    .cy-wrap .loop { fill: none; stroke-dasharray: 7 5; animation: march 1.4s linear infinite; }
+    @keyframes march { to { stroke-dashoffset: -12; } }
+    @media (prefers-reduced-motion: reduce) { .cy-wrap .loop { animation: none; } }
+    /* ---- expand: a card opens in a modal with the viz on the left, its data and AQL on the right ---- */
+    /* at rest the button takes no room (width 0, and a negative margin cancels the group's 12px gap) so a control sits flush top-right; on hover it grows in and pushes the control left */
+    .xp-btn { width: 0; height: 28px; margin-left: -12px; overflow: hidden; border: 0; border-radius: 50%; background: transparent; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; flex: none; opacity: 0; transition: width .15s ease, margin-left .15s ease, opacity .12s, background .12s, color .12s; }
+    .card:hover .xp-btn, .xp-btn:focus-visible { width: 28px; margin-left: 0; opacity: 1; }
+    @media (prefers-reduced-motion: reduce) { .xp-btn { transition: none; } }
+    .xp-right { margin-left: auto; display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .xp-btn svg { width: 15px; height: 15px; }
+    .xp-btn:hover, .xp-btn:focus-visible { background: rgb(0 0 0 / .07); color: var(--ink); }
+    .card.hero .xp-btn { color: rgb(255 255 255 / .6); }
+    .card.hero .xp-btn:hover, .card.hero .xp-btn:focus-visible { background: rgb(255 255 255 / .16); color: #fff; }
+    #xp { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; background: rgb(20 24 22 / .45); }
+    #xp.open { display: flex; }
+    .xp-panel { width: min(1320px, 94vw); height: min(860px, 92vh); background: var(--surface); border-radius: 24px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 80px rgb(0 0 0 / .3); }
+    .xp-head { display: flex; align-items: center; gap: 14px; padding: 18px 24px; flex: none; }
+    .xp-head h2 { font-size: 20px; font-weight: 700; }
+    .xp-meta { color: var(--muted); font-size: 13.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .xp-x { width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; }
+    .xp-x:hover, .xp-x:focus-visible { background: var(--fill); color: var(--ink); }
+    .xp-main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; padding: 0 24px 24px; flex: 1; min-height: 0; }
+    .xp-viz { background: var(--card); border-radius: 20px; min-height: 0; overflow: auto; }
+    .xp-side { min-height: 0; overflow: auto; }
+    .xp-viz { padding: 16px; }
+    .xp-viz > .card { position: static; width: 100%; height: auto; min-height: 0; max-height: none; margin: 0; align-self: auto; overflow: visible; grid-column: auto; grid-row: auto; }
+    .xp-viz .chart, .xp-viz .chart.short { height: 460px; min-height: 0; flex: none; }
+    .xp-viz .xp-btn { display: none; }
+    .xp-viz .rank, .xp-viz .side-inner { max-height: none; }
+    .xp-viz .side-inner { position: static; padding: 0; }
+    .xp-side { display: flex; flex-direction: column; background: var(--surface); border-radius: 0; }
+    .xp-tabs { flex: none; padding: 0 0 12px; }
+    .xp-tabs .seg { display: inline-flex; }
+    .xp-tabs .seg button:hover:not([aria-pressed="true"]) { background: var(--fill-2); color: var(--ink); }
+    .xp-pane { flex: 1; min-height: 0; overflow: auto; padding: 0 2px 16px; }
+    .xp-q { border-top: 1px solid var(--line); padding: 10px 0; }
+    .xp-q:first-child { border-top: 0; }
+    .xp-q > summary { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 700; font-size: 14px; list-style: none; padding: 4px 0; }
+    .xp-q > summary::-webkit-details-marker { display: none; }
+    .xp-q > summary::before { content: ''; width: 7px; height: 7px; flex: none; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(-45deg); margin: 0 4px 0 2px; transition: transform .12s; }
+    .xp-q[open] > summary::before { transform: rotate(45deg) translateY(-2px); }
+    .xp-q > summary small { font-weight: 500; color: var(--muted); font-size: 12.5px; }
+    .xp-q > summary .xp-act { margin-left: auto; }
+    .xp-act { font: inherit; font-size: 12.5px; font-weight: 600; color: var(--green); background: var(--green-soft); border: 0; border-radius: 999px; padding: 4px 12px; cursor: pointer; transition: filter .12s; }
+    .xp-act:hover, .xp-act:focus-visible { filter: brightness(.94); }
+    .xp-act[aria-busy="true"] { cursor: progress; opacity: .6; }
+    .xp-tw { border: 1px solid var(--line); border-radius: 12px; overflow: auto; margin-top: 8px; max-height: 340px; }
+    .xp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .xp-table th { text-align: left; font-weight: 600; color: var(--muted); padding: 7px 8px; border-bottom: 1px solid var(--line); cursor: pointer; white-space: nowrap; position: sticky; top: 0; background: var(--card); }
+    .xp-table th:hover { color: var(--ink); }
+    .xp-table th.num, .xp-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .xp-table td { padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    .xp-table tr:last-child td { border-bottom: 0; }
+    .xp-cap { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+    .xp-code { margin: 8px 0 0; padding: 12px 14px; background: var(--card); border-radius: 12px; font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; word-break: break-word; }
+    .xp-sql { margin-top: 8px; }
+    .xp-sql > summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--muted); padding: 4px 0; }
+    .xp-sql > summary:hover { color: var(--ink); }
+    #wy { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; background: rgb(20 24 22 / .45); }
+    #wy.open { display: flex; }
+    .wy-body { flex: 1; min-height: 0; margin: 0 24px 24px; background: var(--card); border-radius: 20px; overflow: hidden; position: relative; }
+    .wy-view { position: absolute; inset: 0; overflow: hidden; touch-action: none; cursor: grab; background-image: radial-gradient(circle, #cdd1ce 1.3px, transparent 1.5px); }
+    .wy-view.grab { cursor: grabbing; }
+    .wy-tree { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+    .wy-tree svg { position: absolute; left: 0; top: 0; overflow: visible; }
+    .wy-n { position: absolute; box-sizing: border-box; background: var(--surface); border-radius: 16px; padding: 11px 16px; display: flex; flex-direction: column; justify-content: center; gap: 4px; cursor: pointer; }
+    .wy-n:hover { background: var(--fill); }
+    .wy-n:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+    .wy-n.sel { box-shadow: inset 0 0 0 2px var(--green); }
+    .wy-zoom { position: absolute; right: 16px; bottom: 16px; display: inline-flex; gap: 2px; padding: 4px; background: var(--surface); border-radius: 999px; cursor: default; }
+    .wy-zoom button { font: inherit; font-size: 14px; font-weight: 500; color: var(--muted); background: transparent; border: 0; border-radius: 999px; min-width: 34px; padding: 6px 12px; cursor: pointer; }
+    .wy-zoom button:hover, .wy-zoom button:focus-visible { background: var(--fill); color: var(--ink); }
+    .wy-name { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: var(--muted); line-height: 1.2; }
+    .wy-name i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+    .wy-val { display: flex; align-items: center; gap: 10px; }
+    .wy-val .delta { min-width: 60px; }
+    .wy-val b.good { color: var(--green); }
+    .wy-val b.bad { color: var(--crimson); }
+    .wy-val b { font-size: 21px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; line-height: 1.2; }
+    .wy-t { position: absolute; right: -12px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 0; background: var(--green-bg); color: #fff; font: inherit; font-size: 16px; line-height: 1; cursor: pointer; z-index: 1; }
+    .wy-t:hover, .wy-t:focus-visible { background: #1d4a2d; }
+    .xp-whyw { display: inline-flex; align-items: center; gap: 6px; margin-left: -8px; font-size: 13px; opacity: 0; transition: opacity .15s; }
+    .xp-whyw[hidden] { display: none; }
+    .xp-sep { color: var(--muted); }
+    .xp-why { font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); background: none; border: 0; padding: 0; cursor: pointer; white-space: nowrap; }
+    .card:hover .xp-whyw, .xp-whyw:focus-within { opacity: 1; }
+    .xp-why:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 4px; }
+    .card.hero .xp-sep { color: rgb(255 255 255 / .8); }
+    .card.hero .xp-why { color: #b7e3a8; }
+    @media (hover: none) { .xp-whyw, .showw { opacity: 1; } }
+    @media (max-width: 640px) { .valrow { flex-wrap: wrap; } .showw .sep { display: none; } .showbtn { font-size: 16px; } }
+    :root[data-theme="dark"] .wy-view { background-image: radial-gradient(circle, #343936 1.3px, transparent 1.5px); }
+    .why-link { cursor: pointer; }
+    .why-link:hover { filter: brightness(.94); }
+    .why-link:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+    .xp-toast { position: fixed; bottom: 20px; right: 20px; z-index: 120; background: var(--crimson); color: #fff; padding: 9px 14px; border-radius: 12px; font-size: 13px; }
+    @media (max-width: 820px) { .xp-panel { width: 100vw; height: 100vh; border-radius: 0; } .xp-main { grid-template-columns: 1fr; overflow: auto; } .xp-viz, .xp-side { overflow: visible; } }
+
+    .cy-tip { position: absolute; pointer-events: none; background: var(--surface); border-radius: 14px; box-shadow: 0 8px 28px rgba(0,0,0,.14); padding: 10px 14px; font-size: 13px; min-width: 170px; z-index: 5; display: none; }
+    .cy-tip b { font-weight: 700; }
+    .cy-leg { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+    .cy-leg i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .about { background: radial-gradient(circle at 90% 8%, rgb(183 227 168 / .26), transparent 46%), radial-gradient(circle at 4% 110%, rgb(183 227 168 / .12), transparent 40%), linear-gradient(140deg, #1b4332, #2d6a4f); color: #fff; padding: 40px 44px 36px; overflow: hidden; margin-top: 32px; }
+    .about .eyebrow { font-size: 13px; font-weight: 600; color: #b7e3a8; }
+    .about h2 { font-size: 34px; font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; max-width: 15em; margin: 12px 0 0; }
+    .about-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; margin: 34px 0 0; }
+    .about-stats b { display: block; font-size: 42px; font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; color: #b7e3a8; font-variant-numeric: tabular-nums; }
+    .about-stats span { display: block; margin-top: 6px; font-size: 13.5px; color: rgb(255 255 255 / .72); }
+    .about-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px; margin-top: 36px; padding-top: 28px; border-top: 1px solid rgb(255 255 255 / .16); }
+    .about-grid h3 { font-size: 13px; font-weight: 600; color: #b7e3a8; margin: 0 0 8px; }
+    .about-grid p { margin: 0; font-size: 14.5px; line-height: 1.6; color: rgb(255 255 255 / .88); }
+    .about .fine { margin: 26px 0 0; font-size: 12.5px; color: rgb(255 255 255 / .6); }
+    @media (max-width: 1100px) { .about-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 640px) { .about-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) { .about { padding: 28px 24px; } .about h2 { font-size: 26px; } .about-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .about-grid { gap: 20px; } }
+    .ing { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+    .ing .g { color: var(--muted); font-size: 12.5px; margin-left: 6px; }
+    .ing .st { color: var(--muted); font-size: 13px; }
+    .empty { color: var(--muted); padding: 4px 0; }
+    @media (max-width: 960px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .hero { grid-column: 1 / -1; grid-row: auto; } .layout { grid-template-columns: 1fr; } .side-inner { position: static; max-height: 640px; } }
+    @media (max-width: 960px) { .zone2 { grid-template-columns: 1fr; } .dw-body { grid-template-columns: 1fr; } .dw-stats, .dw-where, .dw-why { grid-column: 1; grid-row: auto; } .zone2 .guests-card { grid-row: auto; } .side { position: relative; top: auto; height: auto; min-height: 0; } }
+    @media (max-width: 760px) { header { position: static; height: auto; flex-wrap: wrap; padding: 12px 24px; margin: -28px -24px 12px; } .modewrap .seg { min-width: 0; } }
+    /* a lighter control bar: small, flat, only the chosen segment is filled */
+    header { min-height: 56px; padding: 8px 24px; }
+    .controls { gap: 4px; }
+    .modewrap .seg { min-width: 0; padding: 3px; }
+    .seg button { font-size: 13px; padding: 6px 12px; gap: 6px; }
+    .seg button svg { width: 14px; height: 14px; }
+    .controls .dd-btn { background: transparent; color: var(--ink); font-size: 13px; font-weight: 500; padding: 7px 10px 7px 12px; gap: 8px; border-radius: 999px; }
+    .controls .dd-btn svg { width: 14px; height: 14px; color: var(--muted); }
+    .controls .dd-btn:hover, .controls .modewrap.open > .dd-btn { background: var(--fill); }
+    .grainwrap .dd-btn { min-width: 0; }
+    .rangewrap .dd-btn { min-width: 156px; justify-content: space-between; }
+    .grainwrap .dd-btn { min-width: 104px; justify-content: space-between; }
+    /* equal segments, menus 4px from their trigger and aligned to its left or right edge, a chip that keeps its padding */
+    .controls .modewrap { display: flex; }
+    .modewrap .seg { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
+    .modewrap .seg button { justify-content: center; }
+    .dd-list { top: calc(100% + 4px); }
+    #modewrap .dd-list, .grainwrap .dd-list { left: 0; right: auto; min-width: 200px; }
+    .rangewrap .dd-list { left: auto; right: 0; }
+    .tl .chip.add { padding: 5px 12px; }
+    /* dropdown triggers: light fill, icon next to its label, even padding, chevron after the label */
+    .controls .dd-btn { background: var(--fill); display: inline-grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 8px; padding: 7px 12px; justify-content: stretch; text-align: left; }
+    .controls .dd-btn:hover, .controls .modewrap.open > .dd-btn { background: var(--fill-2); }
+    .controls .dd-btn .chev { margin: 0 0 0 2px; }
+    .rangewrap .dd-btn { min-width: 0; width: 148px; }
+    .grainwrap .dd-btn { min-width: 0; width: 112px; }
+    .sbtn { padding: 6px 12px; gap: 8px; }
+    .sbtn .chev { margin: 0 0 0 2px; }
+  </style>
+</head>
+<body>
+<main data-anfra-container="page" data-anfra-label="an eat hết">
+  <header>
+    <div class="lead"><h1 class="brand" data-tip="an, as in anfra.&#10;&#10;• an eat hết means an eats everything&#10;• an eat sounds like ăn ít in vietnamese, meaning eat little (just kidding, our courses will make you full)&#10;• an eat, so an ate. slay.">an eat hết</h1><div class="sub" id="period-text"></div><button type="button" class="selchip" id="selchip" hidden title="Clear the selected course (Esc)"></button></div>
+    <div class="controls" id="controls" data-anfra-container="controls" data-anfra-label="Controls">
+      <div class="modewrap" id="modewrap" title="Compare with" data-anfra-block="period-picker" data-anfra-label="Compare" data-anfra-query="menus"></div>
+      <div class="modewrap grainwrap" id="grainwrap"></div>
+      <div class="modewrap rangewrap" id="rangewrap" data-anfra-control="cur_range"></div>
+    </div>
+  </header>
+
+  <section class="kpis" data-anfra-container="kpis" data-anfra-label="Headline numbers">
+    <div class="card kpi hero" data-anfra-block="kpi-health" data-anfra-label="Menu health" data-anfra-query="kpi_cur kpi_base">
+      <div class="top"><span class="title">Menu health <span class="info" data-tip="A 0 to 100 score for each course: 40% how much it earns, 30% guest rating, 30% how little it wastes. This card shows the average."><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="7" cy="7" r="6"/><path d="M7 6.3v3.4"/><circle cx="7" cy="4.3" r=".5" fill="currentColor"/></svg></span></span></div>
+      <div class="hero-body">
+        <div class="figure"><div class="valueline"><span class="value" id="kpi-health">–</span><span class="of">/ 100</span></div><div class="delta-row"><span id="kpi-health-chip"></span><span class="foot" id="kpi-health-foot"></span></div></div>
+        <div class="ringwrap"><svg class="ring" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" fill="none" stroke="rgb(255 255 255 / .14)" stroke-width="7"/><circle id="ring" cx="60" cy="60" r="50" fill="none" stroke="#b7e3a8" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 314" transform="rotate(-90 60 60)"/></svg></div>
+      </div>
+      <div class="comps">
+        <div class="comp"><div class="cl"><span>Margin</span><b id="comp-margin">–</b></div><div class="cb"><span id="bar-margin"></span></div></div>
+        <div class="comp"><div class="cl"><span>Guest rating</span><b id="comp-rating">–</b></div><div class="cb"><span id="bar-rating"></span></div></div>
+        <div class="comp"><div class="cl"><span>Waste rate</span><b id="comp-waste">–</b></div><div class="cb"><span id="bar-waste"></span></div></div>
+      </div>
+    </div>
+    <div class="card kpi" data-anfra-block="kpi-revenue" data-anfra-label="Revenue" data-anfra-query="kpi_cur kpi_base">
+      <div class="top"><span class="title">Revenue</span></div>
+      <div class="figure"><div class="value" id="kpi-revenue">–</div><div class="delta-row"><span id="kpi-revenue-chip"></span><span class="foot" id="kpi-revenue-foot"></span></div></div>
+    </div>
+    <div class="card kpi" data-anfra-block="kpi-guests" data-anfra-label="Guests" data-anfra-query="kpi_cur kpi_base">
+      <div class="top"><span class="title">Guests</span></div>
+      <div class="figure"><div class="value" id="kpi-guests">–</div><div class="delta-row"><span id="kpi-guests-chip"></span><span class="foot" id="kpi-guests-foot"></span></div></div>
+    </div>
+    <div class="card kpi" data-anfra-block="kpi-diverted" data-anfra-label="Waste diverted" data-anfra-query="div_cur div_base">
+      <div class="top"><span class="title">Waste diverted <span class="info" data-tip="The share of the food the kitchen lost that was reused, composted or fed to animals instead of thrown away. Farm loss is not counted."><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="7" cy="7" r="6"/><path d="M7 6.3v3.4"/><circle cx="7" cy="4.3" r=".5" fill="currentColor"/></svg></span></span></div>
+      <div class="figure"><div class="value" id="kpi-diverted">–</div><div class="delta-row"><span id="kpi-diverted-chip"></span><span class="foot" id="kpi-diverted-foot"></span></div></div>
+    </div>
+    <div class="card kpi" data-anfra-block="kpi-risk" data-anfra-label="Courses at risk" data-anfra-query="kpi_cur kpi_base">
+      <div class="top"><span class="title">Courses at risk <span class="info" data-tip="A 0 to 100 score for each course: half how much it throws away (reused, composted and fed waste does not count), half how many of its ingredients are out of season. At risk means 35 or more."><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="7" cy="7" r="6"/><path d="M7 6.3v3.4"/><circle cx="7" cy="4.3" r=".5" fill="currentColor"/></svg></span></span></div>
+      <div class="figure"><div class="valrow"><div class="value" id="kpi-risk">–</div><span class="showw" hidden><span class="sep">.</span><button type="button" class="showbtn" id="risk-show"></button></span></div><div class="delta-row"><span id="kpi-risk-chip"></span><span class="foot" id="kpi-risk-foot"></span></div></div>
+    </div>
+  </section>
+
+
+  <div class="zone-head"><h3>Courses and waste</h3><span>Pick a course to focus</span></div>
+  <div class="layout" data-anfra-container="body" data-anfra-label="Dashboard">
+    <div class="col" data-anfra-container="charts" data-anfra-label="Charts">
+      <section class="card cycle" data-anfra-block="cycle" data-anfra-label="Food cycle" data-anfra-query="cycle_cur cycle_base">
+        <div class="head"><h2>Food cycle <span class="info" data-tip="Where food is lost, from the farm to the plate, and where each kilo goes. Ribbons are as wide as the kilos they carry. Reused goes back into prep, composted goes back to the farm as fertiliser. Farm loss is dashed: the supplier absorbs it. Pick a course to see only its flows."><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="7" cy="7" r="6"/><path d="M7 6.3v3.4"/><circle cx="7" cy="4.3" r=".5" fill="currentColor"/></svg></span></h2></div>
+        <div class="dw-stats" id="cy-stats"></div>
+        <div class="cy-wrap" id="cycle-wrap"><div id="cycle"></div><div class="cy-tip" id="cy-tip"></div></div>
+        <div class="cy-leg" id="cy-leg"></div>
+        <div class="status" id="cycle-status"></div>
+      </section>
+      <section class="card" data-anfra-block="quadrant" data-anfra-label="Menu quadrant" data-anfra-query="dishes_cur dishes_base">
+        <div class="head"><h2>Where is waste biggest? <span class="info" data-tip="One bubble per course. A bigger bubble means more money wasted. Click a bubble to open the course."><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="7" cy="7" r="6"/><path d="M7 6.3v3.4"/><circle cx="7" cy="4.3" r=".5" fill="currentColor"/></svg></span></h2></div>
+        <div id="quadrant" class="chart" data-anfra-query="dishes_cur"></div>
+        <div class="status" id="quadrant-status"></div>
+        <div class="legend">
+          <span><i class="dot" style="background:#3f9a4a"></i>In season</span>
+          <span><i class="dot" style="background:#f5c542"></i>Mixed</span>
+          <span><i class="dot" style="background:#b0224f"></i>Out of season</span>
+        </div>
+      </section>
+      <section class="card" data-anfra-block="trend" data-anfra-label="Revenue and waste over time" data-anfra-query="trend_cur trend_prev trend_m trend_q trend_y1 trend_y2 trend_y3 trend_c">
+        <div class="head"><h2 id="trend-title">Revenue and waste</h2><div class="cstrip" id="trend-strip"></div></div>
+        <div id="trend" class="chart" data-anfra-query="trend_cur trend_prev trend_y1 trend_y2 trend_y3"></div>
+        <div class="tl" id="trend-legend"></div>
+        <div class="status" id="trend-status"></div>
+      </section>
+    </div>
+    <div class="rcol">
+    <section class="card season" data-anfra-block="season" data-anfra-label="Ingredients in season" data-anfra-query="season_cur season_base season_ings">
+      <div class="head"><h2 id="season-title">Ingredients in season <span class="info" data-tip="How many of the ingredients on the menu are in season, almost out of season or out of season in the last month of the period. Pick a course to see only its ingredients."><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="7" cy="7" r="6"/><path d="M7 6.3v3.4"/><circle cx="7" cy="4.3" r=".5" fill="currentColor"/></svg></span></h2></div>
+      <div class="split lbl" id="season-split"></div>
+      <div class="segl" id="season-segl"></div>
+      <div id="season-rows" style="margin-top:16px"></div>
+      <div class="status" id="season-status"></div>
+    </section>
+    <aside class="card side" data-anfra-container="side" data-anfra-label="Courses">
+      <div class="side-inner">
+        <section id="ranked-view" data-anfra-block="ranked" data-anfra-label="Courses by menu health" data-anfra-query="dishes_cur dishes_base">
+          <div class="head"><h2 id="ranked-title">Courses in menu order <span class="info" id="ranked-info" data-tip=""><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="7" cy="7" r="6"/><path d="M7 6.3v3.4"/><circle cx="7" cy="4.3" r=".5" fill="currentColor"/></svg></span></h2>
+            <div class="modewrap sortwrap" id="sortwrap"></div></div>
+          <div id="ranked" class="rank" data-anfra-query="dishes_cur dishes_base"></div>
+        </section>
+        <section id="detail-view" data-anfra-block="detail" data-anfra-label="Dish detail" hidden>
+          <div class="head"><button type="button" class="back" id="back"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5L5.5 8l4.5 4.5"/></svg>All courses</button></div>
+          <h2 id="detail-title"></h2>
+          <div class="hint" id="detail-hint"></div>
+          <div id="stats" class="stats"></div>
+          <div class="section-label">Waste by stage</div>
+          <div class="dleg" id="stage-leg"></div>
+          <div id="stages" data-anfra-query="cycle_cur"></div>
+          <div class="section-label" id="reuse-label">Trim reused in</div>
+          <div id="reuse" data-anfra-query="reuse"></div>
+          <div class="section-label" id="ing-label">Ingredients</div>
+          <div id="ingredients" data-anfra-query="ingredients"></div>
+        </section>
+      </div>
+      <div class="status" id="ranked-status"></div>
+      <div class="status" id="detail-status"></div>
+    </aside>
+    </div>
+  </div>
+
+  <section class="card dwaste" data-anfra-block="drinks-waste" data-anfra-label="Drinks waste" data-anfra-query="dwaste_cur dwaste_base dcause_cur dcause_base">
+      <div class="head"><h2>Drinks waste <span class="info" data-tip="Drinks lost to open bottles, returned glasses, faulty bottles, expired stock and trim, at what they cost. Wine dregs and trim are partly reused in vinegar, cooking and the non-alcoholic pairing."><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="7" cy="7" r="6"/><path d="M7 6.3v3.4"/><circle cx="7" cy="4.3" r=".5" fill="currentColor"/></svg></span></h2></div>
+      <div class="dw-body">
+        <div class="dw-stats" id="dw-stats"></div>
+        <div class="dw-where">
+          <div class="cap">Where wasted drinks went</div>
+          <div class="split lbl" id="dw-split"></div>
+          <div class="segl" id="dw-segl"></div>
+        </div>
+        <div class="dw-why">
+          <div class="cap">Why they were wasted</div>
+          <div id="dw-rows"></div>
+        </div>
+      </div>
+      <div class="status" id="dw-status"></div>
+    </section>
+
+  <div class="zone-head"><h3>At the table</h3></div>
+  <section class="zone2" data-anfra-container="guests" data-anfra-label="Guests and spend">
+    <div class="card guests-card" data-anfra-block="guests-trend" data-anfra-label="Guests over time" data-anfra-query="guests_cur guests_prev guests_m guests_q guests_y1 guests_y2 guests_y3 guests_c">
+      <div class="head"><h2 id="guests-title">Guest rating per week <span class="info" data-tip="What guests rated the courses out of 5, about four in ten guests rate a course. Bars show how many guests were served. Every guest eats the whole tasting menu."><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="7" cy="7" r="6"/><path d="M7 6.3v3.4"/><circle cx="7" cy="4.3" r=".5" fill="currentColor"/></svg></span></h2><div class="cstrip" id="guests-strip"></div></div>
+      <div id="guests" class="chart short" data-anfra-query="guests_cur guests_prev guests_y1 guests_y2 guests_y3"></div>
+      <div class="tl" id="guests-legend"></div>
+      <div class="status" id="guests-status"></div>
+    </div>
+    <div class="card spend" data-anfra-block="spend" data-anfra-label="Spend per guest" data-anfra-query="spend_cur spend_base">
+      <div class="head"><h2>Spend per guest <span class="info" data-tip="What one guest pays for the tasting menu and any drinks pairing, and where it goes: ingredients, waste, and what is left as margin. Waste is what the kitchen lost, at cost."><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="7" cy="7" r="6"/><path d="M7 6.3v3.4"/><circle cx="7" cy="4.3" r=".5" fill="currentColor"/></svg></span></h2></div>
+      <div class="figure"><div class="value" id="spend-value">–</div><div class="delta-row"><span id="spend-chip"></span><span class="foot" id="spend-foot"></span></div></div>
+      <div class="split" id="spend-split"></div>
+      <div id="spend-rows"></div>
+      <div class="status" id="spend-status"></div>
+    </div>
+    <div class="card pairs" data-anfra-block="pairings" data-anfra-label="Drinks" data-anfra-query="kinds_cur kinds_base spend_cur spend_base">
+      <div class="head"><h2>Drinks <span class="info" data-tip="What each guest did about drinks: took a pairing (at most one), ordered drinks without one, or neither. Shares of all guests add to 100%. Drinks never count in course margin."><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="7" cy="7" r="6"/><path d="M7 6.3v3.4"/><circle cx="7" cy="4.3" r=".5" fill="currentColor"/></svg></span></h2></div>
+      <div class="split lbl" id="pairs-split"></div>
+      <div class="segl" id="pairs-segl"></div>
+      <div id="pairs-rows"></div>
+      <div class="status" id="pairs-status"></div>
+    </div>
+  </section>
+
+  <section class="card about" data-anfra-block="about" data-anfra-label="about an eat hết" data-anfra-query="about">
+    <div class="eyebrow">about an eat hết</div>
+    <h2>Our attempt at a zero-waste tasting-menu kitchen</h2>
+    <div class="about-stats">
+      <div><b id="about-menus">–</b><span>Seasonal menus</span></div>
+      <div><b id="about-guests">–</b><span>Guests served</span></div>
+      <div><b id="about-kg">–</b><span>Kilos of food lost along the way</span></div>
+      <div><b id="about-div">–</b><span>Of that kept out of landfill</span></div>
+    </div>
+    <div class="about-grid">
+      <div><h3>What it is</h3><p>One set tasting menu of 12 to 13 courses that changes with the season. This page follows three years of it: the guests, their drinks, and every kilo of food the kitchen loses.</p></div>
+      <div><h3>Why it exists</h3><p>Knowing where food goes helps us keep more of it in use. This is an ongoing attempt, and being informed by data helps us shape the menu.</p></div>
+      <div><h3>Seasonal and local</h3><p>Food that is in season and grown nearby travels less, needs less cold storage and spoils less. That is why the menu changes four times a year, and why sustainability risk counts how out of season a course is.</p></div>
+      <div><h3>How to read it</h3><p>Menu health scores a course on margin, guest rating and low waste. The food cycle follows each kilo from the farm to where it ends up: reused, composted, fed to animals or thrown away.</p></div>
+    </div>
+    <p class="fine">The data is synthetic, built to behave like a real kitchen. The fruit season calendar is compiled from Vietnam's fruit seasons.</p>
+  </section>
+</main>
+<div class="addmenu" id="addmenu" hidden></div>
+
+
+<div id="xp" role="dialog" aria-modal="true" aria-labelledby="xp-title" data-anfra-render="skip">
+  <div class="xp-panel">
+    <div class="xp-head"><h2 id="xp-title"></h2><div class="xp-meta" id="xp-meta"></div><button type="button" class="xp-x" id="xp-close" aria-label="Close" title="Close (Esc)">&#10005;</button></div>
+    <div class="xp-main">
+      <div class="xp-viz" id="xp-viz"></div>
+      <div class="xp-side">
+        <div class="xp-tabs"><div class="seg" role="tablist"><button type="button" role="tab" data-tab="data">Data</button><button type="button" role="tab" data-tab="aql">AQL</button></div></div>
+        <div class="xp-pane" id="xp-pane"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="wy" role="dialog" aria-modal="true" aria-labelledby="wy-title" data-anfra-render="skip">
+  <div class="xp-panel">
+    <div class="xp-head"><h2 id="wy-title"></h2><div class="xp-meta" id="wy-meta"></div><button type="button" class="xp-x" id="wy-close" aria-label="Close" title="Close (Esc)">&#10005;</button></div>
+    <div class="wy-body" id="wy-body"></div>
+  </div>
+</div>
+<script>
+  const app = Anfra.createApp({ title: 'an eat hết' });
+  // every query by name, so a card can say "my queries are running" (see markBusy)
+  const qByName = {};
+  const createQueryNamed = app.createQuery.bind(app);
+  app.createQuery = (name, opts) => (qByName[name] = createQueryNamed(name, opts));
+
+  // dark mode follows the host page's theme switch (its data-theme), and the system setting where the host is not reachable
+  const themeMq = window.matchMedia('(prefers-color-scheme: dark)');
+  const cssv = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const isDark = () => document.documentElement.dataset.theme === 'dark';
+  function hostTheme () {
+    try { const t = window.parent.document.documentElement.dataset.theme; if (t === 'dark' || t === 'light') return t; } catch (e) { /* host not reachable */ }
+    return themeMq.matches ? 'dark' : 'light';
+  }
+  document.documentElement.dataset.theme = hostTheme();
+  function applyTheme () {
+    const t = hostTheme();
+    if (document.documentElement.dataset.theme === t) return;
+    document.documentElement.dataset.theme = t;
+    render();
+  }
+  themeMq.addEventListener('change', applyTheme);
+  try { new MutationObserver(applyTheme).observe(window.parent.document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) { /* host not reachable */ }
+
+  const DS = 'kitchen';
+  const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  const num1 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const AT_RISK = 35;
+  const COLORS = { guests: '#6d5bd0', revenue: '#2f6db5', cost: '#4b5560', drinks: '#2f8f83', drinksDeep: '#1d5f57', drinksLight: '#8fc9bd', green: '#3f9a4a', amber: '#f5c542', crimson: '#b0224f', ink: '#1c1f1d', muted: '#7a807c', faint: '#a3a8a4', grid: '#e4e4e4' };
+  for (const [k, v] of [['ink', '--ink'], ['muted', '--muted'], ['faint', '--faint'], ['grid', '--line'], ['crimson', '--crimson']]) Object.defineProperty(COLORS, k, { get: () => cssv(v), enumerable: true });
+
+  // ---- date helpers (ISO yyyy-mm-dd, UTC) ----
+  const toDate = (iso) => new Date(iso + 'T00:00:00Z');
+  const toIso = (d) => d.toISOString().slice(0, 10);
+  const addDays = (iso, n) => { const d = toDate(iso); d.setUTCDate(d.getUTCDate() + n); return toIso(d); };
+  const diffDays = (a, b) => Math.round((toDate(b) - toDate(a)) / 86400000);
+  function addMonths (iso, n) {
+    const d = toDate(iso);
+    const day = d.getUTCDate();
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() + n);
+    const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+    d.setUTCDate(Math.min(day, last));
+    return toIso(d);
+  }
+  const fmtShort = (iso) => toDate(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const fmtRange = (w) => `${fmtShort(w.start)} – ${fmtDay(w.end)}`;
+  const fmtDay = (iso) => toDate(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+  // ---- state ----
+  let menus = [];      // [{ label, start, end }]
+  let lastDay = null;  // last day with data
+  let menuIndex = -1;
+  let mode = 'time';         // time | menu
+  let rangeId = '30d';
+  let cmpSel = new Set();            // the periods the page compares with; the first one that has data is the primary (cards and rows). Empty means no comparison.
+  let grainPick = null;              // null is Auto: days up to 14, weeks up to about 100 days, months beyond
+  const RANGES = [
+    { id: '7d', short: '7D', label: 'Last 7 days', days: 7 },
+    { id: '30d', short: '30D', label: 'Last 30 days', days: 30 },
+    { id: '3m', short: '3M', label: 'Last 3 months', days: 91 },
+    { id: '6m', short: '6M', label: 'Last 6 months', days: 182 },
+    { id: '12m', short: '12M', label: 'Last 12 months', days: 365 },
+    { id: '2y', short: '2Y', label: 'Last 2 years', days: 730 },
+    { id: 'all', short: 'All', label: 'All time', days: null },
+  ];
+  const rangeDays = (r) => (r.days === null ? diffDays(menus[0].start, lastDay) + 1 : r.days);
+  let view = 'default';       // default | time | menu: Default is the last 30 days with no comparison
+  let baseOk = false;
+  let win = null, baseWin = null;
+  let ready = false;
+  const num0 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+  let focusName = null;
+  let riskOn = false;   // the Courses at risk filter: the courses at risk are selected together
+  let sortId = null;   // null follows the view: menu order in By menu, health in By time
+  // how the course list can be sorted. `value` is what the row shows; `bar` gives the bar's width (0 to 1).
+  const SORTS = [
+    { id: 'health', label: 'Menu health', title: 'Courses by health', dir: -1, value: (r) => r.health, show: (v) => `${Math.round(v)}`, up: true, kind: 'pts', bar: (v) => v / 100 },
+    { id: 'waste', label: 'Waste cost', title: 'Courses by waste cost', dir: -1, value: (r) => r.waste, show: (v) => money.format(v), up: false, kind: 'money', bar: (v, max) => v / max },
+    { id: 'margin', label: 'Margin', title: 'Courses by margin', dir: -1, value: (r) => r.marginPct, show: (v) => `${num1.format(v)}%`, up: true, kind: 'pts', bar: (v) => v / 100 },
+    { id: 'rating', label: 'Guest rating', title: 'Courses by guest rating', dir: -1, value: (r) => r.rating, show: (v) => v.toFixed(2), up: true, kind: 'rating', bar: (v) => (v - 3) / 2 },
+    { id: 'risk', label: 'Sustainability risk', title: 'Courses by sustainability risk', dir: -1, value: (r) => r.risk, show: (v) => `${Math.round(v)}`, up: false, kind: 'pts', bar: (v) => v / 100 },
+    { id: 'order', label: 'Menu order', title: 'Courses in menu order', needsMenu: true, dir: 1, value: (r) => r.pos },
+  ];
+  function activeSort () {
+    const want = sortId || (mode === 'menu' ? 'order' : 'health');
+    const s = SORTS.find((x) => x.id === want);
+    return s.needsMenu && mode !== 'menu' ? SORTS.find((x) => x.id === 'health') : s;
+  }
+  let rankedView = [];
+  const logged = new Set();
+
+  // ---- queries that exist from the start: the menu list and the end of the data ----
+  const menusQ = app.createQuery('menus', {
+    dataset: DS,
+    aql: `explore {
+      dimensions { label: kitchen_menus.menu_label, start: kitchen_menus.start_date, end: kitchen_menus.end_date }
+      sorts { start asc }
+    }`,
+  });
+  const boundsQ = app.createQuery('bounds', {
+    dataset: DS,
+    aql: `explore { measures { last_day: max(kitchen_dish_day.date) } }`,
+  });
+
+  // ---- queries that depend on the chosen window, declared once the menus are known ----
+  let whyDaysCur, whyDaysBase, kpiCur, kpiBase, dishesCur, dishesBase, trendCur, guestsCur, aboutQ, seasonCur, seasonBase, seasonIngsQ, cycleCur, cycleBase, divCur, divBase, reuseQ, ingredientsQ, spendCur, spendBase, kindsCur, kindsBase, dwasteCur, dwasteBase, dcauseCur, dcauseBase;
+  let curRange, baseRange, menuSel, monthSel, menuSelBase, monthSelBase;
+  let overlayWins = {};
+  let primary = null;
+  const charts = {};   // the time charts: each has its own grouping and its own set of periods laid over the viewed one
+
+  const DISH_AQL = `explore {
+    dimensions { concept: kitchen_concepts.concept_name, course: kitchen_dishes.category }
+    measures {
+      plates: units_sold, revenue: revenue, margin: dish_margin, margin_pct: margin_pct, waste_rate: waste_rate,
+      seasonality: seasonality_score, risk: sustainability_risk, health: menu_health_score, rating: guest_rating, waste: waste_cost,
+      pos: kitchen_dish_day.course_no
+    }
+    sorts { health desc }
+  }`;
+  // guests split into the days served and the guests per day
+  const WHY_DAYS_AQL = `explore { measures { days: service_days, guests: covers } }`;
+  const KPI_AQL = `explore { measures {
+    revenue: revenue, waste: waste_cost, margin: dish_margin, rating: guest_rating, margin_pct: margin_pct, waste_rate: waste_rate,
+    guests: covers, health: menu_health_avg, risky: courses_at_risk, courses: courses_on_menu, rpg: food_revenue_per_guest, fcpg: food_cost_per_guest, fmpg: food_margin_per_guest, wpg: waste_per_guest
+  } }`;
+  // spend and drinks pairings combine three tables, so they filter on the service day, which reaches all of them. A selected course does not narrow them.
+  const SPEND_AQL = `explore { measures {
+    spend: spend_per_guest, fcost: food_cost_per_guest, waste: waste_per_guest, fmargin: food_margin_per_guest,
+    dcost: drinks_cost_per_guest, dmargin: drinks_margin_per_guest, dwaste: drinks_waste_per_guest,
+    otake: drinks_order_take, ospend: drinks_order_spend, omeach: drinks_order_margin_each
+  } }`;
+  const KINDS_AQL = `explore {
+    dimensions { kind: kitchen_pairings.kind }
+    measures { guests: pairing_guests, price: pairing_price, each: pairing_margin_each, take: attach_rate }
+  }`;
+  const DWASTE_AQL = `explore { measures { cost: drinks_waste_cost, rate: drinks_waste_rate, reuse: drinks_reuse_rate, litres: drinks_waste_litres } }`;
+  const DCAUSE_AQL = `explore { dimensions { cause: kitchen_drink_waste.cause } measures { cost: drinks_waste_cost } sorts { cost desc } }`;
+  // the food cycle: every kilo by the stage it was lost at and where it went (farm loss included, the kitchen stages are the rest)
+  const CYCLE_AQL = `explore {
+    dimensions { stage: kitchen_waste_flow.stage, dest: kitchen_waste_flow.destination }
+    measures { kg: kitchen_waste_flow.all_kg_amount, cost: kitchen_waste_flow.all_cost_amount }
+  }`;
+  // the ingredients on the menu by seasonal status, in the last month of the period
+  const SEASON_AQL = `explore {
+    dimensions { status: kitchen_dish_ingredients.status }
+    measures { n: count_distinct(kitchen_dish_ingredients.ingredient) }
+  }`;
+  // the same ingredients one by one, so the card can name them on hover
+  const SEASON_INGS_AQL = `explore {
+    dimensions { ingredient: kitchen_dish_ingredients.ingredient, status: kitchen_dish_ingredients.status }
+    measures { kg: sum(kitchen_dish_ingredients.qty_per_plate) }
+    sorts { kg desc }
+  }`;
+  const DIV_AQL = `explore { measures { div: diversion_rate } }`;
+  const GUESTS_AQL = `explore {
+    dimensions { period: kitchen_dish_day.date }
+    measures { guests: covers, pts: kitchen_dish_day.rating_total_amount, cnt: kitchen_dish_day.rating_count_amount }
+    sorts { period asc }
+  }`;
+  // the periods a time chart can lay over the viewed one. The line style says which period; the colour says which measure.
+  const OVERLAYS = ['prev', 'm', 'q', 'y1', 'y2', 'y3', 'c'];
+  const DASH = { prev: [1, 6], m: [5, 3], q: [2, 2, 7, 2], y1: [8, 5], y2: [8, 4, 1, 4], y3: [1, 3], c: [3, 3, 8, 3] };
+  // how far back each comparison reaches (days, By time). Whole weeks, so weekdays line up.
+  const SHIFT = { m: 28, q: 91, y1: 364, y2: 728, y3: 1092 };
+  let customStart = null;   // first day of a custom comparison period (By time)
+  let customMenu = null;    // a custom comparison menu (By menu)
+  let cmpPane = null;       // 'menus' while the comparison list shows a menu picker
+  const TREND_MEASURES = [
+    { key: 'revenue', name: 'Revenue', color: '#2f6db5', ghost: '#9dbbe0', axis: 0, up: true, fmt: (v) => money.format(v) },
+    { key: 'waste', name: 'Waste cost', color: '#b0224f', ghost: '#d994ae', axis: 1, up: false, fmt: (v) => money.format(v) },
+  ];
+  // rating is rating points over ratings given, so a week is weighted by how many guests rated; guests are faint bars behind it
+  const GUEST_MEASURES = [
+    { key: 'rating', ratio: ['pts', 'cnt'], name: 'Guest rating', color: '#6d5bd0', ghost: '#b3a8e8', axis: 0, up: true, fmt: (v) => v.toFixed(2), axisFmt: (v) => v.toFixed(2) },
+    { key: 'guests', name: 'Guests', bg: true, get color() { return isDark() ? '#3d3866' : '#cfc8f0'; }, dot: '#b3a8e8', axis: 1, up: true, fmt: (v) => num0.format(v) },
+  ];
+  const TREND_AQL = `explore {
+    dimensions { period: kitchen_dish_day.date }
+    measures { revenue: revenue, waste: waste_cost }
+    sorts { period asc }
+  }`;
+
+  // a time chart: the viewed period plus up to four other periods that can be laid over it (all daily; grouping happens in the page)
+  function declareChart (id, aql, echart, measures, statusId, legendId) {
+    const DATE = 'kitchen_dish_day.date';
+    const c = { id, echart, measures, statusId, legendId, grain: null, cmp: null, ovl: {}, filt: {} }   // grain and cmp are this chart's own choices; null follows the page;
+    c.cur = app.createQuery(`${id}_cur`, { dataset: DS, aql });
+    app.mapControl(curRange, c.cur, { field: DATE });
+    for (const o of OVERLAYS) {
+      c.filt[o] = app.createFilter(`${id}_${o}_range`, { type: 'date', label: `${id} comparison ${o}` });
+      c.ovl[o] = app.createQuery(`${id}_${o}`, { dataset: DS, aql });
+      app.mapControl(c.filt[o], c.ovl[o], { field: DATE });
+    }
+    charts[id] = c;
+    return c;
+  }
+
+  function declareWindowQueries () {
+    curRange = app.createFilter('cur_range', { type: 'date', label: 'Viewed period' });
+    baseRange = app.createFilter('base_range', { type: 'date', label: 'Comparison period' });
+    menuSel = app.createFilter('menu_sel', { type: 'string', label: 'Menu' });
+    monthSel = app.createFilter('month_sel', { type: 'number', label: 'Month' });
+    menuSelBase = app.createFilter('menu_sel_base', { type: 'string', label: 'Comparison menu' });
+    monthSelBase = app.createFilter('month_sel_base', { type: 'number', label: 'Comparison month' });
+
+    kpiCur = app.createQuery('kpi_cur', { dataset: DS, aql: KPI_AQL });
+    kpiBase = app.createQuery('kpi_base', { dataset: DS, aql: KPI_AQL });
+    whyDaysCur = app.createQuery('why_days_cur', { dataset: DS, aql: WHY_DAYS_AQL });
+    whyDaysBase = app.createQuery('why_days_base', { dataset: DS, aql: WHY_DAYS_AQL });
+    dishesCur = app.createQuery('dishes_cur', { dataset: DS, aql: DISH_AQL });
+    dishesBase = app.createQuery('dishes_base', { dataset: DS, aql: DISH_AQL });
+    spendCur = app.createQuery('spend_cur', { dataset: DS, aql: SPEND_AQL });
+    spendBase = app.createQuery('spend_base', { dataset: DS, aql: SPEND_AQL });
+    kindsCur = app.createQuery('kinds_cur', { dataset: DS, aql: KINDS_AQL });
+    kindsBase = app.createQuery('kinds_base', { dataset: DS, aql: KINDS_AQL });
+    dwasteCur = app.createQuery('dwaste_cur', { dataset: DS, aql: DWASTE_AQL });
+    dwasteBase = app.createQuery('dwaste_base', { dataset: DS, aql: DWASTE_AQL });
+    dcauseCur = app.createQuery('dcause_cur', { dataset: DS, aql: DCAUSE_AQL });
+    dcauseBase = app.createQuery('dcause_base', { dataset: DS, aql: DCAUSE_AQL });
+    cycleCur = app.createQuery('cycle_cur', { dataset: DS, aql: CYCLE_AQL });
+    cycleBase = app.createQuery('cycle_base', { dataset: DS, aql: CYCLE_AQL });
+    aboutQ = app.createQuery('about', { dataset: DS, aql: 'explore { measures { guests: covers, kg: kitchen_waste_kg, div: diversion_rate } }' });
+    seasonCur = app.createQuery('season_cur', { dataset: DS, aql: SEASON_AQL });
+    seasonBase = app.createQuery('season_base', { dataset: DS, aql: SEASON_AQL });
+    seasonIngsQ = app.createQuery('season_ings', { dataset: DS, aql: SEASON_INGS_AQL });
+    divCur = app.createQuery('div_cur', { dataset: DS, aql: DIV_AQL });
+    divBase = app.createQuery('div_base', { dataset: DS, aql: DIV_AQL });
+    reuseQ = app.createQuery('reuse', {
+      dataset: DS,
+      aql: `explore {
+        dimensions { target: kitchen_reuse_links.target_name, kind: kitchen_reuse_links.target_kind, ingredient: kitchen_reuse_links.ingredient }
+        sorts { target asc }
+      }`,
+    });
+    ingredientsQ = app.createQuery('ingredients', {
+      dataset: DS,
+      aql: `explore {
+        dimensions { ingredient: kitchen_dish_ingredients.ingredient, status: kitchen_dish_ingredients.status, kg: kitchen_dish_ingredients.qty_per_plate }
+        sorts { kg desc }
+      }`,
+    });
+
+    const DATE = 'kitchen_dish_day.date';
+    for (const q of [kpiCur, dishesCur, whyDaysCur]) app.mapControl(curRange, q, { field: DATE });
+    const WDATE = 'kitchen_waste_flow.date';
+    for (const q of [cycleCur, divCur]) app.mapControl(curRange, q, { field: WDATE });
+    for (const q of [cycleBase, divBase]) app.mapControl(baseRange, q, { field: WDATE });
+    for (const q of [kpiBase, dishesBase, whyDaysBase]) app.mapControl(baseRange, q, { field: DATE });
+    for (const q of [spendCur, kindsCur, dwasteCur, dcauseCur]) app.mapControl(curRange, q, { field: 'kitchen_service_day.date' });
+    for (const q of [spendBase, kindsBase, dwasteBase, dcauseBase]) app.mapControl(baseRange, q, { field: 'kitchen_service_day.date' });
+    app.mapControl(menuSel, ingredientsQ, { field: 'kitchen_menus.menu_label' });
+    app.mapControl(menuSel, reuseQ, { field: 'kitchen_menus.menu_label' });
+    app.mapControl(monthSel, ingredientsQ, { field: 'kitchen_dish_ingredients.month' });
+    app.mapControl(menuSel, seasonCur, { field: 'kitchen_menus.menu_label' });
+    app.mapControl(monthSel, seasonCur, { field: 'kitchen_dish_ingredients.month' });
+    app.mapControl(menuSel, seasonIngsQ, { field: 'kitchen_menus.menu_label' });
+    app.mapControl(monthSel, seasonIngsQ, { field: 'kitchen_dish_ingredients.month' });
+    app.mapControl(menuSelBase, seasonBase, { field: 'kitchen_menus.menu_label' });
+    app.mapControl(monthSelBase, seasonBase, { field: 'kitchen_dish_ingredients.month' });
+
+    const trend = declareChart('trend', TREND_AQL, trendChart, TREND_MEASURES, 'trend-status', 'trend-legend');
+    declareChart('guests', GUESTS_AQL, guestsChart, GUEST_MEASURES, 'guests-status', 'guests-legend');
+    trendCur = trend.cur;
+    guestsCur = charts.guests.cur;
+
+    // Only run what the page is showing. app.execute() fires every query that has not run yet, all at once, and a comparison
+    // that is off still used to send its query with an empty 1900 window. In Default view that was 24 of 42 queries on first load,
+    // each one a real round trip. Now they stay idle until a comparison is switched on, then run on the next execute().
+    const gate = (q, need) => { const run = q.shouldRun.bind(q); q.shouldRun = (force) => need() && run(force); };
+    for (const q of [kpiBase, whyDaysBase, dishesBase, spendBase, kindsBase, dwasteBase, dcauseBase, cycleBase, seasonBase, divBase]) gate(q, () => baseOk);
+    for (const c of Object.values(charts)) for (const o of OVERLAYS) gate(c.ovl[o], () => !!overlayWins[o] && chartSet(c).has(o));
+
+    // a selected dish narrows the trend (and the periods laid over it), the food cycle, the reuse list and the ingredient list
+    for (const q of [trend.cur, ...Object.values(trend.ovl)]) app.mapCrossFilter(dishesCur, q);
+    app.mapCrossFilter(dishesCur, cycleCur);
+    app.mapCrossFilter(dishesCur, reuseQ);
+    app.mapCrossFilter(dishesCur, ingredientsQ);
+    app.mapCrossFilter(dishesCur, seasonCur);
+    app.mapCrossFilter(dishesCur, seasonIngsQ);
+  }
+
+  // ---- windows ----
+  function computeWindows () {
+    if (mode === 'time') {
+      const r = RANGES.find((x) => x.id === rangeId);
+      const days = rangeDays(r);
+      const end = lastDay, start = addDays(end, -(days - 1));
+      win = { start, end, days, label: r.label };
+    } else {
+      const m = menus[menuIndex];
+      const end = m.end < lastDay ? m.end : lastDay;
+      win = { start: m.start, end, days: diffDays(m.start, end) + 1, label: `${m.label} menu` };
+    }
+    overlayWins = Object.fromEntries(OVERLAYS.map((o) => [o, overlayWin(o)]));
+    // the primary comparison: the first ticked period that has data behind it
+    primary = OVERLAYS.find((o) => cmpSel.has(o) && overlayWins[o]) || null;
+    // a comparison that no longer fits the range (a month back for a 3-month range) falls back to the previous period
+    if (view !== 'default' && !primary && cmpSel.size && !cmpSel.has('prev')) { cmpSel = new Set(['prev']); primary = overlayWins.prev ? 'prev' : null; }
+    baseWin = primary ? overlayWins[primary] : null;
+    baseOk = !!baseWin;
+  }
+
+  function menuAt (iso) { return menus.find((m) => m.start <= iso && iso <= m.end) || menus[menus.length - 1]; }
+
+  // every comparison is the viewed window moved back by an offset; null when the data does not reach back that far.
+  // Years back are 52 weeks, so weekdays line up. "c" is a custom number of days (By time only).
+  function overlayWin (id) {
+    if (mode === 'time') {
+      if (id === 'c') {
+        if (!customStart) return null;
+        const e = addDays(customStart, win.days - 1);
+        return customStart >= menus[0].start && e <= lastDay ? { start: customStart, end: e } : null;
+      }
+      const back = id === 'prev' ? win.days : SHIFT[id];
+      if (back < win.days) return null;
+      const st = addDays(win.start, -back);
+      return st >= menus[0].start ? { start: st, end: addDays(win.end, -back) } : null;
+    }
+    const idx = id === 'c' ? customMenu : id === 'prev' ? menuIndex - 1 : id === 'y1' ? menuIndex - 4 : id === 'y2' ? menuIndex - 8 : id === 'y3' ? menuIndex - 12 : null;
+    const bm = idx === null ? null : menus[idx];
+    if (!bm || idx === menuIndex) return null;
+    const e = addDays(bm.start, win.days - 1);
+    return { start: bm.start, end: e < bm.end ? e : bm.end };
+  }
+  // an overlay that is switched off, or has no data behind it, gets an empty window so its query returns nothing
+  const courseFocus = (c) => c.id === 'trend' && !!selectedConcept();
+  const chartSet = (c) => (courseFocus(c) ? new Set() : c.cmp || cmpSel);
+  function pushOverlays (c) {
+    for (const o of OVERLAYS) {
+      const w = overlayWins[o];
+      c.filt[o].setCondition({ operator: 'between', values: w && chartSet(c).has(o) ? [w.start, w.end] : ['1900-01-01', '1900-01-02'] });
+    }
+  }
+
+  function applyWindows () {
+    computeWindows();
+    for (const c of Object.values(charts)) pushOverlays(c);
+    curRange.setCondition({ operator: 'between', values: [win.start, win.end] });
+    // an empty window when there is nothing to compare with, so the comparison queries return no rows
+    baseRange.setCondition({ operator: 'between', values: baseOk ? [baseWin.start, baseWin.end] : ['1900-01-01', '1900-01-02'] });
+    menuSel.setCondition({ operator: 'is', values: [menuAt(win.end).label] });
+    monthSel.setCondition({ operator: 'is', values: [String(Number(win.end.slice(5, 7)))] });
+    menuSelBase.setCondition({ operator: 'is', values: [baseOk ? menuAt(baseWin.end).label : 'none'] });
+    monthSelBase.setCondition({ operator: 'is', values: [baseOk ? String(Number(baseWin.end.slice(5, 7))) : '0'] });
+    riskOn = false;
+    app.clearSelection();
+    for (const c of Object.values(charts)) pushOverlays(c);
+    syncControls();
+    app.execute();
+  }
+
+  // ---- controls: By time | By menu. The chosen side shows its choice and a chevron, and opens its own list ----
+  const ICON_TIME = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.3 1.5"/></svg>';
+  const ICON_MENU = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h4.2c.9 0 1.8.6 1.8 1.5v7.5c0-.9-.9-1.5-1.8-1.5H2zM14 3.5H9.8C8.9 3.5 8 4.1 8 5v7.5c0-.9.9-1.5 1.8-1.5H14z"/></svg>';
+
+  function itemHtml (kind, id, label, checked, disabled, sub, stack) {
+    return `<div class="dd-item${disabled ? ' disabled' : ''}${stack ? ' stack' : ''}" data-kind="${kind}" data-id="${id}"><span>${label}${sub ? `<small>${sub}</small>` : ''}</span>${checked ? '<span class="check">✓</span>' : ''}</div>`;
+  }
+
+  const ovlLabel = (o) => {
+    if (o === 'c') { const w = overlayWins.c; return !w ? 'Custom' : mode === 'menu' ? menuAt(w.start).label : fmtRange(w); }
+    if (mode === 'menu') return o === 'prev' ? 'Previous menu' : o === 'y1' ? 'Same season last year' : `Same season ${o.slice(1)} years ago`;
+    return { prev: 'Previous period', m: 'Same period last month', q: 'Same period last quarter', y1: 'Same period last year', y2: 'Same period 2 years ago', y3: 'Same period 3 years ago' }[o];
+  };
+  const ovlSub = (o) => { const w = overlayWins[o]; return !w ? '' : mode === 'menu' ? menuAt(w.start).label : fmtRange(w); };
+  // the comparisons worth offering for the range in view: the previous period, then the calendar steps that sit clearly further back
+  const listable = (o) => o !== 'c' && overlayWins[o] && (o === 'prev' || mode === 'menu' || SHIFT[o] >= win.days + 7);
+  const cdateAttrs = () => `min="${menus[0].start}" max="${addDays(win.start, -win.days)}" value="${customStart || ''}"`;
+  // the Custom row: a date to start from (By time), or a menu to pick (By menu). Chosen, it shows what it compares with.
+  const customRow = (kind, selected) => (mode === 'time'
+    ? `<div class="dd-item cust" data-kind="${kind}" data-id="c-open"><span>${selected ? ovlLabel('c') : 'Custom…'}</span>${selected ? '<span class="check">✓</span>' : ''}<input type="date" class="cdate" ${cdateAttrs()} tabindex="-1"></div>`
+    : `<div class="dd-item" data-kind="${kind}" data-id="c-open"><span>${selected ? ovlLabel('c') : 'Custom…'}</span>${selected ? '<span class="check">✓</span>' : ''}</div>`);
+  const menuPane = (kind, picked) => `<div class="dd-sec">Menu</div><div class="dd-item" data-kind="back">‹ Back</div><div class="dd-scroll">${menus.map((m, i) => ({ m, i })).filter(({ i }) => i !== menuIndex).reverse().map(({ m, i }) => itemHtml(kind, i, m.label, picked === i, false, '', false)).join('')}</div>`;
+  const dashSvg = (o) => `<svg viewBox="0 0 26 8"><line x1="2" y1="4" x2="24" y2="4" style="stroke:var(--dim)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="${DASH[o].join(' ')}"/></svg>`;
+  const ICON_CAL = '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="13" height="12" rx="2"/><path d="M2.5 7.5h13M6 2v3M12 2v3"/></svg>';
+  const clearChartCmp = () => { for (const c of Object.values(charts)) { c.cmp = null; pushOverlays(c); } };
+
+  // ---- time grain: Auto, Day, Week, Month, Quarter, Year. Calendar buckets; a partial bucket at either end is left out. ----
+  const GRAINS = [['day', 'Day'], ['week', 'Week'], ['month', 'Month'], ['quarter', 'Quarter'], ['year', 'Year']];
+  const pStart = (iso, g) => (g === 'year' ? `${iso.slice(0, 4)}-01-01` : g === 'quarter' ? `${iso.slice(0, 4)}-${String(Math.floor((Number(iso.slice(5, 7)) - 1) / 3) * 3 + 1).padStart(2, '0')}-01` : `${iso.slice(0, 7)}-01`);
+  const pNext = (iso, g) => { const t = Number(iso.slice(0, 4)) * 12 + Number(iso.slice(5, 7)) - 1 + (g === 'year' ? 12 : g === 'quarter' ? 3 : 1); return `${Math.floor(t / 12)}-${String(t % 12 + 1).padStart(2, '0')}-01`; };
+  // each bucket as day offsets from the start of the window, so a comparison window can be cut at the same offsets
+  function bucketSpec (g, w) {
+    const out = [];
+    if (g === 'day') for (let i = 0; i < w.days; i++) out.push({ a: i, b: i });
+    else if (g === 'week') for (let i = 0; i + 7 <= w.days; i += 7) out.push({ a: i, b: i + 6 });
+    else {
+      let st = pStart(w.start, g);
+      if (st < w.start) st = pNext(st, g);
+      for (;;) {
+        const nx = pNext(st, g), e = addDays(nx, -1);
+        if (e > w.end) break;
+        out.push({ a: diffDays(w.start, st), b: diffDays(w.start, e) });
+        st = nx;
+      }
+    }
+    return out;
+  }
+  const grainOk = (g) => g === 'day' || bucketSpec(g, win).length >= 2;
+  const autoGrain = () => (win.days <= 14 ? 'day' : win.days <= 100 ? 'week' : 'month');
+  const chartGrain = (c) => { const g = (c && c.grain) || grainPick; return g && grainOk(g) ? g : autoGrain(); };
+  const grainName = (g) => GRAINS.find((x) => x[0] === g)[1];
+  const grainRows = (cur, autoLabel) => [itemHtml('grain', 'auto', autoLabel, cur === null, false, '', false),
+    ...GRAINS.filter(([id]) => grainOk(id)).map(([id, label]) => itemHtml('grain', id, label, cur === id, false, '', false))].join('');
+
+  // ---- header: time range (or menu), time grain, and the comparison control ----
+  function syncRange () {
+    const wrap = document.getElementById('rangewrap');
+    const open = wrap.classList.contains('open');
+    const isMenu = view === 'menu';
+    const items = isMenu
+      ? menus.map((m, i) => ({ m, i })).reverse().map(({ m, i }) => itemHtml('menu', i, m.label, i === menuIndex, false, '', false)).join('')
+      : RANGES.map((r) => itemHtml('range', r.id, r.label, r.id === rangeId, false, '', false)).join('');
+    const label = isMenu ? menus[menuIndex].label : RANGES.find((r) => r.id === rangeId).label;
+    wrap.innerHTML = `<button type="button" class="dd-btn" id="range-btn" title="${isMenu ? '' : `${fmtDay(win.start)} – ${fmtDay(win.end)}`}">${isMenu ? ICON_MENU : ICON_CAL}${label}<i class="chev"></i></button><div class="dd-list"><div class="dd-sec">${isMenu ? 'Menu' : 'Time range'}</div><div class="dd-scroll">${items}</div></div>`;
+    wrap.classList.toggle('open', open);
+  }
+  document.getElementById('rangewrap').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const wrap = document.getElementById('rangewrap');
+    const item = e.target.closest('.dd-item');
+    if (item) {
+      if (item.dataset.kind === 'range') rangeId = item.dataset.id; else menuIndex = Number(item.dataset.id);
+      wrap.classList.remove('open');
+      applyWindows();
+    } else if (e.target.closest('#range-btn')) { closePopups('rangewrap'); wrap.classList.toggle('open'); }
+  });
+
+  function syncGrain () {
+    const wrap = document.getElementById('grainwrap');
+    const open = wrap.classList.contains('open');
+    const label = grainName(chartGrain());
+    wrap.innerHTML = `<button type="button" class="dd-btn" id="grain-btn" title="Time grain">${ICON_CAL}${label}<i class="chev"></i></button><div class="dd-list"><div class="dd-sec">Time grain</div>${grainRows(grainPick && grainOk(grainPick) ? grainPick : null, 'Auto')}</div>`;
+    wrap.classList.toggle('open', open);
+  }
+  document.getElementById('grainwrap').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const wrap = document.getElementById('grainwrap');
+    const item = e.target.closest('.dd-item');
+    if (item) {
+      if (item.classList.contains('disabled')) return;
+      grainPick = item.dataset.id === 'auto' ? null : item.dataset.id;
+      for (const c of Object.values(charts)) c.grain = null;   // the last choice wins: charts follow the page again
+      wrap.classList.remove('open');
+      syncGrain();
+      render();
+    } else if (e.target.closest('#grain-btn')) { closePopups('grainwrap'); wrap.classList.toggle('open'); }
+  });
+
+  // the segmented control is the comparison: Default (none) | By time | By menu. A side's dropdown picks what the page compares with.
+  function syncControls () {
+    const root = document.getElementById('modewrap');
+    const open = root.classList.contains('open');
+    const sides = [
+      { id: 'default', icon: '', label: 'Default', list: false },
+      { id: 'time', icon: ICON_TIME, label: 'By time', list: true },
+      { id: 'menu', icon: ICON_MENU, label: 'By menu', list: true },
+    ];
+    const list = view === 'default' ? '' : `<div class="dd-list">${cmpPane === 'menus' ? menuPane('cmpmenu', cmpSel.has('c') ? customMenu : null)
+      : `<div class="dd-sec">Compare with</div>${OVERLAYS.filter((o) => listable(o) || (o !== 'c' && cmpSel.has(o))).map((o) => itemHtml('cmp', o, ovlLabel(o), cmpSel.has(o), false, '', false)).join('')}${customRow('cmp', cmpSel.has('c'))}`}</div>`;
+    root.innerHTML = `<div class="seg">${sides.map((x) =>
+      `<button type="button" data-mode="${x.id}" aria-pressed="${x.id === view}">${x.icon}${x.label}${x.list ? `<i class="chev${x.id === view ? '' : ' idle'}"></i>` : ''}</button>`).join('')}</div>${list}`;
+    root.classList.toggle('open', open && !!list);
+    alignList();
+    syncRange();
+    syncGrain();
+    syncSort();
+  }
+  // the list lines up with the option that opened it: left edge to its left edge, or right to right when it would leave the screen
+  function alignList () {
+    const root = document.getElementById('modewrap');
+    const btn = root.querySelector('.seg [aria-pressed="true"]'), list = root.querySelector('.dd-list');
+    if (!btn || !list) return;
+    const w = Math.max(list.offsetWidth, 220), left = btn.offsetLeft;
+    const fits = root.getBoundingClientRect().left + left + w <= window.innerWidth - 12;
+    list.style.left = fits ? `${left}px` : 'auto';
+    list.style.right = fits ? 'auto' : `${root.offsetWidth - left - btn.offsetWidth}px`;
+  }
+  document.getElementById('modewrap').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const root = document.getElementById('modewrap');
+    const side = e.target.closest('[data-mode]'), item = e.target.closest('.dd-item');
+    if (side) {
+      closePopups('modewrap');
+      const id = side.dataset.mode;
+      cmpPane = null;
+      if (id === view && id !== 'default') { root.classList.toggle('open'); syncControls(); return; }
+      view = id;
+      mode = id === 'menu' ? 'menu' : 'time';
+      if (id === 'default') { cmpSel = new Set(); root.classList.remove('open'); }
+      else {
+        if (id === 'menu') { cmpSel.delete('m'); cmpSel.delete('q'); }
+        cmpSel.delete('c');
+        if (!cmpSel.size) cmpSel = new Set(['prev']);
+        root.classList.add('open');
+      }
+      clearChartCmp();   // the last choice wins: charts follow the page again
+      applyWindows();
+    } else if (item && !item.classList.contains('disabled')) {
+      const { kind, id } = item.dataset;
+      if (kind === 'back') { cmpPane = null; syncControls(); return; }
+      if (id === 'c-open') {
+        if (mode === 'menu') { cmpPane = 'menus'; syncControls(); return; }
+        const inp = item.querySelector('.cdate');
+        if (inp && inp.showPicker) { try { inp.showPicker(); } catch (err) { inp.focus(); } } else if (inp) inp.focus();
+        return;
+      }
+      if (kind === 'cmpmenu') customMenu = Number(id);
+      cmpSel = new Set([kind === 'cmpmenu' ? 'c' : id]);
+      cmpPane = null;
+      root.classList.remove('open');
+      clearChartCmp();
+      applyWindows();
+    }
+  });
+  document.getElementById('modewrap').addEventListener('change', (e) => {
+    if (!e.target.classList.contains('cdate') || !e.target.value) return;
+    customStart = e.target.value;
+    cmpSel = new Set(['c']);
+    document.getElementById('modewrap').classList.remove('open');
+    clearChartCmp();
+    applyWindows();
+  });
+  // ---- a chart's own settings: a shared floating menu for its grain and for adding a comparison ----
+  const chipHtml = (o) => `<span class="chip${overlayWins[o] ? '' : ' nodata'}" data-o="${o}" title="${overlayWins[o] ? ovlSub(o) : 'No data that far back'}">${dashSvg(o)}vs ${ovlLabel(o)}<button type="button" class="x" data-rm="${o}" aria-label="Remove"><svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 2l8 8M10 2L2 10"/></svg></button></span>`;
+  let popCtx = null, popPane = null;
+  function openPop (kind, ctx, anchor) {
+    const m = document.getElementById('addmenu');
+    if (!m.hidden && popCtx === `${kind}:${ctx}`) { closePopups(); return; }
+    closePopups();
+    popPane = null;
+    popCtx = `${kind}:${ctx}`;
+    const c = charts[ctx];
+    if (kind === 'grain') {
+      m.innerHTML = `<div class="dd-sec">Time grain</div>${grainRows(c.grain, 'Follow page')}`;
+    } else {
+      const have = chartSet(c);
+      m.innerHTML = popPane === 'menus' ? menuPane('cmpmenu', null)
+        : `<div class="dd-sec">Compare with</div>${OVERLAYS.filter((o) => listable(o) && !have.has(o)).map((o) => `<div class="am-row" data-pick="${o}" title="${ovlSub(o)}">${dashSvg(o)}<b>${ovlLabel(o)}</b></div>`).join('')}${have.has('c') ? '' : customRow('cmp', false)}`;
+    }
+    m.hidden = false;
+    anchor.classList.add('pinned');
+    const r = anchor.getBoundingClientRect();
+    m.style.top = `${r.bottom + 4 + m.offsetHeight > window.innerHeight ? Math.max(8, r.top - 4 - m.offsetHeight) : r.bottom + 4}px`;
+    m.style.left = `${r.left + m.offsetWidth > window.innerWidth - 8 ? Math.max(8, r.right - m.offsetWidth) : r.left}px`;
+  }
+  document.getElementById('addmenu').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const [kind, ctx] = popCtx.split(':');
+    const c = charts[ctx];
+    const gi = e.target.closest('.dd-item'), row = e.target.closest('[data-pick]');
+    if (kind === 'cmp' && gi && gi.dataset.kind === 'back') { popPane = null; reopenPop(kind, ctx); return; }
+    if (kind === 'cmp' && gi && gi.dataset.id === 'c-open') {
+      if (mode === 'menu') { popPane = 'menus'; reopenPop(kind, ctx); return; }
+      const inp = gi.querySelector('.cdate');
+      if (inp && inp.showPicker) { try { inp.showPicker(); } catch (err) { inp.focus(); } } else if (inp) inp.focus();
+      return;
+    }
+    if (kind === 'cmp' && gi && gi.dataset.kind === 'cmpmenu') {
+      customMenu = Number(gi.dataset.id);
+      c.cmp = new Set(chartSet(c)); c.cmp.add('c');
+      closePopups(); applyWindows(); return;
+    }
+    if (kind === 'grain' && gi) {
+      c.grain = gi.dataset.id === 'auto' ? null : gi.dataset.id;
+      closePopups(); render();
+    } else if (kind === 'cmp' && row && row.dataset.pick) {
+      const o = row.dataset.pick;
+      c.cmp = new Set(chartSet(c)); c.cmp.add(o);
+      closePopups(); pushOverlays(c); app.execute(); render();
+    }
+  });
+
+  document.getElementById('addmenu').addEventListener('change', (e) => {
+    if (!e.target.classList.contains('cdate') || !e.target.value) return;
+    const [, ctx] = popCtx.split(':');
+    const c = charts[ctx];
+    customStart = e.target.value;
+    c.cmp = new Set(chartSet(c)); c.cmp.add('c');
+    closePopups(); applyWindows();
+  });
+  // redraw the chart menu in place (the menu picker pane), keeping it where it was
+  function reopenPop (kind, ctx) {
+    const m = document.getElementById('addmenu');
+    const c = charts[ctx];
+    const have = chartSet(c);
+    m.innerHTML = popPane === 'menus' ? menuPane('cmpmenu', null)
+      : `<div class="dd-sec">Compare with</div>${OVERLAYS.filter((o) => listable(o) && !have.has(o)).map((o) => `<div class="am-row" data-pick="${o}" title="${ovlSub(o)}">${dashSvg(o)}<b>${ovlLabel(o)}</b></div>`).join('')}${have.has('c') ? '' : customRow('cmp', false)}`;
+  }
+  // one place that closes every open dropdown and popover, except the one named
+  function closePopups (except) {
+    document.getElementById('addmenu').hidden = true;
+    cmpPane = null; popPane = null;
+    for (const el of document.querySelectorAll('.pinned')) el.classList.remove('pinned');
+    for (const el of document.querySelectorAll('.modewrap.open, .pop-wrap.open')) if (el.id !== except) el.classList.remove('open');
+  }
+  document.addEventListener('click', () => closePopups());
+
+  // ---- sort dropdown on the course list ----
+  function syncSort () {
+    const root = document.getElementById('sortwrap');
+    const open = root.classList.contains('open');
+    const cur = activeSort();
+    root.innerHTML = `<button type="button" class="dd-btn" id="sort-btn">${cur.label}<i class="chev"></i></button><div class="dd-list"><div class="dd-sec">Sort courses by</div>` +
+      SORTS.map((x) => { const off = x.needsMenu && mode !== 'menu'; return itemHtml('sort', x.id, x.label, x.id === cur.id, off, off ? 'Only available in By menu' : '', true); }).join('') + '</div>';
+    root.classList.toggle('open', open);
+  }
+  document.getElementById('sortwrap').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const root = document.getElementById('sortwrap');
+    const item = e.target.closest('.dd-item');
+    if (item) {
+      if (item.classList.contains('disabled')) return;
+      sortId = item.dataset.id;
+      root.classList.remove('open');
+      syncSort();
+      renderRanked();
+    } else if (e.target.closest('.dd-btn')) {
+      closePopups('sortwrap');
+      root.classList.toggle('open');
+    }
+  });
+
+  // ---- chart handles ----
+  const quadrantChart = echarts.init(document.getElementById('quadrant'));
+  const trendChart = echarts.init(document.getElementById('trend'));
+  const guestsChart = echarts.init(document.getElementById('guests'));
+
+  // ---- helpers ----
+  const n = (v) => (v === null || v === undefined ? null : Number(v));
+  function setStatus (id, queries) {
+    const el = document.getElementById(id);
+    el.classList.remove('error');
+    const active = queries.filter(Boolean);
+    let text = '';
+    const bad = active.find((q) => q.state === 'error');
+    if (bad) { text = `Couldn't load: ${bad.error.message}`; el.classList.add('error'); }
+    else if (active.some((q) => q.state === 'executing' && !q.result)) text = 'Loading…';
+    else if (active.length && active.every((q) => q.state === 'success' && q.result.rows.length === 0)) text = 'No sales in this period';
+    el.textContent = text;
+    el.classList.toggle('visible', text !== '');
+  }
+  function logFirst (q) {
+    if (!q || q.state !== 'success' || logged.has(q.name)) return;
+    logged.add(q.name);
+    console.log(q.name, 'columns', q.result.columns, 'first row', q.result.rows[0], 'executed AQL', q.result.debug?.executedAql);
+  }
+  const healthColor = (v) => (v > 90 ? cssv('--green-strong') : v < 60 ? COLORS.crimson : COLORS.ink);
+  function seasonColor (pct) { return pct >= 90 ? COLORS.green : pct >= 60 ? COLORS.amber : COLORS.crimson; }
+  function chip (text, tone) { return `<span class="delta ${tone || ''}">${text}</span>`; }
+
+  // which way a change went: 'good', 'bad' or '' when there is nothing to compare or no change
+  function deltaTone (cur, base, kind, goodWhenUp) {
+    if (!baseOk || cur === null || base === null || base === undefined || (kind === 'pct' && base === 0)) return '';
+    const d = kind === 'pct' ? (cur - base) / Math.abs(base) * 100 : cur - base;
+    if (Math.abs(d) < (kind === 'count' ? 0.5 : kind === 'rating' ? 0.005 : 0.05)) return '';
+    return (d > 0) === goodWhenUp ? 'good' : 'bad';
+  }
+  // a delta chip: kind is 'pct' (relative change), 'pts' (difference) or 'count'; goodWhenUp says which way is better
+  const cmpOff = () => !cmpSel.size;
+  function deltaChip (cur, base, kind, goodWhenUp) {
+    if (cmpOff()) return '';
+    if (!baseOk || cur === null || base === null || base === undefined || (kind === 'pct' && base === 0)) return chip('–');
+    const d = kind === 'pct' ? (cur - base) / Math.abs(base) * 100 : cur - base;
+    if (Math.abs(d) < (kind === 'count' ? 0.5 : kind === 'rating' ? 0.005 : 0.05)) return chip('0');
+    const body = kind === 'pct' ? `${num1.format(Math.abs(d))}%` : kind === 'rating' ? Math.abs(d).toFixed(2) : kind === 'pts' ? `${num1.format(Math.abs(d))} pts` : `${Math.abs(d)}`;
+    return chip(`${d > 0 ? '+' : '−'}${body}`, deltaTone(cur, base, kind, goodWhenUp));
+  }
+
+  function dishRows (q) { return q && q.result ? q.result.rows.map((r) => ({
+    concept: r.concept, course: r.course, plates: n(r.plates), revenue: n(r.revenue), margin: n(r.margin),
+    marginPct: n(r.margin_pct), wasteRate: n(r.waste_rate), seasonality: n(r.seasonality), risk: n(r.risk),
+    health: n(r.health), rating: n(r.rating), waste: n(r.waste), pos: n(r.pos), raw: r })) : []; }
+
+  // ---- tooltips: a white card, a title, then dot / label / value rows ----
+  const TIP = { get backgroundColor() { return cssv('--surface'); }, borderWidth: 0, padding: 0, extraCssText: 'border-radius:16px; box-shadow:0 8px 28px rgba(0,0,0,.14);', get textStyle() { return { fontFamily: 'Nunito', color: cssv('--ink') }; } };
+  const tipRow = (label, value, color, sub) => `<div style="display:flex;justify-content:space-between;gap:28px;align-items:center;margin-top:6px"><span style="color:var(--text2)">${color ? `<i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:8px"></i>` : ''}${label}</span><b style="font-weight:700">${value}</b></div>${sub || ''}`;
+  const tipCard = (title, rowsHtml) => `<div style="padding:14px 16px;min-width:200px;font-size:13px;color:var(--ink)"><div style="font-weight:700;font-size:14px">${title}</div>${rowsHtml}</div>`;
+
+  // ---- render ----
+  // A card whose queries are running dims its numbers, so an old value is not read as the current one.
+  const busyEls = [...document.querySelectorAll('[data-anfra-query]')].map((el) => ({ el, names: el.dataset.anfraQuery.split(/\s+/) }));
+  function markBusy () {
+    for (const { el, names } of busyEls) el.classList.toggle('busy', names.some((n) => qByName[n]?.state === 'executing'));
+  }
+
+  function render () {
+    markBusy();
+    logFirst(menusQ); logFirst(boundsQ);
+    if (!ready) return;
+    for (const q of [kpiCur, kpiBase, dishesCur, dishesBase, trendCur, cycleCur, ingredientsQ, guestsCur]) logFirst(q);
+
+    renderKpis();
+    renderAbout();
+    renderSeason();
+    renderQuadrant();
+    renderCycle();
+    renderRanked();
+    renderTrend();
+    renderGuests();
+    renderSpend();
+    renderPairs();
+    whyRefresh();
+    renderDrinkWaste();
+    renderDetail();
+  }
+
+  // the About numbers count up once, the first time the card scrolls into view
+  const ABOUT_FMT = { menus: (v) => String(Math.round(v)), guests: (v) => num0.format(v), kg: (v) => num0.format(v), div: (v) => `${num1.format(v)}%` };
+  let aboutVals = null, aboutInView = false, aboutDone = false;
+  function paintAbout (f) { for (const [k, v] of Object.entries(aboutVals)) document.getElementById(`about-${k}`).textContent = ABOUT_FMT[k](v * f); }
+  function tryAbout () {
+    if (aboutDone || !aboutVals || !aboutInView) return;
+    aboutDone = true;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { paintAbout(1); return; }
+    const t0 = performance.now();
+    const step = (t) => { const f = Math.min(1, (t - t0) / 1100); paintAbout(1 - Math.pow(1 - f, 3)); if (f < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
+  function renderAbout () {
+    const r = aboutQ.result && aboutQ.result.rows[0];
+    if (!r) return;
+    aboutVals = { menus: menus.length, guests: n(r.guests) || 0, kg: n(r.kg) || 0, div: n(r.div) || 0 };
+    if (aboutDone) paintAbout(1); else { paintAbout(0); tryAbout(); }
+  }
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { aboutInView = true; tryAbout(); io.disconnect(); } }, { threshold: 0.35 });
+    io.observe(document.querySelector('.about'));
+  } else { aboutInView = true; }
+
+  // ingredients by seasonal status
+  const SEASON_ROWS = [['in_season', 'In season', COLORS.green, true], ['shoulder', 'Almost out of season', COLORS.amber, false], ['out_of_season', 'Out of season', COLORS.crimson, false]];
+  function renderSeason () {
+    setStatus('season-status', [seasonCur]);
+    const month = MONTHS[Number(win.end.slice(5, 7)) - 1];
+    document.getElementById('season-title').firstChild.textContent = `Ingredients in season · ${month} `;
+    const read = (q) => new Map(((q && q.result && q.result.rows) || []).map((r) => [r.status, n(r.n) || 0]));
+    const cur = read(seasonCur);
+    const focused = !!selectedSet().size;
+    const base = !focused && baseOk ? read(seasonBase) : null;
+    const tot = (m) => SEASON_ROWS.reduce((t, [k]) => t + (m.get(k) || 0), 0);
+    const total = tot(cur);
+    const split = document.getElementById('season-split'), segl = document.getElementById('season-segl'), box = document.getElementById('season-rows');
+    if (!total) { split.innerHTML = ''; segl.innerHTML = ''; box.innerHTML = ''; return; }
+    const share = pcts(SEASON_ROWS.map(([k]) => cur.get(k) || 0));
+    const bt = base ? tot(base) : 0;
+    const share0 = bt ? SEASON_ROWS.map(([k]) => 100 * (base.get(k) || 0) / bt) : null;
+    split.innerHTML = SEASON_ROWS.map(([k, label, col], i) => `<span data-k="${k}" style="width:${share[i]}%;background:${col}"></span>`).join('');
+    segl.innerHTML = SEASON_ROWS.map(([k, label], i) => `<span style="width:${share[i]}%">${share[i] >= 14 ? `${share[i]}%` : ''}</span>`).join('');
+    box.innerHTML = SEASON_ROWS.map(([k, label, col, up], i) =>
+      `<div class="srow"><span class="l"><i class="dot" style="background:${col}"></i>${label}</span><b>${num0.format(cur.get(k) || 0)}</b><span class="pc">${share[i]}%</span>${base ? deltaChip(share[i], share0 ? share0[i] : null, 'pts', up) : ''}</div>`).join('');
+  }
+
+  // hover a bar segment: the ingredients in that status, biggest amount first
+  const stip = document.createElement('div');
+  stip.className = 'stip'; stip.hidden = true; document.body.append(stip);
+  function seasonTip (e) {
+    const el = e.target.closest('#season-split span[data-k]');
+    if (!el) { stip.hidden = true; return; }
+    const row = SEASON_ROWS.find(([k]) => k === el.dataset.k);
+    const ings = ((seasonIngsQ.result && seasonIngsQ.result.rows) || []).filter((r) => r.status === row[0]);
+    if (!ings.length) { stip.hidden = true; return; }
+    const top = ings.slice(0, 8);
+    stip.innerHTML = `<b><i class="dot" style="background:${row[2]}"></i>${row[1]}</b>` +
+      top.map((r) => `<div><span>${r.ingredient}</span><span>${Math.round(n(r.kg) * 1000)} g</span></div>`).join('') +
+      (ings.length > top.length ? `<div class="more"><span>+${ings.length - top.length} more</span></div>` : '');
+    stip.hidden = false;
+    const w = stip.offsetWidth, h = stip.offsetHeight;
+    stip.style.left = `${Math.min(e.clientX + 14, window.innerWidth - w - 8)}px`;
+    stip.style.top = `${e.clientY + 18 + h > window.innerHeight ? e.clientY - h - 12 : e.clientY + 18}px`;
+  }
+  const seasonCard = document.querySelector('[data-anfra-block="season"]');
+  seasonCard.addEventListener('mousemove', seasonTip);
+  seasonCard.addEventListener('mouseleave', () => { stip.hidden = true; });
+
+  function renderKpis () {
+    const k = kpiCur.result && kpiCur.result.rows[0];
+    const kb = baseOk && kpiBase.result && kpiBase.result.rows[0];
+    const rev = k ? n(k.revenue) : null;
+    const rev0 = kb ? n(kb.revenue) : null;
+    const dv = divCur.result && divCur.result.rows[0] ? n(divCur.result.rows[0].div) : null;
+    const dv0 = baseOk && divBase.result && divBase.result.rows[0] ? n(divBase.result.rows[0].div) : null;
+    // headline figures are dataset metrics (menu_health_avg, courses_at_risk, courses_on_menu), not page arithmetic
+    const nc = k ? n(k.courses) : null, nc0 = kb ? n(kb.courses) : null;
+    const rk = k ? n(k.risky) : null, rk0 = kb ? n(kb.risky) : null;
+    const h = k && nc ? n(k.health) : null, h0 = kb && nc0 ? n(kb.health) : null;
+    const set = (id, v) => { document.getElementById(id).innerHTML = v; };
+    const foot = (v) => (baseOk && v !== null ? `vs ${v}` : '');
+    set('kpi-revenue', rev === null ? '–' : money.format(rev));
+    set('kpi-diverted', dv === null ? '–' : `${num1.format(dv)}%`);
+    set('kpi-health', h === null ? '–' : num1.format(h));
+    set('kpi-risk', nc ? `${rk} of ${nc}` : '–');
+    const rbtn = document.getElementById('risk-show');
+    rbtn.parentElement.hidden = !riskOn && !rk;
+    rbtn.textContent = riskOn ? 'Show all' : `Show ${rk}`;
+    rbtn.parentElement.classList.toggle('on', riskOn);
+    const rat = k ? n(k.rating) : null, rat0 = kb ? n(kb.rating) : null;
+    const gu = k ? n(k.guests) : null, gu0 = kb ? n(kb.guests) : null;
+    set('kpi-guests', gu === null ? '–' : num0.format(gu));
+    set('kpi-guests-chip', deltaChip(gu, gu0, 'pct', true));
+    set('kpi-guests-foot', foot(gu0 === null ? null : num0.format(gu0)));
+    document.getElementById('ring').setAttribute('stroke-dasharray', `${h === null ? 0 : 314.16 * Math.max(0, Math.min(100, h)) / 100} 314.16`);
+    const clamp01 = (v) => Math.max(0, Math.min(1, v));
+    const mp = k ? n(k.margin_pct) : null, wr = k ? n(k.waste_rate) : null;
+    set('comp-margin', mp === null ? '–' : `${num1.format(mp)}%`);
+    set('comp-rating', rat === null ? '–' : rat.toFixed(2));
+    set('comp-waste', wr === null ? '–' : `${num1.format(wr)}%`);
+    const bar = (id, f) => { document.getElementById(id).style.width = `${f === null ? 0 : f * 100}%`; };
+    bar('bar-margin', mp === null ? null : clamp01(mp / 65));
+    bar('bar-rating', rat === null ? null : clamp01(rat - 3.5));
+    bar('bar-waste', wr === null ? null : 1 - clamp01(wr / 15));
+    const tone = (id, t) => { document.getElementById(id).className = `value ${t}`; };
+    tone('kpi-guests', deltaTone(gu, gu0, 'pct', true));
+    tone('kpi-revenue', deltaTone(rev, rev0, 'pct', true));
+    tone('kpi-diverted', deltaTone(dv, dv0, 'pts', true));
+    tone('kpi-health', deltaTone(h, h0, 'pts', true));
+    tone('kpi-risk', deltaTone(rk, nc0 ? rk0 : null, 'count', false));
+    set('kpi-revenue-chip', deltaChip(rev, rev0, 'pct', true));
+    set('kpi-diverted-chip', deltaChip(dv, dv0, 'pts', true));
+    set('kpi-health-chip', deltaChip(h, h0, 'pts', true));
+    set('kpi-risk-chip', deltaChip(rk, nc0 ? rk0 : null, 'count', false));
+    set('kpi-revenue-foot', foot(rev0 === null ? null : money.format(rev0)));
+    set('kpi-diverted-foot', foot(dv0 === null ? null : `${num1.format(dv0)}%`));
+    set('kpi-health-foot', foot(h0 === null ? null : num1.format(h0)));
+    set('kpi-risk-foot', foot(nc0 ? `${rk0} of ${nc0}` : null));
+  }
+
+  const selectedSet = () => new Set((dishesCur ? dishesCur.selectedRows : []).map((r) => r.concept));
+  const riskyRows = () => dishRows(dishesCur).filter((r) => r.risk >= AT_RISK);
+  function selectedConcept () {
+    const s = dishesCur ? dishesCur.selectedRows : [];
+    return s.length === 1 ? s[0].concept : null;
+  }
+
+  function renderQuadrant () {
+    setStatus('quadrant-status', [dishesCur]);
+    const rows = dishRows(dishesCur);
+    const picked = selectedSet();
+    const maxWaste = Math.max(...rows.map((r) => r.waste), 1);
+    const axis = (name, gap) => ({
+      type: 'value', name, nameLocation: 'middle', nameGap: gap, nameTextStyle: { color: COLORS.muted }, scale: true,
+      axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: COLORS.faint },
+      splitLine: { lineStyle: { color: COLORS.grid, type: 'dashed' } },
+    });
+    quadrantChart.setOption({
+      animation: false,
+      grid: { left: 52, right: 16, top: 12, bottom: 44 },
+      tooltip: {
+        ...TIP,
+        formatter: (p) => {
+          const r = rows[p.dataIndex];
+          return tipCard(r.concept, tipRow('Waste rate', `${num1.format(r.wasteRate)}%`) + tipRow('Margin', `${num1.format(r.marginPct)}%`) +
+            tipRow('Wasted', money.format(r.waste)) + tipRow('Guest rating', num1.format(r.rating)) + tipRow('In season', `${Math.round(r.seasonality)}%`));
+        },
+      },
+      xAxis: axis('Waste rate (%)', 28),
+      yAxis: axis('Margin (%)', 38),
+      series: [{
+        type: 'scatter',
+        data: rows.map((r) => ({
+          value: [r.wasteRate, r.marginPct],
+          symbolSize: 12 + 30 * Math.sqrt(r.waste / maxWaste),
+          itemStyle: { color: seasonColor(r.seasonality), opacity: !picked.size || picked.has(r.concept) ? 1 : 0.22, borderWidth: 0 },
+          label: { show: picked.size <= 6 && picked.has(r.concept), formatter: r.concept, position: 'top', color: COLORS.ink, fontFamily: 'Nunito', fontWeight: 600 },
+        })),
+      }],
+    });
+  }
+
+  function renderRanked () {
+    setStatus('ranked-status', [dishesCur]);
+    const sort = activeSort();
+    const cur = dishRows(dishesCur).filter((r) => !riskOn || r.risk >= AT_RISK).sort((a, b) => sort.dir * ((sort.value(a) ?? 0) - (sort.value(b) ?? 0)));
+    rankedView = cur;
+    const sel = selectedConcept();
+    document.getElementById('ranked-title').firstChild.textContent = `${sort.title} `;
+    document.getElementById('ranked-info').dataset.tip = sort.id === 'order'
+      ? 'The order the courses are served in. The number is the menu health score: 40% margin, 30% guest rating, 30% low waste.'
+      : `${sort.label}, highest first. Menu health is 40% margin, 30% guest rating, 30% low waste.`;
+    const byOrder = sort.id === 'order';
+    const show = byOrder ? SORTS.find((x) => x.id === 'health') : sort;   // in menu order the row still shows health
+    const max = Math.max(...cur.map((r) => show.value(r) || 0), 1);
+    document.getElementById('ranked').innerHTML = cur.map((r, i) => {
+      const v = show.value(r);
+      const w = Math.max(0, Math.min(1, show.bar(v, max))) * 100;
+      return `<div class="row${sel === r.concept ? ' selected' : ''}" data-index="${i}">
+        <div><div class="name">${byOrder ? `<span class="no">${Math.round(r.pos)}</span>` : ''}${r.concept}</div><div class="meta">${r.course} · ${Math.round(r.seasonality)}% in season</div></div>
+        <div class="score"${show.id === 'health' ? ` style="color:${healthColor(v)}"` : ''}>${show.show(v)}</div>
+        <div class="track"><span style="width:${w}%"></span></div>
+      </div>`;
+    }).join('');
+  }
+
+  // ---- the time charts: one system for both. Grouping is Day or Week (weeks count from the first day of the period). ----
+  // one entry per day of the window, so periods line up by position even when a day has no rows (a course that was not served)
+  function dailyRows (q, w) {
+    if (!q || !q.result || !w) return [];
+    const byDay = new Map(q.result.rows.map((r) => [String(r.period).slice(0, 10), r]));
+    const out = [];
+    for (let d = w.start; d <= w.end; d = addDays(d, 1)) out.push(byDay.get(d) || { period: d, missing: true });
+    return out;
+  }
+  // sum (or, by day, read) each bucket of the window; a bucket that reaches past the data is empty
+  function bucket (rows, spec, keys, g, w) {
+    return spec.map(({ a, b }) => {
+      const sl = rows.slice(a, b + 1);
+      const short = sl.length < b - a + 1;
+      const v = Object.fromEntries(keys.map((k) => [k, short ? null : g === 'day' ? (sl[0].missing ? null : n(sl[0][k])) : sl.reduce((t, r) => t + (r.missing ? 0 : n(r[k]) || 0), 0)]));
+      return { start: addDays(w.start, a), end: addDays(w.start, b), v };
+    });
+  }
+
+  // hover strip in a chart's header: its own grain; "Follow page" shows whenever the chart is on its own settings
+  function renderStrip (c) {
+    const el = document.getElementById(`${c.id}-strip`);
+    const own = !!(c.grain || c.cmp);
+    el.classList.toggle('own', own);
+    el.innerHTML = `<button type="button" class="sbtn" data-gmenu title="Time grain for this chart">${ICON_CAL}${grainName(chartGrain(c))}<i class="chev"></i></button>${own ? '<button type="button" class="reset" data-reset title="Follow page">↺ Reset</button>' : ''}`;
+  }
+  function renderTimeChart (c) {
+    setStatus(c.statusId, [c.cur]);
+    const g = chartGrain(c);
+    const fg = c.measures.filter((m) => !m.bg), bg = c.measures.filter((m) => m.bg);
+    const keys = [...new Set(c.measures.flatMap((m) => m.ratio || [m.key]))];
+    const derive = (bs) => { for (const b of bs) for (const m of c.measures) if (m.ratio) b.v[m.key] = b.v[m.ratio[1]] ? b.v[m.ratio[0]] / b.v[m.ratio[1]] : null; return bs; };
+    const spec = bucketSpec(g, win);
+    const cur = derive(bucket(dailyRows(c.cur, win), spec, keys, g, win));
+    const set = chartSet(c);
+    const active = OVERLAYS.filter((o) => set.has(o) && overlayWins[o]);
+    const ovl = Object.fromEntries(active.map((o) => [o, derive(bucket(dailyRows(c.ovl[o], overlayWins[o]), spec, keys, g, overlayWins[o]))]));
+    const dual = new Set(fg.map((m) => m.axis)).size > 1;
+    const short = (iso) => toDate(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+    const full = (iso) => toDate(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    const yy = (iso) => iso.slice(2, 4);
+    const lbl = (b) => (g === 'month' ? toDate(b.start).toLocaleDateString('en-GB', { month: 'short', year: '2-digit', timeZone: 'UTC' }) : g === 'quarter' ? `Q${Math.floor((Number(b.start.slice(5, 7)) - 1) / 3) + 1} ${yy(b.start)}` : g === 'year' ? b.start.slice(0, 4) : short(b.start));
+    const span = (b) => (g === 'day' ? full(b.start) : g === 'month' || g === 'quarter' || g === 'year' ? lbl(b) : `${short(b.start)} – ${full(b.end)}`);
+    const dim = (m) => focusName && fg.length > 1 && focusName !== m.name;
+
+    document.getElementById(c.legendId).innerHTML =
+      (fg.length > 1
+        ? fg.map((m) => `<button type="button" data-name="${m.name}" aria-pressed="${focusName === m.name}"><i class="dot" style="background:${m.color}"></i>${m.name}</button>`).join('')
+        : `<span class="ovl"><i class="dot" style="background:${fg[0].color}"></i>${fg[0].name}</span>`) + bg.map((m) => `<span class="ovl"><i class="dot" style="background:${m.dot || m.color}"></i>${m.name}</span>`).join('') +
+      OVERLAYS.filter((o) => set.has(o)).map((o) => chipHtml(o)).join('') + (!courseFocus(c) && OVERLAYS.some((o) => !set.has(o) && overlayWins[o]) ? '<button type="button" class="chip add" data-add>+ Compare</button>' : '');
+    renderStrip(c);
+
+    const line = (name, data, m, dash, opacity) => ({
+      name, type: 'line', yAxisIndex: m.axis, data, smooth: 0.25, smoothMonotone: 'x', showSymbol: g !== 'day' && !dash, symbol: 'emptyCircle', symbolSize: 6,
+      lineStyle: { color: dash ? m.ghost : m.color, width: dash ? 2.5 : 3, type: dash || 'solid', cap: 'round', join: 'round', opacity },
+      itemStyle: { color: dash ? m.ghost : m.color, opacity, borderWidth: 1.5 },
+    });
+    const step = Math.max(1, Math.ceil(cur.length / 7));
+    c.echart.setOption({
+      animation: false,
+      grid: { left: 56, right: dual ? 56 : 16, top: dual ? 30 : 12, bottom: 28 },
+      legend: { show: false },
+      tooltip: {
+        ...TIP, trigger: 'axis',
+        formatter: (params) => {
+          const i = params[0].dataIndex;
+          if (!cur[i]) return '';
+          const rowsHtml = c.measures.map((m) => {
+            const v = cur[i].v[m.key];
+            const subs = active.map((o) => {
+              const b = ovl[o][i];
+              if (!b || b.v[m.key] === null || v === null) return '';
+              const pct = b.v[m.key] === 0 ? null : (v - b.v[m.key]) / Math.abs(b.v[m.key]) * 100;
+              const tone = pct === null ? COLORS.muted : (pct > 0) === m.up ? COLORS.green : COLORS.crimson;
+              return `<div style="display:flex;justify-content:space-between;gap:28px;margin:2px 0 0 16px;font-size:12px;color:${COLORS.muted}"><span>${ovlLabel(o)} · ${m.fmt(b.v[m.key])}</span>${pct === null ? '' : `<span style="color:${tone};font-weight:700">${pct > 0 ? '+' : '−'}${num1.format(Math.abs(pct))}%</span>`}</div>`;
+            }).join('');
+            return tipRow(m.name, v === null ? '–' : m.fmt(v), m.dot || m.color, subs);
+          }).join('');
+          return tipCard(span(cur[i]), rowsHtml);
+        },
+      },
+      xAxis: {
+        type: 'category', data: cur.map((b) => lbl(b)), boundaryGap: bg.length > 0,
+        axisLine: { lineStyle: { color: COLORS.grid } }, axisTick: { show: false },
+        axisLabel: { color: COLORS.faint, interval: (i) => i % step === 0 },
+        splitLine: { show: true, interval: (i) => i % step === 0, lineStyle: { color: COLORS.grid, type: 'dashed' } },
+      },
+      yAxis: [...[...new Set(fg.map((m) => m.axis))].sort().map((ax) => {
+        const m = fg.find((x) => x.axis === ax);
+        return {
+          type: 'value', scale: !dual, min: dual ? 0 : undefined,
+          name: dual ? m.name : '', nameTextStyle: { color: COLORS.faint, align: ax === 0 ? 'left' : 'right', padding: [0, 0, 6, 0] },
+          axisLine: { show: false }, axisTick: { show: false }, splitLine: { show: false },
+          axisLabel: { color: COLORS.faint, formatter: m.axisFmt || ((v) => money.format(v)) },
+        };
+      }),
+      // bars sit low on their own hidden axis so they stay context for the line
+      ...bg.map((m) => ({ type: 'value', show: false, min: 0, max: Math.max(1, ...cur.map((b) => b.v[m.key] || 0), ...active.flatMap((o) => ovl[o].map((b) => b.v[m.key] || 0))) * 3, splitLine: { show: false } }))],
+      series: [
+        // comparison columns sit beside the current one, comparison first, not over it
+        ...active.flatMap((o) => bg.map((m) => ({ name: `${m.name} · ${ovlLabel(o)}`, type: 'bar', yAxisIndex: 1, data: ovl[o].map((b) => b.v[m.key]), barWidth: 10, barGap: '40%', z: 1, silent: true, itemStyle: { color: isDark() ? '#2c2950' : '#e4dff4', borderRadius: 5 } }))),
+        ...bg.map((m) => ({ name: m.name, type: 'bar', barWidth: 10, barGap: '40%', yAxisIndex: 1, data: cur.map((b) => b.v[m.key]), itemStyle: { color: m.color, borderRadius: 5 }, z: 1, emphasis: { disabled: true } })),
+        ...active.flatMap((o) => fg.map((m) => line(`${m.name} · ${ovlLabel(o)}`, ovl[o].map((b) => b.v[m.key]), m, DASH[o], dim(m) ? 0.15 : 1))),
+        ...fg.map((m) => line(m.name, cur.map((b) => b.v[m.key]), m, null, dim(m) ? 0.15 : 1)),
+      ],
+    }, { replaceMerge: ['series'] });
+  }
+
+  function renderTrend () {
+    const sel = selectedConcept();
+    document.getElementById('trend-title').textContent = sel || 'Revenue and waste';
+    renderTimeChart(charts.trend);
+  }
+  function renderGuests () {
+    document.getElementById('guests-title').firstChild.textContent = `Guest rating per ${chartGrain(charts.guests)} `;
+    renderTimeChart(charts.guests);
+  }
+
+  // whole numbers that add to 100: the rounding difference goes to the largest part
+  function pcts (vals) {
+    const tot = vals.reduce((t, v) => t + Math.max(0, v), 0) || 1;
+    const out = vals.map((v) => Math.round(Math.max(0, v) / tot * 100));
+    const k = out.indexOf(Math.max(...out));
+    out[k] += 100 - out.reduce((t, v) => t + v, 0);
+    return out;
+  }
+  function renderSpend () {
+    setStatus('spend-status', [spendCur]);
+    const k = spendCur.result && spendCur.result.rows[0];
+    const kb = baseOk && spendBase.result && spendBase.result.rows[0];
+    const vals = (r) => (r ? { rev: n(r.spend), cost: n(r.fcost) - n(r.waste) + n(r.dcost), waste: n(r.waste) + n(r.dwaste), margin: n(r.fmargin), pmargin: n(r.dmargin) } : null);
+    const c = vals(k), b = vals(kb);
+    const set = (id, v) => { document.getElementById(id).innerHTML = v; };
+    set('spend-value', c ? money.format(c.rev) : '–');
+    document.getElementById('spend-value').className = `value ${c && b ? deltaTone(c.rev, b.rev, 'pct', true) : ''}`;
+    set('spend-chip', c ? deltaChip(c.rev, b ? b.rev : null, 'pct', true) : '');
+    set('spend-foot', b ? `vs ${money.format(b.rev)}` : '');
+    const parts = [
+      ['Ingredients', 'cost', COLORS.cost, false],
+      ['Waste', 'waste', COLORS.crimson, false],
+      ['Food margin', 'margin', COLORS.revenue, true],
+      ['Drinks margin', 'pmargin', COLORS.drinks, true],
+    ];
+    const share = c ? pcts(parts.map(([, key]) => c[key])) : [];
+    set('spend-split', c ? parts.map(([label, key, color], i) => `<span title="${label} ${share[i]}%" style="width:${share[i]}%;background:${color}"></span>`).join('') : '');
+    set('spend-rows', c ? parts.map(([label, key, color, up], i) =>
+      `<div class="srow"><span class="l"><i class="dot" style="background:${color}"></i>${label}</span><b>${money.format(c[key])}</b><span class="pc">${share[i]}%</span>${deltaChip(c[key], b ? b[key] : null, 'pct', up)}</div>`).join('') : '');
+  }
+
+  // Pairing (wine, reserve, non-alcoholic) and No pairing (ordered drinks, no drinks): shares of all guests
+  const PAIR_ROWS = [['reserve', 'Reserve wine'], ['wine', 'Wine'], ['non_alcoholic', 'Non-alcoholic']];
+  function renderPairs () {
+    setStatus('pairs-status', [kindsCur, spendCur]);
+    const rows = (q) => new Map(((q && q.result && q.result.rows) || []).map((r) => [r.kind, r]));
+    const cur = rows(kindsCur), base = baseOk ? rows(kindsBase) : new Map();
+    const k = spendCur.result && spendCur.result.rows[0];
+    const kb = baseOk && spendBase.result && spendBase.result.rows[0];
+    const box = document.getElementById('pairs-rows');
+    box.classList.toggle('cmp', baseOk);
+    const seg = (label, v, col) => `<span title="${label} ${num1.format(v)}%" style="width:${v}%;background:${col}"></span>`;
+    const segLabel = (label, v) => `<span style="width:${v}%">${v >= 14 ? `${label} ${num1.format(v)}%` : ''}</span>`;
+    if (!cur.size || !k) { box.innerHTML = ''; document.getElementById('pairs-split').innerHTML = ''; document.getElementById('pairs-segl').innerHTML = ''; return; }
+    const colors = { wine: COLORS.drinks, reserve: COLORS.drinksDeep, non_alcoholic: COLORS.drinksLight, ordered: '#8f9993', get none() { return cssv('--fill-2'); } };
+    const take = (m, kind) => (m.get(kind) ? n(m.get(kind).take) : 0);
+    const pairTake = (m) => PAIR_ROWS.reduce((t, [kind]) => t + take(m, kind), 0);
+    const split = (m, row) => { const p = pairTake(m), o = row ? n(row.otake) : 0; return { pair: p, nopair: 100 - p, ordered: o, none: Math.max(0, 100 - p - o) }; };
+    const c = split(cur, k), b = baseOk && kb ? split(base, kb) : null;
+    const chipOf = (a, a0) => (b ? deltaChip(a, a0, 'pts', true) : '');
+    document.getElementById('pairs-split').innerHTML = seg('Pairing', c.pair, COLORS.drinks) + seg('No pairing', c.nopair, cssv('--fill-2'));
+    document.getElementById('pairs-segl').innerHTML = segLabel('Pairing', c.pair) + segLabel('No pairing', c.nopair);
+    const chipCol = baseOk;
+    const maxShare = Math.max(...PAIR_ROWS.map(([kind]) => take(cur, kind)), c.ordered, c.none, 1);
+    const line = (col, label, share, price, margin, chipHtml, tip) => `<div class="prow"${tip ? ` title="${tip}"` : ''}><span class="l">${label}</span><span class="bar"><span style="width:${share / maxShare * 100}%;background:${col}"></span></span><b>${num1.format(share)}%</b>${chipCol ? (chipHtml || '<span></span>') : ''}<span class="n">${price}</span><span class="n">${margin}</span></div>`;
+    const guestsOf = (kind) => (cur.get(kind) ? n(cur.get(kind).guests) : 0);
+    box.innerHTML = `<div class="prow hd"><span></span><span></span><span>% of guests</span>${chipCol ? '<span></span>' : ''}<span title="What one guest who took it pays">Price each</span><span title="What one guest who took it leaves as margin">Margin each</span></div>` +
+      PAIR_ROWS.map(([kind, label]) => {
+        const r = cur.get(kind), r0 = base.get(kind);
+        return r ? line(colors[kind], label, n(r.take), money.format(n(r.price)), money.format(n(r.each)), chipOf(n(r.take), r0 ? n(r0.take) : null), `${num0.format(guestsOf(kind))} guests`) : '';
+      }).join('') +
+      line(colors.ordered, 'Ordered drinks', c.ordered, money.format(n(k.ospend)), money.format(n(k.omeach)), chipOf(c.ordered, b && b.ordered), 'Guests without a pairing who ordered drinks') +
+      line(colors.none, 'Nothing', c.none, '', '', chipOf(c.none, b && b.none), 'Guests without a pairing who ordered no drinks');
+  }
+
+  // drinks waste: three numbers, then what it was lost to
+  function renderDrinkWaste () {
+    setStatus('dw-status', [dwasteCur, dcauseCur]);
+    const k = dwasteCur.result && dwasteCur.result.rows[0];
+    const kb = baseOk && dwasteBase.result && dwasteBase.result.rows[0];
+    if (!k) { document.getElementById('dw-stats').innerHTML = ''; document.getElementById('dw-split').innerHTML = ''; document.getElementById('dw-segl').innerHTML = ''; document.getElementById('dw-rows').innerHTML = ''; return; }
+    const stat = (label, val, color, chipHtml) => `<div><span>${label}</span><div class="vr"><b style="color:${color}">${val}</b>${chipHtml}</div></div>`;
+    document.getElementById('dw-stats').innerHTML =
+      stat('Waste cost', money.format(n(k.cost)), COLORS.ink, deltaChip(n(k.cost), kb ? n(kb.cost) : null, 'pct', false)) +
+      stat('Waste rate', `${num1.format(n(k.rate))}%`, COLORS.ink, deltaChip(n(k.rate), kb ? n(kb.rate) : null, 'pts', false)) +
+      stat('Litres wasted', `${num0.format(n(k.litres))} L`, COLORS.ink, deltaChip(n(k.litres), kb ? n(kb.litres) : null, 'pct', false));
+    const re = Math.max(0, Math.min(100, n(k.reuse)));
+    document.getElementById('dw-split').innerHTML = `<span title="Reused ${num1.format(re)}%" style="width:${re}%;background:${COLORS.green}"></span><span title="Thrown away ${num1.format(100 - re)}%" style="width:${100 - re}%;background:var(--fill-2)"></span>`;
+    document.getElementById('dw-segl').innerHTML = `<span style="width:${re}%">${re >= 14 ? `Reused ${num1.format(re)}%` : ''}</span><span style="width:${100 - re}%">${100 - re >= 14 ? `Thrown away ${num1.format(100 - re)}%` : ''}</span>`;
+    const causes = ((dcauseCur.result && dcauseCur.result.rows) || []).map((r) => ({ name: r.cause, v: n(r.cost) || 0 }));
+    const total = causes.reduce((t, x) => t + x.v, 0) || 1, max = Math.max(...causes.map((x) => x.v), 1);
+    const share = pcts(causes.map((x) => x.v));
+    document.getElementById('dw-rows').innerHTML = causes.map((x, i) => `<div class="crow"><span class="l">${x.name}</span><div class="t"><span style="width:${x.v / max * 100}%"></span></div><b>${money.format(x.v)}</b><span class="pc">${share[i]}%</span></div>`).join('');
+  }
+
+  // ---- the food cycle: stages along the top, destinations along the bottom, ribbons as wide as the kilos they carry ----
+  const CY_STAGES = [['farm', 'Farm'], ['storage', 'Storage'], ['prep', 'Prep'], ['cooking', 'Cooking'], ['plate', 'Plate']];
+  const CY_DESTS = [['compost', 'Composted'], ['reused', 'Reused'], ['feed', 'Animal feed'], ['landfill', 'Thrown away']];
+  const CY_DARK = [['reused', 'Reused'], ['compost', 'Composted'], ['feed', 'Animal feed'], ['landfill', 'Thrown away']];   // darkest green first, thrown away last
+  const DEST_COL = { compost: '#74b77a', reused: '#2f7d3a', feed: '#bcdcae', landfill: '#b0224f' };
+  const cycleRows = (q) => ((q && q.result && q.result.rows) || []).map((r) => ({ stage: r.stage, dest: r.dest, kg: n(r.kg) || 0, cost: n(r.cost) || 0 }));
+  const sumKg = (rows, f) => rows.filter(f).reduce((t, r) => t + r.kg, 0);
+  function diversionOf (rows) {
+    const k = rows.filter((r) => r.stage !== 'farm');
+    const t = sumKg(k, () => true);
+    return t ? 100 * (1 - sumKg(k, (r) => r.dest === 'landfill') / t) : null;
+  }
+  function renderCycle () {
+    setStatus('cycle-status', [cycleCur]);
+    const rows = cycleRows(cycleCur), kitchen = rows.filter((r) => r.stage !== 'farm');
+    const focused = !!selectedConcept();
+    const baseRows = !focused && baseOk ? cycleRows(cycleBase).filter((r) => r.stage !== 'farm') : [];
+    const stat = (label, val, chipHtml) => `<div><span>${label}</span><div class="vr"><b>${val}</b>${chipHtml}</div></div>`;
+    const wrap = document.getElementById('cycle');
+    if (!rows.length) { document.getElementById('cy-stats').innerHTML = ''; wrap.innerHTML = ''; document.getElementById('cy-leg').innerHTML = ''; return; }
+    const div = diversionOf(rows), land = sumKg(kitchen, (r) => r.dest === 'landfill');
+    const div0 = baseRows.length ? diversionOf(baseRows) : null, land0 = baseRows.length ? sumKg(baseRows, (r) => r.dest === 'landfill') : null;
+    document.getElementById('cy-stats').innerHTML =
+      stat('Kitchen waste', `${num0.format(sumKg(kitchen, () => true))} kg`, '') +
+      stat('Waste diverted', `${num1.format(div)}%`, focused ? '' : deltaChip(div, div0, 'pts', true)) +
+      stat('Thrown away', `${num0.format(land)} kg`, focused ? '' : deltaChip(land, land0, 'pct', false));
+
+    const total = sumKg(rows, () => true) || 1;
+    const W = 720, H = 384, L = 62, avail = W - L - 6, barsW = 556, k = barsW / total;
+    const gapS = (avail - barsW) / 4, gapB = (avail - barsW) / 3;
+    const st = {}, bn = {}, fl = {};
+    for (const r of rows) { st[r.stage] = (st[r.stage] || 0) + r.kg; bn[r.dest] = (bn[r.dest] || 0) + r.kg; fl[`${r.stage}|${r.dest}`] = r; }
+    const sx = {}, bx = {};
+    let x = L; for (const [id] of CY_STAGES) { sx[id] = x; x += (st[id] || 0) * k + gapS; }
+    x = L; for (const [id] of CY_DESTS) { bx[id] = x; x += (bn[id] || 0) * k + gapB; }
+    const yS = 74, hS = 8, yB = 296, hB = 8;
+    const so = { ...sx }, bo = { ...bx };
+    let ribbons = '';
+    for (const [sid] of CY_STAGES) for (const [did] of CY_DESTS) {
+      const f = fl[`${sid}|${did}`];
+      if (!f || f.kg <= 0) continue;
+      const w = f.kg * k, x1 = so[sid] + w / 2, x2 = bo[did] + w / 2;
+      so[sid] += w; bo[did] += w;
+      ribbons += `<path class="ribbon" data-stage="${sid}" data-dest="${did}" data-kg="${f.kg}" data-cost="${f.cost}" d="M${x1} ${yS + hS - 4} C${x1} ${yS + hS + 80} ${x2} ${yB - 80} ${x2} ${yB + 4}" stroke="${DEST_COL[did]}" stroke-width="${Math.max(w, 1.2)}"${sid === 'farm' ? ' stroke-dasharray="9 5"' : ''}/>`;
+    }
+    const pct = (v) => `${num0.format(v / total * 100)}%`;
+    let nodes = '';
+    for (const [id, label] of CY_STAGES) {
+      const w = (st[id] || 0) * k, cx = sx[id] + w / 2;
+      nodes += (w > 0 ? `<rect x="${sx[id]}" y="${yS}" width="${Math.max(w, 2)}" height="${hS}" rx="4" style="fill:${id === 'farm' ? 'var(--faint)' : '#4b5560'}"/>` : '') +
+        `<text x="${cx}" y="56" text-anchor="middle" font-weight="600">${label}</text><text class="m" x="${cx}" y="70" text-anchor="middle" dy="-0">${num0.format(st[id] || 0)} kg</text>`;
+    }
+    for (const [id, label] of CY_DESTS) {
+      const w = (bn[id] || 0) * k, cx = bx[id] + w / 2;
+      nodes += (w > 0 ? `<rect x="${bx[id]}" y="${yB}" width="${Math.max(w, 2)}" height="${hB}" rx="4" fill="${DEST_COL[id]}"/>` : '') +
+        `<text x="${cx}" y="${yB + hB + 16}" text-anchor="middle" font-weight="600">${label}</text><text class="m" x="${cx}" y="${yB + hB + 31}" text-anchor="middle">${num0.format(bn[id] || 0)} kg · ${pct(bn[id] || 0)}</text>`;
+    }
+    // the loops: reused goes back into prep, composted goes back to the farm
+    const maxBin = Math.max(...CY_DESTS.map(([id]) => bn[id] || 0), 1);
+    const lw = (v) => 1.5 + 1.5 * v / maxBin;
+    const cxOf = (id) => sx[id] + (st[id] || 0) * k / 2;
+    // a path through the points with rounded corners
+    const rounded = (pts, r) => pts.map(([x, y], i) => {
+      if (i === 0) return `M${x} ${y}`;
+      if (i === pts.length - 1) return `L${x} ${y}`;
+      const [ax, ay] = pts[i - 1], [bx2, by2] = pts[i + 1];
+      const da = Math.hypot(ax - x, ay - y), db = Math.hypot(bx2 - x, by2 - y), rr = Math.min(r, da / 2, db / 2);
+      return `L${x + (ax - x) / da * rr} ${y + (ay - y) / da * rr} Q${x} ${y} ${x + (bx2 - x) / db * rr} ${y + (by2 - y) / db * rr}`;
+    }).join(' ');
+    const arrow = (id, col) => `<marker id="${id}" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" refX="10" refY="7" orient="auto"><path d="M3 2L10 7L3 12" fill="none" stroke="${col}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>`;
+    let loops = `<defs>${arrow('cy-arr-c', DEST_COL.compost)}${arrow('cy-arr-r', DEST_COL.reused)}</defs>`;
+    if ((bn.compost || 0) > 0) loops += `<path class="loop" d="${rounded([[bx.compost, yB + hB / 2], [38, yB + hB / 2], [38, 26], [cxOf('farm'), 26], [cxOf('farm'), 44]], 12)}" stroke="${DEST_COL.compost}" stroke-width="${lw(bn.compost)}" marker-end="url(#cy-arr-c)"/>`;
+    if ((bn.reused || 0) > 0) loops += `<path class="loop" d="${rounded([[bx.reused + 6, yB + hB], [bx.reused + 6, 372], [10, 372], [10, 10], [cxOf('prep'), 10], [cxOf('prep'), 44]], 12)}" stroke="${DEST_COL.reused}" stroke-width="${lw(bn.reused)}" marker-end="url(#cy-arr-r)"/>`;
+    if ((bn.compost || 0) > 0) loops += `<text class="lp" transform="translate(38 190) rotate(-90)" text-anchor="middle" fill="${DEST_COL.compost}">back to the farm</text>`;
+    if ((bn.reused || 0) > 0) loops += `<text class="lp" transform="translate(10 190) rotate(-90)" text-anchor="middle" fill="${DEST_COL.reused}">back into prep</text>`;
+    wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Food cycle">${ribbons}${loops}${nodes}</svg>`;
+    document.getElementById('cycle-wrap').dataset.total = total;
+    document.getElementById('cy-leg').innerHTML = CY_DARK.map(([d, label]) => `<span><i style="background:${DEST_COL[d]}"></i>${label}</span>`).join('') +
+      '<span><i style="background:#b9beba"></i>Farm loss (dashed)</span>';
+  }
+
+  function renderDetail () {
+    const cur = dishRows(dishesCur);
+    const sel = selectedConcept();
+    const dish = sel ? cur.find((r) => r.concept === sel) : null;
+    const chipEl = document.getElementById('selchip');
+    chipEl.hidden = !dish && !riskOn;
+    if (dish || riskOn) chipEl.innerHTML = `<span>${dish ? `Course: ${dish.concept}` : `Courses at risk: ${riskyRows().length}`}</span><i><svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 2l8 8M10 2L2 10"/></svg></i>`;
+    document.getElementById('ranked-view').hidden = !!dish;
+    document.getElementById('detail-view').hidden = !dish;
+    setStatus('detail-status', dish ? [cycleCur] : []);
+    if (!dish) return;
+    document.getElementById('detail-title').textContent = dish.concept;
+    document.getElementById('detail-hint').textContent = dish.course;
+
+    const stat = (label, value, extra, color) => `<div><span>${label}</span><b${color ? ` style="color:${color}"` : ''}>${value}</b>${extra || ''}</div>`;
+    document.getElementById('stats').innerHTML =
+      stat('Menu health', Math.round(dish.health), '', healthColor(dish.health)) +
+      stat('Sustainability risk', Math.round(dish.risk)) +
+      stat('Margin', `${num1.format(dish.marginPct)}%`) +
+      stat('Waste rate', `${num1.format(dish.wasteRate)}%`);
+
+    const kitchen = cycleRows(cycleCur).filter((r) => r.stage !== 'farm');
+    const stages = [['prep', 'Prep'], ['cooking', 'Cooking'], ['plate', 'Plate'], ['storage', 'Storage']].map(([k, name]) => {
+      const by = CY_DARK.map(([d, label]) => ({ d, label, v: kitchen.filter((r) => r.stage === k && r.dest === d).reduce((t, r) => t + r.cost, 0) }));
+      return { name, by, v: by.reduce((t, x) => t + x.v, 0) };
+    });
+    const max = Math.max(...stages.map((x) => x.v), 1);
+    document.getElementById('stage-leg').innerHTML = CY_DARK.map(([d, label]) => `<span><i style="background:${DEST_COL[d]}"></i>${label}</span>`).join('');
+    document.getElementById('stages').innerHTML = stages.map((x) =>
+      `<div class="stage"><div class="line"><span>${x.name}</span><div class="st"><div class="dstack" style="width:${x.v / max * 100}%">${x.by.filter((y) => y.v > 0).map((y) => `<span title="${y.label} ${money.format(y.v)}" style="width:${y.v / x.v * 100}%;background:${DEST_COL[y.d]}"></span>`).join('')}</div></div><div class="amt">${money.format(x.v)}</div></div></div>`).join('');
+
+    // where this course's trim goes: other courses on the menu, the non-alcoholic pairing, the staff meal
+    const reuse = new Map();
+    for (const r of (reuseQ.result ? reuseQ.result.rows : [])) {
+      if (!reuse.has(r.target)) reuse.set(r.target, { kind: r.kind, ings: new Set() });
+      reuse.get(r.target).ings.add(String(r.ingredient).toLowerCase());
+    }
+    const onPage = new Set(cur.map((r) => r.concept));
+    document.getElementById('reuse-label').hidden = !reuse.size;
+    document.getElementById('reuse').innerHTML = [...reuse].map(([target, v]) => {
+      const link = v.kind === 'course' && onPage.has(target) && target !== sel;
+      return `<div class="reuse-row${link ? ' link' : ''}"${link ? ` data-concept="${String(target).replace(/"/g, '&quot;')}"` : ''}><span class="t">${target}</span><span class="g">${[...v.ings].join(', ')}</span></div>`;
+    }).join('');
+
+    const month = MONTHS[Number(win.end.slice(5, 7)) - 1];
+    document.getElementById('ing-label').textContent = `Ingredients · ${month}`;
+    const rows = ingredientsQ.result ? ingredientsQ.result.rows : [];
+    const names = { in_season: 'In season', shoulder: 'Almost out of season', out_of_season: 'Out of season' };
+    const dots = { in_season: COLORS.green, shoulder: COLORS.amber, out_of_season: COLORS.crimson };
+    document.getElementById('ingredients').innerHTML = rows.length ? rows.map((r) =>
+      `<div class="ing"><span>${r.ingredient}<span class="g">${Math.round(n(r.kg) * 1000)} g</span></span><span class="st"><i class="dot" style="background:${dots[r.status]}"></i>${names[r.status] || r.status}</span></div>`).join('')
+      : '<div class="empty">Not on the menu this month</div>';
+  }
+
+  // ---- wiring ----
+  app.subscribe(render);
+
+  function toggleDish (concept) {
+    const rows = dishesCur.result.rows;
+    const row = rows.find((r) => r.concept === concept);
+    const sel = dishesCur.selectedRows;
+    if (sel.length === 1 && sel[0].concept === concept) { clearCourse(); return; }
+    dishesCur.select([row]);
+    for (const c of Object.values(charts)) pushOverlays(c);   // a chart narrowed to one course carries no comparison
+    app.execute();
+    render();
+  }
+  quadrantChart.on('click', (p) => toggleDish(dishRows(dishesCur)[p.dataIndex].concept));
+  document.getElementById('ranked').addEventListener('click', (e) => {
+    const el = e.target.closest('.row');
+    if (el) toggleDish(rankedView[Number(el.dataset.index)].concept);
+  });
+  document.getElementById('reuse').addEventListener('click', (e) => {
+    const el = e.target.closest('.reuse-row.link');
+    if (el) toggleDish(el.dataset.concept);
+  });
+  {
+    const cw = document.getElementById('cycle-wrap'), tip = document.getElementById('cy-tip');
+    const STAGE_NAME = Object.fromEntries(CY_STAGES), DEST_NAME = Object.fromEntries(CY_DESTS);
+    cw.addEventListener('mousemove', (e) => {
+      const r = e.target.closest('.ribbon');
+      for (const el of cw.querySelectorAll('.ribbon.on')) el.classList.remove('on');
+      cw.classList.toggle('hov', !!r);
+      if (!r) { tip.style.display = 'none'; return; }
+      r.classList.add('on');
+      const kg = Number(r.dataset.kg), cost = Number(r.dataset.cost), total = Number(cw.dataset.total) || 1;
+      const same = [...cw.querySelectorAll('.ribbon')].filter((x) => x.dataset.stage === r.dataset.stage).reduce((t, x) => t + Number(x.dataset.kg), 0) || 1;
+      tip.innerHTML = `<b>${STAGE_NAME[r.dataset.stage]} → ${DEST_NAME[r.dataset.dest]}</b>` +
+        tipRow('Kilos', `${num0.format(kg)} kg`) + tipRow(r.dataset.stage === 'farm' ? 'Value' : 'Cost', money.format(cost)) +
+        tipRow(`Of ${STAGE_NAME[r.dataset.stage].toLowerCase()} waste`, `${num0.format(kg / same * 100)}%`) + tipRow('Of all waste shown', `${num1.format(kg / total * 100)}%`);
+      const box = cw.getBoundingClientRect();
+      tip.style.display = 'block';
+      tip.style.left = `${Math.min(e.clientX - box.left + 14, box.width - tip.offsetWidth - 4)}px`;
+      tip.style.top = `${e.clientY - box.top + 14}px`;
+    });
+    cw.addEventListener('mouseleave', () => { tip.style.display = 'none'; cw.classList.remove('hov'); for (const el of cw.querySelectorAll('.ribbon.on')) el.classList.remove('on'); });
+  }
+  // Esc, Back and the header chip step out: from one course back to the courses at risk (when that filter is on), then to everything
+  function clearCourse () {
+    const single = !!selectedConcept();
+    if (!single && !riskOn) return;
+    if (single && riskOn) dishesCur.select(riskyRows().map((r) => r.raw));
+    else { riskOn = false; app.clearSelection(); }
+    for (const c of Object.values(charts)) pushOverlays(c);
+    app.execute(); render();
+  }
+  function toggleRisk () {
+    if (riskOn) { riskOn = false; app.clearSelection(); }
+    else {
+      const rows = riskyRows();
+      if (!rows.length) return;
+      riskOn = true;
+      dishesCur.select(rows.map((r) => r.raw));
+    }
+    for (const c of Object.values(charts)) pushOverlays(c);
+    app.execute(); render();
+  }
+  document.getElementById('risk-show').addEventListener('click', toggleRisk);
+  document.getElementById('back').addEventListener('click', clearCourse);
+  document.getElementById('selchip').addEventListener('click', clearCourse);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') clearCourse(); });
+  const bar = document.querySelector('header');
+  const onScroll = () => bar.classList.toggle('scrolled', window.scrollY > 4);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  // the bar can wrap to two rows; the sticky course panel and anchors follow its real height
+  new ResizeObserver(() => document.documentElement.style.setProperty('--bar', `${bar.offsetHeight}px`)).observe(bar);
+  onScroll();
+  // a chart's own settings: grain in the hover strip, comparison chips in the legend
+  for (const id of ['trend', 'guests']) {
+    document.getElementById(`${id}-strip`).addEventListener('click', (e) => {
+      e.stopPropagation();
+      const c = charts[id];
+      if (e.target.closest('[data-gmenu]')) openPop('grain', id, e.target.closest('[data-gmenu]'));
+      else if (e.target.closest('[data-reset]')) { c.grain = null; c.cmp = null; pushOverlays(c); app.execute(); render(); }
+    });
+    document.getElementById(`${id}-legend`).addEventListener('click', (e) => {
+      const c = charts[id];
+      const rm = e.target.closest('[data-rm]');
+      if (rm) { e.stopPropagation(); c.cmp = new Set(chartSet(c)); c.cmp.delete(rm.dataset.rm); pushOverlays(c); app.execute(); render(); }
+      else if (e.target.closest('[data-add]')) { e.stopPropagation(); openPop('cmp', id, e.target.closest('[data-add]')); }
+    });
+  }
+  document.getElementById('trend-legend').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-name]');
+    if (!b) return;
+    focusName = focusName === b.dataset.name ? null : b.dataset.name;
+    render();
+  });
+  window.addEventListener('resize', () => { quadrantChart.resize(); trendChart.resize(); guestsChart.resize(); });
+  if (window.ResizeObserver) for (const [id, ch] of [['quadrant', quadrantChart], ['trend', trendChart], ['guests', guestsChart]]) new ResizeObserver(() => ch.resize()).observe(document.getElementById(id));
+
+  // ---- start: menus and the end of the data first, then the window queries ----
+  function start () {
+    if (ready || menusQ.state !== 'success' || boundsQ.state !== 'success') {
+      for (const q of [menusQ, boundsQ]) {
+        if (q.state === 'error') document.getElementById('period-text').textContent = `Couldn't load menus: ${q.error.message}`;
+      }
+      return;
+    }
+    if (unsubscribeStart) unsubscribeStart();
+    menus = menusQ.result.rows.map((r) => ({ label: r.label, start: String(r.start).slice(0, 10), end: String(r.end).slice(0, 10) }));
+    lastDay = String(boundsQ.result.rows[0].last_day).slice(0, 10);
+    // the newest menu that has started by the last day of data
+    menuIndex = menus.reduce((best, m, i) => (m.start <= lastDay ? i : best), 0);
+    declareWindowQueries();
+    ready = true;
+    applyWindows();
+  }
+
+  // ---- expand: a card opens in a modal, the viz on the left, its data and AQL on the right ----
+  // The left is a frozen copy of the card (charts are redrawn from their current options), so nothing behind it can change it.
+  const xpQueries = () => ({
+    menus: menusQ, kpi_cur: kpiCur, kpi_base: kpiBase, dishes_cur: dishesCur, dishes_base: dishesBase, spend_cur: spendCur, spend_base: spendBase,
+    kinds_cur: kindsCur, kinds_base: kindsBase, dwaste_cur: dwasteCur, dwaste_base: dwasteBase, dcause_cur: dcauseCur, dcause_base: dcauseBase,
+    cycle_cur: cycleCur, cycle_base: cycleBase, about: aboutQ, season_cur: seasonCur, season_base: seasonBase, season_ings: seasonIngsQ, div_cur: divCur, div_base: divBase,
+    reuse: reuseQ, ingredients: ingredientsQ,
+    ...Object.fromEntries(Object.values(charts).flatMap((c) => [[`${c.id}_cur`, c.cur], ...Object.entries(c.ovl).map(([o, q]) => [`${c.id}_${o}`, q])])),
+  });
+  const XP_NAMES = { cur: 'Current period', base: 'Comparison period', prev: 'Previous period', m: '4 weeks ago', q: '13 weeks ago', y1: '1 year ago', y2: '2 years ago', y3: '3 years ago', c: 'Custom period' };
+  // a period is named by what it is: the menu in By menu, the dates in By time
+  const xpPeriod = (w) => (w ? (mode === 'menu' ? menuAt(w.end).label : fmtRange(w)) : null);
+  const xpName = (name) => {
+    const m = name.match(/_(cur|base|prev|m|q|y1|y2|y3|c)$/);
+    if (!m) return name.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+    const w = m[1] === 'cur' ? win : m[1] === 'base' ? baseWin : overlayWins[m[1]];
+    return xpPeriod(w) || XP_NAMES[m[1]];
+  };
+  const xpKind = (name) => (/_cur$/.test(name) ? 'current' : /_(base|prev|m|q|y1|y2|y3|c)$/.test(name) ? 'comparison' : '');
+  const xpEl = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+  const xpRoot = document.getElementById('xp');
+  let xpTab = 'data', xpOpener = null, xpSnap = null;
+
+  function xpToast (text) { const t = xpEl('div', 'xp-toast', text); document.body.append(t); setTimeout(() => t.remove(), 5000); }
+  const xpCanExport = () => !!(Anfra.features && Anfra.features.export && Anfra.user && Anfra.user.permissions && Anfra.user.permissions.canExportData);
+  const xpCanSql = () => !!(Anfra.user && Anfra.user.permissions && Anfra.user.permissions.canViewGeneratedSql);
+
+  // the queries a card draws on, as they stand now. The comparison ones leave when Compare is off or the period has no rows.
+  function xpCollect (card) {
+    const reg = xpQueries(), names = [];
+    for (const el of [card, ...card.querySelectorAll('[data-anfra-query]')]) {
+      for (const n of (el.getAttribute('data-anfra-query') || '').split(/\s+/).filter(Boolean)) if (!names.includes(n)) names.push(n);
+    }
+    const out = [];
+    for (const name of names) {
+      const q = reg[name];
+      if (!q || !q.result) continue;
+      const isCur = /_cur$|^[a-z]+$/.test(name) && !/_(base|prev|m|q|y1|y2|y3|c)$/.test(name);
+      if (!isCur && (!baseOk || !q.result.rows.length)) continue;
+      out.push({
+        name, title: xpName(name), kind: xpKind(name), aql: (q.result.debug && q.result.debug.executedAql) || '', declared: q.aql || '',
+        sql: (q.result.debug && q.result.debug.executedSql) || '',
+        columns: q.result.columns.slice(), rows: q.result.rows.slice(), q,
+      });
+    }
+    return out;
+  }
+
+  // a copy of the card for the left pane: no ids (the page keeps its own), charts re-drawn from the live option, no handlers
+  function xpClone (card) {
+    const clone = card.cloneNode(true);
+    const a = [card, ...card.querySelectorAll('*')], b = [clone, ...clone.querySelectorAll('*')];
+    const charts2 = [];
+    a.forEach((el, i) => {
+      const inst = el.id && window.echarts ? echarts.getInstanceByDom(el) : null;
+      if (inst) charts2.push([b[i], inst.getOption()]);
+    });
+    for (const el of b) el.removeAttribute('id');
+    for (const [el] of charts2) el.innerHTML = '';
+    clone.querySelectorAll('.xp-btn, .xp-whyw, .showw, .status').forEach((e) => e.remove());
+    clone.classList.remove('xp-has');
+    return { clone, charts2 };
+  }
+
+  const xpFmt = (v) => (v === null || v === undefined ? '' : typeof v === 'number' ? String(Math.round(v * 1e4) / 1e4) : /^-?\d+\.\d{5,}$/.test(String(v)) ? String(Math.round(Number(v) * 1e4) / 1e4) : String(v));
+  const xpIsNum = (c) => ['number', 'integer', 'float', 'decimal'].includes(String(c.semantic_type)) || c.isMeasure;
+
+  function xpTable (entry) {
+    const wrap = xpEl('div'), cap = xpEl('div', 'xp-cap');
+    const table = xpEl('table', 'xp-table'), thead = xpEl('thead'), tbody = xpEl('tbody');
+    let rows = entry.rows.slice(), sortCol = null, dir = 1;
+    const LIMIT = 200;
+    const paint = () => {
+      tbody.innerHTML = '';
+      for (const r of rows.slice(0, LIMIT)) {
+        const tr = xpEl('tr');
+        entry.columns.forEach((c) => tr.append(xpEl('td', xpIsNum(c) ? 'num' : '', xpFmt(r[c.name]))));
+        tbody.append(tr);
+      }
+      cap.textContent = rows.length > LIMIT ? `Showing ${LIMIT} of ${rows.length} rows. Download for all of them.` : `${rows.length} ${rows.length === 1 ? 'row' : 'rows'}`;
+    };
+    const hr = xpEl('tr');
+    entry.columns.forEach((c) => {
+      const th = xpEl('th', xpIsNum(c) ? 'num' : '', c.label || c.name);
+      th.addEventListener('click', () => {
+        dir = sortCol === c.name ? -dir : 1; sortCol = c.name;
+        rows.sort((x, y) => { const p = x[c.name], q = y[c.name]; if (p === q) return 0; if (p === null || p === undefined) return 1; if (q === null || q === undefined) return -1; const np = Number(p), nq = Number(q); return dir * (!Number.isNaN(np) && !Number.isNaN(nq) ? np - nq : String(p).localeCompare(String(q))); });
+        paint();
+      });
+      hr.append(th);
+    });
+    thead.append(hr); table.append(thead, tbody); const tw = xpEl('div', 'xp-tw'); tw.append(table); wrap.append(tw, cap); paint();
+    return wrap;
+  }
+
+  async function xpDownload (btn, entry) {
+    if (btn.getAttribute('aria-busy') === 'true') return;
+    btn.setAttribute('aria-busy', 'true');
+    try { await entry.q.export({ filename: `an eat hết - ${entry.title}` }); } catch (err) { xpToast(`Download failed: ${err.message}`); } finally { btn.removeAttribute('aria-busy'); }
+  }
+
+  function xpPane () {
+    const pane = document.getElementById('xp-pane');
+    pane.innerHTML = '';
+    document.querySelectorAll('#xp .xp-tabs button').forEach((b) => { b.setAttribute('aria-pressed', b.dataset.tab === xpTab); b.setAttribute('aria-selected', b.dataset.tab === xpTab); });
+    xpSnap.queries.forEach((entry, i) => {
+      const d = xpEl('details', 'xp-q'); d.open = i === 0;
+      const sum = xpEl('summary'); sum.append(xpEl('span', '', entry.title));
+      if (xpTab === 'aql' && entry.kind) sum.append(xpEl('small', '', entry.kind));
+      if (xpTab === 'data') {
+        sum.append(xpEl('small', '', `${entry.kind ? `${entry.kind} · ` : ''}${entry.rows.length} ${entry.rows.length === 1 ? 'row' : 'rows'}`));
+        if (xpCanExport()) { const b = xpEl('button', 'xp-act', 'Download CSV'); b.type = 'button'; b.addEventListener('click', (e) => { e.preventDefault(); xpDownload(b, entry); }); sum.append(b); }
+        d.append(sum, xpTable(entry));
+      } else {
+        const b = xpEl('button', 'xp-act', 'Copy'); b.type = 'button';
+        const text = entry.aql || entry.declared;
+        b.addEventListener('click', (e) => { e.preventDefault(); navigator.clipboard.writeText(text).then(() => { b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy'; }, 1500); }); });
+        sum.append(b);
+        d.append(sum, xpEl('pre', 'xp-code', text));
+        if (xpCanSql() && entry.sql) { const sq = xpEl('details', 'xp-sql'); sq.append(xpEl('summary', '', 'SQL it compiled to'), xpEl('pre', 'xp-code', entry.sql)); d.append(sq); }
+      }
+      pane.append(d);
+    });
+    if (!xpSnap.queries.length) pane.append(xpEl('div', 'xp-cap', 'No query behind this card.'));
+  }
+
+  // ---- Why: its own modal. A KPI is broken into parts that add up to it, so a change reads as a sum ----
+  // Waste diverted is the share of kitchen waste that was reused, composted or fed, so it splits by destination and then by stage.
+  // Each part is its kilos as points of all kitchen waste, in the period and in the comparison, so the parts add up to the card.
+  // a node: its figure, the chip for its change, and the parts that add up to it. d is the size of the change, for line width.
+  const moneyDelta = (d) => `${d > 0 ? '+' : '−'}${money.format(Math.abs(d))}`;
+  const effect = (label, d, fmt, tip, kids) => ({ label, tip, d: Math.abs(d), valText: `${d > 0 ? '+' : d < 0 ? '−' : ''}${fmt(Math.abs(d))}`, tone: Math.abs(d) < 0.5 ? '' : d > 0 ? 'good' : 'bad', chipHtml: '', kids: kids || [] });
+  const part = (label, cur, base, fmt, kind, goodUp, kids, color) => ({ label, color, cur, base, d: Math.abs(cur - base), valText: fmt(cur), chipHtml: deltaChip(cur, base, kind, goodUp), kids: kids || [] });
+  const firstRow = (q) => (q && q.result && q.result.rows[0]) || null;
+  const catOrder = (a, b) => {
+    const pos = new Map();
+    for (const r of [...a, ...b]) if (r.course && !pos.has(r.course)) pos.set(r.course, r.pos === null ? 99 : r.pos);
+    return [...pos.entries()].sort((x, y) => x[1] - y[1]).map(([c]) => c);
+  };
+  const clamp01w = (v) => Math.max(0, Math.min(1, v));
+  const WHY_BLOCKS = {
+    // Waste diverted: kilos reused, composted or fed, as points of all kitchen waste, by destination and then by stage
+    'kpi-diverted': () => {
+      const cur = cycleRows(cycleCur).filter((r) => r.stage !== 'farm'), base = cycleRows(cycleBase).filter((r) => r.stage !== 'farm');
+      const tc = sumKg(cur, () => true), tb = sumKg(base, () => true);
+      if (!tc || !tb) return null;
+      const pts = (f) => [100 * sumKg(cur, f) / tc, 100 * sumKg(base, f) / tb];
+      const fmt = (v) => `${num1.format(v)}%`;
+      const kids = CY_DARK.filter(([id]) => id !== 'landfill').map(([id, name]) => part(name, ...pts((r) => r.dest === id), fmt, 'pts', true,
+        CY_STAGES.filter(([sid]) => sid !== 'farm').map(([sid, sname]) => part(sname, ...pts((r) => r.dest === id && r.stage === sid), fmt, 'pts', true)), DEST_COL[id]));
+      const c1 = pts((r) => r.dest !== 'landfill');
+      const root = part('Waste diverted', c1[0], c1[1], fmt, 'pts', true, kids);
+      const k = firstRow(divCur); root.check = [k ? n(k.div) : null, c1[0]];
+      return root;
+    },
+    // Revenue: guests times revenue per guest, so the change is the guests effect plus the spend-per-guest effect; the spend effect is split by course
+    'kpi-revenue': () => {
+      const k = firstRow(kpiCur), kb = firstRow(kpiBase);
+      if (!k || !kb) return null;
+      const g1 = n(k.guests), g0 = n(kb.guests), r1 = n(k.revenue), r0 = n(kb.revenue);
+      if (!g1 || !g0 || r1 === null || r0 === null) return null;
+      const p0 = r0 / g0, p1 = r1 / g1;
+      const a = dishRows(dishesCur), b = dishRows(dishesBase);
+      const sumBy = (rows, c) => rows.filter((r) => r.course === c).reduce((t, r) => t + (r.revenue || 0), 0);
+      const cats = catOrder(a, b);
+      const byCourse = cats.map((c) => effect(c, sumBy(a, c) - g1 * sumBy(b, c) / g0, (v) => money.format(v), `${money.format(sumBy(b, c))} to ${money.format(sumBy(a, c))}, at this period's guest count`));
+      const kids = [
+        effect('Guests', (g1 - g0) * p0, (v) => money.format(v), `${num0.format(g0)} to ${num0.format(g1)} guests`),
+        effect('Revenue per guest', g1 * (p1 - p0), (v) => money.format(v), `${money.format(p0)} to ${money.format(p1)} per guest`, byCourse),
+      ];
+      const root = { label: 'Revenue', d: Math.abs(r1 - r0), valText: money.format(r1), chipHtml: chip(moneyDelta(r1 - r0), Math.abs(r1 - r0) < 0.5 ? '' : r1 > r0 ? 'good' : 'bad'), kids };
+      root.check = [r1, a.reduce((t, r) => t + (r.revenue || 0), 0)];
+      return root;
+    },
+    // Guests: days served times guests per day
+    'kpi-guests': () => {
+      const a = firstRow(whyDaysCur), b = firstRow(whyDaysBase);
+      if (!a || !b) return null;
+      const d1 = n(a.days), d0 = n(b.days), g1 = n(a.guests), g0 = n(b.guests);
+      if (!d1 || !d0 || g1 === null || g0 === null) return null;
+      const q0 = g0 / d0, q1 = g1 / d1, fmt = (v) => num0.format(v);
+      const kids = [
+        effect('Days served', (d1 - d0) * q0, fmt, `${num0.format(d0)} to ${num0.format(d1)} days`),
+        effect('Guests per day', d1 * (q1 - q0), fmt, `${num1.format(q0)} to ${num1.format(q1)} guests per day`),
+      ];
+      const root = part('Guests', g1, g0, fmt, 'count', true, kids);
+      root.chipHtml = chip(`${g1 - g0 > 0 ? '+' : '−'}${num0.format(Math.abs(g1 - g0))}`, g1 === g0 ? '' : g1 > g0 ? 'good' : 'bad');
+      const kp = firstRow(kpiCur); root.check = [kp ? n(kp.guests) : null, g1];
+      return root;
+    },
+    // Menu health: the average of the courses' scores, each score being 40 margin + 30 rating + 30 low waste, so it splits by part and then by course
+    'kpi-health': () => {
+      const a = dishRows(dishesCur).filter((r) => r.health !== null), b = dishRows(dishesBase).filter((r) => r.health !== null);
+      if (!a.length || !b.length) return null;
+      const comp = {
+        margin: (r) => 40 * clamp01w((r.marginPct || 0) / 65),
+        rating: (r) => 30 * clamp01w((r.rating || 0) - 3.5),
+        waste: (r) => 30 * (1 - clamp01w((r.wasteRate || 0) / 15)),
+      };
+      const avg = (rows, f) => rows.reduce((t, r) => t + f(r), 0) / rows.length;
+      const cats = catOrder(a, b), fmt = (v) => num1.format(v);
+      const split = (key) => cats.map((c) => part(c, a.filter((r) => r.course === c).reduce((t, r) => t + comp[key](r), 0) / a.length, b.filter((r) => r.course === c).reduce((t, r) => t + comp[key](r), 0) / b.length, fmt, 'pts', true));
+      const kids = [['margin', 'Margin'], ['rating', 'Guest rating'], ['waste', 'Low waste']].map(([key, name]) => part(name, avg(a, comp[key]), avg(b, comp[key]), fmt, 'pts', true, split(key)));
+      const root = part('Menu health', avg(a, (r) => r.health), avg(b, (r) => r.health), fmt, 'pts', true, kids);
+      root.check = [avg(a, (r) => r.health), avg(a, (r) => comp.margin(r) + comp.rating(r) + comp.waste(r))];
+      return root;
+    },
+    // Courses at risk: courses scoring 35 or more, counted by course
+    'kpi-risk': () => {
+      const a = dishRows(dishesCur).filter((r) => r.risk !== null), b = dishRows(dishesBase).filter((r) => r.risk !== null);
+      if (!a.length || !b.length) return null;
+      const cnt = (rows, c) => rows.filter((r) => (c === null || r.course === c) && r.risk >= AT_RISK).length;
+      const fmt = (v) => num0.format(v), cats = catOrder(a, b);
+      const kids = cats.map((c) => part(c, cnt(a, c), cnt(b, c), fmt, 'count', false)).filter((x) => x.cur || x.base);
+      const root = part('Courses at risk', cnt(a, null), cnt(b, null), fmt, 'count', false, kids);
+      const kp = firstRow(kpiCur); root.check = [kp ? n(kp.risky) : null, cnt(a, null)];
+      return root;
+    },
+  };
+  const whyTree = (block) => (WHY_BLOCKS[block] && baseOk && !selectedConcept() ? WHY_BLOCKS[block]() : null);
+  const whyRoot = document.getElementById('wy');
+  let whyOpener = null;
+
+  function whyRender (root) {
+    const CW = 200, CH = 68, GX = 76, PITCH = 80, NS = 'http://www.w3.org/2000/svg';
+    const view = xpEl('div', 'wy-view'), box = xpEl('div', 'wy-tree'), svg = document.createElementNS(NS, 'svg');
+    box.append(svg); view.append(box);
+    const isOpen = new Set([root]);
+    const parentOf = new Map();
+    const index = (nd) => nd.kids.forEach((k) => { parentOf.set(k, nd); index(k); });
+    index(root);
+    const moverOf = (nd) => nd.kids.reduce((a, k) => (k.d > a.d ? k : a));
+    isOpen.add(moverOf(root));
+    let selected = null, tx = 0, ty = 0, sc = 1, W = 0, H = 0;
+    const apply = () => {
+      box.style.transform = `translate(${tx}px, ${ty}px) scale(${sc})`;
+      view.style.backgroundSize = `${24 * sc}px ${24 * sc}px`; view.style.backgroundPosition = `${tx}px ${ty}px`;
+    };
+    const fit = () => {
+      const vw = view.clientWidth, vh = view.clientHeight;
+      sc = Math.max(0.3, Math.min(1, (vw - 64) / W, (vh - 64) / H));
+      tx = (vw - W * sc) / 2; ty = (vh - H * sc) / 2; apply();
+    };
+    const zoomAt = (f, cx, cy) => {
+      const ns = Math.max(0.3, Math.min(2, sc * f));
+      tx = cx - (cx - tx) * ns / sc; ty = cy - (cy - ty) * ns / sc; sc = ns; apply();
+    };
+    const ctr = () => [view.clientWidth / 2, view.clientHeight / 2];
+    let focusNd = null;
+    function paint (anchor) {
+      const before = anchor ? anchor.pos : null;
+      const pos = new Map();
+      let row = 0;
+      const walk = (nd, depth) => {
+        const kids = isOpen.has(nd) ? nd.kids : [];
+        if (!kids.length) { pos.set(nd, { depth, y: row * PITCH }); row += 1; return; }
+        kids.forEach((k) => walk(k, depth + 1));
+        pos.set(nd, { depth, y: (pos.get(kids[0]).y + pos.get(kids[kids.length - 1]).y) / 2 });
+      };
+      walk(root, 0);
+      const depthMax = Math.max(...[...pos.values()].map((q) => q.depth));
+      W = (depthMax + 1) * CW + depthMax * GX; H = (row - 1) * PITCH + CH;
+      // the card that was clicked stays where it was on screen
+      if (anchor && pos.has(anchor.nd)) { const q = pos.get(anchor.nd); tx += (before.x - q.depth * (CW + GX)) * sc; ty += (before.y - q.y) * sc; }
+      const path = new Set();
+      for (let nd = selected; nd; nd = parentOf.get(nd)) path.add(nd);
+      box.querySelectorAll('.wy-n').forEach((e) => e.remove());
+      svg.innerHTML = ''; svg.setAttribute('width', W); svg.setAttribute('height', H);
+      box.style.width = `${W}px`; box.style.height = `${H}px`;
+      let toFocus = null;
+      const draw = (nd) => {
+        const q = pos.get(nd), x = q.depth * (CW + GX), y = q.y;
+        const el = xpEl('div', `wy-n${path.has(nd) ? ' sel' : ''}`); el.style.cssText = `left:${x}px;top:${y}px;width:${CW}px;height:${CH}px`;
+        el.tabIndex = 0; el.setAttribute('role', 'button'); el.setAttribute('aria-pressed', String(selected === nd));
+        const pick = () => { selected = selected === nd ? null : nd; paint(); };
+        el.addEventListener('click', pick);
+        el.addEventListener('keydown', (e) => { if (e.target === el && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pick(); } });
+        const name = xpEl('div', 'wy-name');
+        if (nd.color) { const d = xpEl('i'); d.style.background = nd.color; name.append(d); }
+        name.append(xpEl('span', '', nd.label));
+        const val = xpEl('div', 'wy-val'); val.append(xpEl('b', nd.tone || '', nd.valText));
+        const c = xpEl('span'); c.innerHTML = nd.chipHtml; if (c.firstChild) val.append(c.firstChild);
+        if (nd.tip) el.title = nd.tip;
+        el.append(name, val);
+        if (nd.kids.length) {
+          const t = xpEl('button', 'wy-t', isOpen.has(nd) ? '−' : '+'); t.type = 'button';
+          t.setAttribute('aria-expanded', String(isOpen.has(nd))); t.setAttribute('aria-label', `${isOpen.has(nd) ? 'Collapse' : 'Break down'} ${nd.label}`);
+          t.addEventListener('click', (e) => { e.stopPropagation(); if (isOpen.has(nd)) isOpen.delete(nd); else isOpen.add(nd); focusNd = nd; paint({ nd, pos: { x, y } }); });
+          el.append(t);
+          if (focusNd === nd) toFocus = t;
+        }
+        box.append(el);
+        if (isOpen.has(nd)) {
+          const big = Math.max(...nd.kids.map((k) => k.d), 1e-9);
+          for (const k of nd.kids) {
+            const d = k.d, qk = pos.get(k);
+            const x1 = x + CW, y1 = y + CH / 2, x2 = qk.depth * (CW + GX), y2 = qk.y + CH / 2, mx = (x1 + x2) / 2;
+            const line = document.createElementNS(NS, 'path');
+            line.setAttribute('d', `M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`);
+            line.setAttribute('fill', 'none'); line.setAttribute('stroke-linecap', 'round');
+            const on = path.has(k);
+            line.setAttribute('stroke', on ? cssv('--green-strong') : cssv('--edge'));
+            line.setAttribute('stroke-width', String(on ? 3 : 1 + 2 * d / big));
+            svg.append(line);
+            draw(k);
+          }
+        }
+      };
+      draw(root);
+      apply();
+      if (toFocus) toFocus.focus();
+    }
+    paint();
+    // zoom with the wheel, move by dragging the background, buttons for steps and fit
+    view.addEventListener('wheel', (e) => { e.preventDefault(); const r = view.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+    let drag = null;
+    view.addEventListener('pointerdown', (e) => { if (e.target.closest('.wy-n, .wy-zoom')) return; drag = { x: e.clientX - tx, y: e.clientY - ty }; view.setPointerCapture(e.pointerId); view.classList.add('grab'); });
+    view.addEventListener('pointermove', (e) => { if (!drag) return; tx = e.clientX - drag.x; ty = e.clientY - drag.y; apply(); });
+    const end = () => { drag = null; view.classList.remove('grab'); };
+    view.addEventListener('pointerup', end); view.addEventListener('pointercancel', end);
+    const zoom = xpEl('div', 'wy-zoom');
+    for (const [label, tip, fn] of [['−', 'Zoom out', () => zoomAt(1 / 1.25, ...ctr())], ['+', 'Zoom in', () => zoomAt(1.25, ...ctr())], ['Fit', 'Fit to view', fit]]) {
+      const b = xpEl('button', '', label); b.type = 'button'; b.title = tip; b.setAttribute('aria-label', tip); b.addEventListener('click', fn); zoom.append(b);
+    }
+    view.append(zoom);
+    view._fit = fit;
+    return view;
+  }
+  function whyOpen (block, label, opener) {
+    const root = whyTree(block);
+    if (!root) return;
+    if (root.check && root.check[0] !== null && Math.abs(root.check[0] - root.check[1]) > 0.05) console.warn('drivers do not match the card', block, root.check);
+    whyOpener = opener;
+    document.getElementById('wy-title').textContent = label;
+    document.getElementById('wy-meta').textContent = [xpPeriod(win), baseWin ? `vs ${xpPeriod(baseWin)}` : ''].filter(Boolean).join(' ');
+    const body = document.getElementById('wy-body');
+    body.innerHTML = ''; const wv = whyRender(root); body.append(wv);
+    whyRoot.classList.add('open');
+    wv._fit();
+    document.getElementById('wy-close').focus();
+  }
+  function whyClose () {
+    if (!whyRoot.classList.contains('open')) return;
+    whyRoot.classList.remove('open');
+    document.getElementById('wy-body').innerHTML = '';
+    if (whyOpener) whyOpener.focus();
+  }
+  // the Why button and the change chip exist only while Compare is on and the card has parts to show
+  function whyRefresh () {
+    for (const card of document.querySelectorAll('.card[data-anfra-block]')) {
+      const block = card.getAttribute('data-anfra-block');
+      if (!WHY_BLOCKS[block]) continue;
+      const ok = !!whyTree(block), btn = card.querySelector('.xp-why'), chipEl = card.querySelector(`#${block}-chip .delta`);
+      if (btn) btn.parentElement.hidden = !ok;
+      if (chipEl) {
+        chipEl.classList.toggle('why-link', ok);
+        if (ok) { chipEl.tabIndex = 0; chipEl.setAttribute('role', 'button'); chipEl.title = 'See what drove this'; } else { chipEl.removeAttribute('tabindex'); chipEl.removeAttribute('role'); chipEl.removeAttribute('title'); }
+      }
+    }
+  }
+  document.addEventListener('click', (e) => {
+    const chipEl = e.target.closest && e.target.closest('.why-link');
+    if (!chipEl) return;
+    const card = chipEl.closest('.card[data-anfra-block]');
+    whyOpen(card.getAttribute('data-anfra-block'), card.getAttribute('data-anfra-label'), chipEl);
+  });
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('why-link')) { e.preventDefault(); e.target.click(); }
+  });
+
+  function xpOpen (card, opener) {
+    const label = card.getAttribute('data-anfra-label') || (card.matches('aside') ? 'Courses' : 'Card');
+    const { clone, charts2 } = xpClone(card);
+    xpSnap = { queries: xpCollect(card) };
+    xpOpener = opener;
+    document.getElementById('xp-title').textContent = label;
+    const sel = document.getElementById('selchip');
+    const bits = [document.getElementById('period-text').textContent.trim()];
+    if (!sel.hidden && sel.textContent.trim()) bits.push(`Course: ${sel.textContent.replace('✕', '').trim()}`);
+    document.getElementById('xp-meta').textContent = bits.filter(Boolean).join(' · ');
+    const viz = document.getElementById('xp-viz');
+    viz.innerHTML = ''; viz.append(clone);
+    xpRoot.classList.add('open');
+    for (const [el, option] of charts2) { const inst = echarts.init(el); inst.setOption(option); }
+    xpPane();
+    document.getElementById('xp-close').focus();
+  }
+  function xpClose () {
+    if (!xpRoot.classList.contains('open')) return;
+    for (const el of document.querySelectorAll('#xp-viz *')) { const inst = window.echarts && echarts.getInstanceByDom(el); if (inst) inst.dispose(); }
+    xpRoot.classList.remove('open');
+    document.getElementById('xp-viz').innerHTML = '';
+    if (xpOpener) xpOpener.focus();
+    xpSnap = null;
+  }
+  // info tips: open to the right of the icon (below it in the side card). When that would run past the page's edge, flip to the left,
+  // but only if the left side has room: otherwise keep the default, which is the lesser overflow.
+  document.addEventListener('mouseover', (e) => {
+    const icon = e.target.closest && e.target.closest('.info[data-tip]');
+    if (!icon) return;
+    const r = icon.getBoundingClientRect(), W = 210, pad = 8, vw = document.documentElement.clientWidth;
+    const below = !!icon.closest('.side, .xp-viz');
+    const overRight = below ? r.left - 8 + W > vw - pad : r.right + 10 + W > vw - pad;
+    const roomLeft = below ? r.right + 8 - W >= pad : r.left - 10 - W >= pad;
+    icon.classList.toggle('flip', overRight && roomLeft);
+  });
+  const XP_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5l-4.5 4.5M2.5 13.5L7 9"/></svg>';
+  const makeBtn = (card) => {
+    const b = xpEl('button', 'xp-btn'); b.type = 'button'; b.innerHTML = XP_ICON; b.title = 'Expand'; b.setAttribute('aria-label', 'Expand'); b.setAttribute('data-anfra-render', 'skip');
+    b.addEventListener('click', () => xpOpen(card, b));
+    return b;
+  };
+  for (const card of document.querySelectorAll('.card[data-anfra-block]:not(.about), aside.card.side')) {
+    const b = makeBtn(card);
+    // it joins the header row: everything after the first item moves into one right-aligned group, so a control and the button share a line
+    const heads = card.matches('aside') ? [...card.querySelectorAll('.head')] : [card.querySelector('.head, .top')].filter(Boolean);
+    heads.forEach((h, i) => {
+      const g = xpEl('div', 'xp-right');
+      [...h.children].slice(1).forEach((c) => g.append(c));
+      const dr = i === 0 && WHY_BLOCKS[card.getAttribute('data-anfra-block')] ? card.querySelector('.delta-row') : null;
+      if (dr) {
+        const w = xpEl('button', 'xp-why', 'Why'); w.type = 'button'; w.title = 'What changed this number'; w.setAttribute('data-anfra-render', 'skip');
+        w.addEventListener('click', () => whyOpen(card.getAttribute('data-anfra-block'), card.getAttribute('data-anfra-label'), w));
+        const wrap = xpEl('span', 'xp-whyw'); wrap.hidden = true; wrap.setAttribute('data-anfra-render', 'skip');
+        wrap.append(xpEl('span', 'xp-sep', '.'), w); dr.append(wrap);
+      }
+      g.append(i === 0 ? b : makeBtn(card));
+      h.append(g);
+    });
+    if (!heads.length) { b.style.cssText = 'position:absolute;top:12px;right:12px'; card.append(b); }
+    card.classList.add('xp-has');
+  }
+  document.getElementById('xp-close').addEventListener('click', xpClose);
+  document.getElementById('wy-close').addEventListener('click', whyClose);
+  whyRoot.addEventListener('mousedown', (e) => { if (e.target === whyRoot) whyClose(); });
+  xpRoot.addEventListener('mousedown', (e) => { if (e.target === xpRoot) xpClose(); });
+  document.querySelectorAll('#xp .xp-tabs button').forEach((b) => b.addEventListener('click', () => { xpTab = b.dataset.tab; xpPane(); }));
+  // Esc closes the modal first (capture, before the page's own Esc clears the selected course); Tab stays inside
+  window.addEventListener('keydown', (e) => {
+    const mroot = [whyRoot, xpRoot].find((r) => r.classList.contains('open'));
+    if (!mroot) return;
+    if (e.key === 'Escape') { e.stopImmediatePropagation(); e.preventDefault(); (mroot === whyRoot ? whyClose : xpClose)(); }
+    else if (e.key === 'Tab') {
+      const f = [...mroot.querySelectorAll('button, summary, [tabindex]')].filter((x) => x.offsetParent !== null);
+      if (!f.length) return;
+      const i = f.indexOf(document.activeElement);
+      if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+    }
+  }, true);
+  let unsubscribeStart = null;
+  unsubscribeStart = app.subscribe(start);
+  app.execute();
+</script>
+</body>
+</html>

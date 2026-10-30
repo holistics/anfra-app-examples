@@ -1,0 +1,66 @@
+version: 1
+
+anfra:
+  repo: ./demo
+  url: http://127.0.0.1:7899
+
+listen: 0.0.0.0:8080
+store: ./demo/metric-log
+
+people:
+  - { id: lily, name: Lily, team: finance, role: stakeholder }
+  - { id: mark, name: Mark, team: data, role: analyst }
+  - { id: hannah, name: Hannah, team: data, role: lead }
+
+metrics:
+  sales.orders:
+    owner: team:data
+    approval:
+      - stage: review
+        any_of: [role:lead]
+  sales.revenue:
+    owner: team:finance
+    approval:
+      - stage: review
+        any_of: [role:lead]
+        # later: add { stage: finance, any_of: [team:finance] }
+  sales.refunds:
+    owner: team:finance
+    approval:
+      - stage: review
+        any_of: [role:lead]
+  sales.net_revenue:
+    owner: team:finance
+    approval:
+      - stage: review
+        any_of: [role:lead]
+  sales.gross_margin:
+    owner: team:finance
+    approval:
+      - stage: review
+        any_of: [role:lead]
+  sales.aov:
+    owner: team:data
+    approval:
+      - stage: review
+        any_of: [role:lead]
+
+notifications:
+  slack: { enabled: false }
+
+# Concept only: prepared answers for three known sentences. Anything else gets no draft.
+simulated_drafts:
+  - sentence: "Revenue shouldn't include refunded orders"
+    metric: sales.revenue
+    definition: "shop_orders | where(shop_orders.status is 'completed') | sum(shop_orders.amount)"
+  - sentence: "Gross margin should include shipping cost"
+    metric: sales.gross_margin
+    definition: "(net_revenue - (shop_costs | sum(shop_costs.product_cost)) - (shop_costs | sum(shop_costs.shipping_cost))) / net_revenue"
+  - sentence: "Count only completed orders"
+    metric: sales.orders
+    definition: "shop_orders | where(shop_orders.status is 'completed') | count(shop_orders.order_id)"
+
+# The date each dataset's metrics are trended and filtered by on the canvas.
+canvas:
+  date:
+    sales: shop_orders.order_date

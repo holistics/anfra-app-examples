@@ -1,0 +1,39 @@
+Model shop_orders {
+  type: 'table'
+  label: 'Orders'
+  description: 'One row per order. status is completed, refunded or cancelled. Synthetic.'
+  data_source_name: 'shop'
+  table_name: 'orders'
+
+  dimension order_id {
+    label: 'Order ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.order_id }};;
+  }
+  dimension order_date {
+    label: 'Order date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.order_date }};;
+  }
+  dimension status {
+    label: 'Status'
+    type: 'text'
+    definition: @sql {{ #SOURCE.status }};;
+  }
+  dimension amount {
+    label: 'Amount'
+    type: 'number'
+    definition: @sql {{ #SOURCE.amount }};;
+  }
+  dimension channel {
+    label: 'Channel'
+    type: 'text'
+    definition: @sql {{ #SOURCE.channel }};;
+  }
+  dimension category {
+    label: 'Category'
+    type: 'text'
+    definition: @sql {{ #SOURCE.category }};;
+  }
+}

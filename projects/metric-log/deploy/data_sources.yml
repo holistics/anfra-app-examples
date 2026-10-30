@@ -1,0 +1,7 @@
+# Container copy of demo/.anfra/data_sources.yml: same data source name, path inside the image.
+# DuckDB needs no credentials, so nothing secret is here.
+data_sources:
+  shop:
+    type: duckdb
+    connection:
+      path: /app/demo/data/shop.duckdb

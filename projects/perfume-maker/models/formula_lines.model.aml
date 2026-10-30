@@ -1,0 +1,114 @@
+Model formula_lines {
+  type: 'query'
+  label: 'Formula Lines'
+  description: '''One row per ingredient in a formula, with the formula's batch
+and the ingredient's cost, strength and limit already joined on, so every
+per-line figure is computed once, here, from governed inputs.
+
+`pct` is a share of the fragrance blend (each formula's lines sum to 100).
+Its share of the finished bottle is pct x concentration, which is what an IFRA
+limit is measured against.'''
+  data_source_name: 'local'
+  query: @sql
+    select
+      l.formula_id, l.ingredient_id, i.name as ingredient, i.tier, l.pct,
+      i.strength, i.longevity_hours, i.ifra_max_pct,
+      f.bottle_ml * f.units * f.concentration_pct / 100.0 * l.pct / 100.0 as ingredient_ml,
+      f.bottle_ml * f.units * f.concentration_pct / 100.0 * l.pct / 100.0 * i.cost_per_ml as ingredient_cost,
+      l.pct * f.concentration_pct / 100.0 as pct_of_product,
+      case when l.pct * f.concentration_pct / 100.0 > i.ifra_max_pct then 1 else 0 end as over_ifra,
+      l.pct * i.strength as impact
+    from formula_lines l
+    join ingredients i using (ingredient_id)
+    join formulas f using (formula_id);;
+
+  dimension line_key {
+    label: 'Line Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.formula_id }} || '-' || {{ #SOURCE.ingredient_id }};;
+  }
+
+  dimension formula_id {
+    label: 'Formula ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.formula_id }};;
+  }
+
+  dimension ingredient {
+    label: 'Ingredient'
+    type: 'text'
+    definition: @sql {{ #SOURCE.ingredient }};;
+  }
+
+  dimension tier {
+    label: 'Note Tier'
+    type: 'text'
+    definition: @sql {{ #SOURCE.tier }};;
+  }
+
+  dimension pct {
+    label: 'Share of Blend (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pct }};;
+  }
+
+  dimension pct_of_product {
+    label: 'Share of Finished Bottle (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pct_of_product }};;
+  }
+
+  dimension longevity_hours {
+    label: 'Longevity (h)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.longevity_hours }};;
+  }
+
+  measure blend_pct {
+    label: 'Blend Total (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pct }};;
+    aggregation_type: 'sum'
+    description: 'Should be 100 for a complete formula.'
+  }
+
+  measure oil_cost {
+    label: 'Ingredient Cost'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ingredient_cost }};;
+    aggregation_type: 'sum'
+    description: 'USD of raw ingredients for the whole batch.'
+  }
+
+  measure oil_ml {
+    label: 'Blend Volume (ml)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ingredient_ml }};;
+    aggregation_type: 'sum'
+  }
+
+  measure total_impact {
+    label: 'Impact Points'
+    type: 'number'
+    definition: @sql {{ #SOURCE.impact }};;
+    aggregation_type: 'sum'
+    description: 'Strength x share of blend, summed. How loud this slice of the blend is.'
+  }
+
+  measure ifra_breaches {
+    label: 'Ingredients Over IFRA Limit'
+    type: 'number'
+    definition: @sql {{ #SOURCE.over_ifra }};;
+    aggregation_type: 'sum'
+  }
+
+  measure line_count {
+    label: 'Ingredient Count'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ingredient }};;
+    aggregation_type: 'count'
+  }
+}

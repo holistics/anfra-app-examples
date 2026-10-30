@@ -1,0 +1,50 @@
+Model kitchen_drink_waste {
+  type: 'table'
+  label: 'Drinks Waste'
+  description: '''Drinks lost, per service day and cause: open bottle loss (wine left in opened bottles), returned glasses,
+corked or faulty bottles, expired stock and garnish trim. In litres and in USD at what the drink cost. Some is reused
+(wine dregs into vinegar and cooking, trim into cordial for the non-alcoholic pairing). Synthetic.'''
+  data_source_name: 'kitchen'
+  table_name: 'drink_waste'
+
+  dimension row_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql cast({{ #SOURCE.date }} as varchar) || '-' || {{ #SOURCE.cause }};;
+  }
+
+  dimension date {
+    label: 'Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.date }};;
+  }
+
+  dimension cause {
+    label: 'Waste Cause'
+    type: 'text'
+    definition: @sql {{ #SOURCE.cause }};;
+  }
+
+  measure litres_amount {
+    label: 'Litres Wasted'
+    type: 'number'
+    definition: @sql {{ #SOURCE.litres }};;
+    aggregation_type: 'sum'
+  }
+
+  measure cost_amount {
+    label: 'Drinks Waste Cost'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cost }};;
+    aggregation_type: 'sum'
+  }
+
+  measure reused_amount {
+    label: 'Litres Reused'
+    type: 'number'
+    definition: @sql {{ #SOURCE.reused_litres }};;
+    aggregation_type: 'sum'
+  }
+}

@@ -1,0 +1,36 @@
+Model family_season {
+  type: 'table'
+  label: 'Scent Family Seasonality'
+  description: '''How busy each calendar month is for launches of a scent family, against the family's average month (1.00).
+Measured from the past launches: how far each launch's month sits above its own level and the usual ramp-up curve,
+averaged over launches, each counting by the share of the family in it. Computed from the launches, not typed in.'''
+  data_source_name: 'local'
+  table_name: 'family_season'
+
+  dimension season_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.family }} || '-' || cast({{ #SOURCE.calendar_month }} as varchar);;
+  }
+
+  dimension family {
+    label: 'Scent Family'
+    type: 'text'
+    definition: @sql {{ #SOURCE.family }};;
+  }
+
+  dimension calendar_month {
+    label: 'Calendar Month (1-12)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.calendar_month }};;
+  }
+
+  measure factor_avg {
+    label: 'Seasonality (1.00 = average month)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.factor }};;
+    aggregation_type: 'avg'
+  }
+}

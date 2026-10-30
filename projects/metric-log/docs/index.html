@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>anfra-metric-log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root { --bg:#fbfbfa; --card:#f1f2f0; --ink:#1a1d1b; --body:#2c302d; --muted:#565c58; --line:#dcdfdb; --green:#2b6446; --green-soft:#e4f1dc; --amber:#fff4d1; --amber-line:#ecd78e; --code-bg:#eef0ed; --code-ink:#1f2421; --btn-ink:#fff; }
+@media (prefers-color-scheme: dark) { :root { --bg:#121413; --card:#1d201e; --ink:#f1f3f1; --body:#d9ddda; --muted:#a3a9a5; --line:#323734; --green:#7fcb9b; --green-soft:#213d2d; --amber:#3a3320; --amber-line:#5c5130; --code-bg:#0c0e0d; --code-ink:#e8ece9; --btn-ink:#0f1411; } }
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; background:var(--bg); color:var(--body); font:17px/1.7 Nunito, system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+main { max-width:720px; margin:0 auto; padding:64px 24px 96px; }
+h1 { color:var(--ink); font-size:44px; line-height:1.12; letter-spacing:-.02em; margin:0 0 16px; }
+h2 { color:var(--ink); font-size:26px; line-height:1.25; letter-spacing:-.01em; margin:0 0 12px; padding-top:40px; border-top:1px solid var(--line); margin-top:56px; }
+h2:first-of-type { margin-top:40px; }
+p { margin:0 0 16px; } b { color:var(--ink); } .muted { color:var(--muted); font-size:15.5px; }
+.lead { font-size:19px; line-height:1.65; }
+.cta { display:flex; flex-wrap:wrap; gap:10px; margin:24px 0 8px; }
+.btn { display:inline-block; padding:10px 18px; border-radius:10px; font-weight:700; text-decoration:none; border:1.5px solid var(--green); color:var(--green); }
+.btn.primary { background:var(--green); color:var(--btn-ink); }
+.btn:hover { filter:brightness(1.08); }
+nav.toc { display:flex; flex-wrap:wrap; gap:8px; margin:28px 0 0; }
+nav.toc a { font-size:14.5px; text-decoration:none; color:var(--body); background:var(--card); border:1px solid var(--line); padding:4px 12px; border-radius:999px; }
+nav.toc a:hover { border-color:var(--green); color:var(--green); }
+.concept { background:var(--amber); border:1px solid var(--amber-line); border-radius:12px; padding:14px 18px; margin:28px 0 0; }
+.concept ul { margin:8px 0 0; padding-left:20px; } .concept li { margin:2px 0; }
+pre { background:var(--code-bg); color:var(--code-ink); border:1px solid var(--line); border-radius:12px; padding:16px 18px; overflow-x:auto; font:13.5px/1.6 ui-monospace, Menlo, monospace; margin:14px 0 18px; }
+code { font:14px ui-monospace, Menlo, monospace; background:var(--card); border:1px solid var(--line); color:var(--ink); padding:1px 6px; border-radius:6px; }
+pre code { background:none; border:0; padding:0; color:inherit; font-size:inherit; }
+ol.steps { padding-left:0; list-style:none; counter-reset:s; margin:16px 0; }
+ol.steps li { counter-increment:s; position:relative; padding-left:48px; margin:0 0 16px; }
+ol.steps li::before { content:counter(s); position:absolute; left:0; top:1px; width:32px; height:32px; border-radius:50%; background:var(--green); color:var(--btn-ink); font-weight:700; display:flex; align-items:center; justify-content:center; }
+ul { padding-left:22px; } li { margin:0 0 8px; }
+table { border-collapse:collapse; width:100%; margin:14px 0; font-size:16px; } th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { color:var(--muted); font-size:13.5px; text-transform:uppercase; letter-spacing:.04em; }
+a { color:var(--green); text-underline-offset:3px; }
+footer { margin-top:64px; padding-top:24px; border-top:1px solid var(--line); color:var(--muted); font-size:14.5px; }
+@media (max-width:560px) { h1 { font-size:34px; } main { padding:40px 18px 72px; } table { font-size:15px; } }
+</style>
+</head>
+<body>
+<main>
+<h1>Know why a metric changed.</h1>
+<p class="lead">In Anfra a metric is defined once and every chart that asks for it gets that definition. That is the promise, and it also means one edit moves every chart at once, unseen. <b>anfra-metric-log</b> turns an edit into a reviewed request: who asked, which numbers move, who approved, why.</p>
+
+<div class="cta">
+<a class="btn primary" href="https://anfra-metric-log-demo.pages.holistics.dev">Open the live demo</a>
+<a class="btn" href="#run">Run it yourself</a>
+</div>
+<nav class="toc"><a href="#session">The session</a><a href="#see">What you see</a><a href="#history">History</a><a href="#how">How it works</a><a href="#config">Config</a><a href="#run">Run it</a><a href="#try">What you can try</a><a href="#own">Your own repo</a><a href="#good">Good to know</a></nav>
+
+<div class="concept"><b>This is a concept, built for the 2026 Anfra App Competition.</b>
+<ul>
+<li>There is no sign-in. A “Viewing as” switcher stands in for it.</li>
+<li>The AI drafts are simulated: prepared answers for three sentences.</li>
+<li>Slack is shown in Settings and sends nothing.</li>
+<li>The live demo shares one writable repo. Anyone’s approval changes it for everyone, and a restart resets it.</li>
+</ul></div>
+
+<h2 id="session">The session it plays</h2>
+<ol class="steps">
+<li><b>Lily</b> (finance) writes: “Revenue shouldn't include refunded orders.”</li>
+<li><b>Mark</b> (analyst) opens it, finds a drafted definition, edits it, gives a reason, and submits. It is checked to compile first.</li>
+<li><b>Hannah</b> (data lead) sees old and new definitions side by side, <code>net_revenue</code>, <code>gross_margin</code> and <code>aov</code> as affected, and the charts that query them, with the numbers computed by Anfra under both definitions.</li>
+<li>She approves. The dataset file is rewritten and committed with the request, requester, editor, approver and reason in the message.</li>
+<li>Later, Lily adds a decision to the metric's history, with Hannah and the data team. It saves the value for its dates and the definition that was live.</li>
+</ol>
+
+<h2 id="see">What you see</h2>
+<p>The home is the metric tree, drawn from the dataset files, on a canvas. Each card shows a metric's value for the chosen date range and a small trend. Click a card and the side panel opens on that metric: a chart you can switch between area, column and table, a <b>Breakdown</b> by order date or by a field such as channel or category, then tabs for its <b>History</b>, <b>Comments</b> and <b>Requests</b>. Click the card again, or an empty part of the canvas, to go back to your inbox.</p>
+<p>The <b>date range</b> at the top left works like the one in Holistics: presets such as Last 7 days or Month to date, or pick any two days on the calendar. It opens on <b>Year to date</b>. The chart steps by day, week or month depending on the range, and every number compares with the period just before it.</p>
+<p>When a repo has more than one dataset, a <b>dataset dropdown</b> appears and the canvas shows one dataset’s metrics at a time, each with its own date field. The <b>moon/sun button</b> at the top right switches between light and dark mode. It follows your system until you choose, then remembers your choice.</p>
+
+<h2 id="history">History, with the people in it</h2>
+<p>Every metric keeps a short history: applied changes, <b>events</b> (Black Friday, an outage), <b>decisions</b> (cut the discount to 15%) and <b>learnings</b> (the smaller discount is the likely cause). Each entry shows its dates, the value Anfra computed for them, and who was involved: a face for each person, a lettered circle in the team's colour for each team, stacked when several were. A learning can say which entry it follows. “Relevant” also shows entries logged on the metrics this one is built from.</p>
+
+<h2 id="how">How it works</h2>
+<pre><code>browser → anfra-metric-log   pages, requests, impact, approve, commit
+              │
+              └→ anfra serve (127.0.0.1)  → your data
+repo files:  datasets/*.aml   apps/**/*.html   metric-log/  (requests, log, timeline)</code></pre>
+<p>It reads every dataset file for metrics and every app for the queries that use them, so the list of affected charts is derived, never typed. To get the new numbers it queries a temporary copy of the dataset with the new definition. The live file is written only on approval.</p>
+
+<h2 id="config">Config</h2>
+<pre><code>version: 1
+anfra:
+  repo: ./demo
+  url: http://127.0.0.1:7899
+people:
+  - { id: lily,  name: Lily,  team: finance, role: stakeholder }
+  - { id: mark, name: Mark, team: data,    role: analyst }
+  - { id: hannah, name: Hannah, team: data,    role: lead }
+defaults:                      # for every metric without its own entry below
+  owner: team:data
+  approval:
+    - { stage: review, any_of: [role:lead] }
+metrics:
+  sales.revenue:               # only the exceptions need an entry
+    owner: team:finance
+canvas:
+  date:
+    sales: shop_orders.order_date   # the date each dataset is trended and filtered by
+notifications:
+  slack: { enabled: false }</code></pre>
+<p class="muted">The demo also lists <code>simulated_drafts</code>, the three prepared sentences. Leave it out on your own repo.</p>
+
+<h2 id="run">Run it</h2>
+<pre><code>git clone https://github.com/holistics/anfra-metric-log
+cd anfra-metric-log
+npm install
+npx anfra-metric-log check    # config matches the repo, owners and approvers exist
+npx anfra-metric-log serve    # starts anfra serve if needed, then http://127.0.0.1:7900</code></pre>
+<p class="muted">Needs the <code>anfra</code> CLI and Node 20+. The demo is a small shop: orders, refunds and costs in DuckDB, six metrics, two charts.</p>
+
+<h2 id="try">What you can try</h2>
+<table>
+<tr><th>Sentence</th><th>Changes</th><th>Also moves</th></tr>
+<tr><td>Revenue shouldn't include refunded orders</td><td>revenue</td><td>net revenue, gross margin, average order value</td></tr>
+<tr><td>Count only completed orders</td><td>orders</td><td>average order value</td></tr>
+<tr><td>Gross margin should include shipping cost</td><td>gross margin</td><td>already approved in the demo: open Gross margin, then Requests</td></tr>
+</table>
+<p class="muted">Any other sentence gets no draft: the analyst writes the definition. In the request form, the suggestions list has a copy button for each sentence. To play a request from the start, use Lily to ask, Mark to submit and Hannah to approve, with “Viewing as” at the top right.</p>
+
+<h2 id="own">Use it on your own Anfra repo</h2>
+<p>It needs nothing in your repo's apps. It reads <code>datasets/*.aml</code>, runs next to <code>anfra serve</code>, and writes only on approval.</p>
+<ol class="steps">
+<li>Clone <a href="https://github.com/holistics/anfra-metric-log">holistics/anfra-metric-log</a> (private: Holistics org members only) and run <code>npm install</code>.</li>
+<li>Copy <code>anfra-metric-log.yml</code>. Set <code>anfra.repo</code> to your repo's folder (it must be a git repository) and <code>anfra.url</code> to your <code>anfra serve</code>. If nothing answers there, <code>serve</code> starts one.</li>
+<li>List your own people, and set <code>defaults</code> for owner and approver, so you don't have to list every metric.</li>
+<li>Set <code>canvas.date</code> to a date field for each dataset you want trended and filtered by date. Without it the cards show values only, and the date filter is hidden.</li>
+<li>Run <code>check</code>, then <code>serve</code>, and open <code>http://127.0.0.1:7900</code>.</li>
+</ol>
+<p><b>Tried on a copy of a 172-metric repo</b> (two datasets, DuckDB): every metric appeared with its value, a change request ran from request to approval, the dataset file was rewritten and committed, and the impact view showed the 15 metrics it moved, with real before and after numbers. Approval commits straight to the repo's current branch, so try it on a copy first.</p>
+<p><b>What it does not do yet</b></p>
+<ul>
+<li><b>Charts that build their query at run time are not found.</b> It reads the AQL written out in an app's <code>createQuery</code> call. If an app assembles the query in code, the impact view lists the affected metrics but says no chart was detected. In the repo we tried, none of the 41 queries could be read this way.</li>
+<li><b>Only dataset <code>metric</code> blocks are tracked,</b> not the <code>measure</code>s inside models.</li>
+<li><b>A very large metric set is crowded.</b> 172 cards load in about eight seconds and the canvas has no search or collapse yet.</li>
+<li><b>One approval stage, one machine, and “Viewing as” instead of sign-in</b> (see below).</li>
+<li><b>No simulated drafts for your sentences.</b> A request on your repo goes to the analyst, who writes the new definition.</li>
+</ul>
+
+<h2 id="good">Good to know</h2>
+<p><b>Today, it runs on one machine.</b> The demo plays Lily, Mark and Hannah on one laptop, and “Viewing as” stands in for signing in. A request is a file in the repo on that machine, so on separate laptops it would not reach anyone else.</p>
+<p><b>Ideally, a team shares one copy.</b> anfra-metric-log and <code>anfra serve</code> run on a shared machine, behind real sign-in (for example <code>anfra-user</code>, which already knows who people are). Everyone opens the same link, a request lands in the right person's notifications at once, and an approval commits to a branch or opens a pull request instead of writing to main.</p>
+<p><b>Where is it stored?</b> Requests, the change log and timelines are JSON files under <code>metric-log/</code>, committed with the change. Not in the warehouse, and no query changes.</p>
+<p><b>What if the file changed while a request was in review?</b> Approval is refused and the request goes back for a fresh review.</p>
+<p><b>Several approval stages?</b> The config format already allows a list. This version enforces one.</p>
+<p><b>Not doing:</b> drawing a metric tree by hand, editing charts, row-level access (that is <code>anfra-user</code>).</p>
+
+<footer>anfra-metric-log · a concept for the 2026 Anfra App Competition.<br>Faces: <a href="https://www.openpeeps.com/">Open Peeps</a> by Pablo Stanley (CC0), drawn with <a href="https://www.dicebear.com/styles/open-peeps/">DiceBear</a> (MIT).</footer>
+</main>
+</body>
+</html>

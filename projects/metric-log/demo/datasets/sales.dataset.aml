@@ -1,0 +1,54 @@
+Dataset sales {
+  label: 'Sales'
+  description: 'Orders, refunds and costs of a small online shop. Synthetic demo data for anfra-metric-log.'
+  data_source_name: 'shop'
+
+  models: [shop_orders, shop_refunds, shop_costs]
+
+  relationships: [
+    relationship(shop_refunds.order_id > shop_orders.order_id, true),
+    relationship(shop_costs.order_id > shop_orders.order_id, true),
+  ]
+
+  metric orders {
+    label: 'Orders'
+    type: 'number'
+    definition: @aql shop_orders | count(shop_orders.order_id) ;;
+    format: '#,##0'
+  }
+
+  metric revenue {
+    label: 'Revenue'
+    type: 'number'
+    definition: @aql shop_orders | where(shop_orders.status is not 'cancelled') | sum(shop_orders.amount) ;;
+    format: '[$$]#,##0'
+  }
+
+  metric refunds {
+    label: 'Refunds'
+    type: 'number'
+    definition: @aql shop_refunds | sum(shop_refunds.amount) ;;
+    format: '[$$]#,##0'
+  }
+
+  metric net_revenue {
+    label: 'Net revenue'
+    type: 'number'
+    definition: @aql revenue - refunds ;;
+    format: '[$$]#,##0'
+  }
+
+  metric gross_margin {
+    label: 'Gross margin'
+    type: 'number'
+    definition: @aql (net_revenue - (shop_costs | sum(shop_costs.product_cost)) - (shop_costs | sum(shop_costs.shipping_cost))) / net_revenue ;;
+    format: '0.0%'
+  }
+
+  metric aov {
+    label: 'Average order value'
+    type: 'number'
+    definition: @aql revenue / orders ;;
+    format: '[$$]#,##0.00'
+  }
+}

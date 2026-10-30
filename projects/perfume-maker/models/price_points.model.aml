@@ -1,0 +1,28 @@
+Model price_points {
+  type: 'table'
+  label: 'Price Steps'
+  description: 'Every retail price the composer allows, so a result can be shown at each price side by side, whatever price is chosen.'
+  data_source_name: 'local'
+  table_name: 'price_points'
+
+  dimension price {
+    label: 'Retail Price Compared (USD)'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.price }};;
+  }
+
+  dimension k {
+    label: 'Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.k }};;
+  }
+
+  measure price_avg {
+    label: 'Price'
+    type: 'number'
+    definition: @sql {{ #SOURCE.price }};;
+    aggregation_type: 'avg'
+  }
+}

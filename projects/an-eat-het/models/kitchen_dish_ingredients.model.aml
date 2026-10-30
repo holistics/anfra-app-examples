@@ -1,0 +1,65 @@
+Model kitchen_dish_ingredients {
+  type: 'query'
+  label: 'Dish Ingredients by Month'
+  description: '''One row per dish, ingredient and calendar month: the amount on the plate, what it
+costs that month and whether the ingredient is in season. Use it to list a dish's ingredients with their
+seasonal status.'''
+  data_source_name: 'kitchen'
+  query: @sql
+    select di.dish_id, di.ingredient_id, sc.month, i.name as ingredient, i.category, di.qty_per_plate,
+      sc.status, di.qty_per_plate * i.unit_cost * sc.price_index as line_cost
+    from dish_ingredients di
+    join ingredients i using (ingredient_id)
+    join seasonal_calendar sc using (ingredient_id);;
+
+  dimension line_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.dish_id }} || '-' || {{ #SOURCE.ingredient_id }} || '-' || {{ #SOURCE.month }};;
+  }
+
+  dimension dish_id {
+    label: 'Dish ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.dish_id }};;
+  }
+
+  dimension month {
+    label: 'Calendar Month'
+    type: 'number'
+    definition: @sql {{ #SOURCE.month }};;
+  }
+
+  dimension ingredient {
+    label: 'Ingredient'
+    type: 'text'
+    definition: @sql {{ #SOURCE.ingredient }};;
+  }
+
+  dimension category {
+    label: 'Type'
+    type: 'text'
+    definition: @sql {{ #SOURCE.category }};;
+  }
+
+  dimension status {
+    label: 'Seasonal Status'
+    type: 'text'
+    definition: @sql {{ #SOURCE.status }};;
+  }
+
+  dimension qty_per_plate {
+    label: 'kg per Plate'
+    type: 'number'
+    definition: @sql {{ #SOURCE.qty_per_plate }};;
+  }
+
+  dimension line_cost {
+    label: 'Cost per Plate This Month (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.line_cost }};;
+  }
+}

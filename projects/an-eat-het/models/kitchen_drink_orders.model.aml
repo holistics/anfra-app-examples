@@ -1,0 +1,44 @@
+Model kitchen_drink_orders {
+  type: 'table'
+  label: 'Drinks Ordered Separately'
+  description: '''One row per service day: how many guests ordered drinks on top of the set menu (glasses, bottles,
+cocktails, coffee, tea, water), how many drinks, what they paid and what the drinks cost the restaurant. Guests without
+a pairing order more often than guests with one, and a guest can do both. Synthetic.'''
+  data_source_name: 'kitchen'
+  table_name: 'drink_orders'
+
+  dimension date {
+    label: 'Date'
+    type: 'date'
+    primary_key: true
+    definition: @sql {{ #SOURCE.date }};;
+  }
+
+  measure guests_amount {
+    label: 'Guests Who Ordered Drinks'
+    type: 'number'
+    definition: @sql {{ #SOURCE.guests }};;
+    aggregation_type: 'sum'
+  }
+
+  measure orders_amount {
+    label: 'Drinks Ordered'
+    type: 'number'
+    definition: @sql {{ #SOURCE.orders }};;
+    aggregation_type: 'sum'
+  }
+
+  measure revenue_amount {
+    label: 'Drinks Revenue'
+    type: 'number'
+    definition: @sql {{ #SOURCE.revenue }};;
+    aggregation_type: 'sum'
+  }
+
+  measure cost_amount {
+    label: 'Drinks Cost'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cost }};;
+    aggregation_type: 'sum'
+  }
+}

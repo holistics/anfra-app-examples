@@ -1,0 +1,53 @@
+Model kitchen_menus {
+  type: 'table'
+  label: 'Menus'
+  description: '''One row per seasonal menu: four a year (Winter Dec-Feb, Spring Mar-May, Summer Jun-Aug,
+Autumn Sep-Nov), twelve in all. A menu is named for the year it ends in. Synthetic.'''
+  data_source_name: 'kitchen'
+  table_name: 'menus'
+
+  dimension menu_id {
+    label: 'Menu ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.menu_id }};;
+  }
+
+  dimension year {
+    label: 'Menu Year'
+    type: 'number'
+    definition: @sql {{ #SOURCE.year }};;
+  }
+
+  dimension season {
+    label: 'Season'
+    type: 'text'
+    definition: @sql {{ #SOURCE.season }};;
+  }
+
+  dimension start_date {
+    label: 'Menu Start'
+    type: 'date'
+    definition: @sql {{ #SOURCE.start_date }};;
+  }
+
+  dimension end_date {
+    label: 'Menu End'
+    type: 'date'
+    definition: @sql {{ #SOURCE.end_date }};;
+  }
+
+  dimension menu_price {
+    label: 'Menu Price per Guest'
+    type: 'number'
+    description: 'What one guest pays for the set menu: the sum of its course prices.'
+    definition: @sql {{ #SOURCE.menu_price }};;
+  }
+
+  dimension menu_label {
+    label: 'Menu'
+    type: 'text'
+    definition: @sql {{ #SOURCE.year }} || ' ' || {{ #SOURCE.season }};;
+  }
+}

@@ -1,0 +1,6 @@
+# DuckDB needs no credentials.
+data_sources:
+  local:
+    type: duckdb
+    connection:
+      path: data/perfume.duckdb

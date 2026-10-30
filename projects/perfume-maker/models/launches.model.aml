@@ -1,0 +1,108 @@
+Model launches {
+  type: 'query'
+  label: 'Past Launches'
+  description: '''Past fragrance launches, this house's own and similar ones from other houses: scent mix, price, concentration,
+marketing, share sold direct, and the bottles sold in the first two years (Y1 is the first twelve months). Synthetic,
+illustrative.'''
+  data_source_name: 'local'
+  query: @sql
+    with y1 as (select launch_id, sum(bottles) as y1 from launch_sales where month_no <= 12 group by 1),
+    y2 as (select launch_id, sum(bottles) as y2 from launch_sales group by 1),
+    top2 as (select launch_id, string_agg(family || ' ' || cast(round(share) as integer), ' · ' order by share desc) as fams
+             from (select launch_id, family, share, row_number() over (partition by launch_id order by share desc) as rn from launch_families)
+             where rn <= 3 group by 1)
+    select l.launch_id, l.name, l.house, l.price, l.concentration_pct, l.marketing_usd, l.marketing_lm, l.direct_pct, y.y1, y2.y2, t.fams,
+      fx.b_price, fx.b_marketing, fx.b_direct, fx.b_conc
+    from launches l join y1 y using (launch_id) join y2 using (launch_id) join top2 t using (launch_id), launch_effects fx;;
+
+  dimension launch_id {
+    label: 'Launch ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.launch_id }};;
+  }
+
+  dimension name {
+    label: 'Launch'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+
+  dimension house {
+    label: 'House'
+    type: 'text'
+    definition: @sql {{ #SOURCE.house }};;
+  }
+
+  dimension price {
+    label: 'Retail Price (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.price }};;
+  }
+
+  dimension concentration_pct {
+    label: 'Concentration (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.concentration_pct }};;
+  }
+
+  dimension marketing_usd {
+    label: 'Marketing Budget (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.marketing_usd }};;
+  }
+
+  dimension direct_pct {
+    label: 'Sold Direct (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.direct_pct }};;
+  }
+
+  dimension year_two {
+    label: 'Bottles Sold in the First Two Years (Y2)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.y2 }};;
+  }
+
+  dimension year_one {
+    label: 'Bottles Sold in the First Year (Y1)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.y1 }};;
+  }
+
+  dimension families {
+    label: 'Main Scent Families (share %)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.fams }};;
+  }
+
+  measure fx_price {
+    label: 'Price Effect'
+    type: 'number'
+    definition: @sql {{ #SOURCE.b_price }};;
+    aggregation_type: 'avg'
+  }
+
+  measure fx_conc {
+    label: 'Concentration Effect'
+    type: 'number'
+    definition: @sql {{ #SOURCE.b_conc }};;
+    aggregation_type: 'avg'
+  }
+
+  measure fx_marketing {
+    label: 'Marketing Effect'
+    type: 'number'
+    definition: @sql {{ #SOURCE.b_marketing }};;
+    aggregation_type: 'avg'
+  }
+
+  measure fx_direct {
+    label: 'Direct Share Effect'
+    type: 'number'
+    definition: @sql {{ #SOURCE.b_direct }};;
+    aggregation_type: 'avg'
+  }
+
+}

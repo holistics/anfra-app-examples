@@ -1,0 +1,35 @@
+Model ingredient_families {
+  type: 'table'
+  label: 'Ingredient Scent Families'
+  description: '''One row per ingredient and scent family it carries, with a weight.
+An ingredient's weights sum to 1: rose is mostly floral, with some spice and citrus.'''
+  data_source_name: 'local'
+  table_name: 'ingredient_families'
+
+  dimension family_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.ingredient_id }} || '-' || {{ #SOURCE.family }};;
+  }
+
+  dimension ingredient_id {
+    label: 'Ingredient ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.ingredient_id }};;
+  }
+
+  dimension family {
+    label: 'Scent Family'
+    type: 'text'
+    definition: @sql {{ #SOURCE.family }};;
+  }
+
+  dimension weight {
+    label: 'Weight'
+    type: 'number'
+    definition: @sql {{ #SOURCE.weight }};;
+  }
+}

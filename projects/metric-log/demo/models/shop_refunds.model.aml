@@ -1,0 +1,30 @@
+Model shop_refunds {
+  type: 'table'
+  label: 'Refunds'
+  description: 'One row per refunded order, for the full order amount. Synthetic.'
+  data_source_name: 'shop'
+  table_name: 'refunds'
+
+  dimension refund_id {
+    label: 'Refund ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.refund_id }};;
+  }
+  dimension order_id {
+    label: 'Order ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.order_id }};;
+  }
+  dimension refund_date {
+    label: 'Refund date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.refund_date }};;
+  }
+  dimension amount {
+    label: 'Refund amount'
+    type: 'number'
+    definition: @sql {{ #SOURCE.amount }};;
+  }
+}

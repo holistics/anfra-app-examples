@@ -1,0 +1,37 @@
+Model kitchen_pairings {
+  type: 'table'
+  label: 'Drinks Pairings'
+  description: '''The three drinks offers sold with each menu: a wine pairing, a reserve wine pairing and a non-alcoholic
+pairing (partly made from kitchen trim). One row per offer per menu, so 36 in all. Price is a share of that menu's
+price per guest. Synthetic.'''
+  data_source_name: 'kitchen'
+  table_name: 'pairings'
+
+  dimension pairing_id {
+    label: 'Pairing ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.pairing_id }};;
+  }
+
+  dimension menu_id {
+    label: 'Menu ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.menu_id }};;
+  }
+
+  dimension name {
+    label: 'Pairing'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+
+  dimension kind {
+    label: 'Pairing Type'
+    type: 'text'
+    description: 'wine, reserve or non_alcoholic.'
+    definition: @sql {{ #SOURCE.kind }};;
+  }
+}

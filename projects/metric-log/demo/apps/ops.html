@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Ops daily</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+  <style>
+    body { font: 14px/1.45 system-ui, sans-serif; margin: 0; padding: 24px; color: #1c1f1d; background: #fff; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .sub { color: #7a807c; margin-bottom: 20px; }
+    .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+    .tile { background: #f6f6f6; border-radius: 10px; padding: 14px 16px; }
+    .tile small { color: #7a807c; display: block; }
+    .tile b { font-size: 24px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .panel { background: #f6f6f6; border-radius: 10px; padding: 14px 16px; position: relative; }
+    .panel h2 { font-size: 14px; margin: 0 0 8px; }
+    .chart { height: 280px; }
+    .status { position: absolute; inset: 44px 12px 12px; display: none; align-items: center; justify-content: center; text-align: center; background: #f6f6f6; }
+    .status.visible { display: flex; }
+  </style>
+</head>
+<body>
+  <h1>Ops daily</h1>
+  <div class="sub">Daily order volume and basket size for the ops stand-up. Synthetic demo shop.</div>
+  <div class="grid">
+    <section class="panel" data-anfra-block="orders-daily" data-anfra-label="Orders by day">
+      <h2>Orders by day</h2>
+      <div id="orders-daily" class="chart" data-anfra-query="orders_daily"></div>
+      <div id="orders-daily-status" class="status"></div>
+    </section>
+    <section class="panel" data-anfra-block="aov-daily" data-anfra-label="Average order value by day">
+      <h2>Average order value by day</h2>
+      <div id="aov-daily" class="chart" data-anfra-query="aov_daily"></div>
+      <div id="aov-daily-status" class="status"></div>
+    </section>
+    <section class="panel" data-anfra-block="gross-status" data-anfra-label="Gross sales by order status">
+      <h2>Gross sales by order status</h2>
+      <div id="gross-status" class="chart" data-anfra-query="gross_by_status"></div>
+      <div id="gross-status-status" class="status"></div>
+    </section>
+  </div>
+  <script>
+    const app = Anfra.createApp({ title: 'Ops daily' });
+    const orders_daily = app.createQuery('orders_daily', {
+      dataset: 'sales',
+      aql: `
+        explore {
+          dimensions { day: shop_orders.order_date }
+          measures { orders: orders }
+          sorts { day asc }
+        }
+      `,
+    });
+    const aov_daily = app.createQuery('aov_daily', {
+      dataset: 'sales',
+      aql: `
+        explore {
+          dimensions { day: shop_orders.order_date }
+          measures { aov: aov }
+          sorts { day asc }
+        }
+      `,
+    });
+    const gross_by_status = app.createQuery('gross_by_status', {
+      dataset: 'sales',
+      aql: `
+        explore {
+          dimensions { status: shop_orders.status }
+          measures { gross_sales: shop_orders | sum(shop_orders.amount) }
+          sorts { gross_sales desc }
+        }
+      `,
+    });
+
+    const money = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+    const charts = {};
+    const chartFor = (id) => (charts[id] = charts[id] || echarts.init(document.getElementById(id), null, { renderer: 'svg' }));
+    function status (q, id) {
+      const el = document.getElementById(id);
+      let text = '';
+      if (q.state === 'executing') text = 'Loading…';
+      else if (q.state === 'error') text = `Couldn't load: ${q.error.message}`;
+      else if (q.state === 'success' && q.result.rows.length === 0) text = 'No orders in this period';
+      el.textContent = text;
+      el.classList.toggle('visible', text !== '');
+    }
+    const axis = (rows, key) => rows.map((r) => String(r[key]).slice(5, 10));
+    function render () {
+      status(orders_daily, 'orders-daily-status');
+      if (orders_daily.result) {
+        const rows = orders_daily.result.rows;
+        chartFor('orders-daily').setOption({
+          animation: false, tooltip: { trigger: 'axis',  },
+          grid: { top: 12, left: 56, right: 12, bottom: 28 },
+          xAxis: { type: 'category', data: axis(rows, 'day') },
+          yAxis: { type: 'value' },
+          series: [{ name: 'Orders', type: 'bar', color: '#9aa9d6', smooth: true, showSymbol: false, data: rows.map((r) => Number(r.orders)) }],
+        });
+      }
+      status(aov_daily, 'aov-daily-status');
+      if (aov_daily.result) {
+        const rows = aov_daily.result.rows;
+        chartFor('aov-daily').setOption({
+          animation: false, tooltip: { trigger: 'axis', valueFormatter: (v) => money.format(v) },
+          grid: { top: 12, left: 56, right: 12, bottom: 28 },
+          xAxis: { type: 'category', data: axis(rows, 'day') },
+          yAxis: { type: 'value' },
+          series: [{ name: 'Average order value', type: 'line', color: '#2b56c9', smooth: true, showSymbol: false, data: rows.map((r) => Number(r.aov)) }],
+        });
+      }
+      status(gross_by_status, 'gross-status-status');
+      if (gross_by_status.result) {
+        const rows = gross_by_status.result.rows;
+        chartFor('gross-status').setOption({
+          animation: false, tooltip: { valueFormatter: (v) => money.format(v) },
+          grid: { top: 12, left: 56, right: 12, bottom: 28 },
+          xAxis: { type: 'category', data: rows.map((r) => r.status) },
+          yAxis: { type: 'value' },
+          series: [{ type: 'bar', color: '#9aa9d6', data: rows.map((r) => Number(r.gross_sales)) }],
+        });
+      }
+
+    }
+    app.subscribe(render);
+    window.addEventListener('resize', () => Object.values(charts).forEach((c) => c.resize()));
+    app.execute();
+  </script>
+</body>
+</html>

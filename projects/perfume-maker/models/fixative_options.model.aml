@@ -1,0 +1,128 @@
+Model fixative_options {
+  type: 'query'
+  label: 'Longevity Options'
+  description: '''For the draft, every long-lasting ingredient (8 hours or more on skin) that could be added
+as half a part up to ten parts, at every half hour after applying: how loud the draft itself is at that hour, and how
+loud the extra part would be. Loudness follows the same rules as the projection (draft_curve): it fades
+exponentially, is compressed, is weighted by how far its note carries, and blooms in over the first
+hours (heart and base notes start quiet). Adding the two gives the
+draft with the extra part, so how long it lasts and what it costs can be read for each candidate.
+
+One row per draft option, candidate, number of parts added and half hour. Linked to draft_options, so the formula's selection
+selects its rows. Illustrative, not measured.'''
+  data_source_name: 'local'
+  query: @sql
+    select o.option_id, c.ingredient_id as cand_id, c.name as candidate, c.cost_per_ml as cand_cost, c.tier as cand_tier,
+      c.longevity_hours as cand_hours, c.ifra_max_pct as cand_ifra, h.hr as hour, a.ap as add_parts,
+      pow(o.parts * i.strength * exp(-2.302585 * h.hr / i.longevity_hours), 0.6)
+        * case i.tier when 'top' then 1.8 when 'heart' then 1.2 else 0.7 end
+        * case i.tier when 'top' then 1.0 when 'heart' then 1 - 0.45 * exp(-h.hr / 1.0) else 1 - 0.88 * exp(-h.hr / 2.5) end as own_loud,
+      pow(a.ap * c.strength * exp(-2.302585 * h.hr / c.longevity_hours), 0.6)
+        * case c.tier when 'top' then 1.8 when 'heart' then 1.2 else 0.7 end
+        * case c.tier when 'top' then 1.0 when 'heart' then 1 - 0.45 * exp(-h.hr / 1.0) else 1 - 0.88 * exp(-h.hr / 2.5) end as extra_loud,
+      pow(o.parts * i.strength, 0.6) * case i.tier when 'top' then 1.8 when 'heart' then 1.2 else 0.7 end as own_full,
+      pow(a.ap * c.strength, 0.6) * case c.tier when 'top' then 1.8 when 'heart' then 1.2 else 0.7 end as extra_full
+    from draft_options o
+    join ingredients i on i.ingredient_id = o.ingredient_id
+    cross join (select * from ingredients where longevity_hours >= 8) c
+    cross join (select r / 2.0 as hr from range(0, 25) t(r)) h
+    cross join (select r / 2.0 as ap from range(1, 21) t(r)) a
+    where o.parts > 0;;
+
+  dimension fix_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }} || '-' || {{ #SOURCE.cand_id }} || '-' || cast({{ #SOURCE.hour }} as varchar) || '-' || cast({{ #SOURCE.add_parts }} as varchar);;
+  }
+
+  dimension option_id {
+    label: 'Option ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }};;
+  }
+
+  dimension candidate {
+    label: 'Add Parts Of'
+    type: 'text'
+    definition: @sql {{ #SOURCE.candidate }};;
+  }
+
+  dimension add_parts {
+    label: 'Parts Added'
+    type: 'number'
+    definition: @sql {{ #SOURCE.add_parts }};;
+    description: 'How many parts of the candidate are added, from half a part to ten in half-part steps.'
+  }
+
+  dimension hour {
+    label: 'Hours After Applying'
+    type: 'number'
+    definition: @sql {{ #SOURCE.hour }};;
+  }
+
+  measure own_full {
+    label: 'Full Loudness of the Draft'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.own_full }};;
+    aggregation_type: 'sum'
+    description: 'The draft with no onset and no fade: the level the longevity rule is measured against.'
+  }
+
+  measure extra_full {
+    label: 'Full Loudness of the Extra Parts'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.extra_full }};;
+    aggregation_type: 'avg'
+    description: 'The added parts of the candidate with no onset and no fade. The same on every row of a candidate and amount, so it is averaged.'
+  }
+
+  measure own_loud {
+    label: 'Loudness of the Draft'
+    type: 'number'
+    definition: @sql {{ #SOURCE.own_loud }};;
+    aggregation_type: 'sum'
+    description: 'The draft, summed over its ingredients, at the hour.'
+  }
+
+  measure extra_loud {
+    label: 'Loudness of the Extra Parts'
+    type: 'number'
+    definition: @sql {{ #SOURCE.extra_loud }};;
+    aggregation_type: 'avg'
+    description: 'The added parts of the candidate at the hour. The same on every row of a candidate and amount, so it is averaged, not added.'
+  }
+
+  measure add_amount {
+    label: 'Parts Added (number)'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.add_parts }};;
+    aggregation_type: 'avg'
+  }
+
+  measure cand_cost {
+    label: 'Candidate Cost per ml'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cand_cost }};;
+    aggregation_type: 'avg'
+  }
+
+  measure cand_ifra {
+    label: 'Candidate Safety Max (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cand_ifra }};;
+    aggregation_type: 'avg'
+  }
+
+  measure cand_hours {
+    label: 'Candidate Lasts (h)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cand_hours }};;
+    aggregation_type: 'avg'
+  }
+}

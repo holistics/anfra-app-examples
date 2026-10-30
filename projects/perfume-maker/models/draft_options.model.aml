@@ -1,0 +1,141 @@
+Model draft_options {
+  type: 'query'
+  label: 'Draft Options'
+  description: '''Every (ingredient, parts) pair the composer's stepper can pick,
+with the ingredient's cost, strength and limit joined on. The draft formula is
+the set of rows the reader has selected: one per ingredient they use. Every
+draft figure is a metric over those rows, so the page does no arithmetic.
+
+A formula is written in parts, as perfumers write it: 3 parts bergamot, 2 parts
+jasmine. An ingredient's share of the blend is its parts over all parts, so a
+draft always adds to 100%.'''
+  data_source_name: 'local'
+  query: @sql
+    select o.option_id, o.k, o.ingredient_id, o.parts, i.name as ingredient, i.tier,
+      i.cost_per_ml, i.strength, i.longevity_hours, i.ifra_max_pct, i.diffusion, i.level, t.lo_pct as tier_lo, t.hi_pct as tier_hi
+    from draft_options o join ingredients i using (ingredient_id)
+    left join structure_targets t on t.tier = i.tier;;
+
+  dimension option_id {
+    label: 'Option ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }};;
+  }
+
+  dimension k {
+    label: 'Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.k }};;
+  }
+
+  dimension ingredient {
+    label: 'Ingredient'
+    type: 'text'
+    definition: @sql {{ #SOURCE.ingredient }};;
+  }
+
+  dimension tier {
+    label: 'Note Tier'
+    type: 'text'
+    definition: @sql {{ #SOURCE.tier }};;
+  }
+
+  dimension parts {
+    label: 'Parts'
+    type: 'number'
+    definition: @sql {{ #SOURCE.parts }};;
+  }
+
+  measure total_parts {
+    label: 'Total Parts'
+    type: 'number'
+    definition: @sql {{ #SOURCE.parts }};;
+    aggregation_type: 'sum'
+  }
+
+  measure parts_cost {
+    label: 'Parts x Cost per ml'
+    type: 'number'
+    definition: @sql {{ #SOURCE.parts }} * {{ #SOURCE.cost_per_ml }};;
+    aggregation_type: 'sum'
+    description: 'Divide by total parts for the cost of one ml of the blend.'
+  }
+
+  dimension strength {
+    label: 'Strength'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.strength }};;
+  }
+
+  dimension longevity_hours {
+    label: 'Longevity (h)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.longevity_hours }};;
+  }
+
+  dimension ifra_max_pct {
+    label: 'IFRA Max (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ifra_max_pct }};;
+  }
+
+  measure total_impact {
+    label: 'Impact Points'
+    type: 'number'
+    definition: @sql {{ #SOURCE.parts }} * {{ #SOURCE.strength }};;
+    aggregation_type: 'sum'
+    description: 'Parts x strength: how loud this slice of the blend is.'
+  }
+
+  measure parts_longevity {
+    label: 'Parts x Longevity'
+    type: 'number'
+    definition: @sql {{ #SOURCE.parts }} * {{ #SOURCE.longevity_hours }};;
+    aggregation_type: 'sum'
+  }
+
+  measure max_ifra {
+    label: 'Lowest IFRA Limit (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ifra_max_pct }};;
+    aggregation_type: 'min'
+  }
+
+  dimension level {
+    label: 'Library'
+    type: 'text'
+    definition: @sql {{ #SOURCE.level }};;
+  }
+
+  measure diffusion_impact {
+    label: 'Impact x Projection'
+    type: 'number'
+    definition: @sql {{ #SOURCE.parts }} * {{ #SOURCE.strength }} * {{ #SOURCE.diffusion }};;
+    aggregation_type: 'sum'
+    description: 'Parts x strength x how far the ingredient radiates. Over the impact it is the projection of the blend.'
+  }
+
+  measure tier_lo {
+    label: 'Usual Share of the Note, Low (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.tier_lo }};;
+    aggregation_type: 'avg'
+  }
+
+  measure tier_hi {
+    label: 'Usual Share of the Note, High (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.tier_hi }};;
+    aggregation_type: 'avg'
+  }
+
+  dimension cost_per_ml {
+    label: 'Cost per ml'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cost_per_ml }};;
+  }
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "id": "t-001",
+    "at": "2026-10-21T15:05:59.315Z",
+    "type": "event",
+    "date": "2025-11-27",
+    "end": "2025-12-01",
+    "compare": "prev",
+    "headline": "Black Friday orders came back at twice the usual rate",
+    "detail": null,
+    "status": null,
+    "follows": null,
+    "also_on": [
+      "sales.net_revenue",
+      "sales.gross_margin"
+    ],
+    "by": "mark",
+    "with": [
+      "hannah",
+      "team:finance"
+    ],
+    "value": 1413.87,
+    "valuePrev": 203,
+    "definition": "shop_refunds | sum(shop_refunds.amount)",
+    "seeded": true
+  },
+  {
+    "id": "t-002",
+    "at": "2026-10-21T15:05:59.512Z",
+    "type": "event",
+    "date": "2026-08-10",
+    "end": "2026-08-23",
+    "compare": "prev",
+    "headline": "Courier delays; many August orders sent back",
+    "detail": null,
+    "status": null,
+    "follows": null,
+    "also_on": [
+      "sales.net_revenue"
+    ],
+    "by": "mark",
+    "with": [
+      "team:data"
+    ],
+    "value": 2137,
+    "valuePrev": 1075.25,
+    "definition": "shop_refunds | sum(shop_refunds.amount)",
+    "seeded": true
+  },
+  {
+    "id": "t-003",
+    "at": "2026-10-21T15:05:59.685Z",
+    "type": "event",
+    "date": "2026-10-05",
+    "end": "2026-10-11",
+    "compare": "prev",
+    "headline": "Second return wave",
+    "detail": null,
+    "status": null,
+    "follows": null,
+    "also_on": [
+      "sales.net_revenue",
+      "sales.gross_margin"
+    ],
+    "by": "mark",
+    "with": [
+      "lily"
+    ],
+    "value": 1573.2,
+    "valuePrev": 607.2,
+    "definition": "shop_refunds | sum(shop_refunds.amount)",
+    "seeded": true
+  }
+]

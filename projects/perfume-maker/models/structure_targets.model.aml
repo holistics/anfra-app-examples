@@ -1,0 +1,36 @@
+Model structure_targets {
+  type: 'table'
+  label: 'Balanced Structure'
+  description: '''The share of a blend (by parts) each note usually takes in a balanced perfume: a
+bright but short top, a body of heart notes, and a base that anchors it and sets how long it lasts.
+Synthetic, a rule of thumb, not a standard.'''
+  data_source_name: 'local'
+  table_name: 'structure_targets'
+
+  dimension tier {
+    label: 'Note Tier'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.tier }};;
+  }
+
+  dimension note {
+    label: 'Role of the Note'
+    type: 'text'
+    definition: @sql {{ #SOURCE.note }};;
+  }
+
+  measure lo_pct {
+    label: 'Usual Share, Low (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.lo_pct }};;
+    aggregation_type: 'avg'
+  }
+
+  measure hi_pct {
+    label: 'Usual Share, High (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.hi_pct }};;
+    aggregation_type: 'avg'
+  }
+}

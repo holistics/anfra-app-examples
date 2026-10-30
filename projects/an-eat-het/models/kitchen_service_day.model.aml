@@ -1,0 +1,29 @@
+Model kitchen_service_day {
+  type: 'table'
+  label: 'Service Days'
+  description: '''One row per service day: how many guests came. Every guest eats the whole tasting menu, so
+guests is the same for every course served that day. Synthetic.'''
+  data_source_name: 'kitchen'
+  table_name: 'service_day'
+
+  dimension date {
+    label: 'Date'
+    type: 'date'
+    primary_key: true
+    definition: @sql {{ #SOURCE.date }};;
+  }
+
+  dimension menu_id {
+    label: 'Menu ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.menu_id }};;
+  }
+
+  measure covers_amount {
+    label: 'Guests'
+    type: 'number'
+    definition: @sql {{ #SOURCE.covers }};;
+    aggregation_type: 'sum'
+  }
+}

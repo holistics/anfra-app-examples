@@ -1,0 +1,50 @@
+Model line_families {
+  type: 'query'
+  label: 'Formula Scent Families'
+  description: '''One row per formula line and scent family it carries. An
+ingredient can smell like several families, each with a weight, so its share of
+the blend is split across them by that weight.'''
+  data_source_name: 'local'
+  query: @sql
+    select
+      l.formula_id, l.ingredient_id, i.tier, fa.family,
+      l.pct * fa.weight as family_pct
+    from formula_lines l
+    join ingredients i using (ingredient_id)
+    join ingredient_families fa using (ingredient_id);;
+
+  dimension family_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.formula_id }} || '-' || {{ #SOURCE.ingredient_id }} || '-' || {{ #SOURCE.family }};;
+  }
+
+  dimension formula_id {
+    label: 'Formula ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.formula_id }};;
+  }
+
+  dimension tier {
+    label: 'Note Tier'
+    type: 'text'
+    definition: @sql {{ #SOURCE.tier }};;
+  }
+
+  dimension family {
+    label: 'Scent Family'
+    type: 'text'
+    definition: @sql {{ #SOURCE.family }};;
+  }
+
+  measure family_blend_pct {
+    label: 'Family Share of Blend (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.family_pct }};;
+    aggregation_type: 'sum'
+    description: 'Percent of the blend that smells of this family. Sums to 100 across families.'
+  }
+}

@@ -1,0 +1,160 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Weekly sales</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+  <style>
+    body { font: 14px/1.45 system-ui, sans-serif; margin: 0; padding: 24px; color: #1c1f1d; background: #fff; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .sub { color: #7a807c; margin-bottom: 20px; }
+    .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .tile { background: #f6f6f6; border-radius: 10px; padding: 14px 16px; }
+    .tile small { color: #7a807c; display: block; }
+    .tile b { font-size: 24px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .panel { background: #f6f6f6; border-radius: 10px; padding: 14px 16px; position: relative; }
+    .panel h2 { font-size: 14px; margin: 0 0 8px; }
+    .chart { height: 280px; }
+    .status { position: absolute; inset: 44px 12px 12px; display: none; align-items: center; justify-content: center; text-align: center; background: #f6f6f6; }
+    .status.visible { display: flex; }
+  </style>
+</head>
+<body>
+  <h1>Weekly sales</h1>
+  <div class="sub">Synthetic demo shop. Numbers come from the sales dataset.</div>
+
+  <div class="tiles" data-anfra-block="headline" data-anfra-label="Headline numbers" data-anfra-query="headline">
+    <div class="tile"><small>Revenue</small><b id="t-revenue">…</b></div>
+    <div class="tile"><small>Net revenue</small><b id="t-net">…</b></div>
+    <div class="tile"><small>Gross margin</small><b id="t-gm">…</b></div>
+  </div>
+
+  <div class="grid">
+    <section class="panel" data-anfra-block="revenue-trend" data-anfra-label="Revenue and net revenue by week">
+      <h2>Revenue and net revenue by week</h2>
+      <div id="revenue-trend" class="chart" data-anfra-query="revenue_trend"></div>
+      <div id="revenue-trend-status" class="status"></div>
+    </section>
+    <section class="panel" data-anfra-block="aov-trend" data-anfra-label="Orders and average order value by week">
+      <h2>Orders and average order value by week</h2>
+      <div id="aov-trend" class="chart" data-anfra-query="aov_trend"></div>
+      <div id="aov-trend-status" class="status"></div>
+    </section>
+  </div>
+
+  <script>
+    const app = Anfra.createApp({ title: 'Weekly sales' });
+
+    const headline = app.createQuery('headline', {
+      dataset: 'sales',
+      aql: `
+        explore {
+          measures {
+            revenue: revenue,
+            net_revenue: net_revenue,
+            gross_margin: gross_margin
+          }
+        }
+      `,
+    });
+
+    const revenueTrend = app.createQuery('revenue_trend', {
+      dataset: 'sales',
+      aql: `
+        explore {
+          dimensions { week: shop_orders.order_date | week() }
+          measures {
+            revenue: revenue,
+            net_revenue: net_revenue
+          }
+          sorts { week asc }
+        }
+      `,
+    });
+
+    const aovTrend = app.createQuery('aov_trend', {
+      dataset: 'sales',
+      aql: `
+        explore {
+          dimensions { week: shop_orders.order_date | week() }
+          measures {
+            orders: orders,
+            aov: aov
+          }
+          sorts { week asc }
+        }
+      `,
+    });
+
+    const money = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+    const revChart = echarts.init(document.getElementById('revenue-trend'), null, { renderer: 'svg' });
+    const aovChart = echarts.init(document.getElementById('aov-trend'), null, { renderer: 'svg' });
+    const logged = new Set();
+
+    function status (query, id) {
+      const el = document.getElementById(id);
+      let text = '';
+      if (query.state === 'executing') text = 'Loading…';
+      else if (query.state === 'error') text = `Couldn't load: ${query.error.message}`;
+      else if (query.state === 'success' && query.result.rows.length === 0) text = 'No orders in this period';
+      el.textContent = text;
+      el.classList.toggle('visible', text !== '');
+    }
+
+    function render () {
+      [headline, revenueTrend, aovTrend].forEach((q) => {
+        if (q.state === 'success' && !logged.has(q.name)) {
+          logged.add(q.name);
+          console.log(q.name, q.result.columns, q.result.rows[0], q.result.debug?.executedAql);
+        }
+      });
+      status(revenueTrend, 'revenue-trend-status');
+      status(aovTrend, 'aov-trend-status');
+
+      if (headline.result && headline.result.rows[0]) {
+        const r = headline.result.rows[0];
+        document.getElementById('t-revenue').textContent = money.format(Number(r.revenue));
+        document.getElementById('t-net').textContent = money.format(Number(r.net_revenue));
+        document.getElementById('t-gm').textContent = (Number(r.gross_margin) * 100).toFixed(1) + '%';
+      }
+
+      if (revenueTrend.result) {
+        const rows = revenueTrend.result.rows;
+        revChart.setOption({
+          animation: false,
+          legend: { top: 0 },
+          tooltip: { trigger: 'axis', valueFormatter: (v) => money.format(v) },
+          grid: { top: 36, left: 56, right: 12, bottom: 28 },
+          xAxis: { type: 'category', data: rows.map((r) => String(r.week).slice(5, 10)) },
+          yAxis: { type: 'value', axisLabel: { formatter: (v) => money.format(v) } },
+          series: [
+            { name: 'Revenue', type: 'line', color: '#346e4f', data: rows.map((r) => Number(r.revenue)) },
+            { name: 'Net revenue', type: 'line', color: '#245a3a', lineStyle: { type: 'dashed' }, data: rows.map((r) => Number(r.net_revenue)) },
+          ],
+        });
+      }
+
+      if (aovTrend.result) {
+        const rows = aovTrend.result.rows;
+        aovChart.setOption({
+          animation: false,
+          legend: { top: 0 },
+          tooltip: { trigger: 'axis' },
+          grid: { top: 36, left: 40, right: 48, bottom: 28 },
+          xAxis: { type: 'category', data: rows.map((r) => String(r.week).slice(5, 10)) },
+          yAxis: [{ type: 'value' }, { type: 'value', axisLabel: { formatter: (v) => '$' + v } }],
+          series: [
+            { name: 'Orders', type: 'bar', color: '#b9d3c4', data: rows.map((r) => Number(r.orders)) },
+            { name: 'Average order value', type: 'line', yAxisIndex: 1, color: '#346e4f', data: rows.map((r) => Number(r.aov)) },
+          ],
+        });
+      }
+    }
+
+    app.subscribe(render);
+    window.addEventListener('resize', () => { revChart.resize(); aovChart.resize(); });
+    app.execute();
+  </script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+Model business_options {
+  type: 'table'
+  label: 'Business Assumptions'
+  description: '''Advanced mode's business assumptions: packaging tier, sales channel mix,
+marketing budget and returns rate, and the margin the brand is aiming for. Every combination
+is a row; once each dropdown is set, exactly one row is left and the Advanced figures
+read from it. Synthetic, illustrative rates.'''
+  data_source_name: 'local'
+  table_name: 'business_options'
+
+  dimension business_id {
+    label: 'Business ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.business_id }};;
+  }
+
+  dimension k {
+    label: 'Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.k }};;
+  }
+
+  dimension packaging_tier {
+    label: 'Packaging'
+    type: 'text'
+    definition: @sql {{ #SOURCE.packaging_tier }};;
+  }
+
+  dimension dtc_pct {
+    label: 'Direct-to-consumer Share (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.dtc_pct }};;
+  }
+
+  dimension marketing_usd {
+    label: 'Marketing Budget (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.marketing_usd }};;
+  }
+
+  dimension returns_pct {
+    label: 'Returns (% of sales)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.returns_pct }};;
+  }
+
+  dimension target_margin_pct {
+    label: 'Target Margin (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.target_margin_pct }};;
+  }
+
+  measure packaging_mult {
+    label: 'Packaging Cost Multiplier'
+    type: 'number'
+    definition: @sql {{ #SOURCE.packaging_mult }};;
+    aggregation_type: 'avg'
+  }
+
+  measure dtc_share {
+    label: 'Direct Share (0-1)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.dtc_pct }} / 100.0;;
+    aggregation_type: 'avg'
+  }
+
+  measure wholesale_discount {
+    label: 'Wholesale Discount (0-1)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.wholesale_discount_pct }} / 100.0;;
+    aggregation_type: 'avg'
+  }
+
+  measure platform_fee {
+    label: 'Platform Fee on Direct Sales (0-1)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.platform_fee_pct }} / 100.0;;
+    aggregation_type: 'avg'
+  }
+
+  measure marketing_budget {
+    label: 'Marketing Budget (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.marketing_usd }};;
+    aggregation_type: 'avg'
+    description: 'What is spent promoting the launch, whatever it sells.'
+  }
+
+  measure marketing_lift {
+    label: 'Marketing Lift on Sales (log)'
+    type: 'number'
+    definition: @sql ln(1 + {{ #SOURCE.marketing_usd }} / 1000.0);;
+    aggregation_type: 'avg'
+    description: 'ln(1 + budget / $1,000): sales rise with the budget, but each extra dollar adds less than the one before.'
+  }
+
+  measure returns_rate {
+    label: 'Returns Rate (0-1)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.returns_pct }} / 100.0;;
+    aggregation_type: 'avg'
+  }
+
+  measure target_margin {
+    label: 'Target Margin (0-1)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.target_margin_pct }} / 100.0;;
+    aggregation_type: 'avg'
+  }
+
+  measure oneoff_amount {
+    label: 'One-off Costs (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ifra_testing }} + {{ #SOURCE.design_cost }};;
+    aggregation_type: 'avg'
+    description: 'IFRA safety testing plus label and bottle design, paid once per batch.'
+  }
+}

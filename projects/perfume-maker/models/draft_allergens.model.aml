@@ -1,0 +1,54 @@
+Model draft_allergens {
+  type: 'query'
+  label: 'Draft Allergens'
+  description: '''Which fragrance allergens the draft holds, and how much of each. One row per chosen ingredient and
+allergen it contains; an ingredient with no allergen has one row labelled none, so every ingredient is counted.
+An ingredient with several allergens is split evenly across its rows (parts_even), so adding parts_even over all
+rows gives the draft's total parts once. Linked to draft_options: selecting the draft formula there selects its rows here.
+Which ingredient holds which allergen is synthetic.'''
+  data_source_name: 'local'
+  query: @sql
+    select o.option_id, coalesce(a.allergen, 'none') as allergen, coalesce(a.pct, 0) as pct, o.parts,
+      o.parts * 1.0 / count(*) over (partition by o.option_id) as parts_even
+    from draft_options o left join ingredient_allergens a on a.ingredient_id = o.ingredient_id
+    where o.parts > 0;;
+
+  dimension allergen_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }} || '-' || {{ #SOURCE.allergen }};;
+  }
+
+  dimension option_id {
+    label: 'Option ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }};;
+  }
+
+  dimension allergen {
+    label: 'Allergen'
+    type: 'text'
+    definition: @sql {{ #SOURCE.allergen }};;
+  }
+
+  measure allergen_parts {
+    label: 'Parts x Allergen Content'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.parts }} * {{ #SOURCE.pct }};;
+    aggregation_type: 'sum'
+    description: 'Parts of the ingredient times the percent of it that is this allergen.'
+  }
+
+  measure parts_even {
+    label: 'Parts, Counted Once'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.parts_even }};;
+    aggregation_type: 'sum'
+    description: 'The ingredient parts, shared out across its allergen rows so that adding them gives the draft once.'
+  }
+}

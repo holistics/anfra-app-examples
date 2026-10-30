@@ -1,0 +1,47 @@
+Model draft_families {
+  type: 'query'
+  label: 'Draft Scent Families'
+  description: '''Every (ingredient, parts) option split across the scent families the
+ingredient carries, by weight. Linked to draft_options, so selecting the draft
+formula there also selects its families here.'''
+  data_source_name: 'local'
+  query: @sql
+    select o.option_id, o.k, i.tier, fa.family, o.parts * fa.weight as family_parts
+    from draft_options o
+    join ingredients i using (ingredient_id)
+    join ingredient_families fa using (ingredient_id);;
+
+  dimension family_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }} || '-' || {{ #SOURCE.family }};;
+  }
+
+  dimension option_id {
+    label: 'Option ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }};;
+  }
+
+  dimension tier {
+    label: 'Note Tier'
+    type: 'text'
+    definition: @sql {{ #SOURCE.tier }};;
+  }
+
+  dimension family {
+    label: 'Scent Family'
+    type: 'text'
+    definition: @sql {{ #SOURCE.family }};;
+  }
+
+  measure family_parts {
+    label: 'Family Parts'
+    type: 'number'
+    definition: @sql {{ #SOURCE.family_parts }};;
+    aggregation_type: 'sum'
+  }
+}

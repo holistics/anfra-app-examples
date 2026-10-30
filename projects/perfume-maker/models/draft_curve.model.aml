@@ -1,0 +1,109 @@
+Model draft_curve {
+  type: 'query'
+  label: 'Draft Projection'
+  description: '''How loud each part of the draft SMELLS, every half hour for twelve hours
+after it is put on. Illustrative, not measured. An ingredient starts at its
+strength x parts and fades exponentially, reaching 10% of its start at its
+"lasts about" time. Top notes are gone in an hour or two; base notes barely move.
+
+That is the physical amount; what the nose perceives is different, so two
+perception rules are applied on top. First, loudness is compressed (a power law,
+exponent 0.6): doubling an ingredient does not smell twice as loud. Second,
+volatile top notes carry through the air and are noticed first, while heavy
+base notes sit close to the skin: top x1.8, heart x1.2, base x0.7.
+
+Third, a note takes time to bloom. Top notes are at full release the moment the
+perfume is applied; heart notes start at 55% and reach full release within a few
+hours (time constant 1 h); base notes start at 12% and take longer (2.5 h). So the
+opening is almost all top, and the base only arrives as the top fades. The same
+rule is in fixative_options. "full" is the loudness with no onset and no fade: the
+level the 20% longevity rule is measured against.
+
+The whole scent is every hour up to the longevity time added up (in_wear = 1), so the long
+base-only tail after the scent is gone does not tilt it.
+
+One row per chosen ingredient, scent family it carries and half hour, so the
+same rows break down by note, by family or by ingredient. Linked to
+draft_options: selecting the draft formula there selects its curve here.'''
+  data_source_name: 'local'
+  query: @sql
+    with base as (
+    select o.option_id, h.hr as hour, i.tier, i.name as ingredient, fa.family,
+      pow(o.parts * i.strength * exp(-2.302585 * h.hr / i.longevity_hours), 0.6)
+        * case i.tier when 'top' then 1.8 when 'heart' then 1.2 else 0.7 end
+        * case i.tier when 'top' then 1.0 when 'heart' then 1 - 0.45 * exp(-h.hr / 1.0) else 1 - 0.88 * exp(-h.hr / 2.5) end * fa.weight as intensity,
+      pow(o.parts * i.strength, 0.6)
+        * case i.tier when 'top' then 1.8 when 'heart' then 1.2 else 0.7 end * fa.weight as full_amt
+    from draft_options o
+    join ingredients i using (ingredient_id)
+    join ingredient_families fa using (ingredient_id)
+    cross join (select r / 2.0 as hr from range(0, 25) t(r)) h
+    where o.parts > 0),
+    tot as (select option_id, hour, sum(intensity) as s, sum(full_amt) as f from base group by option_id, hour),
+    last as (select option_id, max(hour) filter (where s >= 0.20 * f) as last_hr from tot group by option_id)
+    select b.*, case when b.hour <= coalesce(l.last_hr, 0) then 1 else 0 end as in_wear
+    from base b join last l using (option_id);;
+
+  dimension curve_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }} || '-' || {{ #SOURCE.family }} || '-' || cast({{ #SOURCE.hour }} as varchar);;
+  }
+
+  dimension option_id {
+    label: 'Option ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }};;
+  }
+
+  dimension in_wear {
+    label: 'Within the Wear'
+    type: 'number'
+    definition: @sql {{ #SOURCE.in_wear }};;
+    description: '1 for the hours up to the longevity time: the last half hour the whole draft still has 20% of its full strength (the same rule as Blend Longevity). The whole-scent view uses only these hours.'
+  }
+
+  dimension hour {
+    label: 'Hours After Applying'
+    type: 'number'
+    definition: @sql {{ #SOURCE.hour }};;
+  }
+
+  dimension tier {
+    label: 'Note Tier'
+    type: 'text'
+    definition: @sql {{ #SOURCE.tier }};;
+  }
+
+  dimension ingredient {
+    label: 'Ingredient'
+    type: 'text'
+    definition: @sql {{ #SOURCE.ingredient }};;
+  }
+
+  dimension family {
+    label: 'Scent Family'
+    type: 'text'
+    definition: @sql {{ #SOURCE.family }};;
+  }
+
+  measure full_strength {
+    label: 'Full Strength'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.full_amt }};;
+    aggregation_type: 'sum'
+    description: 'Loudness with no onset and no fade: the level the longevity rule is measured against.'
+  }
+
+  measure strength {
+    label: 'Strength'
+    type: 'number'
+    definition: @sql {{ #SOURCE.intensity }};;
+    aggregation_type: 'sum'
+    description: 'Perceived loudness: strength x parts, faded for the hour in view, then compressed, weighted by how far the note carries and by how far it has bloomed (heart and base notes are quiet at first).'
+  }
+}

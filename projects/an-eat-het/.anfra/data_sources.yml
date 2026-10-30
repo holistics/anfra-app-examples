@@ -1,0 +1,6 @@
+# DuckDB needs no credentials.
+data_sources:
+  kitchen:
+    type: duckdb
+    connection:
+      path: data/kitchen.duckdb

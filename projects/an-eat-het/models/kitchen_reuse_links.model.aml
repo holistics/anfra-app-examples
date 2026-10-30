@@ -1,0 +1,66 @@
+Model kitchen_reuse_links {
+  type: 'table'
+  label: 'Reuse Links'
+  description: '''Where one course's reused trim goes: into another course on the same menu (mud crab shell into the
+soup stock, mandarin peel into the petit fours), into the non-alcoholic pairing (peel cordial, ferments), or into the
+staff meal. One row per source course, ingredient and target; the shares for one source and ingredient add to 1.
+Synthetic.'''
+  data_source_name: 'kitchen'
+  table_name: 'reuse_links'
+
+  dimension link_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.source_dish_id }} || '-' || {{ #SOURCE.ingredient_id }} || '-' || {{ #SOURCE.target_kind }} || '-' || coalesce(cast({{ #SOURCE.target_id }} as varchar), '');;
+  }
+
+  dimension source_dish_id {
+    label: 'Source Course ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.source_dish_id }};;
+  }
+
+  dimension ingredient_id {
+    label: 'Ingredient ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.ingredient_id }};;
+  }
+
+  dimension ingredient {
+    label: 'Ingredient'
+    type: 'text'
+    definition: @sql {{ #SOURCE.ingredient }};;
+  }
+
+  dimension target_name {
+    label: 'Reused In (Name)'
+    type: 'text'
+    description: 'The course it goes into, the non-alcoholic pairing, or the staff meal.'
+    definition: @sql {{ #SOURCE.target_name }};;
+  }
+
+  dimension target_kind {
+    label: 'Reused In'
+    type: 'text'
+    description: 'course, pairing or staff_meal.'
+    definition: @sql {{ #SOURCE.target_kind }};;
+  }
+
+  dimension target_id {
+    label: 'Target ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.target_id }};;
+  }
+
+  measure kg_share_amount {
+    label: 'Share of Reused Kilos'
+    type: 'number'
+    definition: @sql {{ #SOURCE.kg_share }};;
+    aggregation_type: 'sum'
+  }
+}

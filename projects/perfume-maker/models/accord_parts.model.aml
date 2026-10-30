@@ -1,0 +1,55 @@
+Model accord_parts {
+  type: 'query'
+  label: 'Accord Recipes'
+  description: '''Named accords (petrichor, green tea, sea breeze) and the ingredients that make each one,
+with the parts that recreate it. One row per accord and ingredient. Synthetic recipes.'''
+  data_source_name: 'local'
+  query: @sql
+    select ap.accord_id, a.name as accord, a.blurb, ap.ingredient_id, i.name as ingredient, i.tier, ap.parts, ap.why
+    from accord_parts ap join accords a on a.accord_id = ap.accord_id join ingredients i on i.ingredient_id = ap.ingredient_id;;
+
+  dimension recipe_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.accord_id }} || '-' || {{ #SOURCE.ingredient_id }};;
+  }
+
+  dimension accord {
+    label: 'Accord'
+    type: 'text'
+    definition: @sql {{ #SOURCE.accord }};;
+  }
+
+  dimension blurb {
+    label: 'What It Smells Like'
+    type: 'text'
+    definition: @sql {{ #SOURCE.blurb }};;
+  }
+
+  dimension ingredient {
+    label: 'Ingredient'
+    type: 'text'
+    definition: @sql {{ #SOURCE.ingredient }};;
+  }
+
+  dimension tier {
+    label: 'Note Tier'
+    type: 'text'
+    definition: @sql {{ #SOURCE.tier }};;
+  }
+
+  dimension why {
+    label: 'Why It Is in the Accord'
+    type: 'text'
+    definition: @sql {{ #SOURCE.why }};;
+  }
+
+  measure recipe_parts {
+    label: 'Parts in the Recipe'
+    type: 'number'
+    definition: @sql {{ #SOURCE.parts }};;
+    aggregation_type: 'avg'
+  }
+}

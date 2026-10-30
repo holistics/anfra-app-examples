@@ -1,0 +1,50 @@
+# Local development stack for the Kumquat Kite POC: plain PostgreSQL for the app and Anfra.
+#   npm run db:up      start PostgreSQL (data stays in the named volume kumquat_pg)
+#   npm run db:down    stop it; the volume and every record are kept
+# Settings and passwords come from .env.local (npm run setup writes the missing ones; see config/environment.example).
+# The `container` profile also runs the deployment image against this database:
+#   docker compose --env-file .env.local --profile container up --build app   →  http://127.0.0.1:8790
+name: kumquat-kite-example
+
+services:
+  postgres:
+    image: postgres:17.11-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    environment:
+      POSTGRES_USER: ${KK_DB_OWNER:-kumquat}
+      POSTGRES_PASSWORD: ${KK_DB_OWNER_PASSWORD:?run npm run setup first (it writes KK_DB_OWNER_PASSWORD to .env.local)}
+      POSTGRES_DB: ${KK_DB_DEMO_NAME:-kumquat_demo}
+    ports:
+      - "127.0.0.1:${KK_DB_PORT:-54339}:5432"
+    volumes:
+      - kumquat_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  # The deployment image (Dockerfile), run against the database above: the same image the prototype platform would
+  # run, configured only through the environment. It applies new migrations on start; it never resets data, and it
+  # seeds only a database with no project, and only when KK_SEED_IF_EMPTY=1.
+  app:
+    profiles: ["container"]
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      KK_DB_HOST: postgres
+      KK_DB_PORT: "5432"
+      KK_DB_NAME: ${KK_DB_DEMO_NAME:-kumquat_demo}
+      KK_DB_OWNER: ${KK_DB_OWNER:-kumquat}
+      KK_DB_OWNER_PASSWORD: ${KK_DB_OWNER_PASSWORD}
+      KK_APP_DB_PASSWORD: ${KK_APP_DB_PASSWORD}
+      ANFRA_DB_PASSWORD: ${ANFRA_DB_PASSWORD}
+      KK_SESSION_SECRET: ${KK_SESSION_SECRET}
+      KK_SEED_IF_EMPTY: ${KK_SEED_IF_EMPTY:-0}
+    ports:
+      - "127.0.0.1:8790:8787"
+
+volumes:
+  kumquat_pg:

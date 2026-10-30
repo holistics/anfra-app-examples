@@ -19,6 +19,7 @@ Every app lives in its own folder under `projects/`.
 | [store-performance](projects/store-performance) | An online store's dashboard that flags unusual weeks in revenue, orders and customers, then shows where the change happened | [Demo](https://store-performance-live.pages.holistics.dev/apps/store-performance) | Vy Huynh |
 | [eta-control-tower](projects/eta-control-tower) | A freight control tower: which shipments will miss their promised date, how much value is at risk, and why | [Demo](https://eta-tracking-live.pages.holistics.dev/apps/eta-control-tower) | Vy Huynh |
 | [underworld](projects/underworld) | You work the identity desk at Charon's ferry: resolve each soul's claim against the Books, where every verdict is a live query | [Demo](https://anfra-amyra.pages.holistics.dev/apps/nether-v4/realm) | Amyra Nguyen |
+| [kumquat-kite](projects/kumquat-kite) | One record for every job, from the first conversation to the acceptance Finance verifies | [Demo](https://kumquat-kite-poc-demo.pages.holistics.dev/#/welcome) | Toan Pham |
 
 Apps ship without data source credentials, so some need setup before they run. Each app README says which sample data it uses.
 

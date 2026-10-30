@@ -1,0 +1,95 @@
+/* Shared look of the Kumquat Kite Anfra panels, loaded by relative path from each definition. Colours, radius and
+   the type scale come from tokens.css, the same file the app and its shadcn/ui components use, so the panels and the
+   screens around them stay in step (feedback 03, ticket 20: the Atomic CRM look, with hairline blocks, plain table
+   headers, small rounded badges and a grey focus ring). Type scale: 18 card title · 14 body, tables, block titles ·
+   12 meta, headers, badges · 24 key figures. The coloured tops of the key-figure blocks carry meaning (approved,
+   scenario, recorded), in the charts' colours (--viz-*, set by panel-kit.js; feedback 04, ticket 27: the Anfra demo's
+   palette, white blocks with a hairline and 14 by 16px of room, as in that demo). */
+@import url("tokens.css");
+:root {
+  --ink: var(--ui-foreground); --muted: var(--ui-muted-foreground); --line: var(--ui-border); --line-strong: var(--ui-input);
+  --soft: var(--ui-muted); --ok: var(--ui-ok); --ok-soft: var(--ui-ok-soft); --warn: var(--ui-warn); --warn-soft: var(--ui-warn-soft);
+  --bad: var(--ui-bad); --bad-soft: var(--ui-bad-soft); --info: var(--ui-info); --info-soft: var(--ui-info-soft);
+  --brand: var(--ui-brand); --brand-soft: var(--ui-brand-soft); --sel: var(--ui-info-soft);
+  --fs-xs: var(--ui-fs-xs); --fs-body: var(--ui-fs-body); --fs-title: var(--ui-fs-title); --fs-figure: var(--ui-fs-figure);
+}
+* { box-sizing: border-box; }
+html { overflow-x: hidden; }
+body { margin: 0; padding: 16px; font: var(--fs-body)/1.45 var(--ui-font); color: var(--ink); background: #fff; -webkit-font-smoothing: antialiased; }
+h1 { font-size: var(--fs-title); font-weight: 600; margin: 0 0 2px; }
+h2, h3 { font-size: var(--fs-body); font-weight: 600; margin: 0 0 8px; }
+p { margin: 0 0 8px; }
+.muted { color: var(--muted); } .small { font-size: var(--fs-xs); } .nowrap { white-space: nowrap; }
+.mono { font-family: ui-monospace, Menlo, monospace; font-size: var(--fs-xs); }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.spread { justify-content: space-between; align-items: flex-start; flex-wrap: nowrap; }
+.spread > :first-child { flex: 1 1 360px; min-width: 0; } .spread > :last-child { flex: 0 1 auto; }
+.grid { display: grid; gap: 12px; }
+.cards { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+.cards.wide { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.halves { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
+section { margin-bottom: 12px; }
+.block { border: 1px solid var(--line); border-radius: var(--ui-radius); padding: 14px 16px; position: relative; background: #fff; min-width: 0; }
+.block.approved { border-top: 4px solid var(--viz-approved, var(--ok)); } .block.scenario { border-top: 4px solid var(--viz-scenario, var(--brand)); }
+.block.recorded { border-top: 4px solid var(--viz-recorded, var(--info)); }
+.block > .note { margin: 8px 0 0; }
+
+/* Key figures: one row per label and value (dl > div > dt + dd). The label keeps at least 9em; when the row is too
+   narrow for both, the value moves to its own line, right-aligned, instead of running into the label. Labels wrap
+   at word boundaries; amounts, units and badges never break. */
+dl.kpi { display: grid; gap: 6px; margin: 0; }
+dl.kpi > div { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 0; }
+dl.kpi dt { flex: 1 1 9em; min-width: 0; margin: 0; }
+dl.kpi dd { flex: 0 0 auto; margin: 0 0 0 auto; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.figure { font-size: var(--fs-figure); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; overflow-wrap: anywhere; }
+.figure-line { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-top: 8px; }
+
+/* Badges */
+.chip { display: inline-block; border-radius: calc(var(--ui-radius) - 2px); padding: 1px 8px; font-size: var(--fs-xs); font-weight: 500; border: 1px solid var(--line); background: #fff; white-space: nowrap; }
+.chip.wrap { white-space: normal; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); border-color: var(--ui-ok-line); } .chip.warn { background: var(--warn-soft); color: var(--warn); border-color: var(--ui-warn-line); }
+.chip.bad { background: var(--bad-soft); color: var(--bad); border-color: var(--ui-bad-line); } .chip.info { background: var(--info-soft); color: var(--info); border-color: var(--ui-info-line); }
+.chip.brand { background: var(--brand-soft); color: var(--ui-brand-ink); border-color: #f6c79f; }
+
+/* Tables: one style everywhere. A wide table scrolls inside its block instead of running past the border. */
+.table-wrap { overflow-x: auto; max-width: 100%; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { font-size: var(--fs-xs); color: var(--muted); background: #fff; font-weight: 500; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+td .sub { display: block; font-size: var(--fs-xs); color: var(--muted); }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.ref { white-space: nowrap; font-weight: 500; }
+tr.sel td { background: var(--sel); } tr.dim td { opacity: .45; } tr.click { cursor: pointer; } tr.click:hover td { background: var(--ui-accent); }
+tr.click:focus-visible { outline: 2px solid var(--ui-ring); outline-offset: -2px; }
+
+/* Pager */
+.pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding-top: 8px; font-size: var(--fs-xs); color: var(--muted); flex-wrap: wrap; }
+.pager button[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* Charts */
+.chart { width: 100%; height: 260px; } .chart.tall { height: 320px; } .chart.short { height: 200px; }
+.legend-note { font-size: var(--fs-xs); color: var(--muted); margin: 4px 0 0; }
+
+/* Loading, empty and error states drawn over a block */
+.status { display: none; position: absolute; inset: 36px 8px 8px; background: rgb(255 255 255 / .88); align-items: center; justify-content: center; text-align: center; color: var(--muted); padding: 8px; }
+.status.visible { display: flex; } .status.error { color: var(--bad); }
+.banner { border-radius: var(--ui-radius); padding: 10px 14px; border: 1px solid var(--line); margin: 0 0 12px; }
+.banner.ok { background: var(--ok-soft); border-color: var(--ui-ok-line); } .banner.warn { background: var(--warn-soft); border-color: var(--ui-warn-line); } .banner.bad { background: var(--bad-soft); border-color: var(--ui-bad-line); }
+.banner.info { background: var(--info-soft); border-color: var(--ui-info-line); }
+
+/* Filters */
+.filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.filters .block { padding: 8px 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* Why this number? */
+details.why > summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.why dl { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 8px 14px; margin: 8px 0; } .why dt { color: var(--muted); } .why dd { margin: 0; min-width: 0; }
+pre.aql { white-space: pre-wrap; background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin: 4px 0; max-height: 220px; overflow: auto; font-size: var(--fs-xs); }
+
+.bar { height: 10px; background: var(--ui-muted); border-radius: 4px; overflow: hidden; min-width: 60px; } .bar > i { display: block; height: 100%; background: var(--ok); } .bar > i.neg { background: var(--bad); }
+button { font: inherit; font-size: var(--fs-body); font-weight: 500; border: 1px solid var(--line); background: #fff; border-radius: calc(var(--ui-radius) - 2px); padding: 5px 12px; cursor: pointer; color: var(--ink); box-shadow: var(--ui-shadow-xs); }
+button:hover { background: var(--ui-accent); }
+input, select { font: inherit; font-size: var(--fs-body); border: 1px solid var(--line-strong); border-radius: calc(var(--ui-radius) - 2px); padding: 5px 10px; background: #fff; color: var(--ink); box-shadow: var(--ui-shadow-xs); }
+:focus-visible { outline: 2px solid var(--ui-ring); outline-offset: 2px; }
+@media (max-width: 640px) { body { padding: 12px; } .why dl { grid-template-columns: 1fr; } .halves { grid-template-columns: 1fr; } }

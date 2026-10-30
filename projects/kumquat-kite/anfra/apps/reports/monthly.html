@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Monthly trend (governed)</title>
+</head>
+<body>
+<main data-anfra-container="page" data-anfra-label="Monthly trend">
+  <div id="filters" class="filters" data-anfra-container="controls" data-anfra-label="Filters"></div>
+  <header class="row spread" style="margin-bottom:12px">
+    <div><h1>Monthly trend</h1><p class="small muted">Gross profit and margin by contract-signed month, each compared with the calendar month before under the same definitions.</p></div>
+    <div class="small muted" id="fresh" style="text-align:right"></div>
+  </header>
+
+  <section class="block" data-anfra-block="chart" data-anfra-label="This month versus the previous month" data-anfra-query="monthly">
+    <h2>Gross profit: this month versus the month before</h2>
+    <div class="chart tall" id="c-monthly" role="img" aria-label="Gross profit by month next to the previous month, with the margin line"></div>
+    <p class="legend-note">Green bars: the month · grey bars: the month before · line: margin. * marks the month in progress (incomplete, not a like-for-like comparison).</p>
+    <div class="status" id="monthly-status"></div></section>
+
+  <section class="block" data-anfra-block="monthly" data-anfra-label="Comparison by contract-signed month" data-anfra-query="monthly">
+    <h2>By contract-signed month</h2><div id="monthly"></div></section>
+
+  <section class="block" data-anfra-block="why" data-anfra-label="Why this number?" data-anfra-query="monthly">
+    <details class="why"><summary>Why this number?</summary><div id="why"></div></details></section>
+</main>
+
+<script>
+  const kit = document.createElement('script');
+  kit.src = new URL('panel-kit.js', document.baseURI).href;
+  kit.onload = () => KK.start(main);
+  kit.onerror = () => { document.body.textContent = 'This panel could not load its helpers. Reload the page.'; };
+  document.head.append(kit);
+
+  function main(K) {
+    const { esc, isNull } = K;
+    const DS = 'kumquat_finance';
+    const app = Anfra.createApp({ title: 'Monthly trend', timezone: 'Asia/Ho_Chi_Minh' });
+    const f = K.filters(app, DS);
+    const monthly = app.createQuery('monthly', { dataset: DS, aql: `explore {
+        dimensions { month: projects.contract_signed_date | month() }
+        measures { gp: approved_gross_profit, prev_gp: approved_gross_profit_prev_month, d_gp: approved_gross_profit_change_prev_month,
+          mr: approved_matching_revenue, gm: approved_gross_margin, prev_gm: approved_gross_margin_prev_month,
+          d_gm: approved_gross_margin_change_prev_month, n: approved_complete_projects, ex: approved_incomplete_projects, last: last_committed_at }
+        sorts { month asc } }` });
+    f.map(monthly);
+    f.wire();
+    const current = K.todayVN.slice(0, 7);
+    const partial = (m) => String(m.month).slice(0, 7) === current;
+
+    function render() {
+      K.status(monthly, 'monthly-status', 'No project was signed in this period.');
+      K.first(monthly);
+      if (!monthly.result) return;
+      const rows = monthly.result.rows;
+      const last = rows.reduce((a, m) => (m.last && (!a || m.last > a) ? m.last : a), null);
+      K.fresh('fresh', last, monthly);
+      K.paged('monthly', { rows, pageSize: 12,
+        head: '<th>Contract month</th><th class="n">Matching revenue</th><th class="n">Gross profit</th><th class="n">Previous month · change</th><th class="n">Margin · before</th><th class="n">Projects</th>',
+        row: (m) => `<tr><td class="nowrap"><b>${esc(K.month(m.month))}</b>${partial(m) ? '<span class="sub"><span class="chip warn">in progress</span></span>' : ''}</td>
+          <td class="n">${K.vnd(m.mr)}</td><td class="n"><b>${K.vnd(m.gp)}</b></td>
+          <td class="n">${K.vnd(m.prev_gp, 'no data')}<span class="sub">${esc(K.signedVnd(m.d_gp))}</span></td>
+          <td class="n">${K.pct(m.gm)}<span class="sub">${K.isNull(m.prev_gm) ? '—' : `was ${esc(K.plainPct(m.prev_gm))}`}</span></td>
+          <td class="n">${esc(m.n ?? 0)}${Number(m.ex ?? 0) ? `<span class="sub"><span class="chip warn">${esc(m.ex)} excluded</span></span>` : ''}</td></tr>`,
+        note: '<p class="small muted note">The month in progress is incomplete and is not a like-for-like comparison.</p>' });
+      if (rows.length) {
+        K.chart('c-monthly', {
+          tooltip: { trigger: 'axis' },
+          legend: { top: 0, data: ['Gross profit', 'Previous month', 'Margin'] },
+          xAxis: { type: 'category', data: rows.map((m) => `${K.monthShort(m.month)}${partial(m) ? ' *' : ''}`) },
+          yAxis: [K.axisVnd, K.axisPct],
+          series: [
+            { name: 'Gross profit', type: 'bar', barMaxWidth: 36, data: rows.map((m) => K.num(m.gp)), itemStyle: { color: K.COLORS.approved }, tooltip: { valueFormatter: K.tipVnd } },
+            { name: 'Previous month', type: 'bar', barMaxWidth: 36, data: rows.map((m) => K.num(m.prev_gp)), itemStyle: { color: K.COLORS.previous }, tooltip: { valueFormatter: K.tipVnd } },
+            { name: 'Margin', type: 'line', yAxisIndex: 1, data: rows.map((m) => K.num(m.gm)), itemStyle: { color: K.COLORS.info },
+              tooltip: { valueFormatter: (x) => (x === null ? '—' : `${(x * 100).toFixed(1)}%`) } },
+          ],
+        });
+      }
+      K.why('why', {
+        metrics: ['approved_gross_profit', 'approved_gross_profit_prev_month', 'approved_gross_profit_change_prev_month', 'approved_gross_margin', 'approved_gross_margin_prev_month'],
+        items: [
+          ['Date basis', 'The project\'s contract-signed date, in Asia/Ho_Chi_Minh. "Previous month" is the calendar month before each month (relative_period), under the same definitions and filters.'],
+          ['Filters applied', `${f.describe()}. The AQL that ran:<pre class="aql">${esc(monthly.result.debug?.executedAql ?? '')}</pre>`],
+          ['Completeness', 'Only projects with complete approved inputs count; a month\'s excluded projects are shown next to it. The month in progress is incomplete.'],
+          ['Source freshness', `Last committed ${esc(K.when(last))}; queried ${esc(K.when(monthly.result.debug?.executedAt))}.`],
+        ],
+      });
+    }
+    app.subscribe(render);
+    app.execute({ force: true });
+  }
+</script>
+</body>
+</html>

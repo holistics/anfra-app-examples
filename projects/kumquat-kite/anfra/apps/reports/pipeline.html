@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Pipeline (governed)</title>
+</head>
+<body>
+<main data-anfra-container="page" data-anfra-label="Pipeline">
+  <div id="filters" class="filters" data-anfra-container="controls" data-anfra-label="Filters"></div>
+  <header class="row spread" style="margin-bottom:12px">
+    <div><h1>Pipeline</h1><p class="small muted">Opportunities not yet won or lost, as of today. Estimates are kept by basis — one-off totals, per month and ranges are never added together, and an estimate is never revenue.</p></div>
+    <div class="small muted" id="fresh" style="text-align:right"></div>
+  </header>
+
+  <section class="grid cards" data-anfra-container="kpis" data-anfra-label="Pipeline totals">
+    <div class="block" data-anfra-block="open" data-anfra-label="Open opportunities" data-anfra-query="totals"><h2>Open opportunities</h2><div class="figure" id="k-open">…</div><p class="small muted note" id="k-open-sub"></p><div class="status" id="totals-status"></div></div>
+    <div class="block" data-anfra-block="est-total" data-anfra-label="One-off estimates" data-anfra-query="totals"><h2>Estimates — one-off totals</h2><div class="figure" id="k-total">…</div><p class="small muted note">Sum of open opportunities estimated as a total.</p></div>
+    <div class="block" data-anfra-block="est-monthly" data-anfra-label="Monthly estimates" data-anfra-query="totals"><h2>Estimates — per month</h2><div class="figure" id="k-monthly">…</div><p class="small muted note">A monthly amount, not a total: kept apart.</p></div>
+    <div class="block" data-anfra-block="est-range" data-anfra-label="Range estimates" data-anfra-query="totals"><h2>Estimates — ranges</h2><div class="figure" id="k-range">…</div><p class="small muted note" id="k-range-sub"></p></div>
+  </section>
+
+  <section class="grid halves" data-anfra-container="charts" data-anfra-label="Charts">
+    <div class="block" data-anfra-block="by-stage" data-anfra-label="Projects by commercial stage" data-anfra-query="stages">
+      <h2>Projects by commercial stage</h2>
+      <div class="chart" id="c-stages" role="img" aria-label="Number of projects in each commercial stage"></div>
+      <p class="legend-note">Purple: open stages · green: won · grey: lost.</p>
+      <div class="status" id="stages-status"></div></div>
+    <div class="block" data-anfra-block="by-basis" data-anfra-label="Estimates by basis" data-anfra-query="totals">
+      <h2>Estimates by basis (never added together)</h2>
+      <div class="chart" id="c-basis" role="img" aria-label="Pipeline estimates by basis"></div>
+      <p class="legend-note">Each bar is its own basis; a range shows its low and high ends.</p></div>
+  </section>
+
+  <section class="block" data-anfra-block="list" data-anfra-label="Open opportunities" data-anfra-query="list">
+    <h2>Open opportunities, by next action date</h2><div id="list"></div><div class="status" id="list-status"></div></section>
+
+  <section class="block" data-anfra-block="why" data-anfra-label="Why this number?" data-anfra-query="totals stages list">
+    <details class="why"><summary>Why this number?</summary><div id="why"></div></details></section>
+</main>
+
+<script>
+  const kit = document.createElement('script');
+  kit.src = new URL('panel-kit.js', document.baseURI).href;
+  kit.onload = () => KK.start(main);
+  kit.onerror = () => { document.body.textContent = 'This panel could not load its helpers. Reload the page.'; };
+  document.head.append(kit);
+
+  function main(K) {
+    const { esc, isNull } = K;
+    const DS = 'kumquat_finance';
+    const STAGE = { lead: 'Lead', qualified: 'Qualified', meeting: 'Meeting', proposal: 'Proposal', negotiation: 'Negotiation', contract_sent: 'Contract sent', on_hold: 'On hold', won: 'Won', lost: 'Lost' };
+    const app = Anfra.createApp({ title: 'Pipeline', timezone: 'Asia/Ho_Chi_Minh' });
+    // The pipeline is as of today: open opportunities have no contract date yet, so only the client filter applies.
+    const f = K.filters(app, DS, { period: false });
+    const totals = app.createQuery('totals', { dataset: DS, aql: `explore { measures {
+        open: pipeline_opportunities, est_total: pipeline_estimate_total, est_monthly: pipeline_estimate_monthly,
+        est_low: pipeline_estimate_range_low, est_high: pipeline_estimate_range_high, without: pipeline_without_estimate,
+        won: won_projects, lost: lost_projects } }` });
+    const stages = app.createQuery('stages', { dataset: DS, aql: `explore {
+        dimensions { stage: projects.commercial_stage, ord: projects.stage_order }
+        measures { n: project_count, open: pipeline_opportunities }
+        sorts { ord asc } }` });
+    const list = app.createQuery('list', { dataset: DS, aql: `explore {
+        dimensions { ref: projects.project_ref, title: projects.title, client: clients.display_name, stage: projects.commercial_stage,
+          owner: projects.owner_name, next: projects.next_action, due: projects.next_action_due, overdue: projects.next_action_overdue,
+          basis: projects.estimate_basis, amount: projects.estimated_amount, low: projects.estimate_low, high: projects.estimate_high }
+        filters { projects.commercial_stage in ['lead', 'qualified', 'meeting', 'proposal', 'negotiation', 'contract_sent', 'on_hold'] }
+        sorts { due asc, ref asc } }` });
+    f.map(totals, stages, list);
+    f.wire();
+
+    const estimate = (x) => (x.basis === 'range' ? `${K.plainVnd(x.low)} – ${K.plainVnd(x.high)}` : x.basis === 'monthly' ? `${K.plainVnd(x.amount)} a month` : x.basis === 'total' ? K.plainVnd(x.amount) : null);
+
+    function render() {
+      K.status(totals, 'totals-status'); K.status(stages, 'stages-status', 'No project for this client.'); K.status(list, 'list-status', 'No open opportunity for this client.');
+      [totals, stages, list].forEach(K.first);
+      const r = totals.result?.rows?.[0];
+      if (r) {
+        document.getElementById('k-open').textContent = K.count(r.open);
+        document.getElementById('k-open-sub').innerHTML = `${esc(r.without ?? 0)} without an estimate (counted, never valued at 0) · won ${esc(r.won ?? 0)} · lost ${esc(r.lost ?? 0)}`;
+        document.getElementById('k-total').innerHTML = K.vnd(r.est_total, 'none');
+        document.getElementById('k-monthly').innerHTML = isNull(r.est_monthly) ? '<span class="muted">none</span>' : `${K.vnd(r.est_monthly)}<span class="small muted"> / month</span>`;
+        document.getElementById('k-range').innerHTML = isNull(r.est_low) ? '<span class="muted">none</span>' : `${esc(K.shortVnd(r.est_low))} – ${esc(K.shortVnd(r.est_high))}`;
+        document.getElementById('k-range-sub').innerHTML = isNull(r.est_low) ? 'No range estimate.' : `From ${K.vnd(r.est_low)} to ${K.vnd(r.est_high)}.`;
+        K.chart('c-basis', {
+          tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: K.tipVnd },
+          xAxis: { type: 'category', data: ['One-off totals', 'Per month', 'Range (low)', 'Range (high)'], axisLabel: { interval: 0 } },
+          yAxis: K.axisVnd,
+          series: [{ type: 'bar', barMaxWidth: 44, data: [
+            { value: K.num(r.est_total), itemStyle: { color: K.COLORS.scenario } }, { value: K.num(r.est_monthly), itemStyle: { color: K.COLORS.info } },
+            { value: K.num(r.est_low), itemStyle: { color: K.COLORS.muted } }, { value: K.num(r.est_high), itemStyle: { color: K.COLORS.muted } }],
+            label: { show: true, position: 'top', formatter: (p) => (p.value === null || p.value === undefined ? 'none' : K.shortVnd(p.value)) } }],
+        });
+      }
+      if (stages.result?.rows?.length) {
+        const rows = stages.result.rows;
+        K.chart('c-stages', {
+          tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+          xAxis: { type: 'category', data: rows.map((x) => STAGE[x.stage] ?? x.stage), axisLabel: { interval: 0, rotate: rows.length > 6 ? 30 : 0 } },
+          yAxis: { type: 'value', minInterval: 1 },
+          series: [{ name: 'Projects', type: 'bar', barMaxWidth: 40, data: rows.map((x) => ({ value: K.num(x.n),
+            itemStyle: { color: x.stage === 'won' ? K.COLORS.approved : x.stage === 'lost' ? K.COLORS.muted : K.COLORS.scenario } })),
+            label: { show: true, position: 'top' } }],
+        });
+      }
+      if (list.result) {
+        K.paged('list', { rows: list.result.rows, pageSize: 10,
+          head: '<th>Opportunity</th><th>Stage</th><th>Owner</th><th>Next action</th><th class="n">Estimate</th>',
+          row: (x) => `<tr><td><b>${esc(x.ref)}</b> ${esc(x.title)}<span class="sub">${esc(x.client)}</span></td><td class="nowrap">${esc(STAGE[x.stage] ?? x.stage)}</td>
+            <td class="small">${esc(x.owner ?? '—')}</td>
+            <td class="small">${x.next ? `${esc(x.next)}<span class="sub">due ${esc(K.day(x.due))}${K.isTrue(x.overdue) ? ' · <span class="chip bad">overdue</span>' : ''}</span>` : '<span class="chip warn">no next action</span>'}</td>
+            <td class="n">${estimate(x) ? esc(estimate(x)) : '<span class="muted">no estimate</span>'}<span class="sub">${esc(x.basis ? { total: 'one-off total', monthly: 'per month', range: 'range' }[x.basis] : '')}</span></td></tr>` });
+      }
+      if (r) {
+        K.why('why', {
+          metrics: ['pipeline_opportunities', 'pipeline_estimate_total', 'pipeline_estimate_monthly', 'pipeline_estimate_range_low', 'pipeline_estimate_range_high', 'pipeline_without_estimate'],
+          items: [
+            ['Date basis', 'As of today: the opportunities that are open now. A won project moves to the money reports, by its contract-signed date.'],
+            ['Filters applied', `${f.describe()}. The AQL that ran:<pre class="aql">${esc(totals.result.debug?.executedAql ?? '')}</pre>`],
+            ['Exclusions', 'Won and lost projects are not in the pipeline figures. No estimate is ever revenue, and the three bases are never added together: a monthly amount is not a total, and a range is not a number.'],
+            ['Completeness', `${esc(r.without ?? 0)} open opportunit${Number(r.without) === 1 ? 'y has' : 'ies have'} no estimate: they are counted, never valued at 0.`],
+          ],
+        });
+        K.fresh('fresh', null, totals);
+        document.getElementById('fresh').innerHTML = `As of today · queried ${esc(K.when(totals.result.debug?.executedAt))}`;
+      }
+    }
+    app.subscribe(render);
+    app.execute({ force: true });
+  }
+</script>
+</body>
+</html>

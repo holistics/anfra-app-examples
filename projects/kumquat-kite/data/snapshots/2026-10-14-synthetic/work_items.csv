@@ -1,0 +1,4 @@
+work_item_id,project_id,team,title,owner_role,status,due_at,completion_condition,data_classification
+demo-work-001,demo-project-001,design,Prepare sample background,designer,assigned,2026-10-21T17:00:00+07:00,Send the background file link for Account review,synthetic
+demo-work-002,demo-project-003,studio,Studio A shoot session request,studio,assigned,2026-10-18T09:00:00+07:00,Record the actual start and end times,synthetic
+demo-work-003,demo-project-404,design,Banner with no known project,designer,assigned,2026-10-19T17:00:00+07:00,,synthetic

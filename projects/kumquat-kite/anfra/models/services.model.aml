@@ -1,0 +1,24 @@
+Model services {
+  type: 'table'
+  label: 'Service'
+  description: 'Generic synthetic service catalogue of the demo.'
+  data_source_name: 'kumquat_poc'
+  table_name: '"reporting"."services"'
+
+  dimension code {
+    label: 'Service code'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.code }};;
+  }
+  dimension name {
+    label: 'Service'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension service_group {
+    label: 'Service group'
+    type: 'text'
+    definition: @sql {{ #SOURCE.service_group }};;
+  }
+}

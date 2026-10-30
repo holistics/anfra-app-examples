@@ -1,0 +1,370 @@
+// Governed money metrics of the Kumquat Kite POC (definitions v1, 15/10/2026). Each formula is written once
+// (the hidden base metrics) and specialised by basis with where(): approved, scenario, version. Nothing in the
+// app recomputes these numbers; every panel queries them.
+Dataset kumquat_finance {
+  label: 'Kumquat Kite — Governed project finance'
+  description: '''# Governed project money (definitions v1 · 15/10/2026)
+
+**Matching revenue → complete approved cost → gross profit → margin.** A project's margin uses only projects whose
+inputs are complete on that basis: at least one revenue line and one cost line, and no unknown amount. An unknown
+cost is never 0: the project is excluded and counted in the exclusions instead. Margin is unavailable (not 0, not
+infinite) when matching revenue is 0 — e.g. a sponsored project.
+
+- **approved** — what is committed now (Finance-approved or approved in the imported source).
+- **scenario** — approved values with every pending proposal substituted. Never mixed into approved figures.
+- **version** — every committed version of each project, to explain earlier results.
+- **recorded** — acceptance and cash, kept apart from contract value. Receipts are compared with net-of-VAT
+  acceptance only when they are net of VAT too.
+
+Money is exact VND, net of VAT unless a receipt says gross. Period comparisons use the contract signed date.
+Work items and documents carry no money and are deliberately not in this dataset: money can never be broken down
+by a task or document field (which would credit a project's money to every status of its tasks).
+'''
+  data_source_name: 'kumquat_poc'
+  models: [money_facts, projects, clients, services]
+  relationships: [
+    relationship(money_facts.project_id > projects.id, true),
+    relationship(money_facts.service_code > services.code, true),
+    relationship(projects.client_id > clients.id, true),
+  ]
+
+  // ---- Base formulas (hidden): valid only once a basis is chosen -------------------------------------------
+  metric revenue_all {
+    label: 'Revenue (all lines)'
+    type: 'number'
+    hidden: true
+    definition: @aql sum(money_facts.amount) | where(money_facts.fact_kind == 'revenue') ;;
+  }
+  metric cost_known {
+    label: 'Known cost'
+    type: 'number'
+    hidden: true
+    definition: @aql sum(money_facts.amount) | where(money_facts.fact_kind == 'cost') ;;
+  }
+  metric matching_revenue {
+    label: 'Matching revenue'
+    type: 'number'
+    hidden: true
+    definition: @aql sum(money_facts.amount) | where(money_facts.fact_kind == 'revenue') | where(money_facts.inputs_complete is true) ;;
+  }
+  metric complete_cost {
+    label: 'Complete cost'
+    type: 'number'
+    hidden: true
+    definition: @aql sum(money_facts.amount) | where(money_facts.fact_kind == 'cost') | where(money_facts.inputs_complete is true) ;;
+  }
+  metric gross_profit {
+    label: 'Gross profit'
+    type: 'number'
+    hidden: true
+    definition: @aql matching_revenue - complete_cost ;;
+  }
+  metric gross_margin {
+    label: 'Gross margin'
+    type: 'number'
+    hidden: true
+    definition: @aql safe_divide(gross_profit, matching_revenue) ;;
+  }
+  metric unknown_lines {
+    label: 'Lines without an amount'
+    type: 'number'
+    hidden: true
+    definition: @aql count(money_facts.fact_key) | where(money_facts.fact_kind in ['revenue', 'cost']) | where(money_facts.amount_known is false) ;;
+  }
+  metric incomplete_projects {
+    label: 'Projects with incomplete inputs'
+    type: 'number'
+    hidden: true
+    definition: @aql count_distinct(money_facts.project_id) | where(money_facts.fact_kind in ['revenue', 'cost']) | where(money_facts.inputs_complete is false) ;;
+  }
+  metric complete_projects {
+    label: 'Projects with complete inputs'
+    type: 'number'
+    hidden: true
+    definition: @aql count_distinct(money_facts.project_id) | where(money_facts.fact_kind in ['revenue', 'cost']) | where(money_facts.inputs_complete is true) ;;
+  }
+  metric excluded_revenue {
+    label: 'Excluded revenue'
+    type: 'number'
+    hidden: true
+    definition: @aql sum(money_facts.amount) | where(money_facts.fact_kind == 'revenue') | where(money_facts.inputs_complete is false) ;;
+  }
+
+  // ---- Approved (committed now) ---------------------------------------------------------------------------
+  metric approved_revenue {
+    label: 'Approved revenue'
+    type: 'number'
+    description: 'v1 · Sum of approved revenue lines, including projects whose cost is incomplete.'
+    definition: @aql revenue_all | where(money_facts.basis == 'approved') ;;
+  }
+  metric approved_known_cost {
+    label: 'Approved known cost'
+    type: 'number'
+    description: 'v1 · Approved cost lines that have an amount. Unknown amounts are not in it and are not zero.'
+    definition: @aql cost_known | where(money_facts.basis == 'approved') ;;
+  }
+  metric approved_matching_revenue {
+    label: 'Matching revenue (approved)'
+    type: 'number'
+    description: 'v1 · Approved revenue of projects with complete approved inputs.'
+    definition: @aql matching_revenue | where(money_facts.basis == 'approved') ;;
+  }
+  metric approved_complete_cost {
+    label: 'Complete approved cost'
+    type: 'number'
+    description: 'v1 · Approved cost of projects with complete approved inputs.'
+    definition: @aql complete_cost | where(money_facts.basis == 'approved') ;;
+  }
+  metric approved_gross_profit {
+    label: 'Gross profit (approved)'
+    type: 'number'
+    description: 'v1 · Matching revenue − complete approved cost.'
+    definition: @aql gross_profit | where(money_facts.basis == 'approved') ;;
+  }
+  metric approved_gross_margin {
+    label: 'Gross margin (approved)'
+    type: 'number'
+    description: 'v1 · Gross profit ÷ matching revenue; unavailable when matching revenue is 0.'
+    definition: @aql gross_margin | where(money_facts.basis == 'approved') ;;
+  }
+  metric approved_unknown_lines {
+    label: 'Lines without an amount (approved)'
+    type: 'number'
+    definition: @aql unknown_lines | where(money_facts.basis == 'approved') ;;
+  }
+  metric approved_incomplete_projects {
+    label: 'Projects excluded from margin (approved)'
+    type: 'number'
+    description: 'v1 · Projects with money lines whose approved inputs are incomplete: excluded from margin.'
+    definition: @aql incomplete_projects | where(money_facts.basis == 'approved') ;;
+  }
+  metric approved_complete_projects {
+    label: 'Projects in margin (approved)'
+    type: 'number'
+    definition: @aql complete_projects | where(money_facts.basis == 'approved') ;;
+  }
+  metric approved_excluded_revenue {
+    label: 'Excluded revenue (approved)'
+    type: 'number'
+    definition: @aql excluded_revenue | where(money_facts.basis == 'approved') ;;
+  }
+
+  // ---- Scenario (approved + pending proposals) -------------------------------------------------------------
+  metric scenario_revenue {
+    label: 'Revenue (scenario)'
+    type: 'number'
+    description: 'v1 · Approved revenue with each pending proposal substituted. Not an approved figure.'
+    definition: @aql revenue_all | where(money_facts.basis == 'scenario') ;;
+  }
+  metric scenario_known_cost {
+    label: 'Known cost (scenario)'
+    type: 'number'
+    definition: @aql cost_known | where(money_facts.basis == 'scenario') ;;
+  }
+  metric scenario_matching_revenue {
+    label: 'Matching revenue (scenario)'
+    type: 'number'
+    definition: @aql matching_revenue | where(money_facts.basis == 'scenario') ;;
+  }
+  metric scenario_complete_cost {
+    label: 'Complete cost (scenario)'
+    type: 'number'
+    definition: @aql complete_cost | where(money_facts.basis == 'scenario') ;;
+  }
+  metric scenario_gross_profit {
+    label: 'Gross profit (scenario)'
+    type: 'number'
+    description: 'v1 · Same formula as approved, on the scenario basis.'
+    definition: @aql gross_profit | where(money_facts.basis == 'scenario') ;;
+  }
+  metric scenario_gross_margin {
+    label: 'Gross margin (scenario)'
+    type: 'number'
+    description: 'v1 · Same formula as approved, on the scenario basis.'
+    definition: @aql gross_margin | where(money_facts.basis == 'scenario') ;;
+  }
+  metric scenario_unknown_lines {
+    label: 'Lines without an amount (scenario)'
+    type: 'number'
+    definition: @aql unknown_lines | where(money_facts.basis == 'scenario') ;;
+  }
+  metric scenario_gross_profit_change {
+    label: 'Gross profit: scenario − approved'
+    type: 'number'
+    description: 'v1 · What approving every pending proposal would change. Not an approved figure.'
+    definition: @aql scenario_gross_profit - approved_gross_profit ;;
+  }
+  metric scenario_gross_margin_change {
+    label: 'Gross margin: scenario − approved'
+    type: 'number'
+    description: 'v1 · In margin points (0.1 = 10 percentage points). Unavailable when either margin is unavailable.'
+    definition: @aql scenario_gross_margin - approved_gross_margin ;;
+  }
+  metric pending_proposals {
+    label: 'Proposals waiting for Finance'
+    type: 'number'
+    definition: @aql count_distinct(money_facts.pending_request_ref) | where(money_facts.basis == 'scenario') ;;
+  }
+
+  // ---- Committed versions (history) ------------------------------------------------------------------------
+  metric version_matching_revenue {
+    label: 'Matching revenue (version)'
+    type: 'number'
+    definition: @aql matching_revenue | where(money_facts.basis == 'version') ;;
+  }
+  metric version_complete_cost {
+    label: 'Complete cost (version)'
+    type: 'number'
+    definition: @aql complete_cost | where(money_facts.basis == 'version') ;;
+  }
+  metric version_gross_profit {
+    label: 'Gross profit (version)'
+    type: 'number'
+    description: 'v1 · Same formula, per committed version. Break it down by money_facts.version_no and one project.'
+    definition: @aql gross_profit | where(money_facts.basis == 'version') ;;
+  }
+  metric version_gross_margin {
+    label: 'Gross margin (version)'
+    type: 'number'
+    definition: @aql gross_margin | where(money_facts.basis == 'version') ;;
+  }
+  metric version_line_count {
+    label: 'Money lines (version)'
+    type: 'number'
+    description: 'v1 · Revenue and cost lines in the version; non-zero for every version, including an incomplete one.'
+    definition: @aql count(money_facts.fact_key) | where(money_facts.basis == 'version') | where(money_facts.fact_kind in ['revenue', 'cost']) ;;
+  }
+  metric version_unknown_lines {
+    label: 'Lines without an amount (version)'
+    type: 'number'
+    definition: @aql unknown_lines | where(money_facts.basis == 'version') ;;
+  }
+
+  // ---- Period comparison (date basis: contract signed date) and ranking --------------------------------------
+  metric approved_gross_profit_prev_month {
+    label: 'Gross profit, previous month (approved)'
+    type: 'number'
+    description: 'v1 · Approved gross profit of the previous contract-signed month. Use with projects.contract_signed_date | month().'
+    definition: @aql approved_gross_profit | relative_period(projects.contract_signed_date, interval(-1 month)) ;;
+  }
+  metric approved_matching_revenue_prev_month {
+    label: 'Matching revenue, previous month (approved)'
+    type: 'number'
+    definition: @aql approved_matching_revenue | relative_period(projects.contract_signed_date, interval(-1 month)) ;;
+  }
+  metric approved_gross_margin_prev_month {
+    label: 'Gross margin, previous month (approved)'
+    type: 'number'
+    definition: @aql approved_gross_margin | relative_period(projects.contract_signed_date, interval(-1 month)) ;;
+  }
+  metric approved_gross_profit_change_prev_month {
+    label: 'Gross profit change vs previous month'
+    type: 'number'
+    definition: @aql approved_gross_profit - approved_gross_profit_prev_month ;;
+  }
+  metric approved_gross_margin_change_prev_month {
+    label: 'Gross margin change vs previous month (points)'
+    type: 'number'
+    definition: @aql approved_gross_margin - approved_gross_margin_prev_month ;;
+  }
+  metric gross_profit_rank {
+    label: 'Rank by gross profit'
+    type: 'number'
+    description: 'v1 · Rank by approved gross profit over every row of the query (ties share a rank). Sort ties by project ID.'
+    definition: @aql rank(order: approved_gross_profit | desc(), partition: []) ;;
+  }
+
+  // ---- Acceptance and cash (recorded basis) ----------------------------------------------------------------
+  metric verified_acceptance {
+    label: 'Verified acceptance'
+    type: 'number'
+    description: 'v1 · Finance-verified acceptance milestones, VND net of VAT. Not revenue, not cash.'
+    definition: @aql sum(money_facts.amount) | where(money_facts.fact_kind == 'acceptance') | where(money_facts.status == 'verified') ;;
+  }
+  metric submitted_acceptance {
+    label: 'Acceptance waiting for Finance'
+    type: 'number'
+    definition: @aql sum(money_facts.amount) | where(money_facts.fact_kind == 'acceptance') | where(money_facts.status == 'submitted') ;;
+  }
+  metric receipts_net {
+    label: 'Received (net of VAT)'
+    type: 'number'
+    description: 'v1 · Receipt allocations recorded net of VAT. A deposit is a receipt, never revenue.'
+    definition: @aql sum(money_facts.amount) | where(money_facts.fact_kind == 'receipt') | where(money_facts.tax_basis == 'net_of_vat') ;;
+  }
+  metric receipts_gross {
+    label: 'Received (incl. VAT)'
+    type: 'number'
+    definition: @aql sum(money_facts.amount) | where(money_facts.fact_kind == 'receipt') | where(money_facts.tax_basis == 'gross_incl_vat') ;;
+  }
+  metric management_residual {
+    label: 'Management residual (acceptance − received)'
+    type: 'number'
+    description: 'v1 · Verified acceptance − net receipts, only when no receipt in scope is gross of VAT (otherwise unavailable). A management residual: not invoiced, not aged receivables. Negative = paid in advance.'
+    definition: @aql case(when: coalesce(receipts_gross, 0) == 0, then: coalesce(verified_acceptance, 0) - coalesce(receipts_net, 0)) ;;
+  }
+
+  // ---- Pipeline (CRM): opportunities not yet won or lost, and their estimates. An estimate is never revenue, and the
+  // three estimate bases (one-off total, per month, range) are never added together. ----------------------------------
+  metric pipeline_opportunities {
+    label: 'Open opportunities'
+    type: 'number'
+    description: 'v1 · Projects in an open commercial stage: lead, qualified, meeting, proposal, negotiation, contract sent or on hold.'
+    definition: @aql count(projects.id) | where(projects.commercial_stage in ['lead', 'qualified', 'meeting', 'proposal', 'negotiation', 'contract_sent', 'on_hold']) ;;
+  }
+  metric pipeline_estimate_total {
+    label: 'Pipeline estimate — one-off totals'
+    type: 'number'
+    description: 'v1 · Sum of open opportunities estimated as a one-off total (VND). Not revenue; not added to monthly or range estimates.'
+    definition: @aql sum(projects.estimated_amount) | where(projects.estimate_basis == 'total') | where(projects.commercial_stage in ['lead', 'qualified', 'meeting', 'proposal', 'negotiation', 'contract_sent', 'on_hold']) ;;
+  }
+  metric pipeline_estimate_monthly {
+    label: 'Pipeline estimate — per month'
+    type: 'number'
+    description: 'v1 · Sum of open opportunities estimated per month (VND a month). Not revenue; not added to one-off or range estimates.'
+    definition: @aql sum(projects.estimated_amount) | where(projects.estimate_basis == 'monthly') | where(projects.commercial_stage in ['lead', 'qualified', 'meeting', 'proposal', 'negotiation', 'contract_sent', 'on_hold']) ;;
+  }
+  metric pipeline_estimate_range_low {
+    label: 'Pipeline estimate — range, low'
+    type: 'number'
+    description: 'v1 · Sum of the low ends of open opportunities estimated as a range (VND).'
+    definition: @aql sum(projects.estimate_low) | where(projects.estimate_basis == 'range') | where(projects.commercial_stage in ['lead', 'qualified', 'meeting', 'proposal', 'negotiation', 'contract_sent', 'on_hold']) ;;
+  }
+  metric pipeline_estimate_range_high {
+    label: 'Pipeline estimate — range, high'
+    type: 'number'
+    description: 'v1 · Sum of the high ends of open opportunities estimated as a range (VND).'
+    definition: @aql sum(projects.estimate_high) | where(projects.estimate_basis == 'range') | where(projects.commercial_stage in ['lead', 'qualified', 'meeting', 'proposal', 'negotiation', 'contract_sent', 'on_hold']) ;;
+  }
+  metric pipeline_without_estimate {
+    label: 'Open opportunities without an estimate'
+    type: 'number'
+    description: 'v1 · Open opportunities with no estimate yet: counted, never valued at 0.'
+    definition: @aql count(projects.id) | where(projects.estimate_basis is null) | where(projects.commercial_stage in ['lead', 'qualified', 'meeting', 'proposal', 'negotiation', 'contract_sent', 'on_hold']) ;;
+  }
+  metric won_projects {
+    label: 'Won projects'
+    type: 'number'
+    description: 'v1 · Projects whose commercial stage is won (contract signed).'
+    definition: @aql count(projects.id) | where(projects.commercial_stage == 'won') ;;
+  }
+  metric lost_projects {
+    label: 'Lost opportunities'
+    type: 'number'
+    description: 'v1 · Opportunities marked lost (each keeps its reason in the app).'
+    definition: @aql count(projects.id) | where(projects.commercial_stage == 'lost') ;;
+  }
+
+  // ---- Freshness and counts ------------------------------------------------------------------------------
+  metric last_committed_at {
+    label: 'Last committed at'
+    type: 'datetime'
+    description: 'v1 · Latest commit time of an approved value, acceptance or receipt in scope: the freshness of these numbers.'
+    definition: @aql max(money_facts.committed_at) | where(money_facts.basis in ['approved', 'recorded']) ;;
+  }
+  metric project_count {
+    label: 'Projects'
+    type: 'number'
+    definition: @aql count(projects.id) ;;
+  }
+}

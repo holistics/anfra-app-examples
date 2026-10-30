@@ -1,0 +1,47 @@
+/* Shared UI: the dark paper look used by every modal (notebook, map, inventory).
+   Markup comes from NetherUI.modal.html() in ui.js. */
+:root{--paper:#18211f;--paper-card:#212d29;--paper-deep:#121a18;--paper-edge:#6f5f3d;--paper-ink:#ddd3b3;--paper-ink-soft:#a99f80;--paper-green:#d6bd81;--paper-sepia:#c99b6a}
+
+/* The <dialog> is only a sized, transparent shell. */
+.nui-modal{padding:0;border:0;background:transparent;color:var(--paper-ink);overflow:visible;max-width:none}
+.nui-modal[open]{display:flex;flex-direction:column}
+.nui-modal--tabs[open]{flex-direction:row}
+.nui-modal::backdrop{background:#030a12bf;backdrop-filter:blur(7px)}
+
+/* The panel: title top left, close top right, content in the middle. */
+.nui-panel{position:relative;display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:hidden;background:var(--paper);border:1px solid var(--paper-edge);border-radius:12px;box-shadow:0 30px 100px #000c,inset 0 0 90px #00000055}
+.nui-panel:before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.09;mix-blend-mode:screen;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.64' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23674927' filter='url(%23g)' d='M0 0H180V180H0Z'/%3E%3C/svg%3E")}
+.nui-panel>*{position:relative}
+.nui-panel__head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 22px 0 30px;min-height:68px}
+.nui-panel__title{margin:0;font:500 30px Georgia,serif;letter-spacing:.015em;color:var(--paper-green)}
+.nui-panel__close{flex:none;display:grid;place-items:center;width:44px;height:44px;padding:0;border:2px solid #ead2a0;border-radius:50%;background:#33281e;color:#fff0cd;box-shadow:0 3px 14px #24180a66}
+.nui-panel__close svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.nui-panel__close:hover,.nui-panel__close:focus-visible{background:#59402a;color:#fff;outline:3px solid #a07238;outline-offset:3px}
+.nui-panel__body{flex:1;min-height:0;overflow:auto;padding:14px 30px 28px;scrollbar-width:thin;scrollbar-color:#6f5f3d transparent}
+.nui-panel__body--flush{display:flex;flex-direction:column;padding:0;overflow:hidden}
+.nui-panel__foot{flex:none;display:flex;align-items:center;justify-content:flex-end;gap:15px;min-height:60px;padding:12px 22px;border-top:1px solid var(--paper-edge)}
+.nui-modal--tabs .nui-panel{border-radius:0 12px 12px 12px}
+
+/* Index tabs that stick out of the left edge of the panel. */
+.nui-tabs{flex:none;position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-end;gap:8px;width:34px;margin-left:-34px;padding-top:34px}
+.nui-tabs button{position:relative;width:30px;margin-left:-1px;padding:18px 0;border:1px solid var(--paper-edge);border-left:0;border-radius:0 9px 9px 0;background:linear-gradient(270deg,#141c1a,#1d2a26);color:var(--paper-ink-soft);writing-mode:vertical-rl;transform:rotate(180deg);font:500 11px var(--sans);letter-spacing:.16em;text-transform:uppercase;box-shadow:3px -2px 8px #0008;transition:width .12s,color .12s,background .12s}
+.nui-tabs button span{display:block}
+.nui-tabs button:hover{color:#e1cea4;width:33px}
+.nui-tabs button[aria-selected=true]{width:36px;margin-left:-2px;background:var(--paper);color:var(--paper-green);border-color:#8c7848;box-shadow:none}
+
+/* Buttons: three styles, all round pills.
+   primary   filled, for the one action we want taken (Next, Accept, Use).
+   secondary a border and no fill, for navigation and alternatives (Back, Skip on the arrival).
+   tertiary  text only, for the quiet way out (Skip inside a dialogue).
+   Add --sm for compact places. An arrow or icon is an <svg> inside the button. */
+.nui-btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:34px;padding:0 18px;border:1px solid transparent;border-radius:999px;background:none;color:var(--paper-ink);font:600 14px var(--sans);letter-spacing:0;text-decoration:none;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+.nui-btn svg{width:13px;height:10px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.nui-btn:focus-visible{outline:2px solid #c4aa76;outline-offset:3px}
+.nui-btn:disabled{opacity:.4;cursor:not-allowed}
+.nui-btn--sm{height:28px;padding:0 13px;font-size:12px;gap:7px}
+.nui-btn--primary{border-color:#aab57b99;background:linear-gradient(#526548,#344b37);color:#f1e5c1;box-shadow:inset 0 1px #c9d7a626,0 3px 10px #0004}
+.nui-btn--primary:hover:not(:disabled){border-color:#c3cf9a;background:linear-gradient(#647954,#405c42);color:#fff}
+.nui-btn--secondary{border-color:#a28a58aa;background:transparent;color:#c4aa76}
+.nui-btn--secondary:hover:not(:disabled),.nui-btn--secondary:focus-visible{border-color:#c4aa76;background:#c4aa760f;color:#e1cea4}
+.nui-btn--tertiary{padding-inline:6px;border-color:transparent;background:none;color:#a4ad94}
+.nui-btn--tertiary:hover:not(:disabled){color:#e1cea4;text-decoration:underline}

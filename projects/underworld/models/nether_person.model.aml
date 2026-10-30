@@ -1,0 +1,48 @@
+Model nether_person {
+  type: 'table'
+  label: 'Person'
+  data_source_name: 'nether'
+  table_name: 'person'
+
+  dimension person_id {
+    label: 'Person Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.person_id }} ;;
+  }
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }} ;;
+  }
+  dimension birthdate {
+    label: 'Birthdate'
+    type: 'date'
+    definition: @sql {{ #SOURCE.birthdate }} ;;
+  }
+  dimension birthplace {
+    label: 'Birthplace'
+    type: 'text'
+    definition: @sql {{ #SOURCE.birthplace }} ;;
+  }
+  dimension death_date {
+    label: 'Death Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.death_date }} ;;
+  }
+  dimension gate {
+    label: 'Gate'
+    type: 'text'
+    definition: @sql {{ #SOURCE.gate }} ;;
+  }
+  dimension identity_id {
+    label: 'Identity Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.identity_id }} ;;
+  }
+  dimension issue_place {
+    label: 'Issue Place'
+    type: 'text'
+    definition: @sql {{ #SOURCE.issue_place }} ;;
+  }
+}

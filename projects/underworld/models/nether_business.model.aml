@@ -1,0 +1,28 @@
+Model nether_business {
+  type: 'table'
+  label: 'Business'
+  data_source_name: 'nether'
+  table_name: 'business'
+
+  dimension business_id {
+    label: 'Business Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.business_id }} ;;
+  }
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }} ;;
+  }
+  dimension trade {
+    label: 'Trade'
+    type: 'text'
+    definition: @sql {{ #SOURCE.trade }} ;;
+  }
+  dimension location {
+    label: 'Location'
+    type: 'text'
+    definition: @sql {{ #SOURCE.location }} ;;
+  }
+}

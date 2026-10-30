@@ -1,0 +1,12 @@
+Model customers {
+  type: 'table'
+  label: 'Customers'
+  description: 'Shippers. Key customers have contracts the ops team watches most closely. Fictional names.'
+  data_source_name: 'warehouse'
+  table_name: '"logistics"."customers"'
+
+  dimension id { label: 'Customer id' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.id }};; }
+  dimension name { label: 'Customer' type: 'text' definition: @sql {{ #SOURCE.name }};; }
+  dimension segment { label: 'Segment' type: 'text' description: 'key or standard.' definition: @sql {{ #SOURCE.segment }};; }
+  dimension region { label: 'Customer region' type: 'text' definition: @sql {{ #SOURCE.region }};; }
+}

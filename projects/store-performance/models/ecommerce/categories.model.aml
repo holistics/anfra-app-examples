@@ -1,0 +1,9 @@
+Model categories {
+  type: 'table'
+  label: 'Categories'
+  data_source_name: 'warehouse'
+  table_name: '"ecommerce"."categories"'
+
+  dimension id { label: 'Category id' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.id }};; }
+  dimension name { label: 'Category' type: 'text' definition: @sql {{ #SOURCE.name }};; }
+}

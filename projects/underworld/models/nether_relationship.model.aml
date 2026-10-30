@@ -1,0 +1,38 @@
+Model nether_relationship {
+  type: 'table'
+  label: 'Relationship'
+  data_source_name: 'nether'
+  table_name: 'relationship'
+
+  dimension relationship_id {
+    label: 'Relationship Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.relationship_id }} ;;
+  }
+  dimension person_a_id {
+    label: 'Person A Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.person_a_id }} ;;
+  }
+  dimension person_b_id {
+    label: 'Person B Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.person_b_id }} ;;
+  }
+  dimension bond_type {
+    label: 'Bond Type'
+    type: 'text'
+    definition: @sql {{ #SOURCE.bond_type }} ;;
+  }
+  dimension bonded_from {
+    label: 'Bonded From'
+    type: 'date'
+    definition: @sql {{ #SOURCE.bonded_from }} ;;
+  }
+  dimension bonded_to {
+    label: 'Bonded To'
+    type: 'text'
+    definition: @sql {{ #SOURCE.bonded_to }} ;;
+  }
+}

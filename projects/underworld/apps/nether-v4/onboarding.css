@@ -1,0 +1,28 @@
+/* Opening: the skip button is a secondary nui-btn (see ui.css). */
+
+/* Charon shares the keeper's dialogue panel; only its river-view placement differs. */
+.onboarding.dialogue-scene{position:fixed;left:20px;top:64px;z-index:45;width:min(540px,calc(100vw - 32px));display:grid;grid-template-columns:104px minmax(0,1fr);gap:10px;align-items:start;margin:0;padding:0;border:0;background:none;transition:opacity .25s,transform .25s;animation:ob-in .45s ease}
+.onboarding.is-leaving{opacity:0;transform:translateY(-12px);pointer-events:none}
+@keyframes ob-in{from{opacity:0;transform:translateY(-16px)}}
+.onboarding .dialogue-portrait{grid-column:1;grid-row:1;height:150px;transition:filter .3s,opacity .3s}
+.onboarding .character-dialogue{grid-column:2;grid-row:1;margin-top:14px;min-height:0;padding:13px 16px}
+.onboarding .dialogue-text{min-height:3.2em;margin-top:6px;font-size:15px;line-height:1.5}
+.onboarding .dialogue-actions{margin-top:12px}
+.onboarding.is-you .dialogue-portrait{filter:drop-shadow(0 12px 14px #0006) grayscale(.65) brightness(.7)}
+.onboarding.is-you .dialogue-name{color:#a6c4a2}
+/* Pinned: the speech moves under the spotlit stat, right-aligned to it. */
+.onboarding.is-pinned .character-dialogue{position:fixed;right:var(--spot-right);top:var(--spot-top);width:min(380px,calc(100vw - 24px));margin:0;z-index:46;animation:ob-in .3s ease}
+.onboarding.is-pinned .character-dialogue:before{content:'';position:absolute;top:-7px;right:var(--spot-caret);width:12px;height:12px;border:1px solid #957e4e80;border-right:0;border-bottom:0;background:#1b2925;transform:rotate(45deg)}
+/* Spotlights on the stats Charon talks about, and on the ferry once the work is accepted. */
+.stat.is-spot{border-color:#e1cea4;background:#2a2a1e;box-shadow:0 0 0 3px #c4aa7655,0 0 22px #c4aa7688;animation:ob-pulse 1.4s ease-in-out infinite}
+@keyframes ob-pulse{50%{box-shadow:0 0 0 6px #c4aa7633,0 0 30px #c4aa76aa}}
+body.ob-point #ferry-marker .location-ring{animation:ob-ring 1.5s ease-in-out infinite;border-color:#e1cea4}
+@keyframes ob-ring{0%,100%{box-shadow:0 0 0 4px #c4aa7655,0 0 18px #c4aa7688}50%{box-shadow:0 0 0 12px #c4aa7622,0 0 34px #c4aa76bb}}
+body.ob-point #ferry-marker .location-label:after{content:'Click to begin';display:block;margin-top:4px;font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#e1cea4}
+body[data-onboarding=running] .island-dock{opacity:.35;pointer-events:none}
+@media(max-width:700px){.onboarding.dialogue-scene{left:12px;top:64px;width:calc(100vw - 24px);grid-template-columns:76px minmax(0,1fr);gap:6px}.onboarding .dialogue-portrait{height:110px}.onboarding .character-dialogue{margin-top:10px;padding:12px 14px}.onboarding .dialogue-text{font-size:14px}.onboarding .dialogue-role{font-size:8px;letter-spacing:.08em}}
+@media(prefers-reduced-motion:reduce){.onboarding.dialogue-scene,.onboarding .dialogue-portrait{animation:none;transition:none}.stat.is-spot,body.ob-point #ferry-marker .location-ring{animation:none}}
+/* Arrival at the court pauses on its entrance, just as the ferry does. */
+body.ob-court-point[data-island=marsh] #marsh-marker .location-ring{animation:ob-ring 1.5s ease-in-out infinite;border-color:#e1cea4}
+body.ob-court-point[data-island=marsh] #marsh-marker .location-label:after{content:'Click to enter';display:block;margin-top:4px;font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#e1cea4}
+@media(prefers-reduced-motion:reduce){body.ob-court-point #marsh-marker .location-ring{animation:none}}

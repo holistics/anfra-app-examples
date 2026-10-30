@@ -1,0 +1,1825 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ETA Risk Control Tower</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<style>
+  :root {
+    --bg: #0b1220; --glow: #1b2a4a; --panel: rgba(18, 28, 48, .82); --panel-solid: #121c30;
+    --line: #1f2d4a; --line-2: #263a60; --row: #1a2946;
+    --text: #dbe4f3; --fig: #fff; --muted: #7f8fab; --dim: #56678a;
+    --risk: #ff4d4d; --risk-text: #ff6b6b; --warn: #ffc24b; --good: #4be3c9; --ontime: #9cc3ff; --lane: #3d6bb3;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body { margin: 0; min-height: 100vh; font: 12.5px/1.45 Inter, -apple-system, system-ui, sans-serif; color: var(--text);
+         background: radial-gradient(1400px 520px at 15% -10%, var(--glow) 0%, var(--bg) 55%) no-repeat var(--bg); }
+  button { font: inherit; color: inherit; }
+
+  /* ---- Header ---- */
+  header { display: flex; align-items: center; gap: 10px 12px; padding: 16px 22px 4px; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: .05em; color: var(--fig); }
+  .live { color: var(--muted); font-size: 11px; }
+  .live i, .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--good); margin-right: 5px; vertical-align: 1px; }
+  .live-dot { background: var(--risk); box-shadow: 0 0 8px var(--risk); }
+  .spacer { flex: 1; }
+  select.pill { appearance: none; -webkit-appearance: none; font: inherit; font-size: 11.5px; color: #c3cde0; cursor: pointer;
+                background: #0f1828 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%237f8fab'/%3E%3C/svg%3E") no-repeat right 11px center;
+                border: 1px solid var(--line-2); border-radius: 999px; padding: 5px 26px 5px 12px; }
+  select.pill:hover { border-color: #3a5689; }
+  select.pill:focus-visible { outline: 2px solid var(--good); outline-offset: 1px; }
+  select.pill.on { border-color: var(--good); color: var(--fig); }
+  option { background: var(--panel-solid); color: var(--text); }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; padding: 8px 22px 0; }
+  .chips:empty { display: none; }
+  .chip { background: rgba(255, 77, 77, .13); border: 1px solid rgba(255, 77, 77, .4); color: #ffb3b3; border-radius: 999px; padding: 3px 10px; font-size: 11px; cursor: pointer; }
+
+  /* ---- Panels ---- */
+  main { padding: 12px 22px 22px; display: grid; gap: 12px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+  h2 { margin: 0 0 8px; font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted);
+       display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  h2 .hint { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--dim); text-align: right; }
+  .state { color: var(--muted); padding: 6px 0; }
+  .state.error { color: var(--risk-text); }
+  .state:empty { display: none; }
+  .chart { height: 280px; overflow: hidden; } /* a hidden ECharts tip keeps its old place; never let it widen the page */
+  .scroll { max-height: 330px; overflow: auto; scrollbar-color: var(--line-2) transparent; }
+  .more { margin-top: 8px; font-size: 11.5px; color: #c3cde0; border: 1px solid var(--line-2); background: #0f1828; border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+  .mut { color: var(--muted); }
+  .up { color: var(--risk-text); } .down { color: var(--good); }
+
+  /* ---- KPIs ---- */
+  /* the map row takes what's left of the window under the header, so the map and the KPIs show without scrolling */
+  .hero { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 12px; height: clamp(340px, calc(100vh - 100px), 520px); }
+  .kpis { display: grid; grid-template-rows: 1.3fr 1fr 1fr 1fr; gap: 12px; min-height: 0; }
+  .kpi { min-height: 0; overflow: hidden; }
+  .kpi .val { font-size: 28px; font-weight: 700; color: var(--fig); line-height: 1.15; }
+  .kpi .val small { font-size: 13px; font-weight: 400; color: var(--muted); }
+  .kpi .val.warn { color: var(--warn); } .kpi .val.good { color: var(--good); }
+  .kpi .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .kpi-var { border-color: rgba(255, 93, 93, .4); box-shadow: 0 0 30px rgba(255, 59, 59, .12); }
+  .kpi-var h2 { color: #ff9b9b; }
+  .kpi-var .val { font-size: 36px; color: var(--risk-text); text-shadow: 0 0 22px rgba(255, 59, 59, .45); }
+  .kpi-var.calm { border-color: var(--line); box-shadow: none; }
+  .kpi-var.calm h2 { color: var(--muted); }
+  .kpi-var.calm .val { color: var(--fig); text-shadow: none; }
+
+  /* ---- Map ---- */
+  .map-panel { position: relative; display: flex; flex-direction: column; }
+  .map { flex: 1; min-height: 0; }
+  .map svg { display: block; width: 100%; height: 100%; } /* scales to fit the panel, whole world always visible */
+  .land { fill: #1d2e4f; stroke: #2c4572; stroke-width: .5; }
+  .lane { fill: none; stroke: var(--lane); opacity: .35; }
+  .lane.warm { stroke: var(--warn); opacity: .55; }
+  .lane.hot { stroke: var(--risk); opacity: .8; filter: drop-shadow(0 0 3px var(--risk)); }
+  .lane:hover { opacity: 1; }
+  .trail { fill: none; stroke: #7fb0ff; stroke-width: 1.4; stroke-linecap: round; stroke-dasharray: 6 120; opacity: .8; pointer-events: none;
+           animation: trail linear infinite; }
+  .trail.warm { stroke: var(--warn); } .trail.hot { stroke: #ff8a8a; }
+  @keyframes trail { from { stroke-dashoffset: 126; } to { stroke-dashoffset: 0; } }
+  .dot { fill: var(--ontime); opacity: .75; cursor: pointer; }
+  .dot.late { fill: var(--risk); opacity: 1; }
+  .dot:hover { stroke: var(--fig); stroke-width: 1; }
+  .port { cursor: pointer; }
+  .port .hit { fill: transparent; }
+  .port .pdot { fill: var(--text); }
+  .port.sel .pdot { fill: var(--fig); stroke: var(--good); stroke-width: 2; }
+  .pulse { fill: none; stroke: var(--risk); stroke-width: 2; pointer-events: none; transform-box: fill-box; transform-origin: center;
+           animation: pulse 2s ease-out infinite; }
+  @keyframes pulse { from { transform: scale(1); opacity: 1; } to { transform: scale(2.75); opacity: 0; } }
+  .plabel { fill: #ff9b9b; font-size: 11px; pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
+  .plabel .pname { font-weight: 700; }
+  .tip { position: absolute; z-index: 5; pointer-events: none; background: #0f1828; border: 1px solid var(--line-2); border-radius: 8px; padding: 5px 9px;
+         font-size: 11.5px; white-space: nowrap; box-shadow: 0 6px 20px rgba(0, 0, 0, .4); }
+  .legend { position: absolute; left: 16px; bottom: 12px; display: flex; gap: 14px; font-size: 11px; color: var(--muted); pointer-events: none; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: 0; }
+
+  /* ---- Journey ---- */
+  .journey { display: flex; padding-top: 4px; }
+  .stage { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; padding: 0; }
+  button.stage { cursor: pointer; }
+  .stage::before { content: ''; position: absolute; top: 16px; left: -50%; width: 100%; height: 3px; background: #22365c; }
+  .stage:first-child::before { display: none; }
+  .stage .n { position: relative; z-index: 1; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+              font-size: 11px; font-weight: 700; background: #1a2742; border: 2px solid #34507f; color: #9fb0cf; }
+  .stage.warm .n { border-color: var(--warn); color: var(--warn); }
+  .stage.hot .n { background: var(--risk); border-color: var(--risk); color: var(--fig); box-shadow: 0 0 18px var(--risk); }
+  .stage.sel .n { outline: 2px solid var(--fig); outline-offset: 3px; }
+  button.stage:hover .n { border-color: var(--fig); }
+  button.stage:focus-visible { outline: none; }
+  button.stage:focus-visible .n { outline: 2px solid var(--good); outline-offset: 3px; }
+  .stage .nm { font-size: 11.5px; color: #9fb0cf; text-align: center; }
+  .stage.hot .nm { color: var(--fig); font-weight: 600; }
+  .stage .amt { font-size: 12px; font-weight: 700; }
+  .stage.warm .amt { color: var(--warn); } .stage.hot .amt { color: var(--risk-text); }
+
+  /* ---- Alerts ---- */
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+  .alert { padding: 8px 8px 8px 11px; border-bottom: 1px solid var(--row); border-left: 3px solid transparent; cursor: pointer; }
+  .alert:hover { background: rgba(127, 176, 255, .05); }
+  .alert.risk { border-left-color: var(--risk); background: linear-gradient(90deg, rgba(255, 77, 77, .08), transparent 60%); }
+  .alert.fresh { animation: fresh 1.2s ease-out 1; }
+  @keyframes fresh { from { box-shadow: inset 0 0 0 999px rgba(255, 77, 77, .22); } to { box-shadow: inset 0 0 0 999px rgba(255, 77, 77, 0); } }
+  .alert .open { all: unset; display: block; width: 100%; cursor: pointer; }
+  .alert .open:focus-visible { outline: 2px solid var(--good); outline-offset: 2px; border-radius: 4px; }
+  .alert .top { display: flex; justify-content: space-between; gap: 8px; color: #c3cde0; }
+  .alert .top b { color: var(--fig); }
+  .alert .ago { color: var(--muted); white-space: nowrap; }
+  .alert .meta { margin-top: 3px; color: var(--muted); }
+  .slip { color: var(--warn); font-weight: 700; } .slip.big { color: var(--risk-text); }
+  .money { color: var(--text); font-weight: 700; } .money.late { color: var(--risk-text); }
+  .tag { border: 1px solid #2a3f66; border-radius: 999px; padding: 0 7px; margin-right: 6px; font-size: 10.5px; color: #9fb0cf; background: transparent; cursor: pointer; }
+  .tag:hover { border-color: var(--warn); color: var(--warn); }
+
+  /* ---- Watchlist ---- */
+  #cust.busy, #cust-foot.busy { opacity: .45; transition: opacity .15s; }
+  h2 .scope { color: var(--fig); text-transform: none; letter-spacing: 0; font-size: 12px; }
+  h2 .scope.on { color: var(--good); }
+  .crow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 8px 4px; border-bottom: 1px solid var(--row); cursor: pointer; border-radius: 6px; }
+  .crow:hover, .crow:focus-visible { background: rgba(127, 176, 255, .05); outline: none; }
+  .crow .cbar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: #16233d; overflow: hidden; }
+  .crow .cbar i { display: block; height: 100%; background: var(--risk); opacity: .8; }
+  .crow.keyacct .cbar i { opacity: 1; box-shadow: 0 0 8px var(--risk); }
+  .wcard { display: flex; gap: 10px; align-items: center; padding: 9px 4px; border-bottom: 1px solid var(--row); cursor: pointer; border-radius: 6px; }
+  .wcard:hover { background: rgba(127, 176, 255, .05); }
+  .wcard:focus-visible { outline: 2px solid var(--good); }
+  .ring { --c: var(--warn); width: 42px; height: 42px; flex: none; border-radius: 50%; position: relative;
+          background: conic-gradient(var(--c) calc(var(--p) * 1%), var(--line) 0); }
+  .wcard.breach .ring { --c: var(--risk); }
+  .ring span { position: absolute; inset: 4px; border-radius: 50%; background: var(--panel-solid); display: flex; align-items: center; justify-content: center;
+               font-size: 10.5px; font-weight: 700; color: var(--fig); }
+  .wbody { flex: 1; min-width: 0; }
+  .wtop { display: flex; justify-content: space-between; gap: 8px; }
+  .wtop b { color: var(--fig); }
+  .wcard.breach .likely { color: var(--risk-text); }
+  .who { color: var(--muted); }
+  .why { color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .buf { height: 5px; background: var(--line); border-radius: 3px; position: relative; margin-top: 6px; }
+  .buf i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--warn); }
+  .wcard.breach .buf i { background: var(--risk); }
+  .buf u { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--fig); }
+  .bufnote { color: var(--dim); font-size: 10.5px; margin-top: 3px; }
+  .bufnote b { color: var(--text); }
+  .breach-note { color: var(--risk-text); font-weight: 600; }
+
+  /* ---- Drawer ---- */
+  aside { position: fixed; top: 0; right: 0; bottom: 0; width: 500px; max-width: 100%; z-index: 10; background: #0d1626; border-left: 1px solid var(--line);
+          box-shadow: -18px 0 40px rgba(0, 0, 0, .45); padding: 20px; overflow: auto; transform: translateX(105%); transition: transform .2s; }
+  aside.open { transform: none; }
+  .close { position: absolute; top: 14px; right: 16px; border: 0; background: none; font-size: 22px; line-height: 1; cursor: pointer; color: var(--muted); }
+  .back { display: block; border: 0; background: none; padding: 0; margin: 0 0 10px; font: inherit; font-size: 12px; color: #8fb6ff; cursor: pointer; }
+  .back[hidden] { display: none; }
+  .back:hover, .back:focus-visible { color: var(--fig); outline: none; text-decoration: underline; }
+  .ohead { display: flex; justify-content: space-between; gap: 12px; padding-right: 26px; }
+  .ohead h3 { margin: 0 0 4px; font-size: 22px; font-weight: 800; color: var(--fig); }
+  .late-pill { font-size: 11px; font-weight: 600; vertical-align: middle; background: rgba(255, 77, 77, .15); border: 1px solid rgba(255, 77, 77, .5); color: #ffb3b3; border-radius: 999px; padding: 1px 8px; }
+  .key { background: rgba(255, 194, 75, .14); color: var(--warn); border-radius: 999px; padding: 1px 8px; font-size: 11px; }
+  .ohead .mut { margin-top: 2px; }
+  .ohead .mut b { color: var(--text); font-weight: 600; }
+  .ohead-val { text-align: right; white-space: nowrap; }
+  .ohead-val b { display: block; font-size: 24px; font-weight: 800; color: var(--fig); }
+  .ohead-val.late b { color: var(--risk-text); text-shadow: 0 0 18px rgba(255, 59, 59, .45); }
+  .ohead-val span { color: var(--muted); }
+  .skel i { display: block; height: 12px; margin: 9px 0; border-radius: 4px; background: #16233d; }
+  .skel i:first-child { height: 24px; width: 40%; }
+  .skel i:nth-child(2) { width: 70%; }
+  .section { margin-top: 14px; }
+  .eta-chart { height: 210px; }
+  .erow { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--row); }
+  .erow .mut { font-size: 11px; }
+  .mini { display: flex; }
+  .ms { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10.5px; text-align: center; }
+  .ms::before { content: ''; position: absolute; top: 9px; left: -50%; width: 100%; height: 2px; background: #22365c; }
+  .ms:first-child::before { display: none; }
+  .ms .n { position: relative; z-index: 1; width: 20px; height: 20px; border-radius: 50%; background: #1a2742; border: 2px solid #34507f; }
+  .ms.done .n { background: #34507f; }
+  .ms.now.warm .n { border-color: var(--warn); }
+  .ms.now.hot .n { background: var(--risk); border-color: var(--risk); box-shadow: 0 0 12px var(--risk); }
+  .ms .nm { color: #9fb0cf; } .ms.now .nm { color: var(--fig); font-weight: 600; }
+  .ms .dt { color: var(--muted); }
+
+  /* ---- Explain ---- */
+  .kpi-var { cursor: pointer; }
+  .kpi-var:hover { border-color: rgba(255, 93, 93, .75); }
+  .kpi-var:focus-visible { outline: 2px solid var(--good); outline-offset: 2px; }
+  .kpi-var .how { font-size: 11px; color: #ff9b9b; margin-top: 6px; }
+  .kpi-var.calm .how { color: var(--muted); }
+  .xhead { padding-right: 26px; }
+  .xhead .lbl { font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+  .xhead h3 { margin: 2px 0 4px; font-size: 20px; font-weight: 800; color: var(--fig); }
+  .xhead h3 b { color: var(--risk-text); margin-left: 6px; }
+  .xdef { padding: 8px 0; border-bottom: 1px solid var(--row); }
+  .xdef:last-child { border-bottom: 0; }
+  .xdef-h { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .xdef-h b { color: var(--fig); }
+  .xdef code { color: var(--good); }
+  .xdef code, aside pre { font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  aside pre { white-space: pre-wrap; word-break: break-word; background: #0a1322; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 6px 0 0; color: #c3cde0; }
+  .src { font-size: 10.5px; color: var(--dim); margin-top: 4px; }
+  .xchip { display: inline-block; border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 10px; margin: 0 6px 6px 0; font-size: 11px; color: var(--muted); }
+  .xchip.on { border-color: var(--good); color: var(--fig); }
+  details summary { cursor: pointer; color: var(--muted); margin-top: 8px; font-size: 11.5px; }
+  .xscroll { max-height: 360px; overflow: auto; }
+  #x-orders { width: 100%; border-collapse: collapse; }
+  #x-orders th { text-align: left; font-size: 10.5px; color: var(--muted); font-weight: 500; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  #x-orders td { padding: 7px 4px; border-bottom: 1px solid var(--row); vertical-align: top; }
+  #x-orders td b { color: var(--fig); }
+  #x-orders .num { text-align: right; white-space: nowrap; }
+  #x-orders tbody tr { cursor: pointer; }
+  #x-orders tbody tr:hover { background: rgba(127, 176, 255, .05); }
+  #x-orders tbody tr:focus-visible { outline: 2px solid var(--good); }
+  .xfoot { margin-top: 8px; color: var(--muted); }
+  /* Cards that open the details panel */
+  .kpi[data-explain] { cursor: pointer; transition: border-color .15s; }
+  .kpi[data-explain]:not(.kpi-var):hover { border-color: rgba(127, 176, 255, .55); }
+  .kpi[data-explain]:focus-visible { outline: 2px solid var(--good); outline-offset: 2px; }
+  .kpi .how { font-size: 11px; color: #8fb6ff; margin-top: 6px; }
+  .kpi .how:not(:hover) { opacity: .85; }
+  /* Metric chips: which governed metric a number is; hover or focus for its definition. */
+  .mchip { display: inline-block; font: 10.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--good); background: rgba(75, 227, 201, .08);
+    border: 1px solid rgba(75, 227, 201, .35); border-radius: 999px; padding: 0 7px; margin-right: 8px; cursor: help; white-space: nowrap; }
+  .mchip:hover, .mchip:focus-visible { background: rgba(75, 227, 201, .18); outline: none; }
+  #mpop { position: fixed; z-index: 40; width: 380px; background: #0f1828; border: 1px solid var(--line-2); border-radius: 10px; padding: 12px 14px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .55); pointer-events: none; font-size: 12px; }
+  #mpop[hidden] { display: none; }
+  #mpop .xdef { border: 0; padding: 0; }
+  #mpop .src { margin-top: 6px; }
+  #mpop pre { white-space: pre-wrap; word-break: break-word; background: #0a1322; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 6px 0 0;
+    color: #c3cde0; font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  #mpop .xdef-h code { color: var(--good); font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .kpi .how { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi-var .how { white-space: normal; line-height: 2; }
+  select.range { appearance: none; border: 0; border-bottom: 1px dashed var(--line-2); background: none; color: var(--fig); font: inherit; letter-spacing: inherit;
+    text-transform: inherit; padding: 0 12px 0 0; cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position: right 4px top 55%, right 0 top 55%; background-size: 4px 4px; background-repeat: no-repeat; }
+  select.range option { background: #0f1828; color: var(--fig); text-transform: none; }
+  .xrange { margin-top: 8px; font-size: 12px; color: var(--muted); }
+  .xrange select.range { font-size: 12px; text-transform: none; letter-spacing: 0; }
+  .xhead h3 b.warn { color: var(--warn); } .xhead h3 b.good { color: var(--good); }
+  .xstats { display: flex; gap: 18px; margin-top: 8px; }
+  .xstats:empty { display: none; }
+  .xstats div { color: var(--muted); font-size: 11px; } .xstats b { display: block; color: var(--fig); font-size: 17px; font-weight: 700; }
+  .xstats b.late { color: var(--risk-text); }
+  .xtrend { height: 180px; }
+  .seg { display: inline-flex; gap: 2px; padding: 2px; margin-bottom: 8px; background: #0a1322; border: 1px solid var(--line); border-radius: 8px; }
+  .seg[hidden] { display: none; }
+  .seg button { border: 0; background: none; color: var(--muted); font: inherit; font-size: 11.5px; padding: 3px 10px; border-radius: 6px; cursor: pointer; }
+  .seg button.on { background: #1a2742; color: var(--fig); }
+  .seg button:focus-visible { outline: 2px solid var(--good); }
+  .xpop { margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+  .xpop b { color: var(--fig); } .xpop code { color: var(--good); font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .xkey { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin: 0 4px 0 8px; vertical-align: 0; }
+  .qlabel { margin-top: 10px; font-size: 11px; color: var(--muted); } .qlabel:first-child { margin-top: 0; }
+  .okc { color: var(--good); } .badc { color: var(--risk-text); }
+  #x-orders .okc, #x-orders .badc { white-space: nowrap; }
+  .xhead h3 b.calm { color: var(--fig); }
+  /* Map lanes: a wide invisible stroke takes the click; the selected lane is lit. */
+  .lane-hit { fill: none; stroke: transparent; stroke-width: 9; cursor: pointer; pointer-events: stroke; }
+  .lane.sel { stroke: #e8f0ff; opacity: 1; filter: drop-shadow(0 0 4px rgba(150, 190, 255, .9)); }
+  /* Collapsible sections: the heading toggles the rest of the section. */
+  .xtoggle { cursor: pointer; user-select: none; margin-bottom: 0; }
+  .xtoggle > span:first-child::before { content: ''; display: inline-block; width: 5px; height: 5px; margin: 0 8px 2px 1px;
+    border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); transition: transform .15s; }
+  .xtoggle:hover, .xtoggle:focus-visible { color: var(--fig); outline: none; }
+  .section:not(.collapsed) > .xtoggle { margin-bottom: 8px; }
+  .section.collapsed > .xtoggle > span:first-child::before { transform: rotate(-45deg); }
+  .section.collapsed > :not(.xtoggle) { display: none !important; }
+  #x-orders thead th { position: sticky; top: 0; z-index: 1; background: #111b2e; } /* the section panel over the aside, made opaque */
+  #x-orders th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+  #x-orders th.sortable:hover, #x-orders th.sortable:focus-visible { color: var(--fig); outline: none; }
+  #x-orders th.sorted { color: var(--fig); }
+  #x-orders th .arr { display: inline-block; width: 10px; margin-left: 2px; }
+  #x-orders.busy tbody { opacity: .5; transition: opacity .15s; }
+  .xfoot b { color: var(--fig); }
+
+  /* Info icons: hover or focus for how to read the chart. */
+  .info { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-left: 7px; border: 1px solid var(--dim); border-radius: 50%;
+    font: italic 700 9.5px/1 Georgia, serif; text-transform: none; letter-spacing: 0; color: var(--muted); cursor: help; vertical-align: 1px; }
+  .info:hover, .info:focus-visible { color: var(--fig); border-color: var(--good); outline: none; }
+  #ipop { position: fixed; z-index: 40; width: 320px; background: #0f1828; border: 1px solid var(--line-2); border-radius: 10px; padding: 11px 13px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .55); pointer-events: none; font-size: 12px; line-height: 1.5; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text); }
+  #ipop[hidden] { display: none; }
+  #ipop .ihow { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line); color: var(--muted); }
+  #ipop .ihow b { color: var(--good); font-weight: 600; }
+
+  /* ---- Layout ---- */
+  @media (max-height: 700px) { /* short windows: compact KPI tiles so the map row fits */
+    .kpis { gap: 8px; }
+    .kpi { padding: 8px 12px; }
+    .kpi h2 { margin-bottom: 3px; }
+    .kpi .val { font-size: 22px; }
+    .kpi-var .val { font-size: 26px; }
+  }
+  @media (max-width: 1000px) { /* the frame's width: anfra's sidebar takes ~270px of the window */
+    .hero, .grid { grid-template-columns: minmax(0, 1fr); }
+    .hero { height: auto; }
+    .map-panel { height: clamp(260px, 60vh, 520px); }
+    .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: none; }
+  }
+  @media (max-width: 760px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .journey { overflow-x: auto; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<header data-anfra-container="controls" data-anfra-label="Filters">
+  <h1>◉ ETA RISK CONTROL TOWER</h1>
+  <span class="live"><i></i>live · sample data</span>
+  <span class="spacer"></span>
+  <span data-anfra-block="filter-mode"><select id="f-mode" class="pill" data-all="All modes" data-anfra-control="mode"><option value="">All modes</option></select></span>
+  <span data-anfra-block="filter-carrier"><select id="f-carrier" class="pill" data-all="All carriers" data-anfra-control="carrier"><option value="">All carriers</option></select></span>
+  <span data-anfra-block="filter-origin"><select id="f-origin" class="pill" data-all="All origins" data-anfra-control="origin"><option value="">All origins</option></select></span>
+  <span data-anfra-block="filter-dest"><select id="f-dest" class="pill" data-all="All destinations" data-anfra-control="dest"><option value="">All destinations</option></select></span>
+</header>
+<div id="chips" class="chips" data-anfra-block="active-filters" data-anfra-label="Click filters" data-anfra-control="stage factor"></div>
+
+<main data-anfra-container="page" data-anfra-label="Control tower">
+  <section class="hero" data-anfra-container="overview" data-anfra-label="Overview">
+    <div class="panel map-panel" data-anfra-block="map" data-anfra-label="Lanes and shipments" data-anfra-query="lanes ports fleet">
+      <h2><span>Active shipments by lane<i class="info" data-info="map" tabindex="0" aria-label="How to read this chart">i</i></span> <span class="hint">click a port to filter · a lane for its details · a dot to open the order</span></h2>
+      <div id="map" class="map"></div>
+      <div id="map-state" class="state"></div>
+      <div id="map-tip" class="tip" hidden></div>
+      <div class="legend"><span><i style="background:var(--risk)"></i>delayed</span><span><i style="background:var(--ontime)"></i>on time</span><span>arc width = value at risk</span></div>
+    </div>
+    <div class="kpis" data-anfra-container="kpis" data-anfra-label="KPIs">
+      <div class="panel kpi kpi-var" data-anfra-block="kpi-var" data-anfra-query="kpisNow" data-explain="var" role="button" tabindex="0" aria-label="Value at risk now: how it's calculated">
+        <h2><span>Value at risk now<i class="info" data-info="var" tabindex="0" aria-label="How to read this chart">i</i></span></h2><div class="val" id="k-var">–</div><div class="sub">goods on orders past their promised date</div>
+        <div class="how"><span class="mchip" data-metric="value_at_risk" tabindex="0">ƒ value_at_risk</span><span style="white-space: nowrap">How it's calculated ›</span></div>
+      </div>
+      <div class="panel kpi" data-anfra-block="kpi-delayed" data-anfra-query="kpisNow" data-explain="delayed" role="button" tabindex="0" aria-label="Delayed orders now: details">
+        <h2><span>Delayed orders now<i class="info" data-info="delayed" tabindex="0" aria-label="How to read this chart">i</i></span></h2><div class="val" id="k-delayed">–</div><div class="sub" id="k-delayed-sub"></div>
+        <div class="how"><span class="mchip" data-metric="delayed_orders" tabindex="0">ƒ delayed_orders</span>Details ›</div>
+      </div>
+      <div class="panel kpi" data-anfra-block="kpi-slips" data-anfra-query="kpiSlips kpiSlipsPrev" data-explain="slips" role="button" tabindex="0" aria-label="ETA slips: details">
+        <h2><span>ETA slips · <select class="range" data-range="slips" data-anfra-control="slipNow" aria-label="ETA slips range"></select><i class="info" data-info="slips" tabindex="0" aria-label="How to read this chart">i</i></span></h2>
+        <div class="val warn" id="k-slips">–</div><div class="sub" id="k-slips-sub"></div>
+        <div class="how"><span class="mchip" data-metric="slip_events" tabindex="0">ƒ slip_events</span>Details ›</div>
+      </div>
+      <div class="panel kpi" data-anfra-block="kpi-ontime" data-anfra-query="kpiOnTime kpiOnTimePrev" data-explain="ontime" role="button" tabindex="0" aria-label="On-time rate: details">
+        <h2><span>On-time · <select class="range" data-range="ontime" data-anfra-control="otNow" aria-label="On-time range"></select><i class="info" data-info="ontime" tabindex="0" aria-label="How to read this chart">i</i></span></h2>
+        <div class="val good" id="k-ontime">–</div><div class="sub" id="k-ontime-sub"></div>
+        <div class="how"><span class="mchip" data-metric="on_time_rate" tabindex="0">ƒ on_time_rate</span>Details ›</div>
+      </div>
+    </div>
+  </section>
+  <div id="kpi-state" class="state"></div>
+
+  <section class="panel" data-anfra-block="journey" data-anfra-label="Shipment journey" data-anfra-query="journey byStage" data-anfra-control="stage">
+    <h2><span>Shipment journey<i class="info" data-info="journey" tabindex="0" aria-label="How to read this chart">i</i></span> <span class="hint">active orders at each stage · value at risk by the stage where the delay happened · click a stage to filter</span></h2>
+    <div id="journey-state" class="state"></div>
+    <div id="journey" class="journey"></div>
+  </section>
+
+  <section class="grid" data-anfra-container="panels">
+    <div class="panel" data-anfra-block="alerts" data-anfra-label="Live alerts" data-anfra-query="alerts">
+      <h2><span><i class="live-dot"></i>Live alerts<i class="info" data-info="alerts" tabindex="0" aria-label="How to read this chart">i</i></span><span class="hint">newest ETA slips</span></h2>
+      <div id="alerts-state" class="state"></div>
+      <div id="alerts" class="scroll"></div>
+      <button id="alerts-more" class="more" hidden>Load more</button>
+    </div>
+    <div class="panel" data-anfra-block="trend" data-anfra-label="Trend by stage" data-anfra-query="trend">
+      <h2><span>ETA slips by stage<i class="info" data-info="trend" tabindex="0" aria-label="How to read this chart">i</i></span> <span class="hint">rolling 7-day windows · click a bar to filter alerts</span></h2>
+      <div id="trend-state" class="state"></div>
+      <div id="trend" class="chart"></div>
+    </div>
+    <div class="panel" data-anfra-block="watchlist" data-anfra-label="Likely to slip" data-anfra-query="watchlist">
+      <h2><span>Likely to slip<i class="info" data-info="watch" tabindex="0" aria-label="How to read this chart">i</i></span> <span class="hint">open risks, by value likely at risk</span></h2>
+      <div id="watch-state" class="state"></div>
+      <div id="watch" class="scroll"></div>
+    </div>
+    <div class="panel" data-anfra-block="customers" data-anfra-label="Customers at risk" data-anfra-query="customersAtRisk">
+      <h2><span>Customers at risk · <span id="cust-scope" class="scope">all orders</span><i class="info" data-info="cust" tabindex="0" aria-label="How to read this chart">i</i></span><span class="hint">click for orders</span></h2>
+      <div id="cust-state" class="state"></div>
+      <div id="cust" class="scroll"></div>
+      <div id="cust-foot" class="xfoot"></div>
+    </div>
+  </section>
+</main>
+
+<aside id="drawer" data-anfra-container="drawer" data-anfra-label="Order" aria-label="Order">
+  <button class="close" id="drawer-close" aria-label="Close">×</button>
+  <button class="back" id="drawer-back" hidden></button>
+  <div data-anfra-block="order-info" data-anfra-query="orderInfo" data-anfra-control="order">
+    <div id="order-state" class="state"></div>
+    <div id="order-head" class="ohead"></div>
+  </div>
+  <div class="panel section" data-anfra-block="order-eta" data-anfra-label="ETA history" data-anfra-query="orderEta">
+    <h2><span>ETA history<i class="info" data-info="eta" tabindex="0" aria-label="How to read this chart">i</i></span> <span class="hint">UTC</span></h2>
+    <div id="eta-chart" class="eta-chart"></div>
+    <div id="eta-state" class="state"></div>
+    <div id="eta-list"></div>
+  </div>
+  <div class="panel section" data-anfra-block="order-stages" data-anfra-label="Journey" data-anfra-query="orderStages">
+    <h2><span>Journey<i class="info" data-info="stages" tabindex="0" aria-label="How to read this chart">i</i></span> <span class="hint">entered, UTC</span></h2>
+    <div id="stages-state" class="state"></div>
+    <div id="order-stages" class="mini"></div>
+  </div>
+</aside>
+
+<aside id="explain" data-anfra-container="explain" data-anfra-label="Details: how it's calculated" aria-label="Details">
+  <button class="close" id="explain-close" aria-label="Close">×</button>
+  <div class="xhead">
+    <div class="lbl" id="x-lbl">How it's calculated</div>
+    <h3><span id="x-title"></span><b id="x-total"></b></h3>
+    <div class="mut" id="x-sub"></div>
+    <div id="x-stats" class="xstats"></div>
+    <div id="x-range" class="xrange"></div>
+  </div>
+  <div class="panel section" id="x-trend-sec" data-anfra-block="explain-trend" data-anfra-label="Over time" data-anfra-query="slipWeekly otWeekly otDaily popW1 popW4 popW12 popW26" hidden>
+    <h2 class="xtoggle"><span id="x-trend-title">Over time</span><span class="hint" id="x-trend-hint"></span></h2>
+    <div id="x-modes" class="seg" hidden></div>
+    <div id="x-trend-state" class="state"></div>
+    <div id="x-trend" class="xtrend"></div>
+    <div id="x-pop" class="xpop" hidden></div>
+  </div>
+  <div class="panel section" id="x-rows-sec" data-anfra-block="explain-orders" data-anfra-label="Underlying data" data-anfra-query="riskOrders slipEvents deliveredOrders laneOrders custOrders">
+    <h2 class="xtoggle"><span id="x-rows-title">Underlying orders</span><span class="hint">click a column to sort · a row to open its order</span></h2>
+    <div id="x-state" class="state"></div>
+    <div class="xscroll"><table id="x-orders"></table></div>
+    <button id="x-more" class="more" hidden>Load more</button>
+    <div id="x-foot" class="xfoot"></div>
+  </div>
+  <div class="panel section" data-anfra-block="explain-definition" data-anfra-label="Definition">
+    <h2 class="xtoggle"><span>Definition</span><span class="hint">quoted from the semantic layer</span></h2>
+    <div id="x-def"></div>
+  </div>
+  <div class="panel section" data-anfra-block="explain-filters" data-anfra-label="Filters in effect" data-anfra-control="mode carrier origin dest">
+    <h2 class="xtoggle"><span>Filters in effect</span></h2>
+    <div id="x-filters"></div>
+  </div>
+  <div class="panel section" id="x-query" data-anfra-block="explain-query" data-anfra-label="The query that ran" data-anfra-query="kpisNow kpiSlips kpiSlipsPrev kpiOnTime kpiOnTimePrev laneKpi custKpi">
+    <h2 class="xtoggle"><span>The query that ran</span><span class="hint">exactly what produced the number</span></h2>
+    <div id="x-queries"></div>
+  </div>
+</aside>
+
+<div id="mpop" role="tooltip" hidden></div>
+<div id="ipop" role="tooltip" hidden></div>
+<script id="definitions" type="application/json">
+{
+  "value_at_risk": {"field": "shipment_risk.value_at_risk", "kind": "metric", "title": "Value at risk", "source": "datasets/shipment_risk.dataset.aml",
+    "text": "Goods value of active orders whose current ETA is past the promised date.",
+    "definition": "coalesce(sum(shipments.goods_value_usd) | where(shipments.is_active == true and shipments.is_delayed == true), 0)"},
+  "is_active": {"field": "shipments.is_active", "kind": "dimension", "title": "Active", "source": "models/logistics/shipments.model.aml",
+    "text": "Not delivered yet.",
+    "definition": "{{ #SOURCE.delivered_at }} IS NULL"},
+  "is_delayed": {"field": "shipments.is_delayed", "kind": "dimension", "title": "Delayed", "source": "models/logistics/shipments.model.aml",
+    "text": "The current ETA is later than the promised delivery date.",
+    "definition": "{{ #SOURCE.current_eta }} > {{ #SOURCE.promised_at }}"},
+  "delayed_orders": {"field": "shipment_risk.delayed_orders", "kind": "metric", "title": "Delayed orders", "source": "datasets/shipment_risk.dataset.aml", "text": "Active orders whose current ETA is past the promised date.", "definition": "coalesce(count(shipments.id) | where(shipments.is_active == true and shipments.is_delayed == true), 0)"},
+  "avg_delay_hours": {"field": "shipment_risk.avg_delay_hours", "kind": "metric", "title": "Average delay (hours)", "source": "datasets/shipment_risk.dataset.aml", "text": "Average hours late, over delayed active orders.", "definition": "avg(shipments.delay_hours) | where(shipments.is_active == true and shipments.is_delayed == true)"},
+  "active_shipments": {"field": "shipment_risk.active_shipments", "kind": "metric", "title": "Active shipments", "source": "datasets/shipment_risk.dataset.aml", "text": null, "definition": "coalesce(count(shipments.id) | where(shipments.is_active == true), 0)"},
+  "delay_hours": {"field": "shipments.delay_hours", "kind": "dimension", "title": "Hours late", "source": "models/logistics/shipments.model.aml", "text": "Current ETA minus the promised date, in hours. Negative means time to spare.", "definition": "EXTRACT(EPOCH FROM ({{ #SOURCE.current_eta }} - {{ #SOURCE.promised_at }})) / 3600.0"},
+  "slip_events": {"field": "shipment_risk.slip_events", "kind": "metric", "title": "ETA slips", "source": "datasets/shipment_risk.dataset.aml", "text": "Risk events that moved the ETA.", "definition": "coalesce(count(risk_events.id) | where(risk_events.is_slip == true), 0)"},
+  "is_slip": {"field": "risk_events.is_slip", "kind": "dimension", "title": "Moved the ETA", "source": "models/logistics/risk_events.model.aml", "text": null, "definition": "{{ #SOURCE.slip_hours }} > 0"},
+  "weeks_ago": {"field": "risk_events.weeks_ago", "kind": "dimension", "title": "Raised, weeks ago", "source": "models/logistics/risk_events.model.aml", "text": "Whole weeks between the event and now: 0 is the last 7 days.", "definition": "{{ #SOURCE.weeks_ago }}"},
+  "on_time_rate": {"field": "shipment_risk.on_time_rate", "kind": "metric", "title": "On-time rate", "source": "datasets/shipment_risk.dataset.aml", "text": "Delivered orders that arrived by the promised date / delivered orders.", "definition": "safe_divide((count(shipments.id) | where(shipments.is_on_time == true)) * 1.0, count(shipments.id) | where(shipments.is_active == false))"},
+  "is_on_time": {"field": "shipments.is_on_time", "kind": "dimension", "title": "Delivered on time", "source": "models/logistics/shipments.model.aml", "text": "Delivered no later than the promised date. Empty while the order is active.", "definition": "{{ #SOURCE.delivered_at }} <= {{ #SOURCE.promised_at }}"},
+  "delivered_weeks_ago": {"field": "shipments.delivered_weeks_ago", "kind": "dimension", "title": "Delivered, weeks ago", "source": "models/logistics/shipments.model.aml", "text": "Whole weeks between delivery and now: 0 is the last 7 days.", "definition": "{{ #SOURCE.delivered_weeks_ago }}"}
+}
+</script>
+
+<script id="queries" type="application/json">
+{
+  "kpisNow": {"aql": [
+    "explore {",
+    "  measures { delayed: delayed_orders, var: value_at_risk, avg_delay: avg_delay_hours, active: active_shipments }",
+    "}"]},
+  "kpiSlips": {"aql": ["explore { measures { slips: slip_events } }"]},
+  "kpiSlipsPrev": {"aql": ["explore { measures { slips: slip_events } }"]},
+  "kpiOnTime": {"aql": [
+    "explore {",
+    "  measures { on_time: on_time_rate, on_time_n: count(shipments.id) | where(shipments.is_on_time == true),",
+    "    delivered: count(shipments.id) | where(shipments.is_active == false) }",
+    "}"]},
+  "kpiOnTimePrev": {"aql": ["explore { measures { on_time: on_time_rate } }"]},
+  "slipWeekly": {"lazy": true, "aql": [
+    "explore { dimensions { w: risk_events.weeks_ago } measures { slips: slip_events } sorts { w DESC } }"]},
+  "popW1": {"lazy": true, "aql": [
+    "explore {",
+    "  dimensions { period: risk_events.raised_at | day() }",
+    "  measures { slips: slip_events, slips_prev: slip_events | relative_period(risk_events.raised_at, interval(-1 week)) }",
+    "  sorts { period ASC }",
+    "}"]},
+  "popW4": {"lazy": true, "aql": [
+    "explore {",
+    "  dimensions { period: risk_events.raised_at | week() }",
+    "  measures { slips: slip_events, slips_prev: slip_events | relative_period(risk_events.raised_at, interval(-4 weeks)) }",
+    "  sorts { period ASC }",
+    "}"]},
+  "popW12": {"lazy": true, "aql": [
+    "explore {",
+    "  dimensions { period: risk_events.raised_at | week() }",
+    "  measures { slips: slip_events, slips_prev: slip_events | relative_period(risk_events.raised_at, interval(-12 weeks)) }",
+    "  sorts { period ASC }",
+    "}"]},
+  "popW26": {"lazy": true, "aql": [
+    "explore {",
+    "  dimensions { period: risk_events.raised_at | week() }",
+    "  measures { slips: slip_events, slips_prev: slip_events | relative_period(risk_events.raised_at, interval(-26 weeks)) }",
+    "  sorts { period ASC }",
+    "}"]},
+  "otDaily": {"lazy": true, "aql": [
+    "explore {",
+    "  dimensions { period: shipments.delivered_at | day() }",
+    "  measures { on_time: on_time_rate, delivered: count(shipments.id) | where(shipments.is_active == false) }",
+    "  sorts { period ASC }",
+    "}"]},
+  "otWeekly": {"lazy": true, "aql": [
+    "explore {",
+    "  dimensions { w: shipments.delivered_weeks_ago }",
+    "  measures { on_time: on_time_rate, delivered: count(shipments.id) | where(shipments.is_active == false) }",
+    "  sorts { w DESC }",
+    "}"]},
+  "slipEvents": {"lazy": true, "pageSize": 100, "aql": [
+    "explore {",
+    "  dimensions {",
+    "    id: risk_events.id, raised_at: risk_events.raised_at, order_ref: shipments.order_ref, customer: customers.name,",
+    "    stage: risk_events.stage, risk_factor: risk_events.risk_factor, slip: risk_events.slip_hours, value: shipments.goods_value_usd",
+    "  }",
+    "  filters { risk_events.is_slip == true }",
+    "  sorts { raised_at DESC }",
+    "}"]},
+  "deliveredOrders": {"lazy": true, "pageSize": 100, "aql": [
+    "explore {",
+    "  dimensions {",
+    "    order_ref: shipments.order_ref, customer: customers.name, origin: origin_ports.name, dest: dest_ports.name,",
+    "    promised: shipments.promised_at, delivered: shipments.delivered_at, on_time: shipments.is_on_time, value: shipments.goods_value_usd",
+    "  }",
+    "  filters { shipments.is_active == false }",
+    "  sorts { delivered DESC }",
+    "}"]},
+  "customersAtRisk": {"aql": [
+    "explore {",
+    "  dimensions { customer: customers.name, segment: customers.segment }",
+    "  measures { var: value_at_risk, delayed: delayed_orders, active: active_shipments }",
+    "  having { value_at_risk > 0 }",
+    "  sorts { var DESC }",
+    "}"]},
+  "custKpi": {"lazy": true, "aql": [
+    "explore {",
+    "  measures { active: active_shipments, delayed: delayed_orders, var: value_at_risk, avg_delay: avg_delay_hours }",
+    "}"]},
+  "custOrders": {"lazy": true, "pageSize": 100, "aql": [
+    "explore {",
+    "  dimensions {",
+    "    order_ref: shipments.order_ref, customer: customers.name, origin: origin_ports.name, dest: dest_ports.name,",
+    "    stage: shipments.current_stage, delayed: shipments.is_delayed, late: shipments.delay_hours, value: shipments.goods_value_usd",
+    "  }",
+    "  filters { shipments.is_active == true }",
+    "  sorts { late DESC }",
+    "}"]},
+  "laneKpi": {"lazy": true, "aql": [
+    "explore {",
+    "  measures { active: active_shipments, delayed: delayed_orders, var: value_at_risk, avg_delay: avg_delay_hours }",
+    "}"]},
+  "laneOrders": {"lazy": true, "pageSize": 100, "aql": [
+    "explore {",
+    "  dimensions {",
+    "    order_ref: shipments.order_ref, customer: customers.name, stage: shipments.current_stage, delayed: shipments.is_delayed,",
+    "    late: shipments.delay_hours, eta: shipments.current_eta, value: shipments.goods_value_usd",
+    "  }",
+    "  filters { shipments.is_active == true }",
+    "  sorts { late DESC }",
+    "}"]},
+  "lanes": {"aql": [
+    "explore {",
+    "  dimensions {",
+    "    o: origin_ports.code, o_name: origin_ports.name, o_lat: origin_ports.lat, o_lon: origin_ports.lon,",
+    "    d: dest_ports.code, d_name: dest_ports.name, d_lat: dest_ports.lat, d_lon: dest_ports.lon",
+    "  }",
+    "  measures { active: active_shipments, delayed: delayed_orders, var: value_at_risk }",
+    "  filters { shipments.is_active == true }",
+    "}"]},
+  "ports": {"aql": [
+    "explore {",
+    "  dimensions { d: dest_ports.code, name: dest_ports.name, lat: dest_ports.lat, lon: dest_ports.lon }",
+    "  measures { active: active_shipments, delayed: delayed_orders, var: value_at_risk }",
+    "  filters { shipments.is_active == true }",
+    "}"]},
+  "fleet": {"pageSize": 1000, "aql": [
+    "explore {",
+    "  dimensions {",
+    "    order_ref: shipments.order_ref, customer: customers.name, o: origin_ports.code, d: dest_ports.code,",
+    "    stage: shipments.current_stage, progress: shipments.stage_progress, delayed: shipments.is_delayed,",
+    "    delay: shipments.delay_hours, value: shipments.goods_value_usd",
+    "  }",
+    "  filters { shipments.is_active == true }",
+    "}"]},
+  "riskOrders": {"pageSize": 100, "aql": [
+    "explore {",
+    "  dimensions {",
+    "    order_ref: shipments.order_ref, customer: customers.name, origin: origin_ports.name, dest: dest_ports.name,",
+    "    stage: shipments.delay_stage, late: shipments.delay_hours, value: shipments.goods_value_usd",
+    "  }",
+    "  filters { shipments.is_active == true, shipments.is_delayed == true }",
+    "  sorts { value DESC }",
+    "}"]},
+  "journey": {"aql": [
+    "explore {",
+    "  dimensions { stage: shipments.current_stage }",
+    "  measures { active: active_shipments }",
+    "  filters { shipments.is_active == true }",
+    "}"]},
+  "alerts": {"pageSize": 50, "aql": [
+    "explore {",
+    "  dimensions {",
+    "    id: risk_events.id, raised_at: risk_events.raised_at, order_ref: shipments.order_ref,",
+    "    stage: risk_events.stage, risk_factor: risk_events.risk_factor, slip: risk_events.slip_hours,",
+    "    value: shipments.goods_value_usd, customer: customers.name, active: shipments.is_active, delayed: shipments.is_delayed",
+    "  }",
+    "  filters { risk_events.is_slip == true, risk_events.weeks_ago < 12 }",
+    "  sorts { raised_at DESC }",
+    "}"]},
+  "byStage": {"aql": [
+    "explore {",
+    "  dimensions { stage: shipments.delay_stage, stage_seq: shipments.delay_stage_seq }",
+    "  measures { var: value_at_risk, delayed: delayed_orders }",
+    "  filters { shipments.is_active == true, shipments.is_delayed == true }",
+    "  sorts { stage_seq ASC }",
+    "}"]},
+  "trend": {"aql": [
+    "explore {",
+    "  dimensions { weeks_ago: risk_events.weeks_ago, stage: risk_events.stage }",
+    "  measures { slips: slip_events }",
+    "  filters { risk_events.weeks_ago < 12 }",
+    "  sorts { weeks_ago DESC }",
+    "}"]},
+  "watchlist": {"aql": [
+    "explore {",
+    "  dimensions {",
+    "    event_id: risk_events.id, order_ref: shipments.order_ref, customer: customers.name, value: shipments.goods_value_usd,",
+    "    stage: risk_events.stage, risk_factor: risk_events.risk_factor,",
+    "    n: risk_events.hist_events, rate: risk_events.hist_slip_rate, expected: risk_events.expected_slip_hours,",
+    "    buffer: shipments.buffer_hours, breach: risk_events.will_breach, likely: risk_events.value_likely_at_risk",
+    "  }",
+    "  filters { risk_events.is_open == true, risk_events.hist_events > 0 }",
+    "  sorts { likely DESC }",
+    "}"]},
+  "orderInfo": {"aql": [
+    "explore {",
+    "  dimensions {",
+    "    order_ref: shipments.order_ref, customer: customers.name, segment: customers.segment, mode: shipments.mode,",
+    "    carrier: shipments.carrier, origin: origin_ports.name, dest: dest_ports.name, value: shipments.goods_value_usd,",
+    "    booked: shipments.booked_at, promised: shipments.promised_at, original: shipments.original_eta,",
+    "    current: shipments.current_eta, stage: shipments.current_stage, delivered: shipments.delivered_at,",
+    "    delay: shipments.delay_hours, delayed: shipments.is_delayed",
+    "  }",
+    "}"]},
+  "orderStages": {"aql": [
+    "explore {",
+    "  dimensions { stage: stage_events.stage, seq: stage_events.stage_seq, entered: stage_events.entered_at, exited: stage_events.exited_at }",
+    "  sorts { seq ASC }",
+    "}"]},
+  "orderEta": {"aql": [
+    "explore {",
+    "  dimensions {",
+    "    id: risk_events.id, raised_at: risk_events.raised_at, stage: risk_events.stage, risk_factor: risk_events.risk_factor,",
+    "    previous_eta: risk_events.previous_eta, new_eta: risk_events.new_eta, slip: risk_events.slip_hours",
+    "  }",
+    "  sorts { raised_at ASC }",
+    "}"]}
+}
+</script>
+
+<script>
+// ---- Setup ----
+const DATASET = 'shipment_risk';
+const WINDOWS = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]; // the trend's 7-day windows, oldest first (0 = the last 7 days)
+const STAGES = ['Booked', 'Origin pickup', 'Origin port', 'In transit', 'Destination port', 'Customs', 'Final-mile', 'Delivered'];
+// Stages that can have slips, in their category colours. Red is kept for lateness and money at risk.
+const STAGE_COLORS = { 'Origin pickup': '#3f5fa8', 'Origin port': '#4f86d9', 'In transit': '#5b6fa0', 'Destination port': '#41b8c9', Customs: '#7a6ff0', 'Final-mile': '#2f8f86' };
+const HOT_SHARE = 0.15; // a stage, lane or port holding this share of the page's value at risk glows red
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const Q = JSON.parse(document.getElementById('queries').textContent);
+
+const app = Anfra.createApp({ title: 'ETA Risk Control Tower', timezone: 'Etc/UTC' });
+const q = {};
+const makeQuery = (name) => app.createQuery(name, { dataset: DATASET, aql: Q[name].aql.join('\n'), ...(Q[name].pageSize ? { pageSize: Q[name].pageSize } : {}) });
+for (const name of Object.keys(Q)) if (!Q[name].lazy) q[name] = makeQuery(name); // a lazy query is declared when a panel first needs it
+
+const f = {
+  mode: app.createFilter('mode', { dataset: DATASET, field: 'shipments.mode', label: 'Mode' }),
+  carrier: app.createFilter('carrier', { dataset: DATASET, field: 'shipments.carrier', label: 'Carrier' }),
+  origin: app.createFilter('origin', { dataset: DATASET, field: 'origin_ports.name', label: 'Origin port' }),
+  dest: app.createFilter('dest', { dataset: DATASET, field: 'dest_ports.name', label: 'Destination port' }),
+  stage: app.createFilter('stage', { type: 'string' }),
+  factor: app.createFilter('factor', { type: 'string' }),
+  order: app.createFilter('order', { type: 'string', default: { operator: 'is', values: ['-'] } }), // matches no order until one is picked
+  // The ETA slips and on-time cards read a range the reader picks: the last N weeks, the N weeks before, and the weeks charted.
+  slipNow: app.createFilter('slipNow', { type: 'number', label: 'ETA slips: range' }),
+  slipPrev: app.createFilter('slipPrev', { type: 'number', label: 'ETA slips: the range before' }),
+  slipSpan: app.createFilter('slipSpan', { type: 'number', label: 'ETA slips: weeks charted' }),
+  otNow: app.createFilter('otNow', { type: 'number', label: 'On-time: range' }),
+  otPrev: app.createFilter('otPrev', { type: 'number', label: 'On-time: the range before' }),
+  otSpan: app.createFilter('otSpan', { type: 'number', label: 'On-time: weeks charted' }),
+  // Period over period: the exact window of the ETA slips card (now minus N weeks to now), so its weeks add up to the card.
+  popWindow: app.createFilter('popWindow', { type: 'date', label: 'ETA slips: comparison window' }),
+  otDay: app.createFilter('otDay', { type: 'date', label: 'On-time: the last 7 days, by day' }),
+  laneO: app.createFilter('laneO', { type: 'string', label: 'Lane origin' }),
+  customer: app.createFilter('customer', { type: 'string', label: 'Customer' }),
+  laneD: app.createFilter('laneD', { type: 'string', label: 'Lane destination' }),
+};
+const RANGES = [1, 4, 12, 26];
+const range = { slips: 4, ontime: 4 };
+const RANGE_FILTERS = { slips: ['slipNow', 'slipPrev', 'slipSpan'], ontime: ['otNow', 'otPrev', 'otSpan'] };
+const span = (key) => range[key]; // the over-time chart shows the picked range only; the comparison view shows the one before
+function applyRange(key) {
+  const w = range[key], [now, prev, all] = RANGE_FILTERS[key];
+  f[now].setCondition({ operator: 'less_than', values: [String(w)] });
+  f[prev].setCondition({ operator: 'between', values: [String(w), String(2 * w - 1)] });
+  f[all].setCondition({ operator: 'less_than', values: [String(span(key))] });
+}
+applyRange('slips');
+applyRange('ontime');
+
+const GLOBAL = ['kpisNow', 'kpiSlips', 'kpiSlipsPrev', 'kpiOnTime', 'kpiOnTimePrev', 'lanes', 'ports', 'fleet', 'journey', 'alerts', 'byStage', 'trend', 'watchlist', 'riskOrders', 'customersAtRisk'];
+const GLOBAL_FIELDS = { mode: 'shipments.mode', carrier: 'shipments.carrier', origin: 'origin_ports.name', dest: 'dest_ports.name' };
+for (const name of GLOBAL) for (const [key, field] of Object.entries(GLOBAL_FIELDS)) app.mapControl(f[key], q[name], { field });
+const RANGE_CONTROLS = {
+  kpiSlips: [['slipNow', 'risk_events.weeks_ago']], kpiSlipsPrev: [['slipPrev', 'risk_events.weeks_ago']],
+  kpiOnTime: [['otNow', 'shipments.delivered_weeks_ago']], kpiOnTimePrev: [['otPrev', 'shipments.delivered_weeks_ago']],
+  slipWeekly: [['slipSpan', 'risk_events.weeks_ago']], slipEvents: [['slipNow', 'risk_events.weeks_ago']],
+  otWeekly: [['otSpan', 'shipments.delivered_weeks_ago']], otDaily: [['otDay', 'shipments.delivered_at']], deliveredOrders: [['otNow', 'shipments.delivered_weeks_ago']],
+  popW1: [['popWindow', 'risk_events.raised_at']], popW4: [['popWindow', 'risk_events.raised_at']],
+  popW12: [['popWindow', 'risk_events.raised_at']], popW26: [['popWindow', 'risk_events.raised_at']],
+  laneKpi: [['laneO', 'origin_ports.code'], ['laneD', 'dest_ports.code']], laneOrders: [['laneO', 'origin_ports.code'], ['laneD', 'dest_ports.code']],
+  custKpi: [['customer', 'customers.name']], custOrders: [['customer', 'customers.name']],
+};
+const mapRange = (name) => { for (const [key, field] of RANGE_CONTROLS[name] ?? []) app.mapControl(f[key], q[name], { field }); };
+for (const name of Object.keys(q)) mapRange(name);
+// Declares a lazy query on first use, with the page's filters and its own.
+function need(name) {
+  if (q[name]) return q[name];
+  q[name] = makeQuery(name);
+  for (const [key, field] of Object.entries(GLOBAL_FIELDS)) app.mapControl(f[key], q[name], { field });
+  mapRange(name);
+  return q[name];
+}
+for (const name of ['alerts', 'trend', 'watchlist']) {
+  app.mapControl(f.stage, q[name], { field: 'risk_events.stage' });
+  app.mapControl(f.factor, q[name], { field: 'risk_events.risk_factor' });
+}
+for (const name of ['orderInfo', 'orderStages', 'orderEta']) app.mapControl(f.order, q[name], { field: 'shipments.order_ref' });
+app.mapCrossFilter(q.trend, q.alerts);
+
+// Charts are optional: if the chart library fails to load, the rest of the page still works.
+const HAS_CHARTS = typeof echarts !== 'undefined';
+const charts = [];
+function chart(id) {
+  if (!HAS_CHARTS) return null;
+  const c = echarts.init(document.getElementById(id));
+  charts.push(c);
+  return c;
+}
+const AXIS = { axisLine: { lineStyle: { color: '#263a60' } }, axisTick: { show: false }, axisLabel: { color: '#7f8fab' }, splitLine: { lineStyle: { color: '#1a2946' } } };
+const TOOLTIP = { confine: true, backgroundColor: '#0f1828', borderColor: '#263a60', textStyle: { color: '#dbe4f3' } };
+
+// ---- Formatting ----
+// Numbers arrive as strings: convert with n() before any arithmetic.
+const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
+const pct = new Intl.NumberFormat('en-US', { style: 'percent', maximumFractionDigits: 0 });
+const n = (v) => (v === null || v === undefined ? null : Number(v));
+const isTrue = (v) => v === true || v === 'true' || v === '1';
+const hours = (v) => `${Math.round(n(v))}h`;
+const ref = (orderRef) => `#${String(orderRef).replace(/^ORD-/, '')}`;
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Datetimes arrive in the app's time zone (UTC) with no zone marker: read them as UTC, not local time.
+const ts = (v) => Date.parse(/[zZ]$|[+-]\d\d:?\d\d$/.test(String(v)) ? String(v) : `${String(v).replace(' ', 'T')}Z`);
+const when = (iso) => (iso ? new Date(ts(iso)).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }) : '–');
+// A trend window: weeks_ago 0 is the last 7 days. Label it by the day it starts.
+const windowLabel = (w) => new Date(Date.now() - (n(w) + 1) * 7 * 86400000).toLocaleString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+const set = (id, html) => { document.getElementById(id).innerHTML = html; };
+const val = (id) => document.getElementById(id).value;
+function ago(iso) {
+  const m = (Date.now() - ts(iso)) / 60000;
+  if (m < 60) return `${Math.max(1, Math.round(m))}m ago`;
+  if (m < 48 * 60) return `${Math.round(m / 60)}h ago`;
+  return `${Math.round(m / 1440)}d ago`;
+}
+function change(now, prev) {
+  now = n(now); prev = n(prev);
+  if (now === null || prev === null || prev === 0) return '';
+  const c = (now - prev) / prev;
+  return `<span class="${c > 0 ? 'up' : 'down'}">${c >= 0 ? '▲' : '▼'} ${pct.format(Math.abs(c))}</span>`;
+}
+function points(now, prev) {
+  now = n(now); prev = n(prev);
+  if (now === null || prev === null) return '';
+  const d = (now - prev) * 100;
+  return `<span class="${d < 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(1)} pts</span>`;
+}
+// Hot (red) when it holds HOT_SHARE of the page's value at risk, warm (amber) when it holds any.
+function heat(value, total) {
+  value = n(value) ?? 0;
+  if (value <= 0) return '';
+  return total > 0 && value >= HOT_SHARE * total ? 'hot' : 'warm';
+}
+
+// ---- Status ----
+function status(query, id, empty) {
+  const el = document.getElementById(id);
+  el.classList.toggle('error', query.state === 'error');
+  el.textContent = query.state === 'executing' && !query.result ? 'Loading…'
+    : query.state === 'error' ? `Couldn't load: ${query.error.message}`
+    : query.state === 'success' && query.result.rows.length === 0 ? empty : '';
+}
+const logged = new Set();
+function logFirst(query) {
+  if (query.state !== 'success' || logged.has(query.name)) return;
+  logged.add(query.name);
+  console.log(query.name, query.result.columns, query.result.rows[0], query.result.debug?.executedAql);
+}
+
+// ---- Click filters ----
+// A journey stage or a risk-factor tag toggles a hidden filter.
+const picked = { stage: null, factor: null };
+function pick(key, value) {
+  picked[key] = picked[key] === value ? null : value;
+  f[key].setCondition({ operator: 'is', values: picked[key] ? [picked[key]] : [] });
+  app.clearSelection(); // the trend selection may match no bar now, and would filter the feed with no chip to clear it
+  app.execute();
+}
+
+// ---- KPIs ----
+function renderKpis() {
+  const failed = [q.kpisNow, q.kpiSlips, q.kpiSlipsPrev, q.kpiOnTime, q.kpiOnTimePrev].find((x) => x.state === 'error');
+  status(failed ?? q.kpisNow, 'kpi-state', '');
+  const a = q.kpisNow.result?.rows[0];
+  if (a) {
+    set('k-var', money.format(n(a.var) ?? 0));
+    document.querySelector('.kpi-var').classList.toggle('calm', !(n(a.var) > 0)); // red only when money is at risk
+    set('k-delayed', `${n(a.delayed) ?? 0} <small>/ ${n(a.active) ?? 0} active</small>`);
+    set('k-delayed-sub', a.avg_delay === null ? 'none late' : `avg ${hours(a.avg_delay)} late`);
+  }
+  const s = q.kpiSlips.result?.rows[0], sp = q.kpiSlipsPrev.result?.rows[0];
+  if (s) {
+    set('k-slips', String(n(s.slips) ?? 0));
+    set('k-slips-sub', sp ? `${change(s.slips, sp.slips)} vs ${n(sp.slips) ?? 0} before` : '');
+  }
+  const o = q.kpiOnTime.result?.rows[0], op = q.kpiOnTimePrev.result?.rows[0];
+  if (o) {
+    set('k-ontime', o.on_time === null ? '–' : pct.format(n(o.on_time)));
+    set('k-ontime-sub', op && op.on_time !== null ? `${points(o.on_time, op.on_time)} vs ${pct.format(n(op.on_time))} before` : '');
+  }
+}
+
+// ---- Map ----
+// d3 projects the world and the lanes; the queries give every number. Placing dots along a lane is the only
+// arithmetic done here. If d3, topojson or the atlas fails to load, the panel says so and the page works on.
+const ATLAS = 'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json';
+const ORIGIN_SIDE = new Set(['Booked', 'Origin pickup', 'Origin port']);
+let projection = null, landPath = '', mapView = '0 0 900 450', mapError = null, mapSig = null;
+let selLane = null; // "origin>dest" of the lane whose details are open
+(typeof d3 === 'undefined' || typeof topojson === 'undefined'
+  ? Promise.reject(new Error('map libraries did not load'))
+  : fetch(ATLAS).then((r) => { if (!r.ok) throw new Error(`world map: HTTP ${r.status}`); return r.json(); }))
+  .then((world) => {
+    const countries = topojson.feature(world, world.objects.countries);
+    countries.features = countries.features.filter((c) => c.properties.name !== 'Antarctica');
+    projection = d3.geoNaturalEarth1().rotate([-150, 0]).fitWidth(900, countries); // Pacific-centred, all the world's land
+    const path = d3.geoPath(projection);
+    landPath = path(countries);
+    const [[x0, y0], [x1, y1]] = path.bounds(countries); // frame the land exactly, with a little room for labels
+    mapView = `${Math.floor(x0) - 4} ${Math.floor(y0) - 8} ${Math.ceil(x1 - x0) + 8} ${Math.ceil(y1 - y0) + 16}`;
+  })
+  .catch((err) => { mapError = err; console.warn('Map unavailable:', err.message); })
+  .finally(() => renderMap());
+
+// A stable number in [0, 1) per text: jitters dots the same way on every render.
+function hash01(text, salt) {
+  let h = 2166136261 ^ salt;
+  for (const ch of String(text)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return (h >>> 0) / 4294967296;
+}
+// A lane is a quadratic curve bulging upward by 10% of its width.
+function lanePath(a, b) {
+  const c = [(a[0] + b[0]) / 2, Math.min(a[1], b[1]) - Math.abs(b[0] - a[0]) * 0.10];
+  return { a, b, c, d: `M${a[0].toFixed(1)},${a[1].toFixed(1)} Q${c[0].toFixed(1)},${c[1].toFixed(1)} ${b[0].toFixed(1)},${b[1].toFixed(1)}` };
+}
+function along({ a, b, c }, t) {
+  const u = 1 - t;
+  return [u * u * a[0] + 2 * u * t * c[0] + t * t * b[0], u * u * a[1] + 2 * u * t * c[1] + t * t * b[1]];
+}
+// Where a shipment sits on its lane: at the origin, along the arc by progress in transit, or at the destination.
+function dotT(r) {
+  if (ORIGIN_SIDE.has(r.stage)) return 0.03 * hash01(r.order_ref, 1);
+  if (r.stage === 'In transit') return 0.05 + 0.9 * Math.min(1, Math.max(0, n(r.progress) ?? 0));
+  return 0.97 + 0.03 * hash01(r.order_ref, 1);
+}
+// A port is drawn twice: its wide click area under the shipment dots (so dots stay clickable), its mark above them.
+function portMark(role, name, [x, y], tip, selected) {
+  const g = `<g class="port ${role}${selected ? ' sel' : ''}" data-port="${role}" data-name="${esc(name)}" data-tip="${esc(tip)}">`;
+  return { hit: `${g}<circle class="hit" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9"/></g>`,
+           mark: `${g}<circle class="pdot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.5"/></g>` };
+}
+function renderMap() {
+  const box = document.getElementById('map');
+  const stateEl = document.getElementById('map-state');
+  if (mapError) { box.innerHTML = ''; stateEl.textContent = 'Map unavailable'; return; }
+  const failed = [q.lanes, q.ports, q.fleet].find((x) => x.state === 'error');
+  stateEl.classList.toggle('error', !!failed);
+  if (failed) { stateEl.textContent = `Couldn't load: ${failed.error.message}`; return; }
+  if (!projection || !q.lanes.result || !q.ports.result || !q.fleet.result) { stateEl.textContent = 'Loading…'; return; }
+  // Redraw only when what's drawn changes, so other queries' updates don't restart the motion or the hover.
+  const sig = [q.lanes.result, q.ports.result, q.fleet.result, q.kpisNow.result, val('f-origin'), val('f-dest'), selLane];
+  if (mapSig && sig.every((x, i) => x === mapSig[i])) return;
+  mapSig = sig;
+
+  const lanes = q.lanes.result.rows, ports = q.ports.result.rows, fleet = q.fleet.result.rows;
+  const total = n(q.kpisNow.result?.rows[0]?.var) ?? 0;
+  const xy = {}, names = {}, curves = {};
+  for (const r of lanes) {
+    xy[r.o] = projection([n(r.o_lon), n(r.o_lat)]); names[r.o] = r.o_name;
+    xy[r.d] = projection([n(r.d_lon), n(r.d_lat)]); names[r.d] = r.d_name;
+  }
+  const maxVar = Math.max(0, ...lanes.map((r) => n(r.var) ?? 0));
+  const hits = [];
+  const laneSvg = lanes.map((r) => {
+    const key = `${r.o}>${r.d}`;
+    const p = curves[key] = lanePath(xy[r.o], xy[r.d]);
+    const v = n(r.var) ?? 0, h = heat(v, total);
+    const width = v > 0 && maxVar > 0 ? 1 + 5 * Math.sqrt(v / maxVar) : 1;
+    const tip = `${r.o_name} → ${r.d_name} · ${n(r.active)} active · ${n(r.delayed) ?? 0} late · ${money.format(v)} at risk · click for details`;
+    hits.push([v, `<path class="lane-hit" d="${p.d}" data-lane="${esc(key)}" data-tip="${esc(tip)}"/>`]);
+    return `<path class="lane ${h}${selLane === key ? ' sel' : ''}" d="${p.d}" style="stroke-width:${width.toFixed(1)}"/>`
+      + `<path class="trail ${h}" d="${p.d}" style="animation-duration:${(3 + 3 * hash01(r.o + r.d, 7)).toFixed(2)}s"/>`;
+  }).join('');
+  const dotSvg = [...fleet].sort((a, b) => isTrue(a.delayed) - isTrue(b.delayed)).map((r) => { // delayed dots on top
+    const curve = curves[`${r.o}>${r.d}`];
+    if (!curve) return '';
+    const [x, y] = along(curve, dotT(r));
+    const late = isTrue(r.delayed);
+    const tip = `${ref(r.order_ref)} · ${r.customer} · ${r.stage} · ${late ? `${hours(r.delay)} late` : 'on time'} · ${money.format(n(r.value))}`;
+    return `<circle class="dot${late ? ' late' : ''}" cx="${(x + (hash01(r.order_ref, 2) - 0.5) * 8).toFixed(1)}" cy="${(y + (hash01(r.order_ref, 3) - 0.5) * 8).toFixed(1)}" r="${late ? 2.6 : 2}" data-ref="${esc(r.order_ref)}" data-tip="${esc(tip)}"/>`;
+  }).join('');
+  // Ports: origins, then destinations by value at risk, so the top one is drawn last and is the one a click lands on
+  // (Los Angeles and Long Beach are a fraction of a pixel apart).
+  const dests = [...ports].sort((a, b) => (n(a.var) ?? 0) - (n(b.var) ?? 0));
+  const portMarks = [
+    ...[...new Set(lanes.map((r) => r.o))].map((code) => portMark('origin', names[code], xy[code], `${names[code]} · origin · click to filter`, val('f-origin') === names[code])),
+    ...dests.map((r) => portMark('dest', r.name, projection([n(r.lon), n(r.lat)]),
+      `${r.name} · ${n(r.active)} active · ${n(r.delayed) ?? 0} late · ${money.format(n(r.var) ?? 0)} at risk`, val('f-dest') === r.name)),
+  ];
+  const top = dests.at(-1);
+  let pulse = '';
+  if (top && (n(top.var) ?? 0) > 0) {
+    const [x, y] = projection([n(top.lon), n(top.lat)]);
+    const right = x > 450; // label on the side with room
+    const lx = right ? x - 12 : x + 12;
+    pulse = `<circle class="pulse" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="8" data-name="${esc(top.name)}"/>`
+      + `<text class="plabel" x="${lx.toFixed(1)}" y="${(y - 20).toFixed(1)}" text-anchor="${right ? 'end' : 'start'}"><tspan class="pname">${esc(top.name)}</tspan>`
+      + `<tspan x="${lx.toFixed(1)}" dy="14">${money.format(n(top.var))} at risk · ${n(top.delayed)} late</tspan></text>`;
+  }
+  box.innerHTML = `<svg viewBox="${mapView}" role="img" aria-label="Active shipments by lane"><path class="land" d="${landPath}"/>`
+    + `<g>${laneSvg}</g><g>${laneHits(hits)}</g><g>${portMarks.map((m) => m.hit).join('')}</g><g>${dotSvg}</g><g>${portMarks.map((m) => m.mark).join('')}</g>${pulse}</svg>`;
+  stateEl.textContent = fleet.length ? '' : 'No active shipments for these filters';
+}
+// Lane click areas, the most value at risk drawn last: where lanes overlap, the click goes to the one that matters most.
+const laneHits = (hits) => hits.sort((a, b) => a[0] - b[0]).map(([, svg]) => svg).join('');
+// A port click sets (or clears) that port's filter through its select, so both stay in step.
+function setPort(role, name) {
+  const el = document.getElementById(`f-${role}`);
+  el.value = el.value === name ? '' : name;
+  el.dispatchEvent(new Event('change'));
+}
+const mapBox = document.getElementById('map'), mapTip = document.getElementById('map-tip');
+mapBox.addEventListener('mousemove', (e) => {
+  const el = e.target.closest('[data-tip]');
+  if (!el) { mapTip.hidden = true; return; }
+  const panel = mapBox.parentElement.getBoundingClientRect();
+  mapTip.textContent = el.dataset.tip;
+  mapTip.hidden = false;
+  mapTip.style.left = `${Math.max(8, Math.min(e.clientX - panel.left + 12, panel.width - mapTip.offsetWidth - 8))}px`;
+  mapTip.style.top = `${e.clientY - panel.top + 14}px`;
+});
+mapBox.addEventListener('mouseleave', () => { mapTip.hidden = true; });
+mapBox.addEventListener('click', (e) => {
+  const dot = e.target.closest('.dot');
+  if (dot) { openOrder(dot.dataset.ref); return; }
+  const port = e.target.closest('.port');
+  if (port) { setPort(port.dataset.port, port.dataset.name); return; }
+  const lane = e.target.closest('[data-lane]');
+  if (lane) openLane(lane.dataset.lane);
+});
+
+// ---- Journey ----
+function renderJourney() {
+  status([q.journey, q.byStage].find((x) => x.state === 'error') ?? q.journey, 'journey-state', '');
+  const count = Object.fromEntries((q.journey.result?.rows ?? []).map((r) => [r.stage, n(r.active)]));
+  const atRisk = Object.fromEntries((q.byStage.result?.rows ?? []).map((r) => [r.stage, n(r.var)]));
+  const total = n(q.kpisNow.result?.rows[0]?.var) ?? 0;
+  const focused = document.activeElement?.closest?.('#journey [data-stage]')?.dataset.stage; // keep keyboard focus across the redraw
+  set('journey', STAGES.map((s) => {
+    const v = atRisk[s] ?? 0;
+    const cls = ['stage', heat(v, total), picked.stage === s ? 'sel' : ''].join(' ');
+    const inner = `<span class="n">${s === 'Delivered' ? '✓' : count[s] ?? 0}</span><span class="nm">${esc(s)}</span>${v > 0 ? `<span class="amt">${money.format(v)}</span>` : ''}`;
+    return s in STAGE_COLORS
+      ? `<button class="${cls}" data-stage="${esc(s)}" aria-pressed="${picked.stage === s}">${inner}</button>`
+      : `<div class="${cls}">${inner}</div>`;
+  }).join(''));
+  if (focused) document.querySelector(`#journey [data-stage="${CSS.escape(focused)}"]`)?.focus();
+}
+document.getElementById('journey').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-stage]');
+  if (b) pick('stage', b.dataset.stage);
+});
+
+// ---- Alerts ----
+let alertsDrawn; // rebuild the list only for a new result, so renders for other queries don't replay the fresh glow
+const seenAlerts = new Set();
+function renderAlerts() {
+  status(q.alerts, 'alerts-state', 'No ETA slips in the last 12 weeks for these filters');
+  document.getElementById('alerts-more').hidden = !q.alerts.hasMore;
+  if (q.alerts.result === alertsDrawn) return;
+  alertsDrawn = q.alerts.result;
+  set('alerts', (q.alerts.result?.rows ?? []).map((r, i) => {
+    const late = isTrue(r.active) && isTrue(r.delayed);
+    const fresh = !seenAlerts.has(r.id) && Date.now() - ts(r.raised_at) < 2 * 3600000;
+    seenAlerts.add(r.id);
+    return `<div class="alert${late ? ' risk' : ''}${fresh ? ' fresh' : ''}" data-i="${i}">
+      <button class="open"><span class="top"><span><b>${esc(ref(r.order_ref))}</b> <span class="slip${n(r.slip) >= 24 ? ' big' : ''}">+${hours(r.slip)}</span> at ${esc(r.stage)}</span><span class="ago">${ago(r.raised_at)}</span></span></button>
+      <div class="meta"><button class="tag" data-factor="${esc(r.risk_factor)}">${esc(r.risk_factor)}</button><span class="who">${esc(r.customer)}</span> · <span class="money${late ? ' late' : ''}">${money.format(n(r.value))}${late ? ' at risk' : ''}</span></div>
+    </div>`;
+  }).join(''));
+}
+document.getElementById('alerts').addEventListener('click', (e) => {
+  const tag = e.target.closest('[data-factor]');
+  if (tag) { pick('factor', tag.dataset.factor); return; }
+  const item = e.target.closest('.alert');
+  if (item) openOrder(q.alerts.result.rows[item.dataset.i].order_ref);
+});
+document.getElementById('alerts-more').addEventListener('click', () => q.alerts.fetchMore().catch((err) => console.error(err)));
+
+// ---- Trend ----
+const trendChart = chart('trend');
+let trendResult = null;
+function renderTrend() {
+  status(q.trend, 'trend-state', 'No ETA slips in the last 12 weeks');
+  if (!trendChart) { document.getElementById('trend-state').textContent = 'Chart unavailable'; return; }
+  const rows = q.trend.result?.rows ?? [];
+  const stages = STAGES.filter((s) => rows.some((r) => r.stage === s));
+  const selected = q.trend.selectedRows;
+  const fresh = trendResult !== q.trend.result; // rebuild the series only for a new result, so a click doesn't replay the animation
+  trendResult = q.trend.result;
+  trendChart.setOption({
+    animation: !REDUCED,
+    textStyle: { fontFamily: 'Inter, system-ui, sans-serif' },
+    tooltip: { trigger: 'axis', ...TOOLTIP },
+    legend: { bottom: 0, left: 0, right: 0, icon: 'roundRect', itemWidth: 10, itemHeight: 10, textStyle: { color: '#9fb0cf', fontSize: 11 } },
+    grid: { left: 32, right: 8, top: 10, bottom: 58 },
+    xAxis: { type: 'category', data: WINDOWS.map((w) => (w === 0 ? 'last 7 days' : windowLabel(w))), ...AXIS, splitLine: { show: false } },
+    yAxis: { type: 'value', minInterval: 1, ...AXIS },
+    series: stages.map((s) => ({
+      name: s, type: 'bar', stack: 'slips', barMaxWidth: 26, itemStyle: { color: STAGE_COLORS[s] },
+      data: WINDOWS.map((p) => { // every window, empty ones too, so bars weeks apart never look adjacent
+        const r = rows.find((x) => x.stage === s && n(x.weeks_ago) === p);
+        const on = selected.includes(r);
+        return { value: r ? n(r.slips) : 0, itemStyle: { opacity: !selected.length || on ? 1 : 0.25, shadowBlur: on ? 14 : 0, shadowColor: STAGE_COLORS[s] } };
+      }),
+    })),
+  }, fresh ? { replaceMerge: ['series'] } : undefined);
+}
+trendChart?.on('click', (p) => {
+  const w = WINDOWS[p.dataIndex];
+  const r = q.trend.result.rows.find((x) => x.stage === p.seriesName && n(x.weeks_ago) === w);
+  if (!r) return;
+  q.trend.select(q.trend.selectedRows.includes(r) ? [] : [r]);
+  app.execute();
+});
+
+// ---- Watchlist ----
+let watchDrawn;
+function renderWatch() {
+  status(q.watchlist, 'watch-state', 'No open risks with history');
+  if (q.watchlist.result === watchDrawn) return;
+  watchDrawn = q.watchlist.result;
+  set('watch', (q.watchlist.result?.rows ?? []).map((r, i) => {
+    const breach = isTrue(r.breach), rate = n(r.rate) ?? 0, expected = n(r.expected) ?? 0, buffer = Math.max(0, n(r.buffer) ?? 0);
+    const scale = Math.max(expected, buffer, 1) * 1.15;
+    return `<div class="wcard${breach ? ' breach' : ''}" role="button" tabindex="0" data-i="${i}" title="${esc(`${pct.format(rate)} chance of a slip, from ${n(r.n)} past ${r.stage} + ${r.risk_factor} events. Expected slip ${hours(expected)}; buffer ${hours(buffer)}.`)}">
+      <div class="ring" style="--p:${Math.round(rate * 100)}"><span>${pct.format(rate)}</span></div>
+      <div class="wbody">
+        <div class="wtop"><span><b>${esc(ref(r.order_ref))}</b> <span class="who">${esc(r.customer)}</span></span><b class="likely">${money.format(n(r.likely))}</b></div>
+        <div class="why">${esc(r.stage)} · ${esc(r.risk_factor)} · from ${n(r.n)} past events</div>
+        <div class="buf"><i style="width:${(expected / scale * 100).toFixed(1)}%"></i><u style="left:${(buffer / scale * 100).toFixed(1)}%"></u></div>
+        <div class="bufnote">expected <b>${hours(expected)}</b> · buffer ${hours(buffer)}${breach ? ' · <span class="breach-note">will breach</span>' : ''}</div>
+      </div>
+    </div>`;
+  }).join(''));
+}
+const watchEl = document.getElementById('watch');
+watchEl.addEventListener('click', (e) => {
+  const card = e.target.closest('[data-i]');
+  if (card) openOrder(q.watchlist.result.rows[card.dataset.i].order_ref);
+});
+watchEl.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const card = e.target.closest('[data-i]');
+  if (!card) return;
+  e.preventDefault();
+  openOrder(q.watchlist.result.rows[card.dataset.i].order_ref);
+});
+
+// What the page is filtered to, in words: the header selects, then any clicked stage or risk factor.
+function scopeText() {
+  const parts = ['mode', 'carrier', 'origin', 'dest'].map((key) => val(`f-${key}`)).filter(Boolean);
+  if (picked.stage) parts.push(picked.stage);
+  if (picked.factor) parts.push(picked.factor);
+  return parts.join(' · ');
+}
+
+// ---- Customers at risk ----
+// Value at risk by customer, for the page's filters: the same governed metric as the tile, so the rows add up to it.
+let custDrawn;
+function renderCustomers() {
+  status(q.customersAtRisk, 'cust-state', 'No customer has value at risk for these filters');
+  const rows = q.customersAtRisk.result?.rows ?? [];
+  const busy = q.customersAtRisk.state === 'executing'; // rows from the previous filter stay up, dimmed, until the new ones land
+  document.getElementById('cust').classList.toggle('busy', busy);
+  document.getElementById('cust-foot').classList.toggle('busy', busy);
+  const total = rows.reduce((sum, r) => sum + (n(r.var) ?? 0), 0); // the rows add up to value_at_risk for the same filters
+  const scope = scopeText();
+  const scopeEl = document.getElementById('cust-scope');
+  scopeEl.textContent = scope || 'all orders';
+  scopeEl.classList.toggle('on', !!scope);
+  set('cust-foot', rows.length ? `<b>${rows.length} customers</b> · <b>${money.format(total)}</b> at risk${scope ? ` for ${esc(scope)}` : ''}, the same ${metricChip('value_at_risk')} as the Value at risk card` : '');
+  if (q.customersAtRisk.result === custDrawn) return;
+  custDrawn = q.customersAtRisk.result;
+  const max = Math.max(1, ...rows.map((r) => n(r.var) ?? 0));
+  set('cust', rows.map((r, i) => {
+    const key = r.segment === 'key';
+    return `<div class="crow${key ? ' keyacct' : ''}" role="button" tabindex="0" data-i="${i}">
+      <span><b>${esc(r.customer)}</b>${key ? ' <span class="key">★ key customer</span>' : ''}</span><b class="money late">${money.format(n(r.var))}</b>
+      <span class="mut">${n(r.delayed)} late of ${n(r.active)} active</span><span></span>
+      <span class="cbar"><i style="width:${((n(r.var) ?? 0) / max * 100).toFixed(1)}%"></i></span>
+    </div>`;
+  }).join(''));
+}
+const custEl = document.getElementById('cust');
+const openCustRow = (el) => { const r = q.customersAtRisk.result.rows[el.dataset.i]; openCustomer({ name: r.customer, key: r.segment === 'key' }); };
+custEl.addEventListener('click', (e) => { const el = e.target.closest('.crow'); if (el) openCustRow(el); });
+custEl.addEventListener('keydown', (e) => { const el = e.target.closest('.crow'); if (el && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openCustRow(el); } });
+
+// ---- Drawer ----
+let openRef = null, drawnSig = null;
+const etaChart = chart('eta-chart');
+const DRAWER_QUERIES = () => [q.orderInfo, q.orderStages, q.orderEta];
+const SHORT = { 'Origin pickup': 'Pickup', 'In transit': 'Transit', 'Destination port': 'Dest. port' };
+const H48 = 48 * 3600000;
+const fmtAxis = (ms) => new Date(ms).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }).replace(',', '');
+const fmtDay = (ms) => new Date(ms).toLocaleString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+// `back` is set when the order was opened from a details panel's rows: the drawer then offers a way back to that panel,
+// as it was (which card or lane, its sort, and where it was scrolled).
+let backTo = null;
+function openOrder(orderRef, back = null) {
+  closeExplain();
+  openRef = orderRef;
+  backTo = back;
+  const backBtn = document.getElementById('drawer-back');
+  backBtn.hidden = !back;
+  backBtn.textContent = back ? `‹ Back to ${back.title}` : '';
+  f.order.setCondition({ operator: 'is', values: [orderRef] });
+  document.getElementById('drawer').classList.add('open');
+  renderDrawer(); // clear the previous order now, not when the new one arrives
+  app.execute();
+}
+function closeDrawer() {
+  openRef = null;
+  backTo = null;
+  document.getElementById('drawer-back').hidden = true;
+  document.getElementById('drawer').classList.remove('open');
+}
+document.getElementById('drawer-back').addEventListener('click', () => {
+  const back = backTo;
+  if (!back) return;
+  closeDrawer();
+  if (back.lane) openLane(back.lane, back); else if (back.cust) openCustomer(back.cust, back); else openExplain(back.key, back);
+});
+// The ETA line from 48h before the first slip (or the first risk event, or booking) to now (or delivery).
+function etaSeries(o, events) {
+  const firstSlip = events.find((r) => n(r.slip) > 0);
+  const anchor = firstSlip ?? events[0];
+  const start = Math.max(anchor ? ts(anchor.raised_at) - H48 : ts(o.booked), ts(o.booked));
+  const end = Math.max(o.delivered ? ts(o.delivered) : Date.now(), start + 3600000);
+  let eta = ts(o.original);
+  for (const r of events) if (ts(r.raised_at) <= start) eta = ts(r.new_eta);
+  const line = [[start, eta]];
+  for (const r of events) {
+    if (ts(r.raised_at) <= start) continue;
+    eta = ts(r.new_eta);
+    line.push([ts(r.raised_at), eta]);
+  }
+  line.push([end, eta]);
+  return { start, end, line };
+}
+function renderDrawer() {
+  if (!openRef) return;
+  const failed = DRAWER_QUERIES().find((x) => x.state === 'error');
+  const ready = DRAWER_QUERIES().every((x) => x.state === 'success' && !x.isDirty);
+  const o = ready ? q.orderInfo.result.rows[0] : null;
+  const stateEl = document.getElementById('order-state');
+  stateEl.classList.toggle('error', !!failed);
+  stateEl.textContent = failed ? `Couldn't load: ${failed.error.message}` : ready && !o ? 'Order not found' : '';
+  if (!o) { // loading, failed or missing: never leave the previous order on screen
+    drawnSig = null;
+    set('order-head', failed || ready ? '' : '<div class="skel" style="flex:1"><i></i><i></i><i></i></div>');
+    for (const id of ['eta-list', 'order-stages', 'eta-state', 'stages-state']) set(id, '');
+    etaChart?.clear();
+    return;
+  }
+  const sig = DRAWER_QUERIES().map((x) => x.result);
+  if (drawnSig && sig.every((x, i) => x === drawnSig[i])) return;
+  drawnSig = sig;
+
+  const delayed = isTrue(o.delayed), atRisk = delayed && !o.delivered;
+  set('order-head', `
+    <div>
+      <h3>${esc(ref(o.order_ref))}${delayed ? ` <span class="late-pill">${hours(o.delay)} late</span>` : ''}</h3>
+      <div>${esc(o.customer)}${o.segment === 'key' ? ' <span class="key">★ key customer</span>' : ''}</div>
+      <div class="mut">${esc(o.mode[0].toUpperCase() + o.mode.slice(1))} · ${esc(o.carrier)} · ${esc(o.origin)} → ${esc(o.dest)}</div>
+      <div class="mut">Promised <b>${when(o.promised)}</b> · ETA <b>${when(o.current)}</b> UTC · ${
+        o.delivered ? `delivered ${when(o.delivered)}` : delayed ? `now at ${esc(o.stage)}` : `${hours(-n(o.delay))} buffer · now at ${esc(o.stage)}`}</div>
+    </div>
+    <div class="ohead-val${atRisk ? ' late' : ''}"><b>${money.format(n(o.value))}</b><span>${atRisk ? 'at risk' : 'goods value'}</span></div>`);
+
+  const events = q.orderEta.result.rows;
+  status(q.orderEta, 'eta-state', 'No ETA changes');
+  set('eta-list', events.map((r) => `<div class="erow"><div>${esc(r.stage)} · ${esc(r.risk_factor)}<div class="mut">${ago(r.raised_at)} · ETA ${when(r.previous_eta)} → ${when(r.new_eta)}</div></div>
+    <div>${n(r.slip) > 0 ? `<span class="slip${n(r.slip) >= 24 ? ' big' : ''}">+${hours(r.slip)}</span>` : '<span class="mut">no change</span>'}</div></div>`).join(''));
+
+  const stages = q.orderStages.result.rows;
+  status(q.orderStages, 'stages-state', 'No stages');
+  const entered = Object.fromEntries(stages.map((r) => [r.stage, r]));
+  const current = stages.find((r) => r.exited === null && r.stage !== 'Delivered')?.stage;
+  set('order-stages', STAGES.filter((s) => s !== 'Delivered' || entered.Delivered).map((s) => {
+    const cls = s === current ? `now ${delayed ? 'hot' : 'warm'}` : entered[s] ? 'done' : '';
+    return `<div class="ms ${cls}"><span class="n"></span><span class="nm">${esc(SHORT[s] ?? s)}</span><span class="dt">${entered[s] ? fmtDay(ts(entered[s].entered)) : ''}${s === current ? ' · now' : ''}</span></div>`;
+  }).join(''));
+
+  if (!etaChart) { document.getElementById('eta-state').textContent = 'Chart unavailable'; return; }
+  const { start, end, line } = etaSeries(o, events);
+  const promised = ts(o.promised);
+  const top = Math.max(...line.map((p) => p[1]));
+  const slips = events.filter((r) => n(r.slip) > 0 && ts(r.raised_at) > start).map((r) => {
+    const color = n(r.slip) >= 24 ? '#ff4d4d' : '#ffc24b';
+    return { value: [ts(r.raised_at), ts(r.new_eta)], itemStyle: { color, shadowBlur: 8, shadowColor: color },
+             label: { show: true, position: 'left', color, fontSize: 10, formatter: `+${hours(r.slip)} ${r.stage}` } };
+  });
+  etaChart.setOption({
+    animation: !REDUCED,
+    grid: { left: 78, right: 16, top: 24, bottom: 26 },
+    tooltip: { trigger: 'axis', ...TOOLTIP, formatter: (ps) => `${fmtAxis(ps[0].value[0])} UTC<br>ETA ${fmtAxis(ps[0].value[1])}` },
+    xAxis: { type: 'time', min: start, max: end, ...AXIS, splitLine: { show: false }, axisLabel: { color: '#7f8fab', formatter: (v) => fmtDay(v) } },
+    yAxis: { type: 'time', min: (v) => Math.min(v.min, promised) - 6 * 3600000, max: (v) => Math.max(v.max, promised) + 6 * 3600000,
+             ...AXIS, axisLabel: { color: '#7f8fab', formatter: fmtAxis } },
+    series: [
+      { type: 'line', step: 'end', data: line, showSymbol: false, lineStyle: { color: '#5fa0ff', width: 2.5 }, itemStyle: { color: '#5fa0ff' },
+        markLine: { symbol: 'none', silent: true, lineStyle: { color: '#4be3c9', type: 'dashed' },
+                    label: { color: '#4be3c9', position: 'insideEndTop', formatter: `promised ${when(o.promised)}` }, data: [{ yAxis: promised }] },
+        markArea: top > promised ? { silent: true, itemStyle: { color: 'rgba(255, 77, 77, .12)' }, data: [[{ yAxis: promised }, { yAxis: top }]] } : undefined },
+      { type: 'scatter', data: slips, symbolSize: 9, z: 3 },
+    ],
+  }, { notMerge: true });
+}
+document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+document.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; if (openRef) closeDrawer(); if (explaining) closeExplain(); });
+
+// ---- Details ----
+// One panel explains a card or a map lane: the number, how it moved over time (for a range), the rows it is made of
+// (sortable), the governed definitions it rests on (quoted from the AML, pinned by tests/test_logistics_definitions.py),
+// the filters in effect, and the exact query that ran.
+const DEFS = JSON.parse(document.getElementById('definitions').textContent);
+// A metric chip names the governed metric behind a number; hovering or focusing it shows the metric's definition, quoted
+// from the semantic layer (the same block the details panel shows).
+const metricChip = (key) => `<span class="mchip" data-metric="${key}" tabindex="0">ƒ ${key}</span>`;
+const mpop = document.getElementById('mpop');
+function showMetric(chip) {
+  const d = DEFS[chip.dataset.metric];
+  if (!d) return;
+  mpop.innerHTML = `<div class="xdef"><div class="xdef-h"><b>${esc(d.title)}</b><code>${esc(d.field)}</code><span class="mut">${esc(d.kind)}</span></div>
+    ${d.text ? `<div>${esc(d.text)}</div>` : ''}<pre>${esc(d.definition)}</pre><div class="src">Defined once in ${esc(d.source)}</div></div>`;
+  mpop.hidden = false;
+  const r = chip.getBoundingClientRect(), w = mpop.offsetWidth, h = mpop.offsetHeight;
+  const left = r.left - w - 10 >= 8 ? r.left - w - 10 : Math.min(r.left, innerWidth - w - 8);
+  mpop.style.left = `${left}px`;
+  mpop.style.top = `${Math.max(8, Math.min(r.top - 12, innerHeight - h - 8))}px`;
+}
+const hideMetric = () => { mpop.hidden = true; };
+document.addEventListener('mouseover', (e) => { const c = e.target.closest?.('.mchip'); if (c) showMetric(c); else if (!mpop.hidden && !e.target.closest?.('#mpop')) hideMetric(); });
+document.addEventListener('focusin', (e) => { const c = e.target.closest?.('.mchip'); if (c) showMetric(c); else hideMetric(); });
+document.addEventListener('scroll', hideMetric, true);
+
+// ---- Info icons: what a chart shows and how to read it ----
+const INFO = {
+  map: ['Active shipments on their lanes, origin to destination.',
+    'Arc width is value at risk; red is delayed, blue is on time. Click a port, lane or dot to filter or drill in.'],
+  var: ['Goods value of active orders already past their promised date.',
+    'Bigger and redder means more money exposed. Click for the definition and the orders.'],
+  delayed: ['Active orders whose ETA is past the promised date.',
+    'Read it with value at risk. The subtext is the average hours late.'],
+  slips: ['Risk events that moved an order\'s ETA, in the chosen range.',
+    'The subtext compares with the range before. A rising count means more orders are slipping.'],
+  ontime: ['Share of delivered orders that arrived by the promised date.',
+    'It looks back, so it moves slowly. The subtext is the change in points against the range before.'],
+  journey: ['Active orders at each stage, with value at risk by where the delay happened.',
+    'A red stage holds 15% or more of the value at risk. Click a stage to filter.'],
+  alerts: ['The newest ETA slips, one row each.',
+    'Click a cause tag to filter by it, or a row to open the order.'],
+  trend: ['ETA slips per rolling 7-day window over 12 weeks, stacked by stage.',
+    'Right is the latest week. Bars that keep growing are a trend. Click a bar to filter the alerts.'],
+  watch: ['Open risks on on-time orders, ranked by value likely at risk.',
+    'The ring is how often similar past events slipped the ETA. When the bar passes the white marker, the order is likely to breach.'],
+  cust: ['Customers ranked by value at risk.',
+    'A longer bar means more value at risk. Click a customer for their orders.'],
+  eta: ['How this order\'s ETA moved over time.',
+    'Each step up is a slip (red is 24h or more). The dashed line is the promised date; red area means late.'],
+  stages: ['The stages this order has entered, and when.',
+    'Filled dots are passed. "Now" marks the current stage: red if delayed, amber if not.']
+};
+const ipop = document.getElementById('ipop');
+const showInfo = (el) => {
+  const d = INFO[el.dataset.info];
+  if (!d) return;
+  ipop.innerHTML = `<div>${esc(d[0])}</div><div class="ihow"><b>How to read it.</b> ${esc(d[1])}</div>`;
+  ipop.hidden = false;
+  const r = el.getBoundingClientRect(), w = ipop.offsetWidth, h = ipop.offsetHeight;
+  ipop.style.left = `${Math.max(8, Math.min(r.left - 12, innerWidth - w - 8))}px`;
+  ipop.style.top = `${r.bottom + 8 + h > innerHeight ? Math.max(8, r.top - h - 8) : r.bottom + 8}px`;
+};
+const hideInfo = () => { ipop.hidden = true; };
+document.addEventListener('mouseover', (e) => { const i = e.target.closest?.('.info'); if (i) showInfo(i); else if (!ipop.hidden) hideInfo(); });
+document.addEventListener('focusin', (e) => { const i = e.target.closest?.('.info'); if (i) showInfo(i); else hideInfo(); });
+document.addEventListener('scroll', hideInfo, true);
+// An icon inside a clickable tile must not open the tile's details.
+for (const type of ['click', 'keydown']) document.addEventListener(type, (e) => { if (e.target.closest?.('.info')) e.stopPropagation(); }, true);
+const FILTER_NAMES = { mode: 'Mode', carrier: 'Carrier', origin: 'Origin', dest: 'Destination' };
+const weeksText = (w) => (w === 1 ? 'week' : `${w} weeks`);
+const rangeSelect = (key) => `<select class="range" data-range="${key}" aria-label="Range">${
+  RANGES.map((w) => `<option value="${w}"${w === range[key] ? ' selected' : ''}>${w === 1 ? '7 days' : `${w} weeks`}</option>`).join('')}</select>`;
+const orderCell = (r) => `<b>${esc(ref(r.order_ref))}</b><div class="mut">${esc(r.customer)}</div>`;
+const laneCell = (r) => `${esc(r.origin)} → ${esc(r.dest)}`;
+// Sortable columns per kind of row. `first` is the direction a column starts in; `then` breaks ties.
+const COLS = {
+  orders: [
+    { field: 'order_ref', label: 'Order', first: 'asc', fmt: orderCell },
+    { field: 'origin', then: 'dest', label: 'Lane', first: 'asc', fmt: laneCell },
+    { field: 'stage', label: 'Delay at', first: 'asc', fmt: (r) => esc(r.stage ?? '–') },
+    { field: 'late', label: 'Late', first: 'desc', num: true, fmt: (r) => hours(r.late) },
+    { field: 'value', label: 'Value', first: 'desc', num: true, fmt: (r) => `<span class="money late">${money.format(n(r.value))}</span>` },
+  ],
+  slips: [
+    { field: 'raised_at', label: 'Raised', first: 'desc', fmt: (r) => `${when(r.raised_at)}<div class="mut">${ago(r.raised_at)}</div>` },
+    { field: 'order_ref', label: 'Order', first: 'asc', fmt: orderCell },
+    { field: 'stage', label: 'At', first: 'asc', fmt: (r) => esc(r.stage) },
+    { field: 'risk_factor', label: 'Cause', first: 'asc', fmt: (r) => esc(r.risk_factor) },
+    { field: 'slip', label: 'Slip', first: 'desc', num: true, fmt: (r) => `<span class="slip${n(r.slip) >= 24 ? ' big' : ''}">+${hours(r.slip)}</span>` },
+    { field: 'value', label: 'Value', first: 'desc', num: true, fmt: (r) => money.format(n(r.value)) },
+  ],
+  delivered: [
+    { field: 'order_ref', label: 'Order', first: 'asc', fmt: orderCell },
+    { field: 'origin', then: 'dest', label: 'Lane', first: 'asc', fmt: laneCell },
+    { field: 'promised', label: 'Promised', first: 'desc', fmt: (r) => when(r.promised) },
+    { field: 'delivered', label: 'Delivered', first: 'desc', fmt: (r) => when(r.delivered) },
+    { field: 'on_time', label: 'Result', first: 'asc', fmt: (r) => (isTrue(r.on_time) ? '<span class="okc">On time</span>' : '<span class="badc">Late</span>') },
+  ],
+  lane: [
+    { field: 'order_ref', label: 'Order', first: 'asc', fmt: orderCell },
+    { field: 'stage', label: 'Now at', first: 'asc', fmt: (r) => esc(r.stage) },
+    { field: 'late', label: 'Status', first: 'desc', num: true,
+      fmt: (r) => (isTrue(r.delayed) ? `<span class="badc">${hours(r.late)} late</span>` : `<span class="mut">${hours(-n(r.late))} spare</span>`) },
+    { field: 'eta', label: 'ETA', first: 'asc', fmt: (r) => when(r.eta) },
+    { field: 'value', label: 'Value', first: 'desc', num: true, fmt: (r) => `<span class="money${isTrue(r.delayed) ? ' late' : ''}">${money.format(n(r.value))}</span>` },
+  ],
+};
+COLS.customer = [
+  { field: 'order_ref', label: 'Order', first: 'asc', fmt: (r) => `<b>${esc(ref(r.order_ref))}</b>` },
+  { field: 'origin', then: 'dest', label: 'Lane', first: 'asc', fmt: laneCell },
+  { field: 'stage', label: 'Now at', first: 'asc', fmt: (r) => esc(r.stage) },
+  { field: 'late', label: 'Status', first: 'desc', num: true,
+    fmt: (r) => (isTrue(r.delayed) ? `<span class="badc">${hours(r.late)} late</span>` : `<span class="mut">${hours(-n(r.late))} spare</span>`) },
+  { field: 'value', label: 'Value', first: 'desc', num: true, fmt: (r) => `<span class="money${isTrue(r.delayed) ? ' late' : ''}">${money.format(n(r.value))}</span>` },
+];
+let xLane = null; // the lane whose details are open: its codes and names
+let xCust = null; // the customer whose details are open: { name, key }
+// What each panel shows. Each function gets the first row of each of its `kpi` queries, in order.
+const XSPEC = {
+  var: {
+    title: () => 'Value at risk', tone: 'risk', calm: ([a]) => !(n(a.var) > 0), kpi: ['kpisNow'], queryLabels: ['Value at risk'],
+    total: ([a]) => money.format(n(a.var) ?? 0),
+    sub: () => 'One governed metric in the semantic layer. The tile, the map and the journey all use it.',
+    defs: ['value_at_risk', 'is_active', 'is_delayed'],
+    rows: 'riskOrders', rowsTitle: 'Underlying orders', cols: 'orders', sort: { field: 'value', direction: 'desc' },
+    empty: 'No orders are at risk for these filters',
+    foot: ([a]) => `<b>${n(a.delayed) ?? 0} orders</b> · <b>${money.format(n(a.var) ?? 0)}</b> at risk, the value of <code>value_at_risk</code> for these filters`,
+  },
+  delayed: {
+    title: () => 'Delayed orders', tone: 'risk', calm: ([a]) => !(n(a.delayed) > 0), kpi: ['kpisNow'], queryLabels: ['Delayed orders'],
+    total: ([a]) => String(n(a.delayed) ?? 0),
+    sub: ([a]) => `Of ${n(a.active) ?? 0} active orders. ${a.avg_delay === null ? 'None are late.' : `On average ${hours(a.avg_delay)} late.`}`,
+    defs: ['delayed_orders', 'avg_delay_hours', 'is_delayed', 'delay_hours'],
+    rows: 'riskOrders', rowsTitle: 'Underlying orders', cols: 'orders', sort: { field: 'late', direction: 'desc' },
+    empty: 'No orders are late for these filters',
+    foot: ([a]) => `<b>${n(a.delayed) ?? 0} orders</b> late, the value of <code>delayed_orders</code> for these filters`,
+  },
+  slips: {
+    title: () => 'ETA slips', tone: 'warn', range: 'slips', kpi: ['kpiSlips', 'kpiSlipsPrev'], queryLabels: ['This range', 'The range before'],
+    total: ([s]) => String(n(s.slips) ?? 0),
+    sub: ([s, p]) => (p ? `${change(s.slips, p.slips)} vs ${n(p.slips) ?? 0} in the ${weeksText(range.slips)} before` : ''),
+    trend: 'slipWeekly', trendTitle: 'ETA slips over time', trendValue: (r) => (r ? n(r.slips) : 0), trendUnit: '', pop: true,
+    defs: ['slip_events', 'is_slip', 'weeks_ago'],
+    rows: 'slipEvents', rowsTitle: 'Underlying slips', cols: 'slips', sort: { field: 'raised_at', direction: 'desc' },
+    empty: 'No ETA slips in this range for these filters',
+    foot: ([s]) => `<b>${n(s.slips) ?? 0} slips</b> in the last ${weeksText(range.slips)}, the value of <code>slip_events</code> for these filters`,
+  },
+  ontime: {
+    title: () => 'On-time rate', tone: 'good', range: 'ontime', kpi: ['kpiOnTime', 'kpiOnTimePrev'], queryLabels: ['This range', 'The range before'],
+    total: ([o]) => (o.on_time === null ? '–' : pct.format(n(o.on_time))),
+    sub: ([o, p]) => `${n(o.on_time_n) ?? 0} of ${n(o.delivered) ?? 0} delivered orders arrived on time.${
+      p && p.on_time !== null ? ` ${points(o.on_time, p.on_time)} vs ${pct.format(n(p.on_time))} in the ${weeksText(range.ontime)} before.` : ''}`,
+    trend: 'otWeekly', trendTitle: 'On-time rate over time', trendValue: (r) => (r && r.on_time !== null ? Math.round(n(r.on_time) * 1000) / 10 : null), trendUnit: '%',
+    defs: ['on_time_rate', 'is_on_time', 'delivered_weeks_ago'],
+    rows: 'deliveredOrders', rowsTitle: 'Delivered orders', cols: 'delivered', sort: { field: 'delivered', direction: 'desc' },
+    empty: 'No orders delivered in this range for these filters',
+    foot: ([o]) => `<b>${n(o.delivered) ?? 0} orders</b> delivered in the last ${weeksText(range.ontime)}; <code>on_time_rate</code> is the share on time`,
+  },
+  customer: {
+    label: 'Customer', title: () => xCust.name, tone: 'risk', calm: ([c]) => !(n(c.var) > 0), kpi: ['custKpi'], queryLabels: ['This customer'],
+    total: ([c]) => money.format(n(c.var) ?? 0),
+    sub: () => `${xCust.key ? '★ Key customer. ' : ''}Value at risk on this customer's orders, for the filters in effect.`,
+    stats: ([c]) => [[n(c.active) ?? 0, 'active orders'], [n(c.delayed) ?? 0, 'late', n(c.delayed) > 0], [c.avg_delay === null ? '–' : hours(c.avg_delay), 'average lateness']],
+    defs: ['value_at_risk', 'delayed_orders', 'active_shipments', 'delay_hours'],
+    rows: 'custOrders', rowsTitle: 'Active orders', cols: 'customer', sort: { field: 'late', direction: 'desc' },
+    empty: 'No active orders for this customer and these filters',
+    foot: ([c]) => `<b>${n(c.active) ?? 0} active</b> · <b>${n(c.delayed) ?? 0} late</b> · <b>${money.format(n(c.var) ?? 0)}</b> at risk`,
+  },
+  lane: {
+    label: 'Lane', title: () => `${xLane.o_name} → ${xLane.d_name}`, tone: 'risk', calm: ([l]) => !(n(l.var) > 0), kpi: ['laneKpi'], queryLabels: ['This lane'],
+    total: ([l]) => money.format(n(l.var) ?? 0),
+    sub: () => 'Value at risk on this lane: goods on its orders past their promised date.',
+    stats: ([l]) => [[n(l.active) ?? 0, 'active orders'], [n(l.delayed) ?? 0, 'late', n(l.delayed) > 0], [l.avg_delay === null ? '–' : hours(l.avg_delay), 'average lateness']],
+    defs: ['value_at_risk', 'delayed_orders', 'active_shipments', 'delay_hours'],
+    rows: 'laneOrders', rowsTitle: 'Active orders on this lane', cols: 'lane', sort: { field: 'late', direction: 'desc' },
+    empty: 'No active orders on this lane for these filters',
+    foot: ([l]) => `<b>${n(l.active) ?? 0} active</b> · <b>${n(l.delayed) ?? 0} late</b> · <b>${money.format(n(l.var) ?? 0)}</b> at risk on this lane`,
+  },
+};
+
+let explaining = false, xKey = null, explainDrawn, xTrendDrawn;
+let xMode = 'time'; // the ETA slips chart: 'time' (slips each week) or 'pop' (each period against the one before)
+const popName = () => `popW${range.slips}`;
+// The comparison window ends now; it is set when the comparison is shown, not on every render.
+const atIso = (ms) => new Date(ms).toISOString().slice(0, 19);
+// 7 days: the over-time chart counts by day over the card's exact window (now minus 7 days to now). ETA slips reuse the
+// 7-day comparison query, whose `slips` column is that count.
+function setDayWindow(key) {
+  if (range[key] !== 1) return;
+  if (key === 'slips') { setPopWindow(); return; }
+  f.otDay.setCondition({ operator: 'between', values: [atIso(Date.now() - 7 * 86400000), atIso(Date.now())] });
+  need('otDaily');
+}
+function setPopWindow() {
+  const now = Date.now(), at = atIso;
+  f.popWindow.setCondition({ operator: 'between', values: [at(now - range.slips * 7 * 86400000), at(now)] });
+  need(popName());
+}
+function setMode(mode) {
+  xMode = mode;
+  if (mode === 'pop') setPopWindow();
+  xTrendDrawn = undefined;
+  renderModes();
+  renderExplain();
+  app.execute();
+}
+function renderModes() {
+  const el = document.getElementById('x-modes');
+  el.hidden = !XSPEC[xKey]?.pop;
+  set('x-modes', [['time', 'Over time'], ['pop', 'vs previous period']]
+    .map(([m, label]) => `<button data-mode="${m}" class="${xMode === m ? 'on' : ''}" aria-pressed="${xMode === m}">${label}</button>`).join(''));
+}
+document.getElementById('x-modes').addEventListener('click', (e) => { const b = e.target.closest('[data-mode]'); if (b && b.dataset.mode !== xMode) setMode(b.dataset.mode); });
+let xSort = { field: 'value', direction: 'desc' };
+const xOrders = document.getElementById('x-orders');
+const xTrendChart = chart('x-trend');
+const sortHead = (c) => {
+  const on = xSort.field === c.field;
+  return `<th class="sortable${c.num ? ' num' : ''}${on ? ' sorted' : ''}" data-sort="${c.field}" tabindex="0"
+    aria-sort="${on ? (xSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}">${c.label}<span class="arr">${on ? (xSort.direction === 'asc' ? '↑' : '↓') : ''}</span></th>`;
+};
+const defsHtml = (keys) => keys.map((key) => {
+  const d = DEFS[key];
+  return `<div class="xdef"><div class="xdef-h"><b>${esc(d.title)}</b><code>${esc(d.field)}</code><span class="mut">${esc(d.kind)}</span></div>
+    ${d.text ? `<div>${esc(d.text)}</div>` : ''}<pre>${esc(d.definition)}</pre><div class="src">${esc(d.source)}</div></div>`;
+}).join('');
+function applySort(spec) {
+  const col = COLS[spec.cols].find((c) => c.field === xSort.field);
+  q[spec.rows].setSort(col?.then ? [xSort, { field: col.then, direction: xSort.direction }] : [xSort]);
+}
+function openExplain(key, restore = null) {
+  closeDrawer();
+  const spec = XSPEC[key];
+  for (const name of [...spec.kpi, spec.rows, spec.trend].filter(Boolean)) need(name);
+  explaining = true;
+  xKey = key;
+  xSort = { ...(restore?.sort ?? spec.sort) };
+  applySort(spec);
+  explainDrawn = undefined;
+  xTrendDrawn = undefined;
+  set('x-lbl', esc(spec.label ?? "How it's calculated"));
+  set('x-title', esc(spec.title()));
+  set('x-range', spec.range ? `Range: last ${rangeSelect(spec.range)}, compared with the same length before` : '');
+  set('x-def', defsHtml(spec.defs));
+  set('x-rows-title', esc(spec.rowsTitle));
+  document.getElementById('x-total').className = spec.tone;
+  document.getElementById('x-rows-sec').dataset.anfraQuery = spec.rows;
+  document.getElementById('x-query').dataset.anfraQuery = spec.kpi.join(' ');
+  document.getElementById('x-trend-sec').dataset.anfraQuery = spec.pop ? `${spec.trend} popW1 popW4 popW12 popW26` : spec.trend ? `${spec.trend} otDaily` : '';
+  const trendSec = document.getElementById('x-trend-sec');
+  trendSec.hidden = !spec.trend;
+  if (spec.trend) set('x-trend-title', esc(spec.trendTitle));
+  if (spec.pop && xMode === 'pop') setPopWindow();
+  if (spec.range) setDayWindow(spec.range);
+  renderModes();
+  document.getElementById('explain').classList.add('open');
+  renderExplain();
+  app.execute();
+  document.getElementById('explain-close').focus({ preventScroll: !!restore });
+  if (restore) { // back from an order: the rows are still in hand, so the panel can return to where it was
+    document.querySelector('#explain .xscroll').scrollTop = restore.tableScroll ?? 0;
+    document.getElementById('explain').scrollTop = restore.scroll ?? 0;
+  }
+}
+function closeExplain() {
+  if (!explaining) return;
+  explaining = false;
+  xKey = null;
+  document.getElementById('explain').classList.remove('open');
+  if (selLane) { selLane = null; renderMap(); }
+}
+function openCustomer(cust, restore = null) {
+  xCust = cust;
+  f.customer.setCondition({ operator: 'is', values: [cust.name] });
+  openExplain('customer', restore);
+}
+function openLane(key, restore = null) {
+  const r = q.lanes.result?.rows.find((x) => `${x.o}>${x.d}` === key);
+  if (!r) return;
+  xLane = { o: r.o, d: r.d, o_name: r.o_name, d_name: r.d_name };
+  f.laneO.setCondition({ operator: 'is', values: [r.o] });
+  f.laneD.setCondition({ operator: 'is', values: [r.d] });
+  openExplain('lane', restore);
+  selLane = key;
+  renderMap();
+}
+function renderExplain() {
+  if (!explaining) return;
+  const spec = XSPEC[xKey];
+  const kq = spec.kpi.map((name) => q[name]);
+  const failed = kq.find((x) => x.state === 'error');
+  const rows0 = kq.map((x) => x.result?.rows[0]);
+  const ready = !failed && rows0.every(Boolean) && kq.every((x) => !x.isDirty);
+  document.getElementById('x-total').textContent = ready ? ` ${spec.total(rows0)}` : '';
+  document.getElementById('x-total').className = ready && spec.calm?.(rows0) ? 'calm' : spec.tone; // red only when something is at risk
+  set('x-sub', failed ? `Couldn't load: ${esc(failed.error.message)}` : ready ? spec.sub(rows0) : 'Loading…');
+  set('x-stats', ready && spec.stats ? spec.stats(rows0).map(([v, l, late]) => `<div><b${late ? ' class="late"' : ''}>${esc(v)}</b>${esc(l)}</div>`).join('') : '');
+
+  const chips = ['mode', 'carrier', 'origin', 'dest'].map((key) => {
+    const el = document.getElementById(`f-${key}`);
+    return `<span class="xchip${el.value ? ' on' : ''}">${esc(el.value ? `${FILTER_NAMES[key]}: ${el.value}` : el.dataset.all)}</span>`;
+  });
+  if (spec.range) chips.push(`<span class="xchip on">Last ${esc(weeksText(range[spec.range]))}, vs the ${esc(weeksText(range[spec.range]))} before</span>`);
+  if (xKey === 'lane') chips.push(`<span class="xchip on">Lane: ${esc(xLane.o_name)} → ${esc(xLane.d_name)}</span>`);
+  if (xKey === 'customer') chips.push(`<span class="xchip on">Customer: ${esc(xCust.name)}</span>`);
+  set('x-filters', chips.join(''));
+
+  const shown = spec.pop && xMode === 'pop' && q[popName()] ? [...kq, q[popName()]] : kq;
+  const labels = shown.length > kq.length ? [...spec.queryLabels, 'Period-over-period chart'] : spec.queryLabels;
+  const debug = shown.map((x) => x.result?.debug); // present only for viewers allowed to see generated queries
+  document.getElementById('x-query').hidden = !debug.some((d) => d?.executedAql);
+  set('x-queries', debug.map((d, i) => (d?.executedAql ? `${shown.length > 1 ? `<div class="qlabel">${esc(labels[i])}</div>` : ''}<pre>${esc(d.executedAql)}</pre>
+    ${d.executedSql ? `<details><summary>Generated SQL</summary><pre>${esc(d.executedSql)}</pre></details>` : ''}` : '')).join(''));
+
+  renderXTrend(spec);
+
+  const rq = q[spec.rows];
+  status(rq, 'x-state', spec.empty);
+  document.getElementById('x-more').hidden = !rq.hasMore;
+  set('x-foot', ready ? spec.foot(rows0) : '');
+  xOrders.classList.toggle('busy', rq.state === 'executing');
+  if (rq.result === explainDrawn) return;
+  explainDrawn = rq.result;
+  const rows = rq.result?.rows ?? [];
+  const cols = COLS[spec.cols];
+  set('x-orders', rows.length ? `<thead><tr>${cols.map(sortHead).join('')}</tr></thead><tbody>${
+    rows.map((r, i) => `<tr data-i="${i}" tabindex="0">${cols.map((c) => `<td${c.num ? ' class="num"' : ''}>${c.fmt(r)}</td>`).join('')}</tr>`).join('')}</tbody>` : '');
+}
+// Weekly bars: the picked range bright, the range before it dimmer, older weeks muted.
+const TONES = { warn: ['#ffc24b', 'rgba(255, 194, 75, .38)'], good: ['#4be3c9', 'rgba(75, 227, 201, .38)'] };
+function renderXTrend(spec) {
+  if (!spec.trend) return;
+  document.getElementById('x-pop').hidden = !(spec.pop && xMode === 'pop');
+  if (spec.pop && xMode === 'pop') { renderPop(spec); return; }
+  const w = range[spec.range], daily = w === 1;
+  const tq = daily ? q[spec.range === 'slips' ? 'popW1' : 'otDaily'] : q[spec.trend];
+  if (!tq) return; // declaring the query renders before it is stored; the next render draws it
+  status(tq, 'x-trend-state', 'No data for these filters');
+  const [bright] = TONES[spec.tone];
+  const WEEK = 7 * 86400000, nowMs = Date.now();
+  set('x-trend-hint', `<i class="xkey" style="background:${bright}"></i>last ${daily ? '7 days' : esc(weeksText(w))} · ${fmtShort(nowMs - w * WEEK)} – ${fmtShort(nowMs)}`);
+  if (!xTrendChart) { document.getElementById('x-trend-state').textContent = 'Chart unavailable'; return; }
+  if (!tq.result || tq.isDirty || tq.result === xTrendDrawn) return;
+  xTrendDrawn = tq.result;
+  // Bars: one per day for 7 days, else one per 7-day window counted back from now (labelled by the day it starts).
+  // The first and last bars can be part-days or part-windows: the range is exactly now minus N weeks to now.
+  const hhmm = (ms) => new Date(ms).toISOString().slice(11, 16);
+  const bars = daily
+    ? tq.result.rows.map((r, i, all) => ({ cat: fmtShort(ts(r.period)), r,
+        span: `${fmtShort(ts(r.period))}${i === 0 ? `, from ${hhmm(nowMs - WEEK)} UTC` : i === all.length - 1 ? ', so far' : ''}` }))
+    : Array.from({ length: w }, (_, i) => w - 1 - i).map((k) => {
+        const start = nowMs - (k + 1) * WEEK;
+        return { cat: fmtShort(start), r: tq.result.rows.find((x) => n(x.w) === k),
+          span: `7 days: ${fmtShort(start)} – ${k === 0 ? `${fmtShort(nowMs)} (now)` : fmtShort(start + WEEK)}` };
+      });
+  const step = Math.max(1, Math.ceil(bars.length / 6));
+  xTrendChart.resize();
+  xTrendChart.setOption({
+    animation: !REDUCED,
+    textStyle: { fontFamily: 'Inter, system-ui, sans-serif' },
+    grid: { left: 36, right: 8, top: 12, bottom: 24 },
+    tooltip: { trigger: 'axis', ...TOOLTIP, formatter: (ps) => {
+      const { r, span: label } = bars[ps[0].dataIndex];
+      return spec.range === 'ontime'
+        ? `${label}<br>${r && r.on_time !== null ? `${pct.format(n(r.on_time))} on time of ${n(r.delivered)} delivered` : 'No deliveries'}`
+        : `${label}<br>${r ? n(r.slips) : 0} ETA slips`;
+    } },
+    xAxis: { type: 'category', data: bars.map((b) => b.cat), ...AXIS, splitLine: { show: false },
+             axisLabel: { color: '#7f8fab', interval: (i) => (bars.length - 1 - i) % step === 0 } }, // the newest bar is always labelled
+    yAxis: { type: 'value', ...AXIS, ...(spec.trendUnit === '%' ? { max: 100, axisLabel: { color: '#7f8fab', formatter: '{value}%' } } : { minInterval: 1 }) },
+    series: [{ type: 'bar', barMaxWidth: 26,
+      data: bars.map((b) => ({ value: spec.trendValue(b.r), itemStyle: { color: bright, borderRadius: [3, 3, 0, 0] } })) }],
+  }, { notMerge: true });
+}
+// Period over period: each week (each day, for 7 days) of the range beside the same stretch N weeks earlier, from one
+// query: slip_events and slip_events | relative_period(risk_events.raised_at, interval(-N weeks)). relative_period shifts
+// the window's start and end too, so a part-week at either end is compared with the same part of its earlier week.
+const fmtShort = (ms) => new Date(ms).toLocaleString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+function renderPop(spec) {
+  const w = range.slips, pq = q[popName()], day = w === 1, earlier = w === 1 ? 'a week earlier' : `${w} weeks earlier`;
+  if (!pq) return; // declaring the query renders before it is stored; the next render draws it
+  status(pq, 'x-trend-state', 'No ETA slips in this window');
+  const [bright, dim] = TONES[spec.tone];
+  set('x-trend-hint', `<i class="xkey" style="background:${bright}"></i>this period<i class="xkey" style="background:${dim}"></i>${earlier}`);
+  if (!xTrendChart) { document.getElementById('x-trend-state').textContent = 'Chart unavailable'; return; }
+  if (!pq?.result || pq.isDirty || pq.result === xTrendDrawn) return;
+  xTrendDrawn = pq.result;
+  const rows = pq.result.rows, shift = w * 7 * 86400000;
+  const now = rows.reduce((a, r) => a + (n(r.slips) ?? 0), 0), prev = rows.reduce((a, r) => a + (n(r.slips_prev) ?? 0), 0);
+  set('x-pop', `This period <b>${now}</b> · the ${esc(weeksText(w))} before <b>${prev}</b> ${change(now, prev)}<br>
+    ${day ? 'Each day' : 'Each week (Monday to Sunday)'} against the same days ${earlier}.`);
+  const label = (r) => (day ? '' : 'wk of ') + fmtShort(ts(r.period));
+  xTrendChart.resize();
+  xTrendChart.setOption({
+    animation: !REDUCED,
+    textStyle: { fontFamily: 'Inter, system-ui, sans-serif' },
+    grid: { left: 36, right: 8, top: 12, bottom: 24 },
+    tooltip: { trigger: 'axis', ...TOOLTIP, formatter: (ps) => {
+      const r = rows[ps[0].dataIndex];
+      return `${day ? '' : 'Week of '}${fmtShort(ts(r.period))}: <b>${n(r.slips) ?? 0}</b> slips<br>${day ? '' : 'Week of '}${fmtShort(ts(r.period) - shift)}: ${n(r.slips_prev) ?? 0} slips ${change(r.slips, r.slips_prev)}`;
+    } },
+    xAxis: { type: 'category', data: rows.map(label), ...AXIS, splitLine: { show: false }, axisLabel: { color: '#7f8fab', hideOverlap: true } },
+    yAxis: { type: 'value', minInterval: 1, ...AXIS },
+    series: [
+      { name: earlier, type: 'bar', barMaxWidth: 14, barGap: '15%', data: rows.map((r) => n(r.slips_prev) ?? 0), itemStyle: { color: dim, borderRadius: [3, 3, 0, 0] } },
+      { name: 'This period', type: 'bar', barMaxWidth: 14, data: rows.map((r) => n(r.slips) ?? 0), itemStyle: { color: bright, borderRadius: [3, 3, 0, 0] } },
+    ],
+  }, { notMerge: true });
+}
+for (const card of document.querySelectorAll('.kpi[data-explain]')) {
+  card.addEventListener('click', (e) => { if (!e.target.closest('select')) openExplain(card.dataset.explain); });
+  card.addEventListener('keydown', (e) => { if (e.target === card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openExplain(card.dataset.explain); } });
+}
+// A range select, on a card or in the panel: every select for that range follows, and its queries re-run.
+for (const el of document.querySelectorAll('select[data-range]')) el.innerHTML = rangeSelect(el.dataset.range).replace(/^<select[^>]*>|<\/select>$/g, '');
+document.addEventListener('change', (e) => {
+  const sel = e.target.closest('select[data-range]');
+  if (!sel) return;
+  const key = sel.dataset.range;
+  range[key] = Number(sel.value);
+  for (const other of document.querySelectorAll(`select[data-range="${key}"]`)) other.value = sel.value;
+  applyRange(key);
+  if (key === 'slips' && xMode === 'pop' && xKey === 'slips') setPopWindow();
+  if (xKey === key) setDayWindow(key);
+  explainDrawn = undefined;
+  xTrendDrawn = undefined;
+  app.execute();
+});
+document.getElementById('explain-close').addEventListener('click', closeExplain);
+document.getElementById('x-more').addEventListener('click', () => q[XSPEC[xKey].rows].fetchMore().catch((err) => console.error(err)));
+const openRow = (tr) => openOrder(q[XSPEC[xKey].rows].result.rows[tr.dataset.i].order_ref, {
+  key: xKey, lane: xKey === 'lane' ? selLane : null, cust: xKey === 'customer' ? xCust : null, title: XSPEC[xKey].title(), sort: { ...xSort },
+  scroll: document.getElementById('explain').scrollTop, tableScroll: document.querySelector('#explain .xscroll').scrollTop,
+});
+// Sorting runs in the query (setSort), not on the loaded page, so "Load more" continues in the same order.
+function sortBy(field) {
+  const spec = XSPEC[xKey];
+  const col = COLS[spec.cols].find((c) => c.field === field);
+  xSort = xSort.field === field ? { field, direction: xSort.direction === 'asc' ? 'desc' : 'asc' } : { field, direction: col.first };
+  applySort(spec);
+  explainDrawn = undefined;  // redraw the header now; the rows follow when the query returns
+  app.execute();
+}
+xOrders.addEventListener('click', (e) => {
+  const th = e.target.closest('th[data-sort]');
+  if (th) { sortBy(th.dataset.sort); return; }
+  const tr = e.target.closest('tr[data-i]');
+  if (tr) openRow(tr);
+});
+xOrders.addEventListener('keydown', (e) => {
+  const th = e.target.closest('th[data-sort]');
+  if (th && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); sortBy(th.dataset.sort); return; }
+  const tr = e.target.closest('tr[data-i]');
+  if (tr && e.key === 'Enter') openRow(tr);
+});
+
+// Each section's heading collapses it.
+for (const h of document.querySelectorAll('#explain .xtoggle')) {
+  h.setAttribute('role', 'button');
+  h.setAttribute('tabindex', '0');
+  h.setAttribute('aria-expanded', 'true');
+  const toggle = () => {
+    const open = !h.parentElement.classList.toggle('collapsed');
+    h.setAttribute('aria-expanded', String(open));
+    if (open && h.parentElement.id === 'x-trend-sec') xTrendChart?.resize();
+  };
+  h.addEventListener('click', toggle);
+  h.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+}
+
+// ---- Chips ----
+function renderChips() {
+  const chips = [];
+  if (picked.stage) chips.push(['stage', `Stage: ${picked.stage}`]);
+  if (picked.factor) chips.push(['factor', `Risk factor: ${picked.factor}`]);
+  const sel = q.trend.selectedRows;
+  if (sel.length) chips.push(['trend', `${n(sel[0].weeks_ago) === 0 ? 'Last 7 days' : `7 days from ${windowLabel(sel[0].weeks_ago)}`} · ${sel[0].stage}`]);
+  set('chips', chips.map(([key, text]) => `<button class="chip" data-chip="${key}">${esc(text)} ×</button>`).join(''));
+}
+document.getElementById('chips').addEventListener('click', (e) => {
+  const chip = e.target.closest('[data-chip]');
+  if (!chip) return;
+  if (chip.dataset.chip === 'trend') { app.clearSelection(); app.execute(); } else pick(chip.dataset.chip, picked[chip.dataset.chip]);
+});
+
+// ---- Render ----
+function render() {
+  renderKpis();
+  renderMap();
+  renderJourney();
+  renderAlerts();
+  renderTrend();
+  renderWatch();
+  renderCustomers();
+  renderChips();
+  renderDrawer();
+  renderExplain();
+  for (const query of Object.values(q)) logFirst(query);
+}
+app.subscribe(render);
+
+// execute() skips a query whose inputs match its last finished run even while an older request with other inputs
+// is in flight; that request then lands and leaves a stale result (set a filter, clear it before the query returns).
+// Once nothing is running, re-run whatever is stale. Failed queries are left alone, so an error can't loop.
+let catchingUp = false;
+app.subscribe(() => {
+  const all = Object.values(q);
+  if (catchingUp || all.some((query) => query.state === 'executing')) return;
+  if (!all.some((query) => query.isDirty && query.state !== 'error')) return;
+  catchingUp = true;
+  app.execute().finally(() => { catchingUp = false; });
+});
+
+// ---- Wiring ----
+for (const key of ['mode', 'carrier', 'origin', 'dest']) {
+  const el = document.getElementById(`f-${key}`);
+  f[key].loadOptions().then((options) => {
+    el.replaceChildren(new Option(el.dataset.all, ''), ...options.map((v) => new Option(String(v), String(v))));
+  }).catch((err) => console.error(`Could not load ${key} options`, err));
+  el.addEventListener('change', () => {
+    el.classList.toggle('on', !!el.value);
+    f[key].setCondition({ operator: 'is', values: el.value ? [el.value] : [] });
+    app.clearSelection();
+    app.execute();
+  });
+}
+window.addEventListener('resize', () => charts.forEach((c) => c.resize()));
+
+app.execute();
+</script>
+</body>
+</html>

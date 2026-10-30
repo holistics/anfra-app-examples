@@ -1,0 +1,28 @@
+Model nether_asset {
+  type: 'table'
+  label: 'Asset'
+  data_source_name: 'nether'
+  table_name: 'asset'
+
+  dimension asset_id {
+    label: 'Asset Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.asset_id }} ;;
+  }
+  dimension asset_type {
+    label: 'Asset Type'
+    type: 'text'
+    definition: @sql {{ #SOURCE.asset_type }} ;;
+  }
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }} ;;
+  }
+  dimension location {
+    label: 'Location'
+    type: 'text'
+    definition: @sql {{ #SOURCE.location }} ;;
+  }
+}

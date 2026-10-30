@@ -1,0 +1,39 @@
+Dataset nether_rites {
+  label: 'The Book of Religion'
+  description: 'Offerings laid at temples, and oaths sworn and whether they held. The soul under examination is the one who gave or swore.'
+  data_source_name: 'nether'
+
+  models: [
+    nether_person,
+    nether_temple,
+    nether_offering,
+    nether_oath,
+  ]
+
+  relationships: [
+    relationship(nether_offering.person_id > nether_person.person_id, true),
+    relationship(nether_offering.temple_id > nether_temple.temple_id, true),
+    relationship(nether_oath.person_id > nether_person.person_id, true),
+  ]
+
+  metric offerings_made {
+    label: 'Offerings made'
+    type: 'number'
+    description: 'Offerings this soul laid at a temple.'
+    definition: @aql nether_offering | count(nether_offering.offering_id) ;;
+  }
+
+  metric oaths_sworn {
+    label: 'Oaths sworn'
+    type: 'number'
+    description: 'Oaths this soul swore, kept or not.'
+    definition: @aql nether_oath | count(nether_oath.oath_id) ;;
+  }
+
+  metric oaths_broken {
+    label: 'Oaths broken'
+    type: 'number'
+    description: 'Oaths that did not hold.'
+    definition: @aql nether_oath | where(nether_oath.kept == false) | count(nether_oath.oath_id) ;;
+  }
+}

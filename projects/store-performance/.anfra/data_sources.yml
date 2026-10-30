@@ -1,0 +1,10 @@
+# The local Postgres in docker-compose.yml. Its user and password exist only in that container.
+data_sources:
+  warehouse:
+    type: postgresql
+    connection:
+      host: localhost
+      port: 5441
+      user: store
+      password: store
+      dbname: store

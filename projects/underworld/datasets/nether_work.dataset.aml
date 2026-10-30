@@ -1,0 +1,30 @@
+Dataset nether_work {
+  label: 'The Book of Trades'
+  description: 'Who employed a soul, in what role, and for how long. An open end date means the work ran until they died. Employment with no business is self-employment: a musician or a poet works for no house.'
+  data_source_name: 'nether'
+
+  models: [
+    nether_person,
+    nether_business,
+    nether_employment,
+  ]
+
+  relationships: [
+    relationship(nether_employment.person_id > nether_person.person_id, true),
+    relationship(nether_employment.business_id > nether_business.business_id, true),
+  ]
+
+  metric employers {
+    label: 'Employers'
+    type: 'number'
+    description: 'Separate businesses this soul worked for.'
+    definition: @aql count_distinct(nether_business.business_id) ;;
+  }
+
+  metric years_employed {
+    label: 'Years employed'
+    type: 'number'
+    description: 'Years of recorded work. An open end date runs to the death date.'
+    definition: @aql nether_employment | sum(date_diff('year', nether_employment.started_on, coalesce(nether_employment.ended_on, nether_person.death_date))) ;;
+  }
+}

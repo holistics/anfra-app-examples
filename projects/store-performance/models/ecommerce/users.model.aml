@@ -1,0 +1,18 @@
+Model users {
+  type: 'table'
+  label: 'Customers'
+  description: 'Everyone who signed up. A new customer is counted on the day they signed up. Fictional people.'
+  data_source_name: 'warehouse'
+  table_name: '"ecommerce"."users"'
+
+  dimension id { label: 'Customer id' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.id }};; }
+  dimension sign_up_date { label: 'Sign-up date' type: 'date' definition: @sql {{ #SOURCE.sign_up_date }};; }
+  dimension sign_up_at { label: 'Signed up at' type: 'datetime' definition: @sql {{ #SOURCE.sign_up_at }};; }
+  dimension first_name { label: 'First name' type: 'text' definition: @sql {{ #SOURCE.first_name }};; }
+  dimension last_name { label: 'Last name' type: 'text' definition: @sql {{ #SOURCE.last_name }};; }
+  dimension full_name { label: 'Customer name' type: 'text' definition: @sql {{ #SOURCE.full_name }};; }
+  dimension email { label: 'Email' type: 'text' definition: @sql {{ #SOURCE.email }};; }
+  dimension birth_date { label: 'Birth date' type: 'date' definition: @sql {{ #SOURCE.birth_date }};; }
+  dimension gender { label: 'Gender' type: 'text' definition: @sql {{ #SOURCE.gender }};; }
+  dimension city_id { label: 'City id' type: 'number' hidden: true definition: @sql {{ #SOURCE.city_id }};; }
+}

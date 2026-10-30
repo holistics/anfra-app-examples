@@ -1,0 +1,14 @@
+Dataset nether_mint {
+  label: 'The Mint Standards'
+  description: 'What a coin struck in each birthplace is supposed to look like. Read by the entrance desk and the guide book, not browsed as a Book of Truth.'
+  data_source_name: 'nether'
+
+  models: [
+    nether_person,
+    nether_obol_standard,
+  ]
+
+  relationships: [
+    relationship(nether_person.birthplace > nether_obol_standard.birthplace, true),
+  ]
+}

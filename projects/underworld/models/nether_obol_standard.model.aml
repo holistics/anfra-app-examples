@@ -1,0 +1,58 @@
+Model nether_obol_standard {
+  type: 'table'
+  label: 'Obol Standard'
+  data_source_name: 'nether'
+  table_name: 'obol_standard'
+
+  dimension birthplace {
+    label: 'Birthplace'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.birthplace }} ;;
+  }
+  dimension emblem {
+    label: 'Emblem'
+    type: 'text'
+    definition: @sql {{ #SOURCE.emblem }} ;;
+  }
+  dimension mint_mark {
+    label: 'Mint Mark'
+    type: 'text'
+    definition: @sql {{ #SOURCE.mint_mark }} ;;
+  }
+  dimension rim {
+    label: 'Rim'
+    type: 'text'
+    definition: @sql {{ #SOURCE.rim }} ;;
+  }
+  dimension metal {
+    label: 'Metal'
+    type: 'text'
+    definition: @sql {{ #SOURCE.metal }} ;;
+  }
+  dimension valid_from {
+    label: 'Valid From'
+    type: 'date'
+    definition: @sql {{ #SOURCE.valid_from }} ;;
+  }
+  dimension valid_to {
+    label: 'Valid To'
+    type: 'text'
+    definition: @sql {{ #SOURCE.valid_to }} ;;
+  }
+  dimension issue_location_1 {
+    label: 'Issue Location 1'
+    type: 'text'
+    definition: @sql {{ #SOURCE.issue_location_1 }} ;;
+  }
+  dimension issue_location_2 {
+    label: 'Issue Location 2'
+    type: 'text'
+    definition: @sql {{ #SOURCE.issue_location_2 }} ;;
+  }
+  dimension issue_location_3 {
+    label: 'Issue Location 3'
+    type: 'text'
+    definition: @sql {{ #SOURCE.issue_location_3 }} ;;
+  }
+}

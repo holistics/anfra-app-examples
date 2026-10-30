@@ -1,0 +1,38 @@
+Model nether_passage_permit {
+  type: 'table'
+  label: 'Passage Permit'
+  data_source_name: 'nether'
+  table_name: 'passage_permit'
+
+  dimension permit_id {
+    label: 'Permit Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.permit_id }} ;;
+  }
+  dimension person_id {
+    label: 'Person Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.person_id }} ;;
+  }
+  dimension seal {
+    label: 'Seal'
+    type: 'text'
+    definition: @sql {{ #SOURCE.seal }} ;;
+  }
+  dimension issued_on {
+    label: 'Issued On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.issued_on }} ;;
+  }
+  dimension expires_on {
+    label: 'Expires On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.expires_on }} ;;
+  }
+  dimension status {
+    label: 'Status'
+    type: 'text'
+    definition: @sql {{ #SOURCE.status }} ;;
+  }
+}

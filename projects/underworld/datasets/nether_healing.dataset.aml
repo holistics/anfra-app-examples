@@ -1,0 +1,38 @@
+Dataset nether_healing {
+  label: 'The Book of Healthcare'
+  description: 'Every case a healer took, what ailed the patient and whether they recovered. The soul under examination is the healer.'
+  data_source_name: 'nether'
+
+  models: [
+    nether_person,
+    nether_ailment,
+    nether_patient_case,
+  ]
+
+  relationships: [
+    relationship(nether_patient_case.healer_person_id > nether_person.person_id, true),
+    relationship(nether_patient_case.patient_person_id > nether_person.person_id, false),
+    relationship(nether_patient_case.ailment_id > nether_ailment.ailment_id, true),
+  ]
+
+  metric patients_treated {
+    label: 'Patients treated'
+    type: 'number'
+    description: 'Cases this healer took.'
+    definition: @aql nether_patient_case | count(nether_patient_case.patient_case_id) ;;
+  }
+
+  metric patients_recovered {
+    label: 'Patients recovered'
+    type: 'number'
+    description: 'Cases that ended in recovery.'
+    definition: @aql nether_patient_case | where(nether_patient_case.outcome == 'recovered') | count(nether_patient_case.patient_case_id) ;;
+  }
+
+  metric recovery_rate {
+    label: 'Recovery rate'
+    type: 'number'
+    description: 'Recovered cases over all cases taken. A healer who took only easy cases will look better than one who did not.'
+    definition: @aql coalesce(patients_recovered, 0) * 1.0 / patients_treated ;;
+  }
+}

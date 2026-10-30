@@ -1,0 +1,39 @@
+Dataset nether_harvest {
+  label: 'The Book of Agriculture'
+  description: 'Estates held and what they yielded, season by season.'
+  data_source_name: 'nether'
+
+  models: [
+    nether_person,
+    nether_estate,
+    nether_holding,
+    nether_harvest_record,
+  ]
+
+  relationships: [
+    relationship(nether_holding.person_id > nether_person.person_id, true),
+    relationship(nether_holding.estate_id > nether_estate.estate_id, true),
+    relationship(nether_harvest_record.estate_id > nether_estate.estate_id, true),
+  ]
+
+  metric total_yield {
+    label: 'Total yield'
+    type: 'number'
+    description: 'Everything the estates brought in, at harvest grain.'
+    definition: @aql nether_harvest_record | sum(nether_harvest_record.yield_measure) ;;
+  }
+
+  metric harvests_recorded {
+    label: 'Harvests recorded'
+    type: 'number'
+    description: 'Seasons of harvest recorded on the estates this soul held.'
+    definition: @aql nether_harvest_record | count(nether_harvest_record.harvest_id) ;;
+  }
+
+  metric average_yield {
+    label: 'Average yield'
+    type: 'number'
+    description: 'Total yield over harvests recorded: what a typical season brought in.'
+    definition: @aql total_yield * 1.0 / harvests_recorded ;;
+  }
+}

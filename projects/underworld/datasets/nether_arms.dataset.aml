@@ -1,0 +1,41 @@
+Dataset nether_arms {
+  label: 'The Book of Battle'
+  description: 'Campaigns, who served in them and who was killed. A killing with no campaign happened outside battle.'
+  data_source_name: 'nether'
+
+  models: [
+    nether_person,
+    nether_campaign,
+    nether_service,
+    nether_casualty_record,
+  ]
+
+  relationships: [
+    relationship(nether_service.person_id > nether_person.person_id, true),
+    relationship(nether_service.campaign_id > nether_campaign.campaign_id, true),
+    relationship(nether_casualty_record.killer_person_id > nether_person.person_id, true),
+    relationship(nether_casualty_record.victim_person_id > nether_person.person_id, false),
+    relationship(nether_casualty_record.campaign_id > nether_campaign.campaign_id, false),
+  ]
+
+  metric souls_killed {
+    label: 'Souls killed'
+    type: 'number'
+    description: 'Every killing recorded against this soul, in battle or out of it.'
+    definition: @aql nether_casualty_record | count(nether_casualty_record.casualty_id) ;;
+  }
+
+  metric killed_in_battle {
+    label: 'Killed in battle'
+    type: 'number'
+    description: 'Killings recorded in the course of a campaign.'
+    definition: @aql nether_casualty_record | where(nether_casualty_record.context == 'battle') | count(nether_casualty_record.casualty_id) ;;
+  }
+
+  metric killed_outside_battle {
+    label: 'Killed outside battle'
+    type: 'number'
+    description: 'What is left when battle is taken out.'
+    definition: @aql souls_killed - coalesce(killed_in_battle, 0) ;;
+  }
+}

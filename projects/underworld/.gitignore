@@ -1,0 +1,9 @@
+# anfra: data source credentials
+.anfra/data_sources.yml
+
+# generated world: scripts/generate_nether_data.py
+data/nether.duckdb
+*.duckdb.wal
+
+__pycache__/
+*.pyc

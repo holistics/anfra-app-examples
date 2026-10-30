@@ -1,0 +1,38 @@
+Model nether_oath {
+  type: 'table'
+  label: 'Oath'
+  data_source_name: 'nether'
+  table_name: 'oath'
+
+  dimension oath_id {
+    label: 'Oath Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.oath_id }} ;;
+  }
+  dimension person_id {
+    label: 'Person Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.person_id }} ;;
+  }
+  dimension sworn_on {
+    label: 'Sworn On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.sworn_on }} ;;
+  }
+  dimension subject {
+    label: 'Subject'
+    type: 'text'
+    definition: @sql {{ #SOURCE.subject }} ;;
+  }
+  dimension kept {
+    label: 'Kept'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.kept }} ;;
+  }
+  dimension broken_on {
+    label: 'Broken On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.broken_on }} ;;
+  }
+}

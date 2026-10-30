@@ -1,0 +1,38 @@
+Model nether_service {
+  type: 'table'
+  label: 'Service'
+  data_source_name: 'nether'
+  table_name: 'service'
+
+  dimension service_id {
+    label: 'Service Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.service_id }} ;;
+  }
+  dimension person_id {
+    label: 'Person Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.person_id }} ;;
+  }
+  dimension campaign_id {
+    label: 'Campaign Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.campaign_id }} ;;
+  }
+  dimension rank {
+    label: 'Rank'
+    type: 'text'
+    definition: @sql {{ #SOURCE.rank }} ;;
+  }
+  dimension joined_on {
+    label: 'Joined On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.joined_on }} ;;
+  }
+  dimension left_on {
+    label: 'Left On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.left_on }} ;;
+  }
+}

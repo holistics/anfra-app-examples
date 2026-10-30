@@ -1,0 +1,130 @@
+Model customer_health {
+  type: 'query'
+  label: 'Customer Health'
+  description: '''One row per active paying customer, measured on the last day of data ("today").
+Usage is compared with the customer's own normal: requests in the last 28 days against their average
+28 days over the 12 weeks before that.'''
+  data_source_name: 'inkwell'
+  models: [customers, llm_usage, cap_events, invoices]
+  query: @sql
+    with as_of_day as (select max(used_on) as d from {{ #llm_usage }}),
+    u as (
+      select customer_id,
+        sum(requests) filter (where used_on > (select d from as_of_day) - 28) as recent,
+        sum(requests) filter (where used_on > (select d from as_of_day) - 112 and used_on <= (select d from as_of_day) - 28) / 3.0 as baseline,
+        sum(requests) filter (where feature = 'agent' and used_on > (select d from as_of_day) - 28) as agent_recent,
+        max(used_on) as last_active
+      from {{ #llm_usage }} group by 1
+    ),
+    c as (
+      select customer_id, sum(blocked_runs) as blocked, count(*) as cap_days
+      from {{ #cap_events }} where event_date > (select d from as_of_day) - 28 group by 1
+    ),
+    f as (
+      select customer_id, count(*) as failed
+      from {{ #invoices }} where status = 'failed' and invoiced_on > (select d from as_of_day) - 90 group by 1
+    )
+    select customers.customer_id,
+      coalesce(u.recent, 0) as requests_last_28d,
+      round(coalesce(u.baseline, 0), 1) as requests_normal_28d,
+      coalesce(u.agent_recent, 0) as agent_runs_last_28d,
+      (select d from as_of_day) - coalesce(u.last_active, customers.signed_up_at) as days_since_active,
+      coalesce(c.blocked, 0) as blocked_runs_last_28d,
+      coalesce(c.cap_days, 0) as cap_days_last_28d,
+      coalesce(f.failed, 0) as failed_payments_90d,
+      (select d from as_of_day) as as_of_date,
+      customers.plan_id as plan_id
+    from {{ #customers }}
+    left join u using (customer_id)
+    left join c using (customer_id)
+    left join f using (customer_id)
+    where customers.status = 'active' and customers.plan_id <> 'free'
+      and customers.signed_up_at <= (select d from as_of_day) - 56
+  ;;
+
+  dimension customer_id {
+    label: 'Customer ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.customer_id }};;
+  }
+  dimension as_of_date {
+    label: 'As Of'
+    type: 'date'
+    definition: @sql {{ #SOURCE.as_of_date }};;
+  }
+  dimension requests_last_28d {
+    label: 'Requests, Last 28 Days'
+    type: 'number'
+    definition: @sql {{ #SOURCE.requests_last_28d }};;
+  }
+  dimension requests_normal_28d {
+    label: 'Requests, Their Normal 28 Days'
+    type: 'number'
+    description: 'Average per 28 days over the 12 weeks before the last 28 days.'
+    definition: @sql {{ #SOURCE.requests_normal_28d }};;
+  }
+  dimension usage_change {
+    label: 'Usage vs Their Normal'
+    type: 'number'
+    description: 'Last 28 days against their own normal. -0.6 means 60% less than usual.'
+    definition: @sql case when {{ #SOURCE.requests_normal_28d }} > 0 then {{ #SOURCE.requests_last_28d }} / {{ #SOURCE.requests_normal_28d }} - 1 else 0 end;;
+    format: '#,##0%'
+  }
+  dimension agent_runs_last_28d {
+    label: 'Agent Runs, Last 28 Days'
+    type: 'number'
+    definition: @sql {{ #SOURCE.agent_runs_last_28d }};;
+  }
+  dimension days_since_active {
+    label: 'Days Since Last Active'
+    type: 'number'
+    definition: @sql {{ #SOURCE.days_since_active }};;
+  }
+  dimension blocked_runs_last_28d {
+    label: 'Blocked Agent Runs, Last 28 Days'
+    type: 'number'
+    definition: @sql {{ #SOURCE.blocked_runs_last_28d }};;
+  }
+  dimension cap_days_last_28d {
+    label: 'Days at the Cap, Last 28 Days'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cap_days_last_28d }};;
+  }
+  dimension failed_payments_90d {
+    label: 'Failed Payments, Last 90 Days'
+    type: 'number'
+    definition: @sql {{ #SOURCE.failed_payments_90d }};;
+  }
+  dimension risk_score {
+    label: 'Churn Risk Score'
+    type: 'number'
+    description: '''0-100. Up to 45 points for using less than their normal (45 = stopped entirely), up to 30 for
+blocked Agent runs in the last 28 days (1 point per 3 runs), up to 15 for days since last active
+(1 per 2 days), 10 for any failed payment in 90 days.'''
+    definition: @sql least(100, round(
+        45 * greatest(0, -(case when {{ #SOURCE.requests_normal_28d }} > 0 then {{ #SOURCE.requests_last_28d }} / {{ #SOURCE.requests_normal_28d }} - 1 else 0 end))
+      + least(30, {{ #SOURCE.blocked_runs_last_28d }} / 3.0)
+      + least(15, {{ #SOURCE.days_since_active }} / 2.0)
+      + 10 * least(1, {{ #SOURCE.failed_payments_90d }})
+    ));;
+  }
+  dimension risk_band {
+    label: 'Risk'
+    type: 'text'
+    description: 'High at 45+, Watch at 30-44, OK below 30.'
+    definition: @sql case when {{ risk_score }} >= 45 then 'High' when {{ risk_score }} >= 30 then 'Watch' else 'OK' end;;
+  }
+  dimension risk_reason {
+    label: 'Main Signal'
+    type: 'text'
+    definition: @sql case
+        when {{ #SOURCE.blocked_runs_last_28d }} > 0 and {{ #SOURCE.plan_id }} <> 'team' then 'Downgraded to escape the cap'
+        when {{ #SOURCE.blocked_runs_last_28d }} >= 40 then 'Keeps hitting the Agent cap'
+        when {{ #SOURCE.days_since_active }} >= 14 then 'Gone quiet'
+        when {{ #SOURCE.requests_normal_28d }} > 0 and {{ #SOURCE.requests_last_28d }} < 0.5 * {{ #SOURCE.requests_normal_28d }} then 'Using it much less'
+        when {{ #SOURCE.failed_payments_90d }} > 0 then 'Card failed recently'
+        else 'Healthy' end;;
+  }
+}

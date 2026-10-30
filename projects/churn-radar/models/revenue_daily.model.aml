@@ -1,0 +1,68 @@
+Model revenue_daily {
+  type: 'query'
+  label: 'Revenue by Service Day'
+  description: '''Each invoice spread evenly over the days it pays for (invoice date up to the day before the next billing date).
+This is how a month's revenue lines up with that month's usage: a customer billed on Aug 20 paid for Aug 20 to Sep 19.
+Days after the last day of data are not recognized yet.'''
+  data_source_name: 'inkwell'
+  models: [invoices, dim_dates]
+  query: @sql
+    with periods as (
+      select
+        invoice_id,
+        customer_id,
+        invoiced_on,
+        amount_paid_usd - refunded_usd as kept_usd,
+        stripe_fee_usd,
+        datediff('day', invoiced_on, cast(invoiced_on + interval 1 month as date)) as days_covered
+      from {{ #invoices }}
+    ),
+    days as (
+      select p.*, cast(unnest(generate_series(p.invoiced_on, cast(p.invoiced_on + interval 1 month as date) - 1, interval 1 day)) as date) as service_date
+      from periods p
+    )
+    select
+      invoice_id || '-' || strftime(service_date, '%Y%m%d') as revenue_day_id,
+      invoice_id,
+      customer_id,
+      service_date,
+      kept_usd / days_covered as revenue_usd,
+      stripe_fee_usd / days_covered as fee_usd
+    from days
+    where service_date <= (select max(date_key) from {{ #dim_dates }})
+  ;;
+
+  dimension revenue_day_id {
+    label: 'Revenue Day ID'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.revenue_day_id }};;
+  }
+  dimension invoice_id {
+    label: 'Invoice ID'
+    type: 'text'
+    definition: @sql {{ #SOURCE.invoice_id }};;
+  }
+  dimension customer_id {
+    label: 'Customer ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.customer_id }};;
+  }
+  dimension service_date {
+    label: 'Service Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.service_date }};;
+  }
+  dimension revenue_usd {
+    label: 'Revenue Recognized (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.revenue_usd }};;
+  }
+  dimension fee_usd {
+    label: 'Payment Fee Allocated (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.fee_usd }};;
+  }
+}

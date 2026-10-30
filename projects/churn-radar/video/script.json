@@ -1,0 +1,14 @@
+{
+  "voice": "am_michael",
+  "segments": [
+    { "id": "intro", "text": "Hi, it's Minh again. Three months ago, my copilot fixed Inkwell's AI margin. Here's what happened next." },
+    { "id": "hook", "text": "On October first, we capped Agent runs on the Team plan, and moved most chat to a cheaper model. Margin jumped thirty-two points. Churn went up too." },
+    { "id": "why", "text": "The rules already cost me twenty-five hundred dollars a month in lost revenue. Since October, every month has a dark red slice: customers who blamed the rules. The savings shrink, the losses add up, and next month they cross." },
+    { "id": "noah", "text": "So, who do I call this week? Churn Radar scores every customer against their own normal. Noah is back. The cap refused three hundred and thirty-three of his Agent runs, and his usage just halved." },
+    { "id": "trust", "text": "The risk score, churn and lost revenue are each defined once, in code, with anfra. Inspect shows the exact query behind the list. And my copilot reads the same numbers." },
+    { "id": "plays", "text": "Raise Noah's cap? That costs more than he pays. Let him pay a dollar per extra run instead, and he keeps working, and I make money. Suggested plays for the whole list keep about five hundred dollars a month, and sixty-four hundred over the next six months." },
+    { "id": "copilot", "text": "Or, I just ask. The copilot scores every play, picks the best one for each customer, and sends the offers. Pay per run for the Team accounts, a discount or a check-in for the rest." },
+    { "id": "applied", "text": "Thirteen offers out, billing updated, and the green line is revenue I keep." },
+    { "id": "outro", "text": "Fix the margin. Keep the customers. Churn Radar, built with anfra." }
+  ]
+}

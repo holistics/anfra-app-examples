@@ -1,0 +1,24 @@
+Model rules {
+  type: 'table'
+  label: 'Pricing Rules'
+  description: 'The rules Inkwell applied on 1 Oct 2026 (one row).'
+  data_source_name: 'inkwell'
+  table_name: 'settings'
+
+  dimension rules_effective_date {
+    label: 'Rules Live Since'
+    type: 'date'
+    primary_key: true
+    definition: @sql {{ #SOURCE.rules_effective_date }};;
+  }
+  dimension team_agent_cap {
+    label: 'Team Agent Runs per Month'
+    type: 'number'
+    definition: @sql {{ #SOURCE.team_agent_cap }};;
+  }
+  dimension chat_to_mini_pct {
+    label: 'Share of Chat on Mini (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.chat_to_mini_pct }};;
+  }
+}

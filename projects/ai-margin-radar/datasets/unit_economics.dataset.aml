@@ -1,0 +1,177 @@
+Dataset unit_economics {
+  label: 'Inkwell Unit Economics'
+  description: '''
+# What this dataset answers
+- Revenue we actually kept, after coupons, failed payments and refunds.
+- What each customer costs us in LLM tokens and payment fees.
+- Gross margin per customer, per plan, per month, and which customers lose us money.
+
+# Definitions that matter
+- Revenue is cash kept: collected minus refunded. Coupons and failed charges never count.
+- Payment fees are Stripe's fee (2.9 percent plus 30 cents). Stripe keeps them on refunds, so they still count.
+- LLM cost is tokens times the model's list price. Hosting and salaries are not included.
+- Revenue and fees are spread over the days each invoice pays for (Revenue by Service Day), so a month's revenue lines up with that month's usage. Billing metrics (discounts, failed payments, refunds) stay on invoice date.
+'''
+  data_source_name: 'inkwell'
+
+  models: [
+    customers,
+    plans,
+    invoices,
+    revenue_daily,
+    llm_usage,
+    llm_models,
+    dim_dates,
+  ]
+  relationships: [
+    rel_config(Relationship { type: 'many_to_one', from: r(invoices.customer_id), to: r(customers.customer_id) }, true, 'one_way'),
+    rel_config(Relationship { type: 'many_to_one', from: r(llm_usage.customer_id), to: r(customers.customer_id) }, true, 'one_way'),
+    rel_config(Relationship { type: 'many_to_one', from: r(revenue_daily.customer_id), to: r(customers.customer_id) }, true, 'one_way'),
+    relationship(customers.plan_id > plans.plan_id, true),
+    relationship(llm_usage.model_id > llm_models.model_id, true),
+    // Billing date. Inactive so customer-by-month questions use the service days (revenue_daily) instead;
+    // billing metrics switch it on with with_relationships().
+    rel_config(Relationship { type: 'many_to_one', from: r(invoices.invoiced_on), to: r(dim_dates.date_key) }, false, 'one_way'),
+    rel_config(Relationship { type: 'many_to_one', from: r(llm_usage.used_on), to: r(dim_dates.date_key) }, true, 'one_way'),
+    rel_config(Relationship { type: 'many_to_one', from: r(revenue_daily.service_date), to: r(dim_dates.date_key) }, true, 'one_way'),
+  ]
+
+  // ---------------------------------------------------------------- revenue
+  metric list_price_billed {
+    label: 'List Price Billed'
+    type: 'number'
+    description: 'What invoices would be worth at full list price, before coupons.'
+    definition: @aql invoices | sum(invoices.gross_amount_usd) | with_relationships(invoices.invoiced_on > dim_dates.date_key) ;;
+    format: '[$$]#,###0'
+  }
+  metric discounts {
+    label: 'Coupon Discounts'
+    type: 'number'
+    definition: @aql invoices | sum(invoices.discount_usd) | with_relationships(invoices.invoiced_on > dim_dates.date_key) ;;
+    format: '[$$]#,###0'
+  }
+  metric failed_payments {
+    label: 'Failed Payments'
+    type: 'number'
+    description: 'Amount due on invoices whose charge failed. Not revenue.'
+    definition: @aql invoices | sum(invoices.gross_amount_usd - invoices.discount_usd) | where(invoices.status == 'failed') | with_relationships(invoices.invoiced_on > dim_dates.date_key) ;;
+    format: '[$$]#,###0'
+  }
+  metric refunds {
+    label: 'Refunds'
+    type: 'number'
+    definition: @aql invoices | sum(invoices.refunded_usd) | with_relationships(invoices.invoiced_on > dim_dates.date_key) ;;
+    format: '[$$]#,###0'
+  }
+  metric revenue {
+    label: 'Revenue'
+    type: 'number'
+    description: 'Cash kept (collected minus refunds), spread evenly over the days each invoice pays for. Excludes coupon discounts and failed charges.'
+    definition: @aql revenue_daily | sum(revenue_daily.revenue_usd) ;;
+    format: '[$$]#,###0'
+  }
+
+  // ---------------------------------------------------------------- costs
+  metric payment_fees {
+    label: 'Payment Fees'
+    type: 'number'
+    description: 'Stripe fees, 2.9% + $0.30 per successful charge, kept by Stripe on refunds. Spread over the days the charge pays for, like revenue.'
+    definition: @aql revenue_daily | sum(revenue_daily.fee_usd) ;;
+    format: '[$$]#,###0'
+  }
+  metric llm_cost {
+    label: 'LLM Cost'
+    type: 'number'
+    description: 'Input and output tokens times the model list price per million tokens.'
+    definition: @aql llm_usage | sum(llm_usage.input_tokens * llm_models.input_usd_per_mtok / 1000000.0 + llm_usage.output_tokens * llm_models.output_usd_per_mtok / 1000000.0) ;;
+    format: '[$$]#,###0'
+  }
+  metric total_cost {
+    label: 'Cost to Serve'
+    type: 'number'
+    description: 'LLM cost plus payment fees.'
+    definition: @aql llm_cost + payment_fees ;;
+    format: '[$$]#,###0'
+  }
+  metric tokens {
+    label: 'Tokens'
+    type: 'number'
+    definition: @aql llm_usage | sum(llm_usage.input_tokens + llm_usage.output_tokens) ;;
+    format: '#,###0'
+  }
+  metric requests {
+    label: 'Requests'
+    type: 'number'
+    definition: @aql llm_usage | sum(llm_usage.requests) ;;
+    format: '#,###0'
+  }
+
+  // ---------------------------------------------------------------- margin
+  metric gross_margin {
+    label: 'Gross Margin'
+    type: 'number'
+    description: 'Revenue minus cost to serve (LLM cost and payment fees).'
+    definition: @aql coalesce(revenue, 0) - coalesce(llm_cost, 0) - coalesce(payment_fees, 0) ;;
+    format: '[$$]#,###0'
+  }
+  metric gross_margin_pct {
+    label: 'Gross Margin %'
+    type: 'number'
+    definition: @aql safe_divide(gross_margin, revenue) ;;
+    format: '#,##0.0%'
+  }
+  metric llm_cost_share {
+    label: 'LLM Cost as % of Revenue'
+    type: 'number'
+    definition: @aql safe_divide(llm_cost, revenue) ;;
+    format: '#,##0.0%'
+  }
+
+  // ---------------------------------------------------------------- customers
+  metric paying_customers {
+    label: 'Paying Customers'
+    type: 'number'
+    description: 'Customers with revenue kept in the period (a paid, non-refunded invoice covering at least one day of it).'
+    definition: @aql revenue_daily | where(revenue_daily.revenue_usd > 0) | count_distinct(revenue_daily.customer_id) ;;
+    format: '#,###0'
+  }
+  metric active_users {
+    label: 'Active Users'
+    type: 'number'
+    description: 'Customers, free or paid, who made at least one LLM request in the period.'
+    definition: @aql llm_usage | count_distinct(llm_usage.customer_id) ;;
+    format: '#,###0'
+  }
+  metric revenue_per_paying_customer {
+    label: 'Revenue per Paying Customer'
+    type: 'number'
+    definition: @aql safe_divide(revenue, paying_customers) ;;
+    format: '[$$]#,###0.00'
+  }
+  metric llm_cost_per_active_user {
+    label: 'LLM Cost per Active User'
+    type: 'number'
+    definition: @aql safe_divide(llm_cost, active_users) ;;
+    format: '[$$]#,###0.00'
+  }
+  metric unprofitable_customers {
+    label: 'Unprofitable Customers'
+    type: 'number'
+    description: 'Paying customers whose gross margin in the period is below zero. Free users are not counted.'
+    definition: @aql unique(customers.customer_id) | select(m: gross_margin, r: revenue) | filter(r > 0) | filter(m < 0) | count(m) ;;
+    format: '#,###0'
+  }
+  metric loss_from_unprofitable {
+    label: 'Margin Lost to Unprofitable Customers'
+    type: 'number'
+    description: 'Sum of negative gross margin across paying customers who lose money in the period.'
+    definition: @aql unique(customers.customer_id) | select(m: gross_margin, r: revenue) | filter(r > 0) | filter(m < 0) | sum(m) ;;
+    format: '[$$]#,###0'
+  }
+  metric free_tier_cost {
+    label: 'Free Tier LLM Cost'
+    type: 'number'
+    definition: @aql llm_cost | where(customers.plan_id == 'free') ;;
+    format: '[$$]#,###0'
+  }
+}

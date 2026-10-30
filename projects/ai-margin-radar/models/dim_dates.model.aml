@@ -1,0 +1,14 @@
+Model dim_dates {
+  type: 'table'
+  label: 'Calendar'
+  description: 'One row per day. Revenue and cost both join here, so they share one time axis.'
+  data_source_name: 'inkwell'
+  table_name: 'dim_dates'
+
+  dimension date_key {
+    label: 'Date'
+    type: 'date'
+    primary_key: true
+    definition: @sql {{ #SOURCE.date_key }};;
+  }
+}

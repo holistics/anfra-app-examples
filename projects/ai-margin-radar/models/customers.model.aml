@@ -1,0 +1,66 @@
+Model customers {
+  type: 'table'
+  label: 'Customers'
+  description: 'One row per signed-up account, free or paid. Plan is the current plan (Inkwell has no plan changes yet).'
+  data_source_name: 'inkwell'
+  table_name: 'customers'
+
+  dimension customer_id {
+    label: 'Customer ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.customer_id }};;
+  }
+  dimension customer_name {
+    label: 'Customer'
+    type: 'text'
+    definition: @sql {{ #SOURCE.customer_name }};;
+  }
+  dimension email {
+    label: 'Email'
+    type: 'text'
+    definition: @sql {{ #SOURCE.email }};;
+  }
+  dimension country {
+    label: 'Country'
+    type: 'text'
+    definition: @sql {{ #SOURCE.country }};;
+  }
+  dimension acquisition_channel {
+    label: 'Acquisition Channel'
+    type: 'text'
+    definition: @sql {{ #SOURCE.acquisition_channel }};;
+  }
+  dimension plan_id {
+    label: 'Plan ID'
+    type: 'text'
+    hidden: true
+    definition: @sql {{ #SOURCE.plan_id }};;
+  }
+  dimension coupon_code {
+    label: 'Coupon'
+    type: 'text'
+    definition: @sql {{ #SOURCE.coupon_code }};;
+  }
+  dimension seats {
+    label: 'Seats'
+    type: 'number'
+    definition: @sql {{ #SOURCE.seats }};;
+  }
+  dimension signed_up_at {
+    label: 'Signed Up'
+    type: 'date'
+    definition: @sql {{ #SOURCE.signed_up_at }};;
+  }
+  dimension churned_at {
+    label: 'Churned'
+    type: 'date'
+    description: 'Date the subscription ended. Empty while the customer is still active.'
+    definition: @sql {{ #SOURCE.churned_at }};;
+  }
+  dimension is_active {
+    label: 'Is Active'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.churned_at }} is null;;
+  }
+}

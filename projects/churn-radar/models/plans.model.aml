@@ -1,0 +1,30 @@
+Model plans {
+  type: 'table'
+  label: 'Plans'
+  description: 'Price list. Prices are list prices per month, before coupons.'
+  data_source_name: 'inkwell'
+  table_name: 'plans'
+
+  dimension plan_id {
+    label: 'Plan ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.plan_id }};;
+  }
+  dimension plan_name {
+    label: 'Plan'
+    type: 'text'
+    definition: @sql {{ #SOURCE.plan_name }};;
+  }
+  dimension monthly_price_usd {
+    label: 'Monthly Price (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.monthly_price_usd }};;
+  }
+  dimension sort_order {
+    label: 'Plan Order'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.sort_order }};;
+  }
+}

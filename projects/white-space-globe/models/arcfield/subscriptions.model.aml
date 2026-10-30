@@ -1,0 +1,46 @@
+Model subscriptions {
+  type: 'table'
+  label: 'Subscriptions'
+  description: 'One row per period of constant MRR for an account. Rows chain with no gaps or overlaps (each ended_at is the next started_at). An account has churned when its last row has an end date. Point-in-time metrics read Account snapshots, which is built from this table.'
+  data_source_name: 'arcfield_duckdb'
+  table_name: 'main.subscriptions'
+
+  dimension subscription_id {
+    label: 'Subscription ID'
+    type: 'number'
+    primary_key: true
+    description: 'Surrogate key.'
+  }
+  dimension account_id {
+    label: 'Subscription account ID'
+    type: 'number'
+    hidden: true
+    description: 'Links to Accounts.'
+  }
+  dimension plan {
+    label: 'Plan'
+    type: 'text'
+    description: 'Essentials, Professional or Enterprise.'
+  }
+  dimension mrr_usd {
+    label: 'MRR (USD)'
+    type: 'number'
+    description: 'Monthly recurring revenue during this period, in USD at the country price level.'
+    format: '[$$]#,##0'
+  }
+  dimension started_at {
+    label: 'Started at'
+    type: 'datetime'
+    description: 'When this MRR level started (UTC).'
+  }
+  dimension ended_at {
+    label: 'Ended at'
+    type: 'datetime'
+    description: 'When this MRR level ended (UTC); empty while current. Active at time t means started_at <= t < ended_at.'
+  }
+  dimension change_reason {
+    label: 'Change reason'
+    type: 'text'
+    description: 'Why this row started: new, upgrade or downgrade.'
+  }
+}

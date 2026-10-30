@@ -1,0 +1,53 @@
+Model geo_cities {
+  type: 'table'
+  label: 'Cities'
+  description: 'One row per city that can host an account HQ (680, from Natural Earth populated places). The only route from accounts to geography: accounts link to their HQ city, the city links to its market (its US state, or its country elsewhere), and the market links to the country and state. Routing through the market keeps a single path from accounts to market size.'
+  data_source_name: 'arcfield_duckdb'
+  table_name: 'main.geo_cities'
+
+  dimension city_id {
+    label: 'City ID'
+    type: 'number'
+    primary_key: true
+    description: 'Surrogate key.'
+  }
+  dimension name {
+    label: 'City'
+    type: 'text'
+    description: 'City name. Not unique across countries (e.g. two Birminghams): group by city ID for a map.'
+  }
+  dimension country_code {
+    label: 'City country code'
+    type: 'text'
+    hidden: true
+    description: 'ISO alpha-3 code of the country. Information only: cities reach Countries through their market.'
+  }
+  dimension state_code {
+    label: 'City state code'
+    type: 'text'
+    hidden: true
+    description: 'ISO 3166-2 code of the US state; empty outside the US. Information only: cities reach US states through their market.'
+  }
+  dimension market_id {
+    label: 'City market ID'
+    type: 'text'
+    hidden: true
+    description: 'The market the city belongs to: its state code in the US, its country code elsewhere. Links to Market size.'
+    definition: @sql coalesce({{ #SOURCE.state_code }}, {{ #SOURCE.country_code }}) ;;
+  }
+  dimension lat {
+    label: 'City latitude'
+    type: 'number'
+    description: 'Latitude (degrees).'
+  }
+  dimension lon {
+    label: 'City longitude'
+    type: 'number'
+    description: 'Longitude (degrees).'
+  }
+  dimension population {
+    label: 'City population'
+    type: 'number'
+    description: 'Natural Earth population estimate. HQ cities were drawn in proportion to it.'
+  }
+}

@@ -1,0 +1,124 @@
+Model users {
+  type: 'table'
+  label: 'People'
+  description: 'One row per person on the app (synthetic, invented). City, gender and age band are what the Love Line filters describe: the swiper.'
+  data_source_name: 'loveline_duckdb'
+  table_name: 'main.users'
+
+  dimension user_id {
+    label: 'User ID'
+    type: 'number'
+    primary_key: true
+    description: 'Surrogate key.'
+  }
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    description: 'Invented first name. Used only for sample cards.'
+  }
+  dimension gender {
+    label: 'Gender'
+    type: 'text'
+    description: 'woman or man.'
+  }
+  dimension age {
+    label: 'Age'
+    type: 'number'
+    description: 'Age in years, 18-45.'
+  }
+  dimension age_band {
+    label: 'Age band'
+    type: 'text'
+    description: '18–24, 25–34 or 35+. The Age filter.'
+  }
+  dimension age_group {
+    label: 'Age group'
+    type: 'text'
+    description: 'Finer bands for the match heatmap: 18–22, 23–26, 27–30, 31–35, 36+.'
+  }
+  dimension city {
+    label: 'City'
+    type: 'text'
+    description: 'Hanoi, Ho Chi Minh City or Da Nang.'
+  }
+  dimension signed_up_at {
+    label: 'Signed up at'
+    type: 'datetime'
+    description: 'When the account was made.'
+  }
+  dimension height_cm {
+    label: 'Height (cm)'
+    type: 'number'
+    description: 'Height on the profile.'
+  }
+  dimension smoking {
+    label: 'Smoking'
+    type: 'text'
+    description: 'never, sometimes or often.'
+  }
+  dimension education {
+    label: 'Education'
+    type: 'text'
+    description: 'bachelors_plus or below.'
+  }
+  dimension pref_age_min {
+    label: 'Wants age from'
+    type: 'number'
+    description: 'Stated preference: youngest age they want to see.'
+  }
+  dimension pref_age_max {
+    label: 'Wants age to'
+    type: 'number'
+    description: 'Stated preference: oldest age they want to see.'
+  }
+  dimension pref_height_min {
+    label: 'Wants height from'
+    type: 'number'
+    description: 'Stated preference: shortest height they want (cm). Empty when not set. Mostly set by women.'
+  }
+  dimension pref_height_max {
+    label: 'Wants height to'
+    type: 'number'
+    description: 'Stated preference: tallest height they want (cm). Empty when not set. Set by some men.'
+  }
+  dimension pref_max_km {
+    label: 'Wants within (km)'
+    type: 'number'
+    description: 'Stated preference: maximum distance.'
+  }
+  dimension pref_non_smoker {
+    label: 'Wants non-smokers'
+    type: 'truefalse'
+    description: 'Stated preference: non-smokers only.'
+  }
+  dimension pref_degree {
+    label: 'Wants a degree'
+    type: 'truefalse'
+    description: 'Stated preference: bachelor’s or higher only.'
+  }
+  dimension right_rate_bucket {
+    label: 'Pickiness'
+    type: 'text'
+    description: 'Share of profiles they swiped right on, over all their swipes: <15%, 15–40%, 40–70% or 70%+.'
+  }
+  dimension match_count {
+    label: 'Matches'
+    type: 'number'
+    description: 'How many matches they got over the 12 weeks.'
+  }
+  dimension match_pile {
+    label: 'Pile of matches'
+    type: 'text'
+    description: 'Matches over the 12 weeks, bucketed: 1–3, 4–7, 8–12 or 13+. Empty if they never matched.'
+  }
+  dimension deleted_at {
+    label: 'Deleted at'
+    type: 'datetime'
+    description: 'When they deleted their account. Empty if still on the app.'
+  }
+  dimension delete_reason {
+    label: 'Delete reason'
+    type: 'text'
+    description: 'Tired of it, Met someone or Taking a break. Empty if still on the app.'
+  }
+}

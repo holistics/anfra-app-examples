@@ -1,0 +1,118 @@
+Model swipes {
+  type: 'table'
+  label: 'Swipes'
+  description: '''
+One row per profile seen: the swiper saw the target and swiped left or right. Jul 23 - Oct 14, 2026.
+
+A right swipe is matched when the target also swiped right on the swiper; both swipes then carry the same match_id. The target's own fields are copied onto the swipe (target_*), so the only path to people is the swiper.
+'''
+  data_source_name: 'loveline_duckdb'
+  table_name: 'main.swipes'
+
+  dimension swipe_id {
+    label: 'Swipe ID'
+    type: 'number'
+    primary_key: true
+    description: 'Surrogate key, in time order.'
+  }
+  dimension swiped_at {
+    label: 'Swiped at'
+    type: 'datetime'
+    description: 'When the swipe happened.'
+  }
+  dimension swiper_id {
+    label: 'Swiper ID'
+    type: 'number'
+    description: 'Who swiped. Joins to people: the filters describe this person.'
+  }
+  dimension target_id {
+    label: 'Target ID'
+    type: 'number'
+    description: 'Whose profile was seen. Not joined; use the target_* fields.'
+  }
+  dimension is_right {
+    label: 'Swiped right'
+    type: 'truefalse'
+    description: 'True for a like.'
+  }
+  dimension distance_km {
+    label: 'Distance (km)'
+    type: 'number'
+    description: 'How far apart they were.'
+  }
+  dimension match_id {
+    label: 'Match ID'
+    type: 'number'
+    description: 'Set when this right swipe became a match. Empty otherwise.'
+  }
+  dimension first_message_by {
+    label: 'Who said hi first'
+    type: 'text'
+    description: 'For a matched swipe: you (the swiper sent the first message) or them. Empty if nobody said hi or there was no match.'
+  }
+  dimension target_gender {
+    label: 'Target gender'
+    type: 'text'
+    description: 'Gender of the profile seen.'
+  }
+  dimension target_age {
+    label: 'Target age'
+    type: 'number'
+    description: 'Age of the profile seen.'
+  }
+  dimension target_age_band {
+    label: 'Target age band'
+    type: 'text'
+    description: '18–24, 25–34 or 35+.'
+  }
+  dimension target_age_group {
+    label: 'Target age group'
+    type: 'text'
+    description: '18–22, 23–26, 27–30, 31–35 or 36+.'
+  }
+  dimension target_height_cm {
+    label: 'Target height (cm)'
+    type: 'number'
+    description: 'Height of the profile seen.'
+  }
+  dimension target_smoking {
+    label: 'Target smoking'
+    type: 'text'
+    description: 'never, sometimes or often.'
+  }
+  dimension target_education {
+    label: 'Target education'
+    type: 'text'
+    description: 'bachelors_plus or below.'
+  }
+  dimension breaks_age {
+    label: 'Breaks age rule'
+    type: 'truefalse'
+    description: 'The target is outside the swiper’s stated age range.'
+  }
+  dimension breaks_height {
+    label: 'Breaks height rule'
+    type: 'truefalse'
+    description: 'The target is outside the swiper’s stated height range (only when they set one).'
+  }
+  dimension breaks_distance {
+    label: 'Breaks distance rule'
+    type: 'truefalse'
+    description: 'Further than the swiper’s stated maximum distance.'
+  }
+  dimension breaks_smoking {
+    label: 'Breaks smoking rule'
+    type: 'truefalse'
+    description: 'The swiper wants non-smokers; the target smokes sometimes or often.'
+  }
+  dimension breaks_education {
+    label: 'Breaks education rule'
+    type: 'truefalse'
+    description: 'The swiper wants a degree; the target has none.'
+  }
+  dimension breaks_any {
+    label: 'Breaks any rule'
+    type: 'truefalse'
+    description: 'Breaks at least one of the five stated rules.'
+  }
+}

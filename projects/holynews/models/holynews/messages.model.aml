@@ -1,0 +1,64 @@
+Model messages {
+  type: 'table'
+  label: 'Messages'
+  description: 'One row per Slack message in a public channel (synthetic), May 19 - Oct 15, 2026, local time (Asia/Ho_Chi_Minh). Posts and their replies are messages too.'
+  data_source_name: 'holynews_duckdb'
+  table_name: 'main.messages'
+
+  dimension message_id {
+    label: 'Message ID'
+    type: 'number'
+    primary_key: true
+    description: 'Surrogate key, in time order.'
+  }
+  dimension sent_at {
+    label: 'Sent at'
+    type: 'datetime'
+    description: 'When the message was posted, local time.'
+  }
+  dimension sent_on {
+    label: 'Sent on'
+    type: 'date'
+    description: 'Local date of sent_at. Filter editions on this field.'
+  }
+  dimension channel_id {
+    label: 'Channel ID'
+    type: 'text'
+    description: 'Channel it was posted in.'
+  }
+  dimension author_id {
+    label: 'Author ID'
+    type: 'number'
+    description: 'Who posted it. Count distinct for people; never rank.'
+  }
+  dimension topic_id {
+    label: 'Topic ID'
+    type: 'text'
+    description: 'Topic the classifier tagged; empty for everyday chatter.'
+  }
+  dimension theme {
+    label: 'Theme'
+    type: 'text'
+    description: 'Sub-theme within the topic, e.g. Grandfathered plans. Empty for chatter.'
+  }
+  dimension sentiment {
+    label: 'Sentiment'
+    type: 'text'
+    description: 'positive, neutral or negative.'
+  }
+  dimension thread_id {
+    label: 'Thread ID'
+    type: 'number'
+    description: 'For a reply: the message that started the thread.'
+  }
+  dimension is_reply {
+    label: 'Is a reply'
+    type: 'truefalse'
+    description: 'True for replies in a thread.'
+  }
+  dimension permalink {
+    label: 'Slack link'
+    type: 'text'
+    description: 'Link to the message in Slack (shaped like the real thing, not live).'
+  }
+}

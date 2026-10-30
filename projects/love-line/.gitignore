@@ -1,0 +1,5 @@
+# Python / uv
+.venv/
+__pycache__/
+# DuckDB write-ahead log, if the file is ever opened for writing
+data/*.duckdb.wal

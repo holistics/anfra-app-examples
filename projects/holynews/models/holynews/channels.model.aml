@@ -1,0 +1,34 @@
+Model channels {
+  type: 'table'
+  label: 'Channels'
+  description: 'One row per public Slack channel (synthetic): 42 channels. Private channels and DMs are never read.'
+  data_source_name: 'holynews_duckdb'
+  table_name: 'main.channels'
+
+  dimension channel_id {
+    label: 'Channel ID'
+    type: 'text'
+    primary_key: true
+    description: 'Slack-style channel id (C0...).'
+  }
+  dimension name {
+    label: 'Channel'
+    type: 'text'
+    description: 'Channel name with its #, e.g. #all-announce.'
+  }
+  dimension family {
+    label: 'Channel family'
+    type: 'text'
+    description: 'announce (company-wide announcement channels), company (#all-general), work (team channels: the only ones Trending reads) or social (fun channels).'
+  }
+  dimension team {
+    label: 'Owning team'
+    type: 'text'
+    description: 'The team that runs the channel; Social for the fun channels.'
+  }
+  dimension permalink {
+    label: 'Slack link'
+    type: 'text'
+    description: 'Link to the channel in Slack (shaped like the real thing, not live).'
+  }
+}

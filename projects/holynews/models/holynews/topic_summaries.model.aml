@@ -1,0 +1,38 @@
+Model topic_summaries {
+  type: 'table'
+  label: 'Topic summaries'
+  description: 'One row per topic, edition grain and edition end: the AI summary the article prints (stands in for a nightly LLM summarizer).'
+  data_source_name: 'holynews_duckdb'
+  table_name: 'main.topic_summaries'
+
+  dimension topic_id {
+    label: 'Topic ID'
+    type: 'text'
+    description: 'The topic.'
+  }
+  dimension grain {
+    label: 'Edition'
+    type: 'text'
+    description: 'day, week or month.'
+  }
+  dimension edition_end {
+    label: 'Edition ends'
+    type: 'date'
+    description: 'Last day of the edition summarized.'
+  }
+  dimension headline {
+    label: 'Headline'
+    type: 'text'
+    description: 'Article headline.'
+  }
+  dimension dek {
+    label: 'Dek'
+    type: 'text'
+    description: 'One-sentence standfirst under the headline.'
+  }
+  dimension tldr {
+    label: 'In short'
+    type: 'text'
+    description: 'Up to three bullets, one per line.'
+  }
+}

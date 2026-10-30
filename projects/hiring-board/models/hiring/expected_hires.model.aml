@@ -1,0 +1,28 @@
+Model expected_hires {
+  type: 'table'
+  label: 'Expected hires'
+  description: 'Expected hires by Dec 31, 2026 per department and where they come from: open candidates by stage, or new applicants still to come. Capped at the seats with a role open.'
+  data_source_name: 'hiring_duckdb'
+  table_name: 'main.expected_hires'
+
+  dimension department {
+    label: 'Department'
+    type: 'text'
+    description: 'The team.'
+  }
+  dimension source {
+    label: 'From'
+    type: 'text'
+    description: 'Offer, Final, Culture, Technical, Screening, Applied (open candidates at that stage) or New applicants.'
+  }
+  dimension source_order {
+    label: 'From order'
+    type: 'number'
+    description: '0 Offer to 6 New applicants.'
+  }
+  dimension expected {
+    label: 'Expected hires'
+    type: 'number'
+    description: 'Sum of hire chances of the open candidates at that stage whose usual time to a hire fits before Dec 31; for new applicants, the last four weeks\' weekly applications × the applied-to-hired rate × the weeks that still fit. Scaled so a department never expects more than its seats with a role open.'
+  }
+}

@@ -1,0 +1,79 @@
+Model posts {
+  type: 'table'
+  label: 'Posts'
+  description: 'One row per post the newspaper prints: announcements, welcomes, deals, launches and fun-channel posts. Each is also a row in Messages (one to one), so its date and channel come from there.'
+  data_source_name: 'holynews_duckdb'
+  table_name: 'main.posts'
+
+  dimension message_id {
+    label: 'Message ID'
+    type: 'number'
+    primary_key: true
+    description: 'The post\'s message.'
+  }
+  dimension kind {
+    label: 'Kind'
+    type: 'text'
+    description: 'announcement (#all-announce, #all-general), welcome (#all-general), deal (#growth-announce), launch (#product-announce) or leisure (#food, #random).'
+  }
+  dimension team {
+    label: 'Posted by team'
+    type: 'text'
+    description: 'The team or role that posted it, e.g. People Ops, CEO.'
+  }
+  dimension title {
+    label: 'Title'
+    type: 'text'
+    description: 'Headline of the post.'
+  }
+  dimension body {
+    label: 'Body'
+    type: 'text'
+    description: 'The post\'s text, first lines.'
+  }
+  dimension topic_id {
+    label: 'Story topic'
+    type: 'text'
+    description: 'The Trending topic this post is the story of, if any (links to the article).'
+  }
+  dimension image_url {
+    label: 'Image'
+    type: 'text'
+    description: 'Image attached to the post, relative to the app.'
+  }
+  dimension image_caption {
+    label: 'Image caption'
+    type: 'text'
+    description: 'Caption for the image.'
+  }
+  dimension deal_customer {
+    label: 'Customer'
+    type: 'text'
+    description: 'Deals only: the customer.'
+  }
+  dimension deal_type {
+    label: 'Deal type'
+    type: 'text'
+    description: 'Deals only: New logo, Expansion or Renewal + upsell.'
+  }
+  dimension deal_arr {
+    label: 'Deal ARR'
+    type: 'number'
+    description: 'Deals only: new ARR in USD.'
+  }
+  dimension region {
+    label: 'Region'
+    type: 'text'
+    description: 'Deals only: Americas, EMEA or APAC.'
+  }
+  dimension welcome_person_id {
+    label: 'Welcomed person ID'
+    type: 'number'
+    description: 'Welcome posts only: the person welcomed.'
+  }
+  dimension reply_count {
+    label: 'Replies'
+    type: 'number'
+    description: 'Replies in the post\'s thread.'
+  }
+}

@@ -1,0 +1,33 @@
+Model topic_moments {
+  type: 'table'
+  label: 'Topic moments'
+  description: 'One row per turning point in a topic\'s story, numbered on the article\'s chart.'
+  data_source_name: 'holynews_duckdb'
+  table_name: 'main.topic_moments'
+
+  dimension topic_id {
+    label: 'Topic ID'
+    type: 'text'
+    description: 'The topic.'
+  }
+  dimension occurred_on {
+    label: 'Date'
+    type: 'date'
+    description: 'Day it happened.'
+  }
+  dimension title {
+    label: 'Moment'
+    type: 'text'
+    description: 'What happened.'
+  }
+  dimension body {
+    label: 'Detail'
+    type: 'text'
+    description: 'Where it happened.'
+  }
+  dimension permalink {
+    label: 'Slack link'
+    type: 'text'
+    description: 'Link to the thread in Slack.'
+  }
+}

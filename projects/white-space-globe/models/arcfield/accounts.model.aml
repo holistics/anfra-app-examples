@@ -1,0 +1,45 @@
+Model accounts {
+  type: 'table'
+  label: 'Accounts'
+  description: 'One row per customer company that has ever paid Arcfield (synthetic CRM data; no trials, no re-activations). Accounts reach geography only through their HQ city. First paid and churned dates are dataset dimensions derived from subscriptions, so every metric uses one definition.'
+  data_source_name: 'arcfield_duckdb'
+  table_name: 'main.accounts'
+
+  dimension account_id {
+    label: 'Account ID'
+    type: 'number'
+    primary_key: true
+    description: 'Surrogate key.'
+  }
+  dimension name {
+    label: 'Account'
+    type: 'text'
+    description: 'Company name (generated, fictional, unique).'
+  }
+  dimension industry {
+    label: 'Industry'
+    type: 'text'
+    description: 'One of 10 industries, e.g. Manufacturing, Financial services. Market size is all-industry, so penetration and white space do not apply under an industry filter.'
+  }
+  dimension employees {
+    label: 'Employees'
+    type: 'number'
+    description: 'Headcount of the customer company (50 and up).'
+  }
+  dimension segment {
+    label: 'Segment'
+    type: 'text'
+    description: 'From employees: Mid-market (50-249), Upper-mid (250-999), Enterprise (1,000+).'
+  }
+  dimension hq_city_id {
+    label: 'HQ city ID'
+    type: 'number'
+    hidden: true
+    description: 'City of the headquarters. Links to Cities, and through them to the country and US state.'
+  }
+  dimension created_at {
+    label: 'Created at'
+    type: 'datetime'
+    description: 'When the account was created in the CRM (UTC). Equals the start of its first subscription.'
+  }
+}

@@ -1,0 +1,23 @@
+Model events {
+  type: 'table'
+  label: 'Events'
+  description: 'One row per upcoming item pinned in company channels (Coming Up).'
+  data_source_name: 'holynews_duckdb'
+  table_name: 'main.events'
+
+  dimension day {
+    label: 'Day'
+    type: 'date'
+    description: 'When it happens.'
+  }
+  dimension title {
+    label: 'Event'
+    type: 'text'
+    description: 'What happens.'
+  }
+  dimension note {
+    label: 'Note'
+    type: 'text'
+    description: 'One line of detail.'
+  }
+}

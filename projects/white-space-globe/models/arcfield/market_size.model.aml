@@ -1,0 +1,63 @@
+Model market_size {
+  type: 'table'
+  label: 'Market size'
+  description: 'Public count of companies that could buy Arcfield (50+ employees), one row per market: a US state, or a country outside the US. There is no US total row: the US is the sum of its states. Each row carries its source. Market size is also the hub of the geography: cities link to their market, and markets link to countries and US states.'
+  data_source_name: 'arcfield_duckdb'
+  table_name: 'main.market_size'
+
+  dimension market_id {
+    label: 'Market ID'
+    type: 'text'
+    primary_key: true
+    description: 'Country code (e.g. DEU), or state code for US states (e.g. US-TX).'
+  }
+  dimension country_code {
+    label: 'Market country code'
+    type: 'text'
+    hidden: true
+    description: 'ISO alpha-3 code. Links to Countries.'
+  }
+  dimension state_code {
+    label: 'Market state code'
+    type: 'text'
+    hidden: true
+    description: 'ISO 3166-2 code for US state rows; empty elsewhere. Links to US states.'
+  }
+  dimension addressable_companies {
+    label: 'Addressable companies (row)'
+    type: 'number'
+    description: 'Companies with 50+ employees in this market. Aggregate with the Addressable companies metric.'
+  }
+  dimension size_definition {
+    label: 'Size definition'
+    type: 'text'
+    description: 'What counts as addressable. Always "50+ employees", all industries.'
+  }
+  dimension source {
+    label: 'Market size source'
+    type: 'text'
+    description: 'Eurostat SBS (31 European countries), OECD SDBS (other OECD), or Estimate from GDP (everyone else, including the US split by state GDP). Show "Estimate" as a badge.'
+  }
+  dimension source_year {
+    label: 'Source year'
+    type: 'number'
+    description: 'Reference year of the published count or of the GDP figure.'
+  }
+  dimension source_note {
+    label: 'Source note'
+    type: 'text'
+    description: "Plain-English source chain for 'How it is calculated', e.g. 'Eurostat SBS 2022: enterprises with 50+ employees'."
+  }
+  dimension is_estimate {
+    label: 'Is estimate'
+    type: 'truefalse'
+    description: 'True when the size is modelled from GDP rather than published.'
+    definition: @sql {{ #SOURCE.source }} = 'Estimate from GDP' ;;
+  }
+  dimension target_penetration {
+    label: 'Target penetration (RevOps)'
+    type: 'number'
+    description: 'Penetration RevOps sets as the target for every market (2.1%). Fallback for the computed benchmark.'
+    format: '#,##0.00%'
+  }
+}

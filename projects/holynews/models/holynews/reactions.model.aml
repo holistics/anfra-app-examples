@@ -1,0 +1,28 @@
+Model reactions {
+  type: 'table'
+  label: 'Reactions'
+  description: 'One row per message, emoji and day: how many people reacted with that emoji.'
+  data_source_name: 'holynews_duckdb'
+  table_name: 'main.reactions'
+
+  dimension message_id {
+    label: 'Message ID'
+    type: 'number'
+    description: 'The message reacted to.'
+  }
+  dimension emoji {
+    label: 'Emoji'
+    type: 'text'
+    description: 'The emoji itself, e.g. 🎉.'
+  }
+  dimension reacted_on {
+    label: 'Reacted on'
+    type: 'date'
+    description: 'Local date of the reactions. Emoji of the week filters this.'
+  }
+  dimension count {
+    label: 'Reactions'
+    type: 'number'
+    description: 'Number of people who reacted. Sum it.'
+  }
+}

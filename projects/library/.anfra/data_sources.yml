@@ -1,0 +1,5 @@
+data_sources:
+  library:
+    type: duckdb
+    connection:
+      path: data/library.duckdb?access_mode=read_only&enable_external_access=false

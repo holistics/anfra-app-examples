@@ -1,0 +1,6 @@
+node_modules/
+# DuckDB write-ahead log, if the file is ever opened for writing
+data/*.duckdb.wal
+# Written by data/fetch-real.mjs when the data is rebuilt
+data/raw/
+data/library.new.duckdb

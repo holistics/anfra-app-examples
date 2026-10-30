@@ -1,0 +1,203 @@
+Dataset metric_layers {
+  label: 'Business metrics'
+  description: 'Business metrics from profit down to channel and device, over 24 months to 2025-12-31. The data is generated, not real.'
+  data_source_name: 'metric_layers'
+  models: [ml_daily]
+  relationships: []
+
+  metric profit {
+    label: 'Profit'
+    description: 'Net revenue minus total cost, summed over the period. Excludes tax and any cost outside the four cost lines.'
+    type: 'number'
+    definition: @aql revenue - total_cost ;;
+  }
+
+  metric revenue {
+    label: 'Revenue'
+    description: 'Net sales over the period: list sales minus discounts, equal to orders times average order value. Counts all orders in the data; no refunds are modelled.'
+    type: 'number'
+    definition: @aql orders * aov ;;
+  }
+
+  metric total_cost {
+    label: 'Total cost'
+    description: 'Product, shipping, marketing and support cost added together over the period. Excludes payroll, tax and any cost not in these four lines.'
+    type: 'number'
+    definition: @aql product_cost + shipping_cost + marketing_cost + support_cost ;;
+  }
+
+  metric orders {
+    label: 'Orders'
+    description: 'Number of orders placed over the period, from all channels and devices. Equal to sessions times conversion rate.'
+    type: 'number'
+    definition: @aql sessions * conversion_rate ;;
+  }
+
+  metric aov {
+    label: 'Average order value'
+    description: 'Average net revenue per order: units per order times average unit price. Discounts are deducted; shipping charges are not included.'
+    type: 'number'
+    definition: @aql units_per_order * avg_unit_price ;;
+  }
+
+  metric product_cost {
+    label: 'Product cost'
+    description: 'Cost of goods sold for the units ordered, summed over the period. Generated at about 42% to 50% of net sales; excludes shipping and marketing.'
+    type: 'number'
+    definition: @aql ml_daily | sum(ml_daily.product_cost) ;;
+  }
+
+  metric shipping_cost {
+    label: 'Shipping cost'
+    description: 'Delivery cost summed over the period. Has a per-order part and a fixed daily carrier part, so it moves less than orders.'
+    type: 'number'
+    definition: @aql ml_daily | sum(ml_daily.shipping_cost) ;;
+  }
+
+  metric marketing_cost {
+    label: 'Marketing cost'
+    description: 'All marketing spend over the period (paid social and email): paid social sessions times marketing cost per paid session.'
+    type: 'number'
+    definition: @aql paid_sessions * cost_per_paid_session ;;
+  }
+
+  metric support_cost {
+    label: 'Support cost'
+    description: 'Customer support cost over the period: customers times support cost per customer. Mostly a fixed daily team cost, so it changes little with volume.'
+    type: 'number'
+    definition: @aql customers * support_cost_per_customer ;;
+  }
+
+  metric sessions {
+    label: 'Sessions (traffic)'
+    description: 'Site visits over the period: the sum of direct, referral, organic search, paid social and email sessions. One row is one day, channel and device.'
+    type: 'number'
+    definition: @aql direct_sessions + referral_sessions + organic_sessions + paid_sessions + email_sessions ;;
+  }
+
+  metric conversion_rate {
+    label: 'Conversion rate'
+    description: 'Share of sessions that end in an order: orders from mobile, desktop and tablet divided by all sessions. Ratio of period totals; 0 when there are no sessions.'
+    type: 'number'
+    definition: @aql safe_divide(mobile_orders + desktop_orders + tablet_orders, sessions) ;;
+  }
+
+  metric units_per_order {
+    label: 'Units per order'
+    description: 'Average number of units in an order: units sold divided by orders over the period. Returns 0 when there are no orders.'
+    type: 'number'
+    definition: @aql safe_divide(sum(ml_daily.units), sum(ml_daily.orders)) ;;
+  }
+
+  metric avg_unit_price {
+    label: 'Average unit price'
+    description: 'Average price paid per unit after discounts: average list price times one minus the discount rate.'
+    type: 'number'
+    definition: @aql avg_list_price * (1 - discount_rate) ;;
+  }
+
+  metric cost_per_paid_session {
+    label: 'Marketing cost per paid session'
+    description: 'Marketing cost per paid social session: all marketing cost (paid social and email) divided by paid social sessions only. Money per session.'
+    type: 'number'
+    definition: @aql safe_divide(sum(ml_daily.marketing_cost), sum(ml_daily.paid_sessions_col)) ;;
+  }
+
+  metric customers {
+    label: 'Customers'
+    description: 'Customers who ordered, summed over days: new plus returning. A customer who orders on several days counts once for each day.'
+    type: 'number'
+    definition: @aql new_customers + returning_customers ;;
+  }
+
+  metric support_cost_per_customer {
+    label: 'Support cost per customer'
+    description: 'Support cost divided by customers over the period, money per customer. Includes the fixed daily part of support cost.'
+    type: 'number'
+    definition: @aql safe_divide(sum(ml_daily.support_cost), sum(ml_daily.new_customers + ml_daily.returning_customers)) ;;
+  }
+
+  metric direct_sessions {
+    label: 'Direct sessions'
+    description: 'Sessions that arrive directly, for example by typed address or bookmark, summed over the period.'
+    type: 'number'
+    definition: @aql ml_daily | sum(ml_daily.sessions) | where(ml_daily.channel == 'direct') ;;
+  }
+
+  metric referral_sessions {
+    label: 'Referral sessions'
+    description: 'Sessions that arrive by a link on another website, summed over the period.'
+    type: 'number'
+    definition: @aql ml_daily | sum(ml_daily.sessions) | where(ml_daily.channel == 'referral') ;;
+  }
+
+  metric organic_sessions {
+    label: 'Organic search sessions'
+    description: 'Sessions from unpaid search engine results, summed over the period.'
+    type: 'number'
+    definition: @aql ml_daily | sum(ml_daily.sessions) | where(ml_daily.channel == 'organic search') ;;
+  }
+
+  metric paid_sessions {
+    label: 'Paid social sessions'
+    description: 'Sessions from paid social advertising, summed over the period. Excludes email and organic social.'
+    type: 'number'
+    definition: @aql ml_daily | sum(ml_daily.sessions) | where(ml_daily.channel == 'paid social') ;;
+  }
+
+  metric email_sessions {
+    label: 'Email sessions'
+    description: 'Sessions that start from an email link, summed over the period.'
+    type: 'number'
+    definition: @aql ml_daily | sum(ml_daily.sessions) | where(ml_daily.channel == 'email') ;;
+  }
+
+  metric mobile_orders {
+    label: 'Mobile orders'
+    description: 'Orders placed on a mobile phone, summed over the period.'
+    type: 'number'
+    definition: @aql ml_daily | sum(ml_daily.orders) | where(ml_daily.device == 'mobile') ;;
+  }
+
+  metric desktop_orders {
+    label: 'Desktop orders'
+    description: 'Orders placed on a desktop or laptop computer, summed over the period.'
+    type: 'number'
+    definition: @aql ml_daily | sum(ml_daily.orders) | where(ml_daily.device == 'desktop') ;;
+  }
+
+  metric tablet_orders {
+    label: 'Tablet orders'
+    description: 'Orders placed on a tablet, summed over the period.'
+    type: 'number'
+    definition: @aql ml_daily | sum(ml_daily.orders) | where(ml_daily.device == 'tablet') ;;
+  }
+
+  metric new_customers {
+    label: 'New customers'
+    description: 'Customers placing a first order, counted per day and summed over the period. They follow traffic.'
+    type: 'number'
+    definition: @aql ml_daily | sum(ml_daily.new_customers) ;;
+  }
+
+  metric returning_customers {
+    label: 'Returning customers'
+    description: 'Customers placing a repeat order, counted per day and summed over the period. Customers who ordered before.'
+    type: 'number'
+    definition: @aql ml_daily | sum(ml_daily.returning_customers) ;;
+  }
+
+  metric avg_list_price {
+    label: 'Average list price'
+    description: 'Average list price per unit before discounts: list sales divided by units sold over the period. Returns 0 when no units are sold.'
+    type: 'number'
+    definition: @aql safe_divide(sum(ml_daily.list_sales), sum(ml_daily.units)) ;;
+  }
+
+  metric discount_rate {
+    label: 'Discount rate'
+    description: 'Share of list sales given away as discounts: discount divided by list sales over the period. Returns 0 when there are no list sales.'
+    type: 'number'
+    definition: @aql safe_divide(sum(ml_daily.discount), sum(ml_daily.list_sales)) ;;
+  }
+}

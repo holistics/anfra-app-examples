@@ -1,0 +1,56 @@
+Dataset metric_tree {
+  label: 'Metric tree'
+  data_source_name: 'ecommerce'
+  models: [mt_orders, mt_order_items, mt_sessions]
+  relationships: [
+    relationship(mt_order_items.order_id > mt_orders.order_id, true),
+  ]
+
+  metric revenue {
+    label: 'Revenue (paid orders)'
+    type: 'number'
+    definition: @aql mt_order_items | sum(mt_order_items.line_amount) | where(mt_orders.status == 'completed' and mt_orders.is_refunded == false) ;;
+  }
+
+  metric orders {
+    label: 'Orders'
+    type: 'number'
+    definition: @aql mt_orders | count(mt_orders.order_id) | where(mt_orders.status == 'completed' and mt_orders.is_refunded == false) ;;
+  }
+
+  metric units {
+    label: 'Units'
+    type: 'number'
+    definition: @aql mt_order_items | sum(mt_order_items.quantity) | where(mt_orders.status == 'completed' and mt_orders.is_refunded == false) ;;
+  }
+
+  metric sessions {
+    label: 'Sessions'
+    type: 'number'
+    definition: @aql mt_sessions | sum(mt_sessions.sessions) ;;
+  }
+
+  metric aov {
+    label: 'Average order value'
+    type: 'number'
+    definition: @aql revenue / orders ;;
+  }
+
+  metric conversion_rate {
+    label: 'Conversion rate'
+    type: 'number'
+    definition: @aql orders / sessions ;;
+  }
+
+  metric units_per_order {
+    label: 'Units per order'
+    type: 'number'
+    definition: @aql units / orders ;;
+  }
+
+  metric avg_unit_price {
+    label: 'Average unit price'
+    type: 'number'
+    definition: @aql revenue / units ;;
+  }
+}

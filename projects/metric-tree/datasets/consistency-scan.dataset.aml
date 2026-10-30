@@ -1,0 +1,50 @@
+Dataset consistency_scan {
+  label: 'Consistency scan'
+  data_source_name: 'ecommerce'
+  models: [cs_orders, cs_order_items]
+  relationships: [
+    relationship(cs_order_items.order_id > cs_orders.order_id, true),
+  ]
+
+  metric net_revenue {
+    label: 'Net revenue'
+    type: 'number'
+    definition: @aql cs_order_items | sum(cs_order_items.line_amount) | where(cs_orders.status == 'completed' and cs_orders.is_refunded == false) ;;
+  }
+
+  metric gross_revenue {
+    label: 'Gross revenue'
+    type: 'number'
+    definition: @aql cs_order_items | sum(cs_order_items.line_amount) | where(cs_orders.status == 'completed') ;;
+  }
+
+  metric paid_orders {
+    label: 'Paid orders'
+    type: 'number'
+    definition: @aql cs_orders | count_distinct(cs_orders.order_id) | where(cs_orders.status == 'completed' and cs_orders.is_refunded == false) ;;
+  }
+
+  metric aov {
+    label: 'Average order value'
+    type: 'number'
+    definition: @aql net_revenue / paid_orders ;;
+  }
+
+  metric cash_inflow {
+    label: 'Cash inflow'
+    type: 'number'
+    definition: @aql cs_order_items | sum(cs_order_items.line_amount) | where(cs_orders.status == 'completed') ;;
+  }
+
+  metric active_customers_90d {
+    label: 'Active customers (90 days)'
+    type: 'number'
+    definition: @aql cs_orders | count_distinct(cs_orders.customer_id) | where(cs_orders.status == 'completed' and cs_orders.is_refunded == false and cs_orders.in_window_90d == true) ;;
+  }
+
+  metric active_customers_30d {
+    label: 'Active customers (30 days)'
+    type: 'number'
+    definition: @aql cs_orders | count_distinct(cs_orders.customer_id) | where(cs_orders.status == 'completed' and cs_orders.is_refunded == false and cs_orders.in_window_30d == true) ;;
+  }
+}

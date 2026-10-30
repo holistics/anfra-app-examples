@@ -1,0 +1,44 @@
+Model orders {
+  type: 'table'
+  label: 'Orders'
+  data_source_name: 'ecommerce'
+  table_name: 'orders'
+
+  dimension order_id {
+    label: 'Order Id'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.order_id }};;
+  }
+  dimension country {
+    label: 'Country'
+    type: 'text'
+    definition: @sql {{ #SOURCE.country }};;
+  }
+  dimension device {
+    label: 'Device'
+    type: 'text'
+    definition: @sql {{ #SOURCE.device }};;
+  }
+  dimension payment_method {
+    label: 'Payment Method'
+    type: 'text'
+    definition: @sql {{ #SOURCE.payment_method }};;
+  }
+  dimension status {
+    label: 'Status'
+    type: 'text'
+    definition: @sql {{ #SOURCE.status }};;
+  }
+  dimension order_date {
+    label: 'Order Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.order_date }};;
+  }
+  measure order_count {
+    label: 'Order count'
+    type: 'number'
+    definition: @sql {{ order_id }};;
+    aggregation_type: 'count'
+  }
+}

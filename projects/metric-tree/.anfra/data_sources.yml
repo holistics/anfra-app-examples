@@ -1,0 +1,9 @@
+data_sources:
+  ecommerce:
+    type: duckdb
+    connection:
+      path: data/ecommerce.duckdb?access_mode=read_only&enable_external_access=false
+  metric_layers:
+    type: duckdb
+    connection:
+      path: data/metric-layers-v9.duckdb?access_mode=read_only&enable_external_access=false

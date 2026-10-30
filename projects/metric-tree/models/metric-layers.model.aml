@@ -1,0 +1,91 @@
+Model ml_daily {
+  type: 'table'
+  label: 'Daily business metrics'
+  description: 'Daily rows by channel and device, 2024-01-01 to 2025-12-31. The data is generated, not real.'
+  data_source_name: 'metric_layers'
+  table_name: 'daily_metrics'
+
+  dimension row_key {
+    label: 'Row Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql cast({{ #SOURCE.metric_date }} as varchar) || '|' || {{ #SOURCE.channel }} || '|' || {{ #SOURCE.device }};;
+  }
+  dimension metric_date {
+    label: 'Metric Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.metric_date }};;
+  }
+  dimension channel {
+    label: 'Channel'
+    type: 'text'
+    definition: @sql {{ #SOURCE.channel }};;
+  }
+  dimension device {
+    label: 'Device'
+    type: 'text'
+    definition: @sql {{ #SOURCE.device }};;
+  }
+  dimension sessions {
+    label: 'Sessions'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sessions }};;
+  }
+  dimension orders {
+    label: 'Orders'
+    type: 'number'
+    definition: @sql {{ #SOURCE.orders }};;
+  }
+  dimension units {
+    label: 'Units'
+    type: 'number'
+    definition: @sql {{ #SOURCE.units }};;
+  }
+  dimension list_sales {
+    label: 'List Sales'
+    type: 'number'
+    definition: @sql {{ #SOURCE.list_sales }};;
+  }
+  dimension discount {
+    label: 'Discount'
+    type: 'number'
+    definition: @sql {{ #SOURCE.discount }};;
+  }
+  dimension product_cost {
+    label: 'Product Cost'
+    type: 'number'
+    definition: @sql {{ #SOURCE.product_cost }};;
+  }
+  dimension shipping_cost {
+    label: 'Shipping Cost'
+    type: 'number'
+    definition: @sql {{ #SOURCE.shipping_cost }};;
+  }
+  dimension marketing_cost {
+    label: 'Marketing Cost'
+    type: 'number'
+    definition: @sql {{ #SOURCE.marketing_cost }};;
+  }
+  dimension support_cost {
+    label: 'Support Cost'
+    type: 'number'
+    definition: @sql {{ #SOURCE.support_cost }};;
+  }
+  dimension new_customers {
+    label: 'New Customers'
+    type: 'number'
+    definition: @sql {{ #SOURCE.new_customers }};;
+  }
+  dimension returning_customers {
+    label: 'Returning Customers'
+    type: 'number'
+    definition: @sql {{ #SOURCE.returning_customers }};;
+  }
+  dimension paid_sessions_col {
+    label: 'Paid Social Sessions'
+    type: 'number'
+    description: 'Sessions on the paid social channel, else 0.'
+    definition: @sql case when {{ #SOURCE.channel }} = 'paid social' then {{ #SOURCE.sessions }} else 0 end;;
+  }
+}

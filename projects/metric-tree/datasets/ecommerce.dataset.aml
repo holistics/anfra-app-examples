@@ -1,0 +1,12 @@
+Dataset ecommerce {
+  label: 'E-commerce'
+  data_source_name: 'ecommerce'
+  models: [orders]
+  relationships: []
+
+  metric completed_orders {
+    label: 'Completed orders'
+    type: 'number'
+    definition: @aql orders | count(orders.order_id) | where(orders.status == 'completed') ;;
+  }
+}

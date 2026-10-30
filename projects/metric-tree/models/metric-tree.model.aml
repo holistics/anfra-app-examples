@@ -1,0 +1,105 @@
+Model mt_orders {
+  type: 'table'
+  label: 'Orders (metric tree)'
+  data_source_name: 'ecommerce'
+  table_name: 'orders'
+
+  dimension order_id {
+    label: 'Order Id'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.order_id }};;
+  }
+  dimension country {
+    label: 'Country'
+    type: 'text'
+    definition: @sql {{ #SOURCE.country }};;
+  }
+  dimension device {
+    label: 'Device'
+    type: 'text'
+    definition: @sql {{ #SOURCE.device }};;
+  }
+  dimension channel {
+    label: 'Channel'
+    type: 'text'
+    definition: @sql {{ #SOURCE.channel }};;
+  }
+  dimension status {
+    label: 'Status'
+    type: 'text'
+    definition: @sql {{ #SOURCE.status }};;
+  }
+  dimension order_date {
+    label: 'Order Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.order_date }};;
+  }
+  dimension is_refunded {
+    label: 'Is Refunded'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_refunded }};;
+  }
+}
+
+Model mt_order_items {
+  type: 'table'
+  label: 'Order items (metric tree)'
+  data_source_name: 'ecommerce'
+  table_name: 'order_items'
+
+  dimension order_item_id {
+    label: 'Order Item Id'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.order_item_id }};;
+  }
+  dimension order_id {
+    label: 'Order Id'
+    type: 'number'
+    definition: @sql {{ #SOURCE.order_id }};;
+  }
+  dimension quantity {
+    label: 'Quantity'
+    type: 'number'
+    definition: @sql {{ #SOURCE.quantity }};;
+  }
+  dimension line_amount {
+    label: 'Line Amount'
+    type: 'number'
+    definition: @sql {{ #SOURCE.line_amount }};;
+  }
+}
+
+Model mt_sessions {
+  type: 'table'
+  label: 'Sessions (metric tree)'
+  data_source_name: 'ecommerce'
+  table_name: 'sessions'
+
+  dimension session_date {
+    label: 'Session Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.session_date }};;
+  }
+  dimension country {
+    label: 'Country'
+    type: 'text'
+    definition: @sql {{ #SOURCE.country }};;
+  }
+  dimension device {
+    label: 'Device'
+    type: 'text'
+    definition: @sql {{ #SOURCE.device }};;
+  }
+  dimension channel {
+    label: 'Channel'
+    type: 'text'
+    definition: @sql {{ #SOURCE.channel }};;
+  }
+  dimension sessions {
+    label: 'Sessions'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sessions }};;
+  }
+}

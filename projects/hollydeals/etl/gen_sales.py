@@ -287,8 +287,10 @@ def generate(seed: int = 7, weeks: list[str] | None = None) -> dict[str, list[di
     for w in deal_weeks:
         by_week.setdefault(w["week"], []).append(w["slug"])
     feedback = []
+    # Two themes early in the season, two in its last 4 weeks: the window the app's "Raised by 2+ customers" panel shows.
+    feedback_at = [int(n / 5), int(2 * n / 5), n - 3, n - 1]
     for i, theme in enumerate(FEEDBACK_THEMES):
-        week = weeks[min(n - 1, int(n * (i + 1) / 5))]
+        week = weeks[feedback_at[i]]
         present = sorted(set(by_week.get(week, [])))
         slugs = rng.sample(present, min(len(present), rng.randrange(2, 5)))
         shown = {d["slug"]: d["name"] for d in deals}

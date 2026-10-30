@@ -1,0 +1,82 @@
+Model formulas {
+  type: 'table'
+  label: 'Formulas'
+  description: '''One row per saved perfume formula, with the batch and pricing
+assumptions the cost and revenue figures depend on. Synthetic.'''
+  data_source_name: 'local'
+  table_name: 'formulas'
+
+  dimension formula_id {
+    label: 'Formula ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.formula_id }};;
+  }
+
+  dimension name {
+    label: 'Formula'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+
+  dimension bottle_ml {
+    label: 'Bottle Size (ml)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.bottle_ml }};;
+  }
+
+  dimension units {
+    label: 'Bottles in Batch'
+    type: 'number'
+    definition: @sql {{ #SOURCE.units }};;
+  }
+
+  dimension concentration_pct {
+    label: 'Concentration (%)'
+    type: 'number'
+    description: 'Share of each bottle that is the fragrance blend: the rest is ethanol.'
+    definition: @sql {{ #SOURCE.concentration_pct }};;
+  }
+
+  dimension retail_price {
+    label: 'Retail Price per Bottle'
+    type: 'number'
+    definition: @sql {{ #SOURCE.retail_price }};;
+  }
+
+  dimension packaging_cost {
+    label: 'Packaging Cost per Bottle'
+    type: 'number'
+    definition: @sql {{ #SOURCE.packaging_cost }};;
+  }
+
+  measure bottles {
+    label: 'Bottles'
+    type: 'number'
+    definition: @sql {{ #SOURCE.units }};;
+    aggregation_type: 'sum'
+  }
+
+  measure batch_volume_ml {
+    label: 'Batch Volume (ml)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.bottle_ml }} * {{ #SOURCE.units }};;
+    aggregation_type: 'sum'
+  }
+
+  measure revenue_amount {
+    label: 'Revenue'
+    type: 'number'
+    definition: @sql {{ #SOURCE.retail_price }} * {{ #SOURCE.units }};;
+    aggregation_type: 'sum'
+    description: 'Retail price x bottles, if the whole batch sells at full price.'
+  }
+
+  measure packaging_amount {
+    label: 'Packaging Cost'
+    type: 'number'
+    definition: @sql {{ #SOURCE.packaging_cost }} * {{ #SOURCE.units }};;
+    aggregation_type: 'sum'
+  }
+}

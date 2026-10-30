@@ -1,0 +1,71 @@
+ingredient,material_priced,supplier,usd_per_ml,source_url,note
+Bergamot,"Bergamot “Superior” Oil, FCF",Fraterworks,0.96,https://fraterworks.com/products/bergamot-oil-fcf,published price; was $0.9; Bergamot Superior Oil FCF; only 25 g pack listed; 25 g at density 1.0; in stock=True
+Lemon,"Lemon “Superior” Oil, FCF",Fraterworks,0.438,https://fraterworks.com/products/lemon-oil-fcf,published price; was $0.5; Lemon Superior Oil FCF; only 25 g pack; 25 g at density 1.0; in stock=True
+Grapefruit,"Grapefruit Oil, Pink",Fraterworks,0.8,https://fraterworks.com/products/grapefruit-oil-pink,published price; was $0.6; Pink grapefruit oil; only 25 g pack; 25 g at density 1.0; in stock=True
+Mandarin,"Mandarin Oil, Red",Fraterworks,0.95,https://fraterworks.com/products/mandarin-oil-red,published price; was $0.5; Red mandarin oil; only 25 g pack; 25 g at density 1.0; in stock=True
+Pink Pepper,"Pink Pepper Oil, Molle",Fraterworks,1.8,https://fraterworks.com/products/pink-pepper-oil,published price; was $2.5; Molle pink pepper oil; only 25 g pack; 25 g at density 1.0; in stock=True
+Lavender,"Lavender Oil, English",Fraterworks,0.5,https://fraterworks.com/products/lavender-oil-english,published price; was $0.8; English lavender oil; 25 g is 0.75/ml; 100 g at density 1.0; in stock=True
+Cardamom,Cardamom “Signature” Oil,Fraterworks,3.225,https://fraterworks.com/products/cardamom-signature-oil,published price; was $3; Cardamom Signature oil (steam distilled); 100 g at density 1.0; in stock=True
+Aldehyde C-12,Aldehyde C-12 Lauric (25g / 100% Pure),Fraterworks,0.5,https://fraterworks.com/products/aldehyde-c-12-lauric,"published price; was $0.4; Aldehyde C-12 Lauric, pure; only 25 g pack; 25 g at density 1.0; in stock=True"
+Peppermint,Peppermint Oil “Black Mitcham”,Fraterworks,1.475,https://fraterworks.com/products/peppermint-oil,published price; was $0.4; Black Mitcham peppermint oil; 50 g at density 1.0; in stock=True
+Basil,Basil Oil ct Linalool,Fraterworks,0.95,https://fraterworks.com/products/basil-oil-ct-linalool,published price; was $1.5; Sweet basil ct linalool; only 25 g pack; 25 g at density 1.0; in stock=True
+Jasmine Absolute,"Jasmine Absolute, Select (50g / 100% Pure)",Fraterworks,9.875,https://fraterworks.com/products/jasmine-absolute-value,"published price; was $12; Jasmine Absolute Select, pure (standard grade); 50 g at density 1.0; in stock=True"
+Rose Otto,"Rose Oil, Select (50g / 100% Pure)",Fraterworks,26.625,https://fraterworks.com/products/rose-oil-bulgaria,"published price; was $25; Rose Oil Select Bulgaria, pure (standard grade); 50 g at density 1.0; in stock=True"
+Ylang-Ylang,Ylang-Ylang Complete Oil,Fraterworks,0.931,https://fraterworks.com/products/ylang-ylang-complete,published price; was $1.8; Ylang-Ylang Complete oil; 50 g at density 1.0; in stock=True
+Geranium,"Geranium Oil, Egypt",Fraterworks,0.95,https://fraterworks.com/products/geranium-oil-china-copy,published price; was $2; Geranium Oil Egypt (handle is a copy slug); 50 g at density 1.0; in stock=True
+Neroli,"Neroli Oil, Morocco (50g / 100% Pure)",Fraterworks,21.525,https://fraterworks.com/products/neroli-oil-morocco,"published price; was $14; Neroli Oil Morocco, pure; 50 g at density 1.0; in stock=False"
+Iris Butter,Orris Germanica Butter (50g / 100% Pure),Fraterworks,32.2,https://fraterworks.com/products/orris-germanica-butter,"published price; was $40; Orris Germanica Butter, pure; 50 g at density 1.0; in stock=True"
+Violet Leaf,Violet Leaf ”Signature“ Absolute (50g / 100% Pure),Fraterworks,8.294,https://fraterworks.com/products/violet-leaf-signature-absolute,"published price; was $6; Violet Leaf Signature Absolute, pure; 50 g at density 1.0; in stock=True"
+Hedione,Hedione®,Fraterworks,0.22,https://fraterworks.com/products/hedione,published price; was $0.35; Hedione (standard methyl dihydrojasmonate); 50 g at density 1.0; in stock=True
+Tuberose,Tuberose TruAbs (50g / 100% Pure),Fraterworks,15.15,https://fraterworks.com/products/tuberose-truabs,"published price; was $18; Tuberose TruAbs, pure; 50 g at density 1.0; in stock=True"
+Clary Sage,Clary Sage Oil,Fraterworks,1.125,https://fraterworks.com/products/clary-sage,published price; was $1.2; Clary sage oil; 50 g at density 1.0; in stock=True
+Sandalwood,"Sandalwood Oil “Indian”, Australia",Fraterworks,6.356,https://fraterworks.com/products/sandalwood-oil-indian-australia,published price; was $9; S. album plantation oil from Australia; 50 g at density 1.0; in stock=False
+Cedarwood,"Cedarwood Oil Rect, Texas",Fraterworks,0.475,https://fraterworks.com/products/cedarwood-oil-rect-texas,published price; was $0.4; Texas cedarwood oil rectified; 50 g at density 1.0; in stock=True
+Vetiver,"Vetiver Oil, Haiti",Fraterworks,2.4,https://fraterworks.com/products/vetiver-oil-haiti,published price; was $3.5; Haiti vetiver oil; 50 g at density 1.0; in stock=True
+Patchouli,Patchouli Dark PA30,Fraterworks,0.894,https://fraterworks.com/products/patchouli-dark,published price; was $1.5; Patchouli Dark PA30; 50 g at density 1.0; in stock=True
+Oakmoss,Oakmoss Green Absolute 100% pure,Fraterworks,3.55,https://fraterworks.com/products/oakmoss-green-absolute,published price; was $1; Natural absolute; fraterworks 50g
+Ambroxan,Ambroxan Crystals,Fraterworks,1.08,https://fraterworks.com/products/ambroxan,published price; was $2; 
+White Musk,Caress Musk (white musk base),Fraterworks,0.85,https://fraterworks.com/products/caress-musk,published price; was $0.8; Blended white musk base
+Vanilla,Vanilla Bean CO2 100% pure,Fraterworks,5.6,https://fraterworks.com/products/vanilla-bean-co2,published price; was $3; Natural CO2 extract
+Tonka Bean,Tonka Bean Absolute 100% pure,Fraterworks,7.8,https://fraterworks.com/products/tonka-bean-absolute,published price; was $2.5; Natural absolute
+Oud,Agarwood Boya Oil 100% pure,Fraterworks,18.175,https://fraterworks.com/products/agarwood-boya-oil,"published price; was $60; Natural agarwood oil, in stock; true oud prices vary enormously by origin"
+Green Apple,Apple Supreme (apple base),Fraterworks,1.525,https://fraterworks.com/products/apple-supreme,published price; was $0.6; Base
+Pear,Pear Ester (ethyl decadienoate),Fraterworks,1.625,https://fraterworks.com/products/pear-ester,published price; was $0.7; 
+Calone,Calone 1951 100% pure,Fraterworks,1.119,https://fraterworks.com/products/calone-plus,published price; was $0.8; 
+Ginger,Ginger Oil Madagascar,Fraterworks,2.275,https://fraterworks.com/products/ginger-oil-madagascar,published price; was $2.2; Natural essential oil
+Galbanum,Galbanum Oil Wild,Fraterworks,1.913,https://fraterworks.com/products/galbanum-oil-wild,published price; was $4.5; Natural oil; 40g pack (50g not offered)
+Cinnamon,Cinnamon Ceylon Supreme Oil (bark),Fraterworks,1.863,https://fraterworks.com/products/cinnamon-ceylon-supreme-oil,published price; was $2; Natural essential oil
+Black Pepper,Black Peppercorn Oil,Fraterworks,1.25,https://fraterworks.com/products/black-peppercorn,published price; was $1.8; Natural essential oil; 40g pack (50g not offered)
+Incense,Frankincense Oil Somalia,Fraterworks,2.691,https://fraterworks.com/products/frankincense-oil-somalia,published price; was $5; Natural oil; 40g pack
+Coffee,Coffee Espresso SFE 100% pure,Fraterworks,3.8,https://fraterworks.com/products/coffee-espresso-sfe,published price; was $3; Natural extract
+Seaweed Absolute,Seaweed Fucus Absolute 100% pure,Fraterworks,22.875,https://fraterworks.com/products/seaweed-fucus-absolute,published price; was $4; Natural absolute
+Cacao,Cocoa Resinoid 20% in TEC,Fraterworks,3.75,https://fraterworks.com/products/cocoa-resinoid-20-pct-tec,published price; was $2.5; Product is a 20% dilution in triethyl citrate (Mane); price as sold
+Benzoin,Benzoin Siam Resinoid 50% in TEC,Fraterworks,0.775,https://fraterworks.com/products/benzoin-siam-resinoid-50-tec,published price; was $1.5; Sold as 50% dilution; no pure resinoid at 50g found
+Labdanum,Labdanum Absolute Super Premium 100% pure,Fraterworks,1.45,https://fraterworks.com/products/labdanum-absolute-super-premium,published price; was $3; Listed price but 100% pure currently out of stock
+Iso E Super,Iso E Super,Fraterworks,0.28,https://fraterworks.com/products/iso-e-super,published price; was $0.5; 
+Yuzu,Yuzu Oil (cold-pressed),Fraterworks,8.719,https://fraterworks.com/products/yuzu-oil,published price; was $3; Natural oil; 40g pack
+Lychee,(not applied),,1.8,,KEPT ESTIMATE: no published price found; estimate kept
+Pineapple,Pineapple Supreme base,Fraterworks,1.688,https://fraterworks.com/products/pineapple-supreme-151932,published price; was $1.2; Base; 40g pack
+Blackcurrant,Cassis Base 345B,Fraterworks,1.188,https://fraterworks.com/products/cassis-base-345b,published price; was $4; Cassis base; 40g pack
+Juniper Berry,"Juniper Berry Oil, Rectified",Fraterworks,5.281,https://fraterworks.com/products/juniper-berry,published price; was $2; Only 40g pack in range; 100g is $375 = 3.75/ml
+Eucalyptus,"Eucalyptus Oil, Globulus",Fraterworks,0.65,https://fraterworks.com/products/eucalyptus-oil,published price; was $0.6; Standard eucalyptus oil; 50g pack
+Rosemary,"Rosemary Oil, Tunisia (CT cineole)",Fraterworks,0.691,https://fraterworks.com/products/rosemary-oil-ct-cineole,published price; was $1; 40g pack
+Ozone,Floralozone,Fraterworks,0.444,https://fraterworks.com/products/floralozone,published price; was $1; Common ozonic aroma chemical
+Coconut,Gamma Nonalactone,Fraterworks,0.35,https://fraterworks.com/products/nonalactone-gamma,published price; was $3.5; Classic synthetic coconut note (supplier says coconut is often just gamma-nonalactone)
+Osmanthus,Osmanthus Gold Absolute 100% pure,Fraterworks,16.125,https://fraterworks.com/products/osmanthus-gold-absolute,published price; was $30; Natural absolute
+Saffron,(not applied),,80.0,,"KEPT ESTIMATE: only a 5% oleoresin is published, so the real neat cost is much higher; estimate kept"
+Nutmeg,"Nutmeg Oil, Aceh",Fraterworks,1.062,https://fraterworks.com/products/nutmeg-oil-aceh,published price; was $2.5; 40g pack
+Clove,Clove Bud Signature Oil,Fraterworks,0.9,https://fraterworks.com/products/clovebud-oil,published price; was $2; 
+Lily of the Valley,Lilyflore 100% pure,Fraterworks,1.25,https://fraterworks.com/products/lilyflore,published price; was $5; Modern muguet aroma chemical (Lilial banned)
+Freesia,(not applied),,4.0,,"KEPT ESTIMATE: no freesia material exists, only a perfumery accord; estimate kept"
+Mimosa,Mimosa Supreme Absolute 100% pure,Fraterworks,9.125,https://fraterworks.com/products/mimosa-absolute,published price; was $20; Natural absolute
+Magnolia,Magnolia Flower Oil 100% pure,Fraterworks,10.781,https://fraterworks.com/products/magnolia-flower-oil,published price; was $8; Natural flower oil
+Black Tea,(not applied),,6.0,,KEPT ESTIMATE: the published product could not be confirmed as natural; estimate kept
+Almond,Benzaldehyde 50% in DPG,Fraterworks,0.313,https://fraterworks.com/products/benzaldehyde-50-dpg,published price; was $2.5; Only 50% dilution published; neat-equivalent roughly 2x
+Fir Balsam,"Fir Oil, Canada",Fraterworks,0.5,https://fraterworks.com/products/fir-oil-canada,published price; was $1.5; Balsam fir oil
+Tobacco Leaf,Tobacco Absolute MD,Fraterworks,4.475,https://fraterworks.com/products/tobacco-absolute-md,published price; was $5; Natural absolute
+Honey,Honey Supreme,Fraterworks,2.45,https://fraterworks.com/products/honey-supreme,published price; was $4; Honey base/compound
+Myrrh,Myrrh Oil,Fraterworks,2.15,https://fraterworks.com/products/myrrh-oil,published price; was $6; Natural oil
+Cashmeran,Cashmeran,Fraterworks,0.675,https://fraterworks.com/products/cashmeran,published price; was $3; 
+Ambergris,(not applied),,45.0,,KEPT ESTIMATE: only a synthetic-type base is published (natural ambergris has no published price); estimate kept
+Caramel,Ethyl Furaneol 100% pure,Fraterworks,1.6,https://fraterworks.com/products/maltarome,published price; was $2; Caramel aroma chemical

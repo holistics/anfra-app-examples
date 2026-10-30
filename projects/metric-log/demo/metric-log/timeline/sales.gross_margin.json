@@ -1,0 +1,61 @@
+[
+  {
+    "id": "t-002",
+    "at": "2026-10-21T15:05:59.484Z",
+    "type": "learning",
+    "date": "2026-07-27",
+    "end": "2026-08-09",
+    "compare": "year",
+    "headline": "Margin was far better than in the 2025 sale",
+    "detail": null,
+    "status": "confirmed",
+    "follows": "sales.revenue#t-003",
+    "also_on": null,
+    "by": "hannah",
+    "with": [
+      "mark"
+    ],
+    "value": 0.4005129583826218,
+    "valuePrev": 0.26404399403535095,
+    "definition": "(net_revenue - (shop_costs | sum(shop_costs.product_cost))) / net_revenue",
+    "seeded": true
+  },
+  {
+    "id": "t-003",
+    "at": "2026-10-21T15:05:59.722Z",
+    "type": "decision",
+    "date": "2026-10-11",
+    "end": null,
+    "compare": "prev",
+    "headline": "End free returns on sale items",
+    "detail": null,
+    "status": null,
+    "follows": null,
+    "also_on": [
+      "sales.refunds"
+    ],
+    "by": "hannah",
+    "with": [
+      "lily",
+      "mark",
+      "team:finance"
+    ],
+    "value": 0.3274594269685435,
+    "valuePrev": 0.5206471120230012,
+    "definition": "(net_revenue - (shop_costs | sum(shop_costs.product_cost))) / net_revenue",
+    "seeded": true
+  },
+  {
+    "id": "t-004",
+    "at": "2026-10-21T15:15:23.166Z",
+    "type": "change",
+    "by": "hannah",
+    "text": "Gross margin should include shipping cost (r-001)",
+    "request": "r-001",
+    "before": "(net_revenue - (shop_costs | sum(shop_costs.product_cost))) / net_revenue",
+    "definition": "(net_revenue - (shop_costs | sum(shop_costs.product_cost)) - (shop_costs | sum(shop_costs.shipping_cost))) / net_revenue",
+    "valueBefore": 0.47395501119637196,
+    "value": 0.41408676775856407,
+    "reason": "Shipping is part of the cost of selling an order, so margin should include it"
+  }
+]

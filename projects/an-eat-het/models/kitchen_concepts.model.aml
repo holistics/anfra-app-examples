@@ -1,0 +1,22 @@
+Model kitchen_concepts {
+  type: 'table'
+  label: 'Dish Concepts'
+  description: '''The stable identity of a dish across menus: "Mango Sticky Rice" on this menu and on the
+last one is the same concept, which is what lets a dish be compared with itself. Synthetic.'''
+  data_source_name: 'kitchen'
+  table_name: 'dish_concepts'
+
+  dimension concept_id {
+    label: 'Concept ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.concept_id }};;
+  }
+
+  dimension concept_name {
+    label: 'Dish Concept'
+    type: 'text'
+    definition: @sql {{ #SOURCE.concept_name }};;
+  }
+}

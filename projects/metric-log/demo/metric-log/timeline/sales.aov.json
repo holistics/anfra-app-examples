@@ -1,0 +1,64 @@
+[
+  {
+    "id": "t-001",
+    "at": "2026-10-21T15:05:59.356Z",
+    "type": "learning",
+    "date": "2025-11-27",
+    "end": "2025-12-01",
+    "compare": "prev",
+    "headline": "Basket size fell on Black Friday; the extra orders were small ones",
+    "detail": null,
+    "status": "hypothesis",
+    "follows": "sales.revenue#t-002",
+    "also_on": null,
+    "by": "mark",
+    "with": [
+      "lily"
+    ],
+    "value": 51.802183908045976,
+    "valuePrev": 90.79310344827586,
+    "definition": "revenue / orders",
+    "seeded": true
+  },
+  {
+    "id": "t-002",
+    "at": "2026-10-21T15:05:59.544Z",
+    "type": "decision",
+    "date": "2026-08-31",
+    "end": null,
+    "compare": "prev",
+    "headline": "Launch product bundles from 1 September",
+    "detail": null,
+    "status": null,
+    "follows": null,
+    "also_on": null,
+    "by": "hannah",
+    "with": [
+      "mark",
+      "lily"
+    ],
+    "value": 104.3913043478261,
+    "valuePrev": 101.4090909090909,
+    "definition": "revenue / orders",
+    "seeded": true
+  },
+  {
+    "id": "t-003",
+    "at": "2026-10-21T15:05:59.575Z",
+    "type": "learning",
+    "date": "2026-09-01",
+    "end": "2026-09-20",
+    "compare": "prev",
+    "headline": "Bundles lifted basket size",
+    "detail": null,
+    "status": "confirmed",
+    "follows": "sales.aov#t-002",
+    "also_on": null,
+    "by": "mark",
+    "with": null,
+    "value": 121.96192307692307,
+    "valuePrev": 103.74045801526718,
+    "definition": "revenue / orders",
+    "seeded": true
+  }
+]

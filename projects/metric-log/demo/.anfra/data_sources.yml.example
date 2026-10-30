@@ -1,0 +1,5 @@
+data_sources:
+  shop:
+    type: duckdb
+    connection:
+      path: __REPO__/data/shop.duckdb

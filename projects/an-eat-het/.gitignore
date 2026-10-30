@@ -1,0 +1,5 @@
+# python
+.venv/
+__pycache__/
+# derived by scripts/generate_kitchen_data.py
+data/

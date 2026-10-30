@@ -1,0 +1,20 @@
+[
+  {"key": "s25", "metric": "sales.revenue", "type": "event", "date": "2025-07-28", "end": "2025-08-10", "by": "lily", "headline": "Summer sale 2025, 30% off"},
+  {"key": "bf", "metric": "sales.revenue", "type": "event", "date": "2025-11-27", "end": "2025-12-01", "by": "lily", "headline": "Black Friday 2025", "with": ["mark", "team:finance"]},
+  {"key": "bforders", "metric": "sales.orders", "type": "event", "date": "2025-11-27", "end": "2025-12-01", "by": "mark", "headline": "Black Friday 2025 order surge", "with": ["lily"]},
+  {"key": "bfreturns", "metric": "sales.refunds", "type": "event", "date": "2025-11-27", "end": "2025-12-01", "by": "mark", "headline": "Black Friday orders came back at twice the usual rate", "also_on": ["sales.net_revenue", "sales.gross_margin"], "with": ["hannah", "team:finance"]},
+  {"key": "bfbasket", "metric": "sales.aov", "type": "learning", "status": "hypothesis", "date": "2025-11-27", "end": "2025-12-01", "by": "mark", "headline": "Basket size fell on Black Friday; the extra orders were small ones", "follows": "bf", "with": ["lily"]},
+  {"key": "discount", "metric": "sales.revenue", "type": "decision", "date": "2026-07-10", "by": "lily", "headline": "Run the 2026 summer sale at 15% off instead of 30%, to protect margin", "also_on": ["sales.gross_margin"], "with": ["hannah", "team:data"]},
+  {"key": "s26", "metric": "sales.revenue", "type": "event", "date": "2026-07-27", "end": "2026-08-09", "by": "lily", "headline": "Summer sale 2026, 15% off", "compare": "year", "with": ["team:finance"]},
+  {"key": "worse", "metric": "sales.revenue", "type": "learning", "status": "hypothesis", "date": "2026-07-27", "end": "2026-08-09", "by": "lily", "headline": "Summer sale revenue fell vs 2025; the smaller discount is the likely cause", "compare": "year", "follows": "discount", "with": ["mark"]},
+  {"key": "held", "metric": "sales.gross_margin", "type": "learning", "status": "confirmed", "date": "2026-07-27", "end": "2026-08-09", "by": "hannah", "headline": "Margin was far better than in the 2025 sale", "compare": "year", "follows": "discount", "with": ["mark"]},
+  {"key": "courier", "metric": "sales.refunds", "type": "event", "date": "2026-08-10", "end": "2026-08-23", "by": "mark", "headline": "Courier delays; many August orders sent back", "also_on": ["sales.net_revenue"], "with": ["team:data"]},
+  {"key": "bundles", "metric": "sales.aov", "type": "decision", "date": "2026-08-31", "by": "hannah", "headline": "Launch product bundles from 1 September", "with": ["mark", "lily"]},
+  {"key": "bundlesworked", "metric": "sales.aov", "type": "learning", "status": "confirmed", "date": "2026-09-01", "end": "2026-09-20", "by": "mark", "headline": "Bundles lifted basket size", "follows": "bundles"},
+  {"key": "outage", "metric": "sales.revenue", "type": "event", "date": "2026-09-21", "end": "2026-09-27", "by": "mark", "headline": "Payment provider outage", "also_on": ["sales.orders"], "with": ["hannah", "team:data"]},
+  {"key": "netdip", "metric": "sales.net_revenue", "type": "event", "date": "2026-09-21", "end": "2026-09-27", "by": "mark", "headline": "Outage week pulled net revenue down", "follows": "outage"},
+  {"key": "viral", "metric": "sales.orders", "type": "event", "date": "2026-09-28", "end": "2026-10-04", "by": "lily", "headline": "A creator's post about the shop went viral", "with": ["mark"]},
+  {"key": "wave2", "metric": "sales.refunds", "type": "event", "date": "2026-10-05", "end": "2026-10-11", "by": "mark", "headline": "Second return wave", "also_on": ["sales.net_revenue", "sales.gross_margin"], "with": ["lily"]},
+  {"key": "noreturns", "metric": "sales.gross_margin", "type": "decision", "date": "2026-10-11", "by": "hannah", "headline": "End free returns on sale items", "also_on": ["sales.refunds"], "with": ["lily", "mark", "team:finance"]},
+  {"key": "recovered", "metric": "sales.net_revenue", "type": "learning", "status": "hypothesis", "date": "2026-10-12", "end": "2026-10-18", "by": "lily", "headline": "Net revenue recovered as returns fell after the policy change", "follows": "noreturns"}
+]

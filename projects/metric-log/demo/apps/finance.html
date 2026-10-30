@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Finance weekly</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+  <style>
+    body { font: 14px/1.45 system-ui, sans-serif; margin: 0; padding: 24px; color: #1c1f1d; background: #fff; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .sub { color: #7a807c; margin-bottom: 20px; }
+    .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+    .tile { background: #f6f6f6; border-radius: 10px; padding: 14px 16px; }
+    .tile small { color: #7a807c; display: block; }
+    .tile b { font-size: 24px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .panel { background: #f6f6f6; border-radius: 10px; padding: 14px 16px; position: relative; }
+    .panel h2 { font-size: 14px; margin: 0 0 8px; }
+    .chart { height: 280px; }
+    .status { position: absolute; inset: 44px 12px 12px; display: none; align-items: center; justify-content: center; text-align: center; background: #f6f6f6; }
+    .status.visible { display: flex; }
+  </style>
+</head>
+<body>
+  <h1>Finance weekly</h1>
+  <div class="sub">Net revenue, refunds and margin for the Monday finance review. Synthetic demo shop.</div>
+  <div class="tiles" data-anfra-block="finance-kpis" data-anfra-label="Net revenue and margin, all time" data-anfra-query="finance_kpis">
+    <div class="tile"><small>Net revenue</small><b id="k-net">…</b></div>
+    <div class="tile"><small>Gross margin</small><b id="k-gm">…</b></div>
+  </div>
+  <div class="grid">
+    <section class="panel" data-anfra-block="net-weekly" data-anfra-label="Net revenue by week">
+      <h2>Net revenue by week</h2>
+      <div id="net-weekly" class="chart" data-anfra-query="net_weekly"></div>
+      <div id="net-weekly-status" class="status"></div>
+    </section>
+    <section class="panel" data-anfra-block="refunds-weekly" data-anfra-label="Refunds by week">
+      <h2>Refunds by week</h2>
+      <div id="refunds-weekly" class="chart" data-anfra-query="refunds_weekly"></div>
+      <div id="refunds-weekly-status" class="status"></div>
+    </section>
+  </div>
+  <script>
+    const app = Anfra.createApp({ title: 'Finance weekly' });
+    const finance_kpis = app.createQuery('finance_kpis', {
+      dataset: 'sales',
+      aql: `
+        explore {
+          measures {
+            net_revenue: net_revenue,
+            gross_margin: gross_margin
+          }
+        }
+      `,
+    });
+    const net_weekly = app.createQuery('net_weekly', {
+      dataset: 'sales',
+      aql: `
+        explore {
+          dimensions { week: shop_orders.order_date | week() }
+          measures { net_revenue: net_revenue }
+          sorts { week asc }
+        }
+      `,
+    });
+    const refunds_weekly = app.createQuery('refunds_weekly', {
+      dataset: 'sales',
+      aql: `
+        explore {
+          dimensions { week: shop_orders.order_date | week() }
+          measures { refunds: refunds }
+          sorts { week asc }
+        }
+      `,
+    });
+
+    const money = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+    const charts = {};
+    const chartFor = (id) => (charts[id] = charts[id] || echarts.init(document.getElementById(id), null, { renderer: 'svg' }));
+    function status (q, id) {
+      const el = document.getElementById(id);
+      let text = '';
+      if (q.state === 'executing') text = 'Loading…';
+      else if (q.state === 'error') text = `Couldn't load: ${q.error.message}`;
+      else if (q.state === 'success' && q.result.rows.length === 0) text = 'No orders in this period';
+      el.textContent = text;
+      el.classList.toggle('visible', text !== '');
+    }
+    const axis = (rows, key) => rows.map((r) => String(r[key]).slice(5, 10));
+    function render () {
+      if (finance_kpis.result && finance_kpis.result.rows[0]) {
+        const r = finance_kpis.result.rows[0];
+        document.getElementById('k-net').textContent = money.format(Number(r.net_revenue));
+        document.getElementById('k-gm').textContent = (Number(r.gross_margin) * 100).toFixed(1) + '%';
+      }
+      status(net_weekly, 'net-weekly-status');
+      if (net_weekly.result) {
+        const rows = net_weekly.result.rows;
+        chartFor('net-weekly').setOption({
+          animation: false, tooltip: { trigger: 'axis', valueFormatter: (v) => money.format(v) },
+          grid: { top: 12, left: 56, right: 12, bottom: 28 },
+          xAxis: { type: 'category', data: axis(rows, 'week') },
+          yAxis: { type: 'value' },
+          series: [{ name: 'Net revenue', type: 'line', color: '#2b56c9', smooth: true, showSymbol: false, data: rows.map((r) => Number(r.net_revenue)) }],
+        });
+      }
+      status(refunds_weekly, 'refunds-weekly-status');
+      if (refunds_weekly.result) {
+        const rows = refunds_weekly.result.rows;
+        chartFor('refunds-weekly').setOption({
+          animation: false, tooltip: { trigger: 'axis', valueFormatter: (v) => money.format(v) },
+          grid: { top: 12, left: 56, right: 12, bottom: 28 },
+          xAxis: { type: 'category', data: axis(rows, 'week') },
+          yAxis: { type: 'value' },
+          series: [{ name: 'Refunds', type: 'bar', color: '#9aa9d6', smooth: true, showSymbol: false, data: rows.map((r) => Number(r.refunds)) }],
+        });
+      }
+
+    }
+    app.subscribe(render);
+    window.addEventListener('resize', () => Object.values(charts).forEach((c) => c.resize()));
+    app.execute();
+  </script>
+</body>
+</html>

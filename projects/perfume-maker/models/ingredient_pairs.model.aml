@@ -1,0 +1,42 @@
+Model ingredient_pairs {
+  type: 'query'
+  label: 'Ingredient Pairs'
+  description: '''Pairs of ingredients that lift each other (boost) or fight (clash), from classic perfumery
+pairings. One row per pair. Synthetic rules of thumb.'''
+  data_source_name: 'local'
+  query: @sql
+    select a.name as a_name, b.name as b_name, p.kind, p.note
+    from ingredient_pairs p join ingredients a on a.ingredient_id = p.a_id join ingredients b on b.ingredient_id = p.b_id;;
+
+  dimension pair_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.a_name }} || '+' || {{ #SOURCE.b_name }};;
+  }
+
+  dimension a_name {
+    label: 'Ingredient'
+    type: 'text'
+    definition: @sql {{ #SOURCE.a_name }};;
+  }
+
+  dimension b_name {
+    label: 'With'
+    type: 'text'
+    definition: @sql {{ #SOURCE.b_name }};;
+  }
+
+  dimension kind {
+    label: 'Boosts or Clashes'
+    type: 'text'
+    definition: @sql {{ #SOURCE.kind }};;
+  }
+
+  dimension note {
+    label: 'Why'
+    type: 'text'
+    definition: @sql {{ #SOURCE.note }};;
+  }
+}

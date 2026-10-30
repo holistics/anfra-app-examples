@@ -1,0 +1,84 @@
+Model draft_accords {
+  type: 'query'
+  label: 'Draft Accords'
+  description: '''Each ingredient the draft uses, against every accord it belongs to, with the size of the
+accord, the parts the recipe asks for and the parts the draft has. Counting the rows of one accord gives how
+many of its ingredients the draft has; comparing the parts gives how close the proportions are.
+Linked to draft_options: selecting the draft formula there selects its accords here.'''
+  data_source_name: 'local'
+  query: @sql
+    with sized as (select accord_id, count(*) as size, sum(parts) as total from accord_parts group by 1)
+    select o.option_id, a.accord_id, a.name as accord, i.name as ingredient, s.size, s.total as recipe_total,
+      ap.parts as recipe_parts, o.parts as f_parts
+    from draft_options o
+    join accord_parts ap on ap.ingredient_id = o.ingredient_id
+    join accords a on a.accord_id = ap.accord_id
+    join sized s on s.accord_id = a.accord_id
+    join ingredients i on i.ingredient_id = o.ingredient_id
+    where o.parts > 0;;
+
+  dimension accord_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }} || '-' || {{ #SOURCE.accord_id }};;
+  }
+
+  dimension option_id {
+    label: 'Option ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }};;
+  }
+
+  dimension accord {
+    label: 'Accord'
+    type: 'text'
+    definition: @sql {{ #SOURCE.accord }};;
+  }
+
+  dimension ingredient {
+    label: 'Ingredient'
+    type: 'text'
+    definition: @sql {{ #SOURCE.ingredient }};;
+  }
+
+  measure f_parts {
+    label: 'Parts in the Draft'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.f_parts }};;
+    aggregation_type: 'sum'
+  }
+
+  measure recipe_parts {
+    label: 'Parts in the Recipe'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.recipe_parts }};;
+    aggregation_type: 'avg'
+  }
+
+  measure recipe_total {
+    label: 'Parts of the Whole Recipe'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.recipe_total }};;
+    aggregation_type: 'avg'
+  }
+
+  measure present {
+    label: 'Ingredients Present'
+    type: 'number'
+    definition: @sql 1;;
+    aggregation_type: 'sum'
+  }
+
+  measure size {
+    label: 'Ingredients in the Accord'
+    type: 'number'
+    definition: @sql {{ #SOURCE.size }};;
+    aggregation_type: 'avg'
+  }
+}

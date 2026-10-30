@@ -1,0 +1,98 @@
+Model boost_options {
+  type: 'query'
+  label: 'Projection Options'
+  description: '''For the draft, every ingredient that radiates well (projection 7 or more) that could be added as
+half a part up to ten parts: how much projection the draft has now, and what the extra part would add. Projection is the
+impact-weighted average of how far each ingredient radiates, so the draft with more parts is its totals plus
+the candidate's. One row per draft option, candidate and number of parts added. Linked to draft_options, so the formula's selection
+selects its rows. Illustrative, not measured.'''
+  data_source_name: 'local'
+  query: @sql
+    select o.option_id, c.ingredient_id as cand_id, c.name as candidate, c.cost_per_ml as cand_cost, c.ifra_max_pct as cand_ifra,
+      o.parts * i.strength * i.diffusion as own_num, o.parts * i.strength as own_imp,
+      a.ap * c.strength * c.diffusion as cand_num, a.ap * c.strength as cand_imp, a.ap as add_parts
+    from draft_options o
+    join ingredients i on i.ingredient_id = o.ingredient_id
+    cross join (select * from ingredients where diffusion >= 7) c
+    cross join (select r / 2.0 as ap from range(1, 21) t(r)) a
+    where o.parts > 0;;
+
+  dimension boost_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }} || '-' || {{ #SOURCE.cand_id }} || '-' || cast({{ #SOURCE.add_parts }} as varchar);;
+  }
+
+  dimension option_id {
+    label: 'Option ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }};;
+  }
+
+  dimension candidate {
+    label: 'Add Parts Of'
+    type: 'text'
+    definition: @sql {{ #SOURCE.candidate }};;
+  }
+
+  dimension add_parts {
+    label: 'Parts Added'
+    type: 'number'
+    definition: @sql {{ #SOURCE.add_parts }};;
+    description: 'How many parts of the candidate are added, from half a part to ten in half-part steps.'
+  }
+
+  measure add_amount {
+    label: 'Parts Added (number)'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.add_parts }};;
+    aggregation_type: 'avg'
+  }
+
+  measure own_num {
+    label: 'Draft Impact x Projection'
+    type: 'number'
+    definition: @sql {{ #SOURCE.own_num }};;
+    aggregation_type: 'sum'
+  }
+
+  measure own_imp {
+    label: 'Draft Impact'
+    type: 'number'
+    definition: @sql {{ #SOURCE.own_imp }};;
+    aggregation_type: 'sum'
+  }
+
+  measure cand_num {
+    label: 'Extra Part Impact x Projection'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cand_num }};;
+    aggregation_type: 'avg'
+    description: 'The same on every row of a candidate, so it is averaged, not added.'
+  }
+
+  measure cand_imp {
+    label: 'Extra Part Impact'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cand_imp }};;
+    aggregation_type: 'avg'
+  }
+
+  measure cand_cost {
+    label: 'Candidate Cost per ml'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cand_cost }};;
+    aggregation_type: 'avg'
+  }
+
+  measure cand_ifra {
+    label: 'Candidate Safety Max (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cand_ifra }};;
+    aggregation_type: 'avg'
+  }
+}

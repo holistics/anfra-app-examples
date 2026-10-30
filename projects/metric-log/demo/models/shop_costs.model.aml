@@ -1,0 +1,30 @@
+Model shop_costs {
+  type: 'table'
+  label: 'Costs'
+  description: 'Product and shipping cost of each order that was not cancelled. Synthetic.'
+  data_source_name: 'shop'
+  table_name: 'costs'
+
+  dimension cost_id {
+    label: 'Cost ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.cost_id }};;
+  }
+  dimension order_id {
+    label: 'Order ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.order_id }};;
+  }
+  dimension product_cost {
+    label: 'Product cost'
+    type: 'number'
+    definition: @sql {{ #SOURCE.product_cost }};;
+  }
+  dimension shipping_cost {
+    label: 'Shipping cost'
+    type: 'number'
+    definition: @sql {{ #SOURCE.shipping_cost }};;
+  }
+}

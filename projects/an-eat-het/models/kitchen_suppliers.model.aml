@@ -1,0 +1,41 @@
+Model kitchen_suppliers {
+  type: 'table'
+  label: 'Suppliers'
+  description: '''Where the kitchen buys: farms, fisheries and importers, by region (Da Lat, Mekong Delta, Central coast,
+Imported). Every ingredient has one supplier. Synthetic.'''
+  data_source_name: 'kitchen'
+  table_name: 'suppliers'
+
+  dimension supplier_id {
+    label: 'Supplier ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.supplier_id }};;
+  }
+
+  dimension name {
+    label: 'Supplier'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+
+  dimension region {
+    label: 'Region'
+    type: 'text'
+    definition: @sql {{ #SOURCE.region }};;
+  }
+
+  dimension kind {
+    label: 'Supplier Type'
+    type: 'text'
+    description: 'farm, fishery or importer.'
+    definition: @sql {{ #SOURCE.kind }};;
+  }
+
+  dimension is_local {
+    label: 'Is Local'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_local }};;
+  }
+}

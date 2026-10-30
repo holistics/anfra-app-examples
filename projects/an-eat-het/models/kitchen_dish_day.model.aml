@@ -1,0 +1,160 @@
+Model kitchen_dish_day {
+  type: 'query'
+  label: 'Dish Sales and Waste'
+  description: '''One row per course per service day: plates sold (every guest eats every course of the tasting menu), revenue, and the kitchen's waste at each
+stage of the chain, in kg and in USD, and what guests rated it out of 5 (about four in ten guests rate a course).
+
+- Prep: trim and peel, before cooking.
+- Cooking: loss in the pan and oven.
+- Plate: food sent back uneaten.
+- Spoilage: stock that expired before it was used.
+
+Waste cost is the weight wasted times what that ingredient cost that month.
+
+Ingredient cost is the plates sold times what one plate costs to make that month: each ingredient's in-season
+price, raised when it is shoulder (+12%) or out of season (+45%). Seasonal plates counts each plate by how
+seasonal its ingredients were (1 in season, 0.5 shoulder, 0 out of season, averaged over the dish). Synthetic.'''
+  data_source_name: 'kitchen'
+  query: @sql
+    with plate as (
+      select di.dish_id, sc.month,
+        sum(di.qty_per_plate * i.unit_cost * sc.price_index) as plate_cost,
+        avg(case sc.status when 'in_season' then 1.0 when 'shoulder' then 0.5 else 0.0 end) as seasonality
+      from dish_ingredients di
+      join ingredients i using (ingredient_id)
+      join seasonal_calendar sc using (ingredient_id)
+      group by di.dish_id, sc.month
+    )
+    select d.*, ds.course_no, d.qty_sold * p.plate_cost as ingredient_cost, d.qty_sold * p.seasonality as seasonal_plates
+    from dish_day d
+    join dishes ds on ds.dish_id = d.dish_id
+    join plate p on p.dish_id = d.dish_id and p.month = month(d.date);;
+
+  dimension day_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql cast({{ #SOURCE.date }} as varchar) || '-' || {{ #SOURCE.dish_id }};;
+  }
+
+  dimension date {
+    label: 'Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.date }};;
+  }
+
+  dimension dish_id {
+    label: 'Dish ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.dish_id }};;
+  }
+
+
+  measure course_no {
+    label: 'Course Number'
+    type: 'number'
+    description: 'Where the course sits in the tasting menu (1 is the first served). Averaged over the days in view, so it is only meaningful inside one menu.'
+    definition: @sql {{ #SOURCE.course_no }};;
+    aggregation_type: 'avg'
+  }
+
+  measure qty_sold {
+    label: 'Plates Sold'
+    type: 'number'
+    definition: @sql {{ #SOURCE.qty_sold }};;
+    aggregation_type: 'sum'
+  }
+
+  measure revenue_amount {
+    label: 'Revenue (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.revenue }};;
+    aggregation_type: 'sum'
+  }
+
+  measure prep_qty {
+    label: 'Prep Waste (kg)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.prep_qty }};;
+    aggregation_type: 'sum'
+  }
+
+  measure prep_cost {
+    label: 'Prep Waste Cost (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.prep_cost }};;
+    aggregation_type: 'sum'
+  }
+
+  measure cooking_qty {
+    label: 'Cooking Waste (kg)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cooking_qty }};;
+    aggregation_type: 'sum'
+  }
+
+  measure cooking_cost {
+    label: 'Cooking Waste Cost (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cooking_cost }};;
+    aggregation_type: 'sum'
+  }
+
+  measure plate_qty {
+    label: 'Plate Waste (kg)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.plate_qty }};;
+    aggregation_type: 'sum'
+  }
+
+  measure plate_cost {
+    label: 'Plate Waste Cost (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.plate_cost }};;
+    aggregation_type: 'sum'
+  }
+
+  measure spoilage_qty {
+    label: 'Spoilage Waste (kg)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.spoilage_qty }};;
+    aggregation_type: 'sum'
+  }
+
+  measure spoilage_cost {
+    label: 'Spoilage Waste Cost (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.spoilage_cost }};;
+    aggregation_type: 'sum'
+  }
+
+  measure ingredient_cost_amount {
+    label: 'Ingredient Cost (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ingredient_cost }};;
+    aggregation_type: 'sum'
+  }
+
+  measure seasonal_plates {
+    label: 'Seasonal Plates'
+    type: 'number'
+    definition: @sql {{ #SOURCE.seasonal_plates }};;
+    aggregation_type: 'sum'
+  }
+
+  measure rating_total_amount {
+    label: 'Guest Rating Points'
+    type: 'number'
+    definition: @sql {{ #SOURCE.rating_total }};;
+    aggregation_type: 'sum'
+  }
+
+  measure rating_count_amount {
+    label: 'Guest Ratings'
+    type: 'number'
+    definition: @sql {{ #SOURCE.rating_count }};;
+    aggregation_type: 'sum'
+  }
+}

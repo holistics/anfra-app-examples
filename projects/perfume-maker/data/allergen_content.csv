@@ -1,0 +1,75 @@
+ingredient,allergen,typical_pct,source_url,note
+Bergamot,Limonene,37.2,https://en.wikipedia.org/wiki/Bergamot_essential_oil,Calabrian sample (Sawamura 2006); range 30-45
+Bergamot,Linalool,8.8,https://en.wikipedia.org/wiki/Bergamot_essential_oil,range 3-15
+Lemon,Limonene,63.3,https://scent.vn/en/pages/oil/lemon-italy-sicily-6-383,Sicilian cold-pressed sample; range 54-74
+Lemon,Citral,1.9,https://scent.vn/en/pages/oil/lemon-italy-sicily-6-383,two Sicilian samples 1.4-1.9
+Grapefruit,Limonene,92.2,https://scent.vn/en/pages/oil/grapefruit-italy-2-1729,Italian sample; range 83-95
+Mandarin,Limonene,80,https://scent.vn/en/pages/oil/mandarin-spain-2-3098,median of four samples 61.8-89.9
+Mandarin,Linalool,1.25,https://scent.vn/en/pages/oil/mandarin-spain-2-3098,Spain sample; very variable
+Yuzu,Limonene,77.1,https://scent.vn/pages/oil/yuzu-japan-2-749,Ohta and Osajima 1983; range 75.6-79.8
+Pink Pepper,Limonene,17.4,https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10347182/,single study of ripe-fruit oil; origin-dependent
+Lavender,Linalool,31.5,https://pmc.ncbi.nlm.nih.gov/articles/PMC8465323,"ISO 3515 range 25-38, midpoint"
+Cardamom,Limonene,4.4,https://pmc.ncbi.nlm.nih.gov/articles/PMC7009127/table/efs25721-tbl-0001,"EFSA table, range 1-6"
+Cardamom,Linalool,4.2,https://pmc.ncbi.nlm.nih.gov/articles/PMC7009127/table/efs25721-tbl-0001,"EFSA table, range 2-6"
+Peppermint,Limonene,2.4,https://pmc.ncbi.nlm.nih.gov/articles/PMC11733596/,"EFSA, 10 batches 1.7-3.2"
+Black Pepper,Limonene,17.5,https://eng.hekserij.nl/?p=32535,"supplier indication 10-25, midpoint"
+Juniper Berry,Limonene,7.35,https://scent.vn/en/pages/oil/juniper-berry-6-2124,median of five samples 4-16.2
+Eucalyptus,Limonene,7.9,https://scent.vn/pages/oil/eucalyptus-globulus-4-3118,single GC-MS sample
+Rosemary,Limonene,3.1,https://perfectpotion.com.au/blogs/certifications/404075,single supplier batch
+Blackcurrant,Limonene,3.0,https://scent.vn/pages/oil/blackcurrant-bud-1-128,"essential oil analysis, not the absolute"
+Blackcurrant,Citronellol,2.49,https://scent.vn/pages/oil/blackcurrant-bud-1-128,"essential oil analysis, not the absolute"
+Jasmine Absolute,Linalool,5.7,https://scent.vn/en/pages/oil/jasmine-absolute-egypt-1-1096,rough mid of four origins 3.3-6.1
+Jasmine Absolute,Benzyl Benzoate,11.7,https://scent.vn/en/pages/oil/jasmine-absolute-egypt-1-1096,"origin-dependent, 1.1-14.8"
+Jasmine Absolute,Eugenol,2.3,https://scent.vn/en/pages/oil/jasmine-absolute-egypt-1-1096,range 0.5-2.4
+Jasmine Absolute,Farnesol,1.0,https://scent.vn/en/pages/oil/jasmine-absolute-france-2-1101,France and Turkey samples
+Rose Otto,Citronellol,40.2,https://www.edenbotanicals.com/product_documents/COA/886_Rose_Otto_Turkey_COA_8.pdf,Turkish rose otto COA; ISO 9842 range 20-34
+Rose Otto,Geraniol,16.3,https://www.edenbotanicals.com/product_documents/COA/886_Rose_Otto_Turkey_COA_8.pdf,Turkish COA; ISO 9842 range 15-22
+Rose Otto,Eugenol,0.9,https://gigaplus.makeshop.jp/aromastore/images/download/N1507G25.pdf,"Bulgarian lot 1.0, Turkish 0.82"
+Ylang-Ylang,Linalool,13,https://scent.vn/en/pages/oil/ylang-ylang-2b-1853,range 2.6-19
+Ylang-Ylang,Benzyl Benzoate,9.5,https://scent.vn/en/pages/oil/ylang-ylang-2b-1853,grade-dependent 1.1-11.8
+Ylang-Ylang,Farnesol,3,https://scent.vn/pages/oil/ylang-ylang-laos-2050,range 1.8-4.7
+Ylang-Ylang,Geraniol,1.9,https://scent.vn/pages/oil/ylang-ylang-laos-2050,range 1.7-2.0
+Ylang-Ylang,Eugenol,0.8,https://scent.vn/en/pages/oil/ylang-ylang-2b-1853,single sample
+Geranium,Citronellol,20.1,https://scent.vn/en/pages/oil/geranium-bourbon-5-282,Bourbon spec range 18-30
+Geranium,Geraniol,18.3,https://scent.vn/en/pages/oil/geranium-bourbon-5-282,Bourbon spec range 7-21
+Geranium,Linalool,6.0,https://scent.vn/en/pages/oil/geranium-bourbon-5-282,single sample
+Geranium,Citral,1.6,https://scent.vn/en/pages/oil/geranium-bourbon-5-282,single sample
+Neroli,Linalool,37.5,https://scent.vn/en/pages/oil/neroli-bigarade-bitter-orange-flower-spain-2-494,range 29-44
+Neroli,Limonene,12.6,https://scent.vn/en/pages/oil/neroli-bigarade-bitter-orange-flower-tunesia-1-2611,range 9.3-16.6
+Neroli,Geraniol,4.1,https://scent.vn/en/pages/oil/neroli-bigarade-bitter-orange-flower-tunesia-1-2611,range 1.5-4.3
+Neroli,Farnesol,2.0,https://scent.vn/en/pages/oil/neroli-bigarade-bitter-orange-flower-tunesia-1-2611,range 1-4
+Neroli,Citronellol,3.1,https://scent.vn/en/pages/oil/neroli-bigarade-bitter-orange-flower-tunesia-1-2611,single sample
+Clary Sage,Linalool,12.8,https://scent.vn/en/products/clary-sage-essential-oil,vendor main-constituents figure
+Osmanthus,Linalool,0.8,https://scent.vn/en/pages/oil/osmanthus-absolute-550,single sample
+Osmanthus,Geraniol,1.2,https://scent.vn/en/pages/oil/osmanthus-absolute-550,single sample
+Magnolia,Linalool,70,https://premierepeau.com/pages/glossary-terms/magnolia,"champaca flower oil, trade glossary; range 66-73"
+Nutmeg,Limonene,6.7,https://scent.vn/en/pages/oil/nutmeg-indonesia-4-1219,range 3.7-9.8
+Clove,Eugenol,75,https://scent.vn/en/pages/oil/clove-bud-2-205,"clove bud oil, range 73-77"
+Cinnamon,Cinnamal,70,https://scent.vn/en/pages/oil/cinnamon-bark-1-1466,"Ceylon bark oil, range 41-74"
+Cinnamon,Eugenol,7,https://scent.vn/en/pages/oil/cinnamon-bark-1-1466,range 5.3-8.8
+Cinnamon,Linalool,2.3,https://scent.vn/en/pages/oil/cinnamon-bark-1-1466,single sample
+Cinnamon,Benzyl Benzoate,1.0,https://scent.vn/en/pages/oil/cinnamon-bark-1-1466,single sample
+Tonka Bean,Coumarin,48,https://repozitorij.uni-lj.si/IzpisGradiva.php?id=87333,"two absolutes 37-59, midpoint; real spread about 7-60"
+Benzoin,Benzyl Benzoate,7.5,https://www.hekserij.nl/wp-content/uploads/2025/07/1Doc-22405-Benzoin-Siam-resinoid-pure-2025-07.pdf,"supplier data sheet, Siam resinoid 5-10"
+Fir Balsam,Limonene,11.2,https://scent.vn/en/pages/oil/fir-needle-balsam-canada-2-269,"mean of 10 needle/twig oils, not the absolute"
+Galbanum,Limonene,3,https://thegoodscentscompany.com/gca/gc1122351.html,"compiled GC values 0.8-6, rounded midpoint"
+Ambrette Seed,Farnesol,3.5,https://scent.vn/en/pages/oil/ambrette-seed-2-1476,"seed oil; Cravo 1992 samples 3.3-3.8 (trans,trans + 2-cis,6-trans isomers); one other sample lists none"
+Bitter Orange,Limonene,92.1,https://scent.vn/en/pages/oil/orange-bitter-1-1181,peel oil; two studies 90.7 and 93.5
+Bitter Orange,Linalool,0.57,https://scent.vn/en/pages/oil/orange-bitter-1-1181,two studies 0.23-0.9
+Bitter Orange,Citral,0.06,https://scent.vn/en/pages/oil/orange-bitter-1-1181,single study (Inoma 1989); neral 0.01-0.1
+Thyme,Linalool,2.7,https://scent.vn/en/pages/oil/thyme-1-1340,median of five literature profiles 2.1-4.6
+Thyme,Limonene,0.6,https://scent.vn/en/pages/oil/thyme-1-1340,median of four literature profiles 0.3-1.05
+Cypress,Limonene,3.7,https://scent.vn/en/products/cypress-essential-oil,median of four C. sempervirens profiles 2.55-5.0 (supplier 3.29; Croatian studies 4.16 and 5.0)
+Rose Absolute,Citronellol,5.3,https://scent.vn/en/products/rose-absolute,"Rosa damascena absolute; supplier profile 5.34, other supplier range 5-10"
+Rose Absolute,Geraniol,3.3,https://scent.vn/en/products/rose-absolute,"Rosa damascena absolute; supplier profile 3.26, other supplier range 5-10 (conflicting)"
+Rose Absolute,Eugenol,1.5,https://eng.hekserij.nl/?p=33895,"supplier indication 1-2, midpoint"
+Star Anise,Limonene,2.6,https://scent.vn/en/pages/oil/star-anise-china-shangyou-4-1143,median of four profiles 0.68-10.4
+Star Anise,Linalool,1.0,https://scent.vn/en/pages/oil/star-anise-vietnam-2-132,median of five profiles 0.42-2.34
+Cumin,Limonene,0.43,https://scent.vn/en/pages/oil/cumin-turkey-5-1060,median of five seed-oil profiles 0.3-2.3 (India highest)
+Cumin,Linalool,0.04,https://scent.vn/en/pages/oil/cumin-turkey-5-1060,median of four profiles; trace 0.01-0.05 except India 1.06
+Coriander,Linalool,63.0,https://scent.vn/en/pages/oil/coriander-fruit-pakistan-1017,seed oil; median of five studies 57.7-77
+Coriander,Geraniol,1.7,https://scent.vn/en/pages/oil/coriander-fruit-pakistan-1017,median of five studies 0.33-6.3
+Coriander,Limonene,3.1,https://scent.vn/en/pages/oil/coriander-fruit-pakistan-1017,median of three studies 1.3-3.35
+Palo Santo,Limonene,65.9,https://aliksir.com/en/products/palo-santo-bursera-graveolens-essential-oil,Bursera graveolens oil; supplier batches Peru 62.3 and Ecuador 69.4
+Carnation,Eugenol,20,,"ASSUMED, no published composition for a carnation base: taken as clove-derived, about 20% eugenol"
+Carnation,Isoeugenol,2,,"ASSUMED, no published composition for a carnation base: taken as clove-derived, about 2% isoeugenol"

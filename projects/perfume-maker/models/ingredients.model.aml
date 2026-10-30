@@ -1,0 +1,95 @@
+Model ingredients {
+  type: 'table'
+  label: 'Ingredients'
+  description: '''One row per perfume ingredient in the library. Costs and strengths are
+synthetic and plausible, not sourced. IFRA limits are from the IFRA Standards,
+51st Amendment, category 4 (see ifra_basis); still check the current Standards before real use.'''
+  data_source_name: 'local'
+  table_name: 'ingredients'
+
+  dimension ingredient_id {
+    label: 'Ingredient ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.ingredient_id }};;
+  }
+
+  dimension name {
+    label: 'Ingredient'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+
+  dimension tier {
+    label: 'Note Tier'
+    type: 'text'
+    description: 'top, heart or base: how early the ingredient is smelt as the perfume dries.'
+    definition: @sql {{ #SOURCE.tier }};;
+  }
+
+  dimension cost_per_ml {
+    label: 'Cost per ml'
+    type: 'number'
+    description: 'Purchase price in USD per ml of the pure ingredient.'
+    definition: @sql {{ #SOURCE.cost_per_ml }};;
+  }
+
+  dimension strength {
+    label: 'Strength'
+    type: 'number'
+    description: '''How loud the ingredient is, 1 to 10. A strong ingredient at a
+high percentage dominates the blend and can mask quieter ones.'''
+    definition: @sql {{ #SOURCE.strength }};;
+  }
+
+  dimension longevity_hours {
+    label: 'Longevity (h)'
+    type: 'number'
+    description: 'Roughly how long the ingredient stays on skin before it fades.'
+    definition: @sql {{ #SOURCE.longevity_hours }};;
+  }
+
+  dimension ifra_basis {
+    label: 'IFRA Basis'
+    type: 'text'
+    description: 'Why the limit is what it is: the IFRA Standard that names the ingredient, the restricted constituent that sets it, or that there is no restriction.'
+    definition: @sql {{ #SOURCE.ifra_basis }};;
+  }
+
+  dimension ifra_max_pct {
+    label: 'IFRA Max (%)'
+    type: 'number'
+    description: 'Maximum share of the finished product, as a percentage: the IFRA Standards, 51st Amendment, category 4 (fine fragrance). 100 means no restriction, 0 means prohibited.'
+    definition: @sql {{ #SOURCE.ifra_max_pct }};;
+  }
+
+  dimension description {
+    label: 'Description'
+    type: 'text'
+    description: 'A one-line sketch of what the ingredient smells like.'
+    definition: @sql {{ #SOURCE.description }};;
+  }
+
+  dimension motif {
+    label: 'Illustration'
+    type: 'text'
+    hidden: true
+    description: 'Which line drawing the composer shows for the ingredient.'
+    definition: @sql {{ #SOURCE.motif }};;
+  }
+
+  dimension diffusion {
+    label: 'Projection (1-10)'
+    type: 'number'
+    description: 'How far the ingredient radiates from the skin, 1 to 10. Light, airy molecules carry; heavy resins and woods sit close. Synthetic.'
+    definition: @sql {{ #SOURCE.diffusion }};;
+  }
+
+  dimension level {
+    label: 'Library'
+    type: 'text'
+    description: 'core ingredients are in Basic and Advanced; advanced ones only in Advanced.'
+    definition: @sql {{ #SOURCE.level }};;
+  }
+}

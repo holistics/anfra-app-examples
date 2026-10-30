@@ -1,0 +1,40 @@
+[
+  {
+    "id": "t-001",
+    "at": "2026-10-21T15:05:59.633Z",
+    "type": "event",
+    "date": "2026-09-21",
+    "end": "2026-09-27",
+    "compare": "prev",
+    "headline": "Outage week pulled net revenue down",
+    "detail": null,
+    "status": null,
+    "follows": "sales.revenue#t-006",
+    "also_on": null,
+    "by": "mark",
+    "with": null,
+    "value": 3498.3,
+    "valuePrev": 5109.45,
+    "definition": "revenue - refunds",
+    "seeded": true
+  },
+  {
+    "id": "t-002",
+    "at": "2026-10-21T15:05:59.754Z",
+    "type": "learning",
+    "date": "2026-10-12",
+    "end": "2026-10-18",
+    "compare": "prev",
+    "headline": "Net revenue recovered as returns fell after the policy change",
+    "detail": null,
+    "status": "hypothesis",
+    "follows": "sales.gross_margin#t-003",
+    "also_on": null,
+    "by": "lily",
+    "with": null,
+    "value": 4614.95,
+    "valuePrev": 2994.6,
+    "definition": "revenue - refunds",
+    "seeded": true
+  }
+]

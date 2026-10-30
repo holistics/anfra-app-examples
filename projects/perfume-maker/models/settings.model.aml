@@ -1,0 +1,147 @@
+Model settings {
+  type: 'table'
+  label: 'Batch Settings'
+  description: '''Every combination of bottle size, concentration, bottle count and
+retail price the composer offers. Each is a dropdown filter; once all four are
+set, exactly one row is left, and the draft's cost and revenue read from it.'''
+  data_source_name: 'local'
+  table_name: 'settings'
+
+  dimension setting_id {
+    label: 'Setting ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.setting_id }};;
+  }
+
+  dimension k {
+    label: 'Key'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.k }};;
+  }
+
+  dimension bottle_ml {
+    label: 'Bottle Size (ml)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.bottle_ml }};;
+  }
+
+  dimension concentration_pct {
+    label: 'Concentration (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.concentration_pct }};;
+  }
+
+  dimension units {
+    label: 'Bottles in Batch'
+    type: 'number'
+    definition: @sql {{ #SOURCE.units }};;
+  }
+
+  dimension retail_price {
+    label: 'Retail Price per Bottle'
+    type: 'number'
+    definition: @sql {{ #SOURCE.retail_price }};;
+  }
+
+  measure blend_ml {
+    label: 'Blend Needed (ml)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.bottle_ml }} * {{ #SOURCE.units }} * {{ #SOURCE.concentration_pct }} / 100.0;;
+    aggregation_type: 'avg'
+    description: 'Fragrance blend for the whole batch. Meaningful once one setting row is left.'
+  }
+
+  measure bottles {
+    label: 'Bottles'
+    type: 'number'
+    definition: @sql {{ #SOURCE.units }};;
+    aggregation_type: 'avg'
+  }
+
+  measure revenue_amount {
+    label: 'Revenue'
+    type: 'number'
+    definition: @sql {{ #SOURCE.retail_price }} * {{ #SOURCE.units }};;
+    aggregation_type: 'avg'
+  }
+
+  measure packaging_amount {
+    label: 'Packaging Cost'
+    type: 'number'
+    definition: @sql {{ #SOURCE.packaging_cost }} * {{ #SOURCE.units }};;
+    aggregation_type: 'avg'
+  }
+
+  measure concentration_avg {
+    label: 'Concentration'
+    type: 'number'
+    definition: @sql {{ #SOURCE.concentration_pct }};;
+    aggregation_type: 'avg'
+  }
+
+  measure price_avg {
+    label: 'Retail Price'
+    type: 'number'
+    definition: @sql {{ #SOURCE.retail_price }};;
+    aggregation_type: 'avg'
+  }
+
+  measure labor_amount {
+    label: 'Filling Labor'
+    type: 'number'
+    definition: @sql {{ #SOURCE.labor_cost }} * {{ #SOURCE.units }};;
+    aggregation_type: 'avg'
+    description: 'Filling, capping, labelling and boxing, per bottle, for the whole batch.'
+  }
+
+  measure volume_mult {
+    label: 'Bulk Price Paid (0-1)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.volume_mult }};;
+    aggregation_type: 'avg'
+    description: 'Suppliers discount ingredients and packaging on bigger orders: the share of list price paid at this batch size. Synthetic.'
+  }
+
+  measure setup_amount {
+    label: 'Batch Setup'
+    type: 'number'
+    definition: @sql {{ #SOURCE.setup_cost }};;
+    aggregation_type: 'avg'
+    description: 'A fixed cost for every production run, whatever its size: line clearing, a fill and stability test, the first label run.'
+  }
+
+  measure ship_direct_rate {
+    label: 'Shipping per Direct Bottle'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ship_direct }};;
+    aggregation_type: 'avg'
+    description: 'Postage and packing to send one bottle to a customer. Depends on the bottle size.'
+  }
+
+  measure ship_wholesale_rate {
+    label: 'Shipping per Wholesale Bottle'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ship_wholesale }};;
+    aggregation_type: 'avg'
+    description: 'Freight for one bottle in a bulk shipment to a shop.'
+  }
+
+  measure sample_amount {
+    label: 'Samples and Discovery Sets'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sample_cost }} * {{ #SOURCE.units }};;
+    aggregation_type: 'avg'
+    description: 'One 2 ml sample vial for every two bottles in the batch, about $2 a vial: given to buyers and press, never sold.'
+  }
+
+  measure alcohol_amount {
+    label: 'Alcohol Cost'
+    type: 'number'
+    definition: @sql {{ #SOURCE.bottle_ml }} * {{ #SOURCE.units }} * (1 - {{ #SOURCE.concentration_pct }} / 100.0) * {{ #SOURCE.ethanol_cost_per_ml }};;
+    aggregation_type: 'avg'
+    description: 'The part of each bottle that is not concentrate, costed as perfumer alcohol.'
+  }
+}

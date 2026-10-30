@@ -1,0 +1,6 @@
+# python
+.venv/
+__pycache__/
+# derived by scripts/generate_data.py
+data/perfume.duckdb
+data/perfume.duckdb.wal

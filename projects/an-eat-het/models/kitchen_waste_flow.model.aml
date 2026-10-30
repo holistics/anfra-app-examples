@@ -1,0 +1,136 @@
+Model kitchen_waste_flow {
+  type: 'table'
+  label: 'Waste Cycle'
+  description: '''Where every kilo of food waste was lost and where it went. One row per course, service day,
+ingredient, stage and destination.
+
+- Stage: farm (lost before the food reaches the kitchen), storage (expired before use), prep (trim and peel),
+  cooking (loss in the pan and oven) and plate (sent back uneaten).
+- Destination: reused (stock, cordial, fond, staff meal), compost (back to the farm as fertiliser), feed (animal feed,
+  safe unsalted scraps only) or landfill.
+
+The kitchen stages (storage, prep, cooking, plate) add up to the waste in Dish Sales and Waste. Farm loss is extra: the
+supplier absorbs it, so it is shown but never charged to the kitchen. Cost is the kilos at what the ingredient cost that
+month. Synthetic.'''
+  data_source_name: 'kitchen'
+  table_name: 'waste_flow'
+
+  dimension row_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql cast({{ #SOURCE.date }} as varchar) || '-' || {{ #SOURCE.dish_id }} || '-' || {{ #SOURCE.ingredient_id }} || '-' || {{ #SOURCE.stage }} || '-' || {{ #SOURCE.destination }};;
+  }
+
+  dimension date {
+    label: 'Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.date }};;
+  }
+
+  dimension dish_id {
+    label: 'Dish ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.dish_id }};;
+  }
+
+  dimension ingredient_id {
+    label: 'Ingredient ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.ingredient_id }};;
+  }
+
+  dimension stage {
+    label: 'Waste Stage'
+    type: 'text'
+    description: 'farm, storage, prep, cooking or plate.'
+    definition: @sql {{ #SOURCE.stage }};;
+  }
+
+  dimension destination {
+    label: 'Destination'
+    type: 'text'
+    description: 'reused, compost, feed or landfill.'
+    definition: @sql {{ #SOURCE.destination }};;
+  }
+
+  measure kitchen_kg_amount {
+    label: 'Kitchen Waste (kg)'
+    type: 'number'
+    definition: @sql case when {{ #SOURCE.stage }} <> 'farm' then {{ #SOURCE.kg }} else 0 end;;
+    aggregation_type: 'sum'
+  }
+
+  measure kitchen_cost_amount {
+    label: 'Kitchen Waste Cost (USD)'
+    type: 'number'
+    definition: @sql case when {{ #SOURCE.stage }} <> 'farm' then {{ #SOURCE.cost }} else 0 end;;
+    aggregation_type: 'sum'
+  }
+
+  measure reused_kg_amount {
+    label: 'Reused (kg)'
+    type: 'number'
+    definition: @sql case when {{ #SOURCE.stage }} <> 'farm' and {{ #SOURCE.destination }} = 'reused' then {{ #SOURCE.kg }} else 0 end;;
+    aggregation_type: 'sum'
+  }
+
+  measure reused_cost_amount {
+    label: 'Reused Value (USD)'
+    type: 'number'
+    definition: @sql case when {{ #SOURCE.stage }} <> 'farm' and {{ #SOURCE.destination }} = 'reused' then {{ #SOURCE.cost }} else 0 end;;
+    aggregation_type: 'sum'
+  }
+
+  measure compost_kg_amount {
+    label: 'Composted (kg)'
+    type: 'number'
+    definition: @sql case when {{ #SOURCE.stage }} <> 'farm' and {{ #SOURCE.destination }} = 'compost' then {{ #SOURCE.kg }} else 0 end;;
+    aggregation_type: 'sum'
+  }
+
+  measure feed_kg_amount {
+    label: 'Animal Feed (kg)'
+    type: 'number'
+    definition: @sql case when {{ #SOURCE.stage }} <> 'farm' and {{ #SOURCE.destination }} = 'feed' then {{ #SOURCE.kg }} else 0 end;;
+    aggregation_type: 'sum'
+  }
+
+  measure landfill_kg_amount {
+    label: 'Landfill (kg)'
+    type: 'number'
+    definition: @sql case when {{ #SOURCE.stage }} <> 'farm' and {{ #SOURCE.destination }} = 'landfill' then {{ #SOURCE.kg }} else 0 end;;
+    aggregation_type: 'sum'
+  }
+
+  measure landfill_cost_amount {
+    label: 'Landfill Cost (USD)'
+    type: 'number'
+    definition: @sql case when {{ #SOURCE.stage }} <> 'farm' and {{ #SOURCE.destination }} = 'landfill' then {{ #SOURCE.cost }} else 0 end;;
+    aggregation_type: 'sum'
+  }
+
+  measure farm_kg_amount {
+    label: 'Farm Loss (kg)'
+    type: 'number'
+    definition: @sql case when {{ #SOURCE.stage }} = 'farm' then {{ #SOURCE.kg }} else 0 end;;
+    aggregation_type: 'sum'
+  }
+
+  measure all_cost_amount {
+    label: 'All Waste Cost Incl. Farm (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cost }};;
+    aggregation_type: 'sum'
+  }
+
+  measure all_kg_amount {
+    label: 'All Waste Incl. Farm (kg)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.kg }};;
+    aggregation_type: 'sum'
+  }
+}

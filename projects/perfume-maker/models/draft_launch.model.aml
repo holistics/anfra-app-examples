@@ -1,0 +1,136 @@
+Model draft_launch {
+  type: 'query'
+  label: 'Draft vs Past Launches'
+  description: '''Every chosen ingredient against every past launch, month by month through the launch's first two years, as if the launch
+had come out in each calendar month. This is how a draft formula is matched to the launches most like it.
+
+A launch's closeness to the formula is the overlap of their scent families: for each ingredient, the share of its scent
+that sits in the families the launch is made of (divided by the size of the launch's mix, so a launch with one big
+family does not win just for being plain). Summed over the formula's parts it weights each launch.
+
+Each launch's running total of bottles is first moved to a common footing. Its calendar months are evened out (its own
+seasonality is built from the seasonality of its scent families, family_season), then put back on the calendar starting at
+the release month; and the effect of its own price, concentration, marketing and direct share is taken out. Those effects are
+measured from all past launches (launch_effects): a regression of log first-year bottles on log price, concentration,
+the log of the marketing budget and direct points. The forecast then puts the formula's own settings back in.'''
+  data_source_name: 'local'
+  query: @sql
+    with fam as (select launch_id, family, share / 100.0 as s from launch_families),
+    norm as (select launch_id, sqrt(sum(s * s)) as n from fam group by 1),
+    aff as (
+      select o.option_id, o.parts, f.launch_id, sum(a.weight * f.s) / n.n as c
+      from draft_options o
+      join ingredient_families a using (ingredient_id)
+      join fam f on f.family = a.family
+      join norm n on n.launch_id = f.launch_id
+      where o.parts > 0 group by 1, 2, 3, n.n),
+    cur as (
+      select r.launch_id, r.release_month, r.month_no, l.price, l.concentration_pct as conc,
+        ln(r.cum_release) - (e.b_price * ln(l.price) + e.b_marketing * l.marketing_lm + e.b_direct * l.direct_pct + e.b_conc * l.concentration_pct) as v,
+        e.b_price, e.b_marketing, e.b_direct, e.b_conc
+      from launch_release_curve r join launches l using (launch_id), launch_effects e)
+    select aff.option_id, aff.parts, aff.launch_id, cur.release_month, cur.month_no, cur.price, cur.conc, aff.c, cur.v, cur.b_price, cur.b_marketing, cur.b_direct, cur.b_conc
+    from aff join cur using (launch_id);;
+
+  dimension row_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }} || '-' || {{ #SOURCE.launch_id }} || '-' || cast({{ #SOURCE.release_month }} as varchar) || '-' || cast({{ #SOURCE.month_no }} as varchar);;
+  }
+
+  dimension option_id {
+    label: 'Option ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.option_id }};;
+  }
+
+  dimension launch_id {
+    label: 'Launch ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.launch_id }};;
+  }
+
+  dimension release_month {
+    label: 'Release Month (1-12)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.release_month }};;
+  }
+
+  dimension month_no {
+    label: 'Month Since Launch'
+    type: 'number'
+    definition: @sql {{ #SOURCE.month_no }};;
+  }
+
+  measure w {
+    label: 'Closeness Weight'
+    type: 'number'
+    definition: @sql {{ #SOURCE.parts }} * {{ #SOURCE.c }};;
+    aggregation_type: 'sum'
+  }
+
+  measure wv {
+    label: 'Weight x Level'
+    type: 'number'
+    definition: @sql {{ #SOURCE.parts }} * {{ #SOURCE.c }} * {{ #SOURCE.v }};;
+    aggregation_type: 'sum'
+  }
+
+  measure wv2 {
+    label: 'Weight x Level Squared'
+    type: 'number'
+    definition: @sql {{ #SOURCE.parts }} * {{ #SOURCE.c }} * {{ #SOURCE.v }} * {{ #SOURCE.v }};;
+    aggregation_type: 'sum'
+  }
+
+  measure wp {
+    label: 'Weight x Price per Strength'
+    type: 'number'
+    definition: @sql {{ #SOURCE.parts }} * {{ #SOURCE.c }} * {{ #SOURCE.price }} / sqrt({{ #SOURCE.conc }} / 15.0);;
+    aggregation_type: 'sum'
+    description: 'Closeness weight times the launch price per unit of strength (price over the square root of concentration against a 15% Eau de Parfum). Over the weight it is what the launches closest to the draft charge for a standard-strength bottle.'
+  }
+
+  measure w12 {
+    label: 'Closeness Weight, Month 12'
+    type: 'number'
+    definition: @sql case when {{ #SOURCE.month_no }} = 12 then {{ #SOURCE.parts }} * {{ #SOURCE.c }} else 0 end;;
+    aggregation_type: 'sum'
+  }
+
+  measure b_price {
+    label: 'Price Effect'
+    type: 'number'
+    definition: @sql {{ #SOURCE.b_price }};;
+    aggregation_type: 'avg'
+    description: 'Change in log bottles for a change in log price, measured across all past launches.'
+  }
+
+  measure b_conc {
+    label: 'Concentration Effect'
+    type: 'number'
+    definition: @sql {{ #SOURCE.b_conc }};;
+    aggregation_type: 'avg'
+    description: 'Change in log bottles for one more point of concentration at the same price, measured across all past launches.'
+  }
+
+  measure b_marketing {
+    label: 'Marketing Effect'
+    type: 'number'
+    definition: @sql {{ #SOURCE.b_marketing }};;
+    aggregation_type: 'avg'
+    description: 'Change in log bottles for one more point of marketing, measured across all past launches.'
+  }
+
+  measure b_direct {
+    label: 'Direct Share Effect'
+    type: 'number'
+    definition: @sql {{ #SOURCE.b_direct }};;
+    aggregation_type: 'avg'
+    description: 'Change in log bottles for one more point sold direct, measured across all past launches.'
+  }
+}

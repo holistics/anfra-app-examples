@@ -1,0 +1,44 @@
+[
+  {
+    "id": "t-001",
+    "at": "2026-10-21T15:05:59.287Z",
+    "type": "event",
+    "date": "2025-11-27",
+    "end": "2025-12-01",
+    "compare": "prev",
+    "headline": "Black Friday 2025 order surge",
+    "detail": null,
+    "status": null,
+    "follows": null,
+    "also_on": null,
+    "by": "mark",
+    "with": [
+      "lily"
+    ],
+    "value": 87,
+    "valuePrev": 29,
+    "definition": "shop_orders | count(shop_orders.order_id)",
+    "seeded": true
+  },
+  {
+    "id": "t-002",
+    "at": "2026-10-21T15:05:59.659Z",
+    "type": "event",
+    "date": "2026-09-28",
+    "end": "2026-10-04",
+    "compare": "prev",
+    "headline": "A creator's post about the shop went viral",
+    "detail": null,
+    "status": null,
+    "follows": null,
+    "also_on": null,
+    "by": "lily",
+    "with": [
+      "mark"
+    ],
+    "value": 66,
+    "valuePrev": 30,
+    "definition": "shop_orders | count(shop_orders.order_id)",
+    "seeded": true
+  }
+]

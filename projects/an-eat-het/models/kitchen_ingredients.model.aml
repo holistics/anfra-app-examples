@@ -1,0 +1,47 @@
+Model kitchen_ingredients {
+  type: 'table'
+  label: 'Ingredients'
+  description: '''What the kitchen buys. Unit cost is the in-season price per kg; the seasonal calendar
+raises it when an ingredient is shoulder or out of season. Synthetic.'''
+  data_source_name: 'kitchen'
+  table_name: 'ingredients'
+
+  dimension ingredient_id {
+    label: 'Ingredient ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.ingredient_id }};;
+  }
+
+  dimension name {
+    label: 'Ingredient'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+
+  dimension category {
+    label: 'Type'
+    type: 'text'
+    definition: @sql {{ #SOURCE.category }};;
+  }
+
+  dimension unit_cost {
+    label: 'In-season Cost per kg (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.unit_cost }};;
+  }
+
+  dimension supplier_id {
+    label: 'Supplier ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.supplier_id }};;
+  }
+
+  dimension is_seasonal {
+    label: 'Is Seasonal'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_seasonal }};;
+  }
+}

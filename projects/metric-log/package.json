@@ -1,0 +1,21 @@
+{
+  "name": "anfra-metric-log",
+  "version": "0.1.0",
+  "description": "Reviewed changes to Anfra metric definitions: who asked, what moves, who approved, why. A concept.",
+  "bin": {
+    "anfra-metric-log": "bin/anfra-metric-log.js"
+  },
+  "scripts": {
+    "check": "node bin/anfra-metric-log.js check",
+    "start": "node bin/anfra-metric-log.js serve"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@dicebear/core": "9.4.2",
+    "@dicebear/open-peeps": "9.4.2",
+    "yaml": "2.8.1"
+  }
+}

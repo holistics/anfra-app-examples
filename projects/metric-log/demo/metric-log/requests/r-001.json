@@ -1,0 +1,99 @@
+{
+  "id": "r-001",
+  "metric": "sales.gross_margin",
+  "sentence": "Gross margin should include shipping cost",
+  "requester": "lily",
+  "state": "applied",
+  "draft": {
+    "definition": "(net_revenue - (shop_costs | sum(shop_costs.product_cost)) - (shop_costs | sum(shop_costs.shipping_cost))) / net_revenue",
+    "simulated": true
+  },
+  "history": [
+    {
+      "state": "requested",
+      "by": "lily",
+      "at": "2026-10-21T15:15:16.041Z"
+    },
+    {
+      "state": "drafted",
+      "by": "simulated draft",
+      "at": "2026-10-21T15:15:16.041Z"
+    },
+    {
+      "state": "in_review",
+      "by": "mark",
+      "at": "2026-10-21T15:15:23.150Z"
+    },
+    {
+      "state": "approved",
+      "by": "hannah",
+      "at": "2026-10-21T15:15:23.165Z"
+    },
+    {
+      "state": "applied",
+      "by": "hannah",
+      "at": "2026-10-21T15:15:23.165Z"
+    }
+  ],
+  "final": {
+    "definition": "(net_revenue - (shop_costs | sum(shop_costs.product_cost)) - (shop_costs | sum(shop_costs.shipping_cost))) / net_revenue",
+    "editor": "mark",
+    "reason": "Shipping is part of the cost of selling an order, so margin should include it"
+  },
+  "before": {
+    "definition": "(net_revenue - (shop_costs | sum(shop_costs.product_cost))) / net_revenue"
+  },
+  "base_hash": "c105ece2d6e0c0846f74e6db1b31dff2b08409d8",
+  "impact": {
+    "valid": true,
+    "metrics": [
+      {
+        "id": "sales.gross_margin",
+        "label": "Gross margin",
+        "format": "0.0%",
+        "changed": true,
+        "old": 0.47395501119637196,
+        "new": 0.41408676775856407
+      }
+    ],
+    "queries": [
+      {
+        "app": "finance",
+        "appTitle": "Finance weekly",
+        "query": "finance_kpis",
+        "label": "Net revenue and margin, all time",
+        "by": null,
+        "items": [
+          {
+            "id": "sales.gross_margin",
+            "label": "Gross margin",
+            "format": "0.0%",
+            "old": 0.47395501119637196,
+            "new": 0.41408676775856407
+          }
+        ]
+      },
+      {
+        "app": "sales",
+        "appTitle": "Weekly sales",
+        "query": "headline",
+        "label": "Headline numbers",
+        "by": null,
+        "items": [
+          {
+            "id": "sales.gross_margin",
+            "label": "Gross margin",
+            "format": "0.0%",
+            "old": 0.47395501119637196,
+            "new": 0.41408676775856407
+          }
+        ]
+      }
+    ],
+    "computedAt": "2026-10-21T15:15:23.146Z"
+  },
+  "approval": {
+    "by": "hannah",
+    "note": "Agreed; finance wants margin after shipping"
+  }
+}

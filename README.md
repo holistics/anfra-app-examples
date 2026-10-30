@@ -20,6 +20,9 @@ Every app lives in its own folder under `projects/`.
 | [eta-control-tower](projects/eta-control-tower) | A freight control tower: which shipments will miss their promised date, how much value is at risk, and why | [Demo](https://eta-tracking-live.pages.holistics.dev/apps/eta-control-tower) | Vy Huynh |
 | [underworld](projects/underworld) | You work the identity desk at Charon's ferry: resolve each soul's claim against the Books, where every verdict is a live query | [Demo](https://anfra-amyra.pages.holistics.dev/apps/nether-v4/realm) | Amyra Nguyen |
 | [kumquat-kite](projects/kumquat-kite) | One record for every job, from the first conversation to the acceptance Finance verifies | [Demo](https://kumquat-kite-poc-demo.pages.holistics.dev/#/welcome) | Toan Pham |
+| [perfume-maker](projects/perfume-maker) | Be a perfumer: mix your own formula, watch the cost per bottle, then price it to make profit | [Demo](https://anfra-uwu.pages.holistics.dev/apps/composer) | Kaia Nguyen |
+| [an-eat-het](projects/an-eat-het) | Run a kitchen that tracks menu health, revenue, guests and every kg of food from farm to plate, to make better calls for the kitchen and the planet | [Demo](https://anfra-uwu.pages.holistics.dev/apps/kitchen) | Kaia Nguyen |
+| [metric-log](projects/metric-log) | A plugin for Metric Tree & Decompose that keeps a running history for each metric: decisions logged next to it, and every definition change in plain language | [Demo](https://anfra-metric-log-demo.pages.holistics.dev/) | Kaia Nguyen |
 
 Apps ship without data source credentials, so some need setup before they run. Each app README says which sample data it uses.
 

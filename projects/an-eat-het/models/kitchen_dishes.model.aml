@@ -1,0 +1,54 @@
+Model kitchen_dishes {
+  type: 'table'
+  label: 'Dishes'
+  description: '''One row per menu appearance of a dish concept (151 over twelve menus). Eight concepts are on
+every menu; the rest are seasonal specials. Synthetic.'''
+  data_source_name: 'kitchen'
+  table_name: 'dishes'
+
+  dimension dish_id {
+    label: 'Dish ID'
+    type: 'number'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.dish_id }};;
+  }
+
+  dimension concept_id {
+    label: 'Concept ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.concept_id }};;
+  }
+
+  dimension menu_id {
+    label: 'Menu ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.menu_id }};;
+  }
+
+  dimension name {
+    label: 'Dish'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+
+  dimension category {
+    label: 'Course'
+    type: 'text'
+    definition: @sql {{ #SOURCE.category }};;
+  }
+
+  dimension course_no {
+    label: 'Course Number'
+    type: 'number'
+    definition: @sql {{ #SOURCE.course_no }};;
+  }
+
+  dimension price {
+    label: 'Menu Price (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.price }};;
+  }
+}

@@ -1,0 +1,50 @@
+Model kitchen_pairing_day {
+  type: 'table'
+  label: 'Pairing Sales'
+  description: '''One row per drinks offer per service day: how many guests took it, what they paid and what the drinks cost
+the restaurant. A guest takes at most one pairing, so guests across the three offers never exceed that day's guests. Synthetic.'''
+  data_source_name: 'kitchen'
+  table_name: 'pairing_day'
+
+  dimension row_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql cast({{ #SOURCE.date }} as varchar) || '-' || {{ #SOURCE.pairing_id }};;
+  }
+
+  dimension date {
+    label: 'Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.date }};;
+  }
+
+  dimension pairing_id {
+    label: 'Pairing ID'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.pairing_id }};;
+  }
+
+  measure guests_amount {
+    label: 'Pairing Guests'
+    type: 'number'
+    definition: @sql {{ #SOURCE.guests }};;
+    aggregation_type: 'sum'
+  }
+
+  measure revenue_amount {
+    label: 'Pairing Revenue'
+    type: 'number'
+    definition: @sql {{ #SOURCE.revenue }};;
+    aggregation_type: 'sum'
+  }
+
+  measure cost_amount {
+    label: 'Pairing Cost'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cost }};;
+    aggregation_type: 'sum'
+  }
+}

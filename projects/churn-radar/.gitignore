@@ -1,5 +1,2 @@
 data/
 .env.local
-video/node_modules
-video/raw/
-video/assets/

@@ -2,9 +2,8 @@
 
 Finds the customers whose AI usage costs more than they pay, and tests the pricing rules that fix the margin.
 
-- Demo: https://ai-margin-radar.pages.holistics.dev/apps/ai-margin-radar (password protected, ask the author)
+- Demo: https://ai-margin-radar.pages.holistics.dev/apps/ai-margin-radar
 - Video: Coming soon
-- Author: Triet Pham
 
 ## Run it
 
@@ -41,3 +40,16 @@ The assistant never writes SQL and never sees raw tables. It works through tools
 
 - Revenue, LLM usage and invoices each join customers and the calendar one way only, so revenue and cost never cross-join.
 - The invoice-date relationship to the calendar is inactive. Billing metrics (discounts, failed payments, refunds) switch it on with `with_relationships()`. When it was active, "unprofitable customers by month" built its customer list from invoices and missed customers whose month was paid for by the previous month's invoice (32 instead of 35 for September 2026).
+
+## Run it in a container, with the copilot
+
+`deploy/` builds one image: `anfra serve` on loopback behind a small Go gateway (`deploy/gateway`). The gateway is the only public port. It forwards only what the app needs (the app's own AQL, no raw SQL or MCP) and serves the copilot's OpenAI calls at `/ai`, so the key stays on the server. Without a key the app works and the copilot shows as offline.
+
+```sh
+uv run --with "duckdb<2" --with numpy --with pandas scripts/generate_data.py   # the image copies data/inkwell.duckdb
+deploy/build.sh ai-margin-radar:local                        # needs Go and podman
+podman run --rm -p 8080:8080 -e OPENAI_API_KEY=sk-... ai-margin-radar:local
+```
+
+Open http://127.0.0.1:8080. Optional: `OPENAI_MODEL` (default `gpt-5-mini`) and `OPENAI_REASONING_EFFORT` (default `low`). Pass the key at run time, never bake it into the image.
+

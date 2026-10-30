@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Data quality (governed)</title>
+</head>
+<body>
+<main data-anfra-container="page" data-anfra-label="Data quality">
+  <div id="filters" class="filters" data-anfra-container="controls" data-anfra-label="Filters"></div>
+  <header class="row spread" style="margin-bottom:12px">
+    <div><h1>Data quality</h1><p class="small muted">What keeps a project out of margin or not ready: missing amounts, open readiness checks and proposals waiting for Finance.</p></div>
+    <div class="small muted" id="fresh" style="text-align:right"></div>
+  </header>
+
+  <section class="grid cards" data-anfra-container="kpis" data-anfra-label="Counts">
+    <div class="block" data-anfra-block="excluded-count" data-anfra-label="Excluded from margin" data-anfra-query="excluded"><h2>Excluded from margin</h2><div class="figure" id="k-ex">…</div><p class="small muted note">Signed in the period, with a missing amount.</p></div>
+    <div class="block" data-anfra-block="checks-count" data-anfra-label="Open readiness checks" data-anfra-query="readiness"><h2>Projects with open checks</h2><div class="figure" id="k-checks">…</div><p class="small muted note" id="k-checks-sub"></p></div>
+    <div class="block" data-anfra-block="pending-count" data-anfra-label="Pending proposals" data-anfra-query="pending"><h2>Proposals waiting for Finance</h2><div class="figure" id="k-pending">…</div><p class="small muted note">The approved figures do not move until Finance decides.</p></div>
+  </section>
+
+  <section class="block" data-anfra-block="excluded" data-anfra-label="Excluded projects" data-anfra-query="excluded">
+    <h2>Projects excluded from margin (missing amounts)</h2><div id="excluded"></div><div class="status" id="excluded-status"></div></section>
+
+  <section class="grid halves" data-anfra-container="readiness-area" data-anfra-label="Readiness">
+    <div class="block" data-anfra-block="checks-chart" data-anfra-label="Open checks by project" data-anfra-query="readiness">
+      <h2>Open readiness checks by project</h2>
+      <div class="chart" id="c-checks" role="img" aria-label="Open readiness checks by project"></div>
+      <div class="status" id="readiness-status"></div></div>
+    <div class="block" data-anfra-block="readiness" data-anfra-label="Projects with open checks" data-anfra-query="readiness">
+      <h2>Projects with open checks</h2><div id="readiness"></div></div>
+  </section>
+
+  <section class="block" data-anfra-block="pending" data-anfra-label="Pending proposals" data-anfra-query="pending">
+    <h2>Proposals waiting for Finance</h2><div id="pending"></div><div class="status" id="pending-status"></div></section>
+
+  <section class="block" data-anfra-block="why" data-anfra-label="Why this number?" data-anfra-query="excluded readiness pending">
+    <details class="why"><summary>Why this number?</summary><div id="why"></div></details></section>
+</main>
+
+<script>
+  const kit = document.createElement('script');
+  kit.src = new URL('panel-kit.js', document.baseURI).href;
+  kit.onload = () => KK.start(main);
+  kit.onerror = () => { document.body.textContent = 'This panel could not load its helpers. Reload the page.'; };
+  document.head.append(kit);
+
+  function main(K) {
+    const { esc, isNull } = K;
+    const DS = 'kumquat_finance';
+    const STAGE = { lead: 'Lead', qualified: 'Qualified', meeting: 'Meeting', proposal: 'Proposal', negotiation: 'Negotiation', contract_sent: 'Contract sent', on_hold: 'On hold', won: 'Won', lost: 'Lost' };
+    const DELIVERY = { not_started: 'Not started', planning: 'Planning', in_production: 'In production', delivered: 'Delivered', client_accepted: 'Client accepted', closed: 'Closed', cancelled: 'Cancelled' };
+    const app = Anfra.createApp({ title: 'Data quality', timezone: 'Asia/Ho_Chi_Minh' });
+    const f = K.filters(app, DS);
+    const excluded = app.createQuery('excluded', { dataset: DS, aql: `explore {
+        dimensions { ref: projects.project_ref, title: projects.title, client: clients.display_name }
+        measures { revenue: approved_revenue, known_cost: approved_known_cost, unknown: approved_unknown_lines }
+        filters { projects.approved_inputs_complete is false }
+        sorts { ref asc } }` });
+    const readiness = app.createQuery('readiness', { dataset: DS, aql: `explore {
+        dimensions { ref: projects.project_ref, title: projects.title, client: clients.display_name, stage: projects.commercial_stage,
+          delivery: projects.delivery_state, checks: projects.open_readiness_checks, overdue: projects.next_action_overdue }
+        filters { projects.open_readiness_checks > 0 }
+        sorts { checks desc, ref asc } }` });
+    const pending = app.createQuery('pending', { dataset: DS, aql: `explore {
+        dimensions { ref: projects.project_ref, title: projects.title, client: clients.display_name, request: money_facts.pending_request_ref,
+          line: money_facts.line_ref, kind: money_facts.fact_kind, description: money_facts.description, amount: money_facts.amount }
+        filters { money_facts.basis == 'scenario', money_facts.pending_request_ref is not null }
+        sorts { request asc } }` });
+    // Money exclusions follow the period; readiness and pending proposals are about every project, whatever its date.
+    f.map(excluded);
+    if (f.client) { app.mapControl(f.client, readiness, { field: 'clients.display_name' }); app.mapControl(f.client, pending, { field: 'clients.display_name' }); }
+    f.wire();
+
+    function render() {
+      K.status(excluded, 'excluded-status', 'No project is excluded in this period.'); K.status(readiness, 'readiness-status', 'No project has an open readiness check.');
+      K.status(pending, 'pending-status', 'No proposal is waiting for Finance.');
+      [excluded, readiness, pending].forEach(K.first);
+      if (excluded.result) {
+        document.getElementById('k-ex').textContent = `${excluded.result.rows.length} project(s)`;
+        K.paged('excluded', { rows: excluded.result.rows, pageSize: 10,
+          head: '<th>Project</th><th class="n">Approved revenue</th><th class="n">Known cost</th><th>Why it is excluded</th>',
+          row: (x) => `<tr><td><b>${esc(x.ref)}</b> ${esc(x.title)}<span class="sub">${esc(x.client)}</span></td><td class="n">${K.vnd(x.revenue, 'none')}</td><td class="n">${K.vnd(x.known_cost, 'none')}</td>
+            <td class="small">${Number(x.unknown ?? 0) ? `${esc(x.unknown)} line(s) without an amount — not counted as 0` : isNull(x.known_cost) ? 'No approved cost yet' : 'No approved revenue yet'}</td></tr>`,
+          empty: '<p class="small muted">No project is excluded in this period.</p>' });
+      }
+      if (readiness.result) {
+        const rows = readiness.result.rows;
+        const total = rows.reduce((n, x) => n + Number(x.checks ?? 0), 0);
+        document.getElementById('k-checks').textContent = `${rows.length} project(s)`;
+        document.getElementById('k-checks-sub').textContent = `${total} open check(s) in all; each has an owner on its Job 360.`;
+        K.paged('readiness', { rows, pageSize: 8,
+          head: '<th>Project</th><th>Stage · delivery</th><th class="n">Open checks</th>',
+          row: (x) => `<tr><td><b>${esc(x.ref)}</b> ${esc(x.title)}<span class="sub">${esc(x.client)}</span></td>
+            <td class="small">${esc(STAGE[x.stage] ?? x.stage)} · ${esc(DELIVERY[x.delivery] ?? x.delivery)}${K.isTrue(x.overdue) ? ' <span class="chip bad">next action overdue</span>' : ''}</td>
+            <td class="n"><b>${esc(x.checks)}</b></td></tr>`,
+          empty: '<p class="small muted">No project has an open readiness check.</p>' });
+        if (rows.length) {
+          const data = rows.slice(0, 10).reverse();
+          K.chart('c-checks', {
+            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+            xAxis: { type: 'value', minInterval: 1 },
+            yAxis: { type: 'category', data: data.map((x) => x.ref) },
+            series: [{ name: 'Open checks', type: 'bar', barMaxWidth: 20, data: data.map((x) => K.num(x.checks)), itemStyle: { color: K.COLORS.warn },
+              label: { show: true, position: 'right' } }],
+          });
+        }
+      }
+      if (pending.result) {
+        const rows = pending.result.rows;
+        document.getElementById('k-pending').textContent = String(new Set(rows.map((x) => x.request)).size);
+        K.paged('pending', { rows, pageSize: 10,
+          head: '<th>Proposal</th><th>Project</th><th>Line</th><th class="n">Proposed amount</th>',
+          row: (x) => `<tr><td class="ref">${esc(x.request)}</td><td><b>${esc(x.ref)}</b> ${esc(x.title)}<span class="sub">${esc(x.client)}</span></td>
+            <td>${esc(x.line)} ${esc(x.kind === 'revenue' ? 'Revenue' : 'Cost')}<span class="sub">${esc(x.description)}</span></td><td class="n">${K.vnd(x.amount, 'unknown')}</td></tr>`,
+          empty: '<p class="small muted">No proposal is waiting for Finance.</p>' });
+      }
+      if (excluded.result) {
+        K.fresh('fresh', null, excluded);
+        document.getElementById('fresh').innerHTML = `Queried ${esc(K.when(excluded.result.debug?.executedAt))}`;
+        K.why('why', {
+          metrics: ['approved_unknown_lines', 'approved_incomplete_projects', 'pending_proposals'],
+          items: [
+            ['Completeness rule', 'A project counts in margin only when, on the approved basis, it has at least one revenue line, at least one cost line and no unknown amount. Otherwise it is listed here, with its revenue left out of matching revenue: an unknown is never counted as 0.'],
+            ['Readiness', 'Each project has ten readiness checks (next action, contract, brief, account owner, job code, approved revenue, complete cost, no change waiting, no overdue work, verified acceptance). Every open one has an owner on the project\'s Job 360.'],
+            ['Filters applied', `${f.describe()} for the money exclusions; readiness and proposals cover every project${f.client?.condition?.values?.[0] ? ' of the client' : ''}. The AQL that ran:<pre class="aql">${esc(excluded.result.debug?.executedAql ?? '')}</pre>`],
+          ],
+        });
+      }
+    }
+    app.subscribe(render);
+    app.execute({ force: true });
+  }
+</script>
+</body>
+</html>

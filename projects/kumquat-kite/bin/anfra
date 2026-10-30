@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ANFRA_CLI="${ANFRA_CLI:-$HOME/.anfra/bin/anfra}"
+export ANFRA_NO_UPDATE_NOTIFIER=1
+[ -x "$ANFRA_CLI" ] || { echo "Install Anfra 0.8.0 or set ANFRA_CLI to its executable." >&2; exit 2; }
+exec "$ANFRA_CLI" "$@"

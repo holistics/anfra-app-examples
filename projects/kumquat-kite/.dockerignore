@@ -1,0 +1,16 @@
+# Never in the image: secrets, local state, backups, exports, logs, test output.
+.git
+.env
+.env.*
+**/.DS_Store
+node_modules
+web/dist
+backups
+exports
+logs
+test-results
+playwright-report
+anfra/.anfra/data_sources.yml
+tests
+docs
+bin

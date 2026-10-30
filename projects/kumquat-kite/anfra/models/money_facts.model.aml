@@ -1,0 +1,165 @@
+// One row per atomic money record per basis (reporting.money_facts). Revenue lives only on service lines, so a
+// project and its lines are never both summed. Every governed metric picks exactly one basis.
+Model money_facts {
+  type: 'table'
+  label: 'Money facts (by basis)'
+  description: '''One row per money record per **basis**:
+- `approved` — the value committed now (Finance-approved, or an imported baseline approved in its source);
+- `scenario` — approved values with each pending proposal substituted, plus proposed new lines;
+- `version` — every committed version of every project, for history ("why was it 40% before?");
+- `recorded` — acceptance milestones and receipt allocations.
+
+`amount` is NULL when the amount is unknown; it is never coerced to 0.
+'''
+  data_source_name: 'kumquat_poc'
+  table_name: '"reporting"."money_facts"'
+
+  dimension fact_key {
+    label: 'Fact key'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.fact_key }};;
+  }
+  dimension basis {
+    label: 'Basis'
+    type: 'text'
+    description: 'approved · scenario · version · recorded. Never sum across bases.'
+    definition: @sql {{ #SOURCE.basis }};;
+  }
+  dimension fact_kind {
+    label: 'Kind'
+    type: 'text'
+    description: 'revenue (service line) · cost (cost line) · acceptance (milestone) · receipt (allocated cash)'
+    definition: @sql {{ #SOURCE.fact_kind }};;
+  }
+  dimension line_ref {
+    label: 'Line ref'
+    type: 'text'
+    description: 'SL- revenue line · CO- cost line · CR- proposed new line · AC- acceptance · RC- receipt'
+    definition: @sql {{ #SOURCE.line_ref }};;
+  }
+  dimension description {
+    label: 'Description'
+    type: 'text'
+    definition: @sql {{ #SOURCE.description }};;
+  }
+  dimension project_id {
+    label: 'Project ID'
+    type: 'text'
+    hidden: true
+    definition: @sql {{ #SOURCE.project_id }}::text;;
+  }
+  dimension service_code {
+    label: 'Service code'
+    type: 'text'
+    description: 'NULL for a cost line not attributed to a service line.'
+    definition: @sql {{ #SOURCE.service_code }};;
+  }
+  dimension cost_stage {
+    label: 'Cost stage'
+    type: 'text'
+    description: 'forecast · committed · actual — stages of one cost item, never three additive costs.'
+    definition: @sql {{ #SOURCE.cost_stage }};;
+  }
+  dimension receipt_type {
+    label: 'Receipt type'
+    type: 'text'
+    definition: @sql {{ #SOURCE.receipt_type }};;
+  }
+  dimension amount {
+    label: 'Amount (VND)'
+    type: 'number'
+    description: 'Exact VND. NULL = unknown, never 0.'
+    definition: @sql {{ #SOURCE.amount }};;
+  }
+  dimension amount_known {
+    label: 'Amount known'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.amount_known }};;
+  }
+  dimension zero_confirmed {
+    label: 'Zero confirmed'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.zero_confirmed }};;
+  }
+  dimension currency {
+    label: 'Currency'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency }};;
+  }
+  dimension tax_basis {
+    label: 'Tax basis'
+    type: 'text'
+    description: 'net_of_vat · gross_incl_vat'
+    definition: @sql {{ #SOURCE.tax_basis }};;
+  }
+  dimension revision_ref {
+    label: 'Revision'
+    type: 'text'
+    definition: @sql {{ #SOURCE.revision_ref }};;
+  }
+  dimension revision_no {
+    label: 'Revision no.'
+    type: 'number'
+    definition: @sql {{ #SOURCE.revision_no }};;
+  }
+  dimension version_no {
+    label: 'Project version'
+    type: 'number'
+    description: 'Only on basis = version: the k-th committed version of the project.'
+    definition: @sql {{ #SOURCE.version_no }};;
+  }
+  dimension version_label {
+    label: 'Version'
+    type: 'text'
+    definition: @sql {{ #SOURCE.version_label }};;
+  }
+  dimension version_from {
+    label: 'Valid from'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.version_from }};;
+  }
+  dimension version_until {
+    label: 'Valid until'
+    type: 'datetime'
+    definition: @sql {{ #SOURCE.version_until }};;
+  }
+  dimension effective_date {
+    label: 'Effective date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.effective_date }};;
+  }
+  dimension committed_at {
+    label: 'Committed at'
+    type: 'datetime'
+    description: 'When the value was committed (approved, verified, recorded) or, for a proposal, submitted.'
+    definition: @sql {{ #SOURCE.committed_at }};;
+  }
+  dimension pending_request_ref {
+    label: 'Pending proposal'
+    type: 'text'
+    definition: @sql {{ #SOURCE.pending_request_ref }};;
+  }
+  dimension value_state {
+    label: 'Value state'
+    type: 'text'
+    description: 'imported (approved in the source) · approved (by Finance) · proposed (pending) · verified · submitted · rejected · recorded'
+    definition: @sql {{ #SOURCE.value_state }};;
+  }
+  dimension status {
+    label: 'Status'
+    type: 'text'
+    definition: @sql {{ #SOURCE.status }};;
+  }
+  dimension source {
+    label: 'Source'
+    type: 'text'
+    definition: @sql {{ #SOURCE.source }};;
+  }
+  dimension inputs_complete {
+    label: 'Inputs complete'
+    type: 'truefalse'
+    description: 'Within the project and basis (and version): at least one revenue and one cost line, and no unknown amount.'
+    definition: @sql {{ #SOURCE.inputs_complete }};;
+  }
+}

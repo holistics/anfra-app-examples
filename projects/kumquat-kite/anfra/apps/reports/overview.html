@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Overview (governed)</title>
+</head>
+<body>
+<main data-anfra-container="page" data-anfra-label="Overview">
+  <div id="filters" class="filters" data-anfra-container="controls" data-anfra-label="Filters"></div>
+  <header class="row spread" style="margin-bottom:12px">
+    <div><h1>Overview</h1><p class="small muted">Gross profit and margin from matching revenue and complete approved cost, for projects signed in the period.</p></div>
+    <div class="small muted" id="fresh" style="text-align:right"></div>
+  </header>
+
+  <section class="grid cards" data-anfra-container="kpis" data-anfra-label="Portfolio totals">
+    <div class="block approved" data-anfra-block="kpi-gp" data-anfra-label="Gross profit" data-anfra-query="totals"><h2>Gross profit (approved)</h2><div class="figure" id="k-gp">…</div><p class="small muted note" id="k-gp-sub"></p><div class="status" id="totals-status"></div></div>
+    <div class="block approved" data-anfra-block="kpi-gm" data-anfra-label="Gross margin" data-anfra-query="totals"><h2>Gross margin</h2><div class="figure" id="k-gm">…</div><p class="small muted note" id="k-gm-sub"></p></div>
+    <div class="block" data-anfra-block="kpi-excluded" data-anfra-label="Exclusions" data-anfra-query="totals"><h2>Excluded from margin</h2><div class="figure" id="k-ex">…</div><p class="small muted note" id="k-ex-sub"></p></div>
+    <div class="block scenario" data-anfra-block="kpi-scenario" data-anfra-label="Scenario" data-anfra-query="totals"><h2>If every proposal is approved</h2><div class="figure" id="k-sc">…</div><p class="small muted note" id="k-sc-sub"></p></div>
+  </section>
+
+  <section class="grid halves" data-anfra-container="charts" data-anfra-label="Charts">
+    <div class="block" data-anfra-block="by-month" data-anfra-label="Gross profit by contract month" data-anfra-query="monthly">
+      <h2>Gross profit and margin by contract month</h2>
+      <div class="chart" id="c-monthly" role="img" aria-label="Gross profit bars and margin line by contract-signed month"></div>
+      <p class="legend-note">Bars: approved gross profit · line: gross margin. The month in progress is incomplete.</p>
+      <div class="status" id="monthly-status"></div></div>
+    <div class="block" data-anfra-block="top" data-anfra-label="Top projects by gross profit" data-anfra-query="top">
+      <h2>Top projects by gross profit</h2>
+      <div class="chart" id="c-top" role="img" aria-label="Top five projects by approved gross profit"></div>
+      <p class="legend-note">Projects with complete approved inputs; ties share a rank and are ordered by project ID. The full ranking is in Project ranking.</p>
+      <div class="status" id="top-status"></div></div>
+  </section>
+
+  <section class="block" data-anfra-block="why" data-anfra-label="Why this number?" data-anfra-query="totals monthly top">
+    <details class="why"><summary>Why this number?</summary><div id="why"></div></details></section>
+</main>
+
+<script>
+  const kit = document.createElement('script');
+  kit.src = new URL('panel-kit.js', document.baseURI).href;
+  kit.onload = () => KK.start(main);
+  kit.onerror = () => { document.body.textContent = 'This panel could not load its helpers. Reload the page.'; };
+  document.head.append(kit);
+
+  function main(K) {
+    const { esc, isNull } = K;
+    const DS = 'kumquat_finance';
+    const app = Anfra.createApp({ title: 'Overview', timezone: 'Asia/Ho_Chi_Minh' });
+    const f = K.filters(app, DS);
+
+    const totals = app.createQuery('totals', { dataset: DS, aql: `explore { measures {
+        mr: approved_matching_revenue, cc: approved_complete_cost, gp: approved_gross_profit, gm: approved_gross_margin,
+        included: approved_complete_projects, excluded: approved_incomplete_projects, excluded_revenue: approved_excluded_revenue,
+        unknown: approved_unknown_lines, s_gp: scenario_gross_profit, s_gm: scenario_gross_margin, d_gp: scenario_gross_profit_change,
+        pending: pending_proposals, projects: project_count, last: last_committed_at } }` });
+    const monthly = app.createQuery('monthly', { dataset: DS, aql: `explore {
+        dimensions { month: projects.contract_signed_date | month() }
+        measures { gp: approved_gross_profit, mr: approved_matching_revenue, gm: approved_gross_margin, n: approved_complete_projects, ex: approved_incomplete_projects }
+        sorts { month asc } }` });
+    const top = app.createQuery('top', { dataset: DS, aql: `explore {
+        dimensions { ref: projects.project_ref, title: projects.title }
+        measures { gp: approved_gross_profit, gm: approved_gross_margin, rank: gross_profit_rank }
+        filters { projects.approved_inputs_complete is true }
+        sorts { gp desc, ref asc } }` });
+    f.map(totals, monthly, top);
+    f.wire();
+
+    function renderTotals() {
+      const r = totals.result?.rows?.[0]; if (!r) return;
+      document.getElementById('k-gp').innerHTML = K.vnd(r.gp);
+      document.getElementById('k-gp-sub').innerHTML = `Matching revenue ${K.vnd(r.mr)} − complete cost ${K.vnd(r.cc)} · ${esc(r.included ?? 0)} project(s)`;
+      document.getElementById('k-gm').innerHTML = K.pct(r.gm);
+      document.getElementById('k-gm-sub').textContent = 'Gross profit ÷ matching revenue (includes the zero-revenue sponsored project).';
+      document.getElementById('k-ex').innerHTML = `${esc(r.excluded ?? 0)} project(s)`;
+      document.getElementById('k-ex-sub').innerHTML = `${K.vnd(r.excluded_revenue, '0 VND')} of approved revenue left out of margin · ${esc(r.unknown ?? 0)} line(s) without an amount (not counted as 0).`;
+      document.getElementById('k-sc').innerHTML = K.pct(r.s_gm);
+      document.getElementById('k-sc-sub').innerHTML = `${esc(r.pending ?? 0)} pending proposal(s) · scenario gross profit ${K.vnd(r.s_gp)}${isNull(r.d_gp) ? '' : ` (${esc(K.signedVnd(r.d_gp))})`} · not an approved figure.`;
+      K.fresh('fresh', r.last, totals);
+    }
+
+    function renderCharts() {
+      if (monthly.result?.rows?.length) {
+        const rows = monthly.result.rows;
+        const current = K.todayVN.slice(0, 7);
+        K.chart('c-monthly', {
+          tooltip: { trigger: 'axis' },
+          legend: { top: 0, data: ['Gross profit', 'Margin'] },
+          xAxis: { type: 'category', data: rows.map((m) => `${K.monthShort(m.month)}${String(m.month).slice(0, 7) === current ? ' *' : ''}`) },
+          yAxis: [K.axisVnd, K.axisPct],
+          series: [
+            { name: 'Gross profit', type: 'bar', barMaxWidth: 40, data: rows.map((m) => K.num(m.gp)), itemStyle: { color: K.COLORS.approved }, tooltip: { valueFormatter: K.tipVnd } },
+            { name: 'Margin', type: 'line', yAxisIndex: 1, data: rows.map((m) => K.num(m.gm)), itemStyle: { color: K.COLORS.info },
+              tooltip: { valueFormatter: (x) => (x === null ? '—' : `${(x * 100).toFixed(1)}%`) } },
+          ],
+        });
+      }
+      if (top.result?.rows?.length) {
+        const rows = top.result.rows.slice(0, 5).reverse();
+        K.chart('c-top', {
+          tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: K.tipVnd },
+          xAxis: K.axisVnd,
+          yAxis: { type: 'category', data: rows.map((x) => `#${x.rank} ${x.ref}`) },
+          series: [{ name: 'Gross profit', type: 'bar', barMaxWidth: 26, data: rows.map((x) => K.num(x.gp)), itemStyle: { color: K.COLORS.approved },
+            label: { show: true, position: 'right', formatter: (p) => K.shortVnd(p.value) } }],
+        });
+      }
+    }
+
+    function renderWhy() {
+      const r = totals.result?.rows?.[0]; if (!r) return;
+      K.why('why', {
+        metrics: ['approved_matching_revenue', 'approved_complete_cost', 'approved_gross_profit', 'approved_gross_margin', 'gross_profit_rank'],
+        items: [
+          ['Date basis', 'The project\'s contract-signed date, in Asia/Ho_Chi_Minh.'],
+          ['Filters applied', `${f.describe()}. The totals AQL that ran:<pre class="aql">${esc(totals.result.debug?.executedAql ?? '')}</pre>`],
+          ['Source freshness', `Last committed ${esc(K.when(r.last))}; queried ${esc(K.when(totals.result.debug?.executedAt))}. Anfra reads PostgreSQL's reporting views through a read-only login, not an intermediate spreadsheet.`],
+          ['Completeness', `${esc(r.included ?? 0)} project(s) with complete inputs are counted; ${esc(r.excluded ?? 0)} are excluded; ${esc(r.unknown ?? 0)} line(s) have no amount. An unknown amount is never counted as 0. See Data quality.`],
+          ['Exclusions', 'Projects with missing amounts, pipeline estimates, pending proposals, acceptance and cash are not in approved gross profit. The zero-revenue sponsored project is counted (its cost is real), but its own margin does not apply.'],
+        ],
+      });
+    }
+
+    function render() {
+      K.status(totals, 'totals-status', 'No project was signed in this period.');
+      K.status(monthly, 'monthly-status', 'No project was signed in this period.');
+      K.status(top, 'top-status', 'No project with complete inputs in this period.');
+      [totals, monthly, top].forEach(K.first);
+      renderTotals(); renderCharts(); renderWhy();
+    }
+    app.subscribe(render);
+    app.execute({ force: true });
+  }
+</script>
+</body>
+</html>

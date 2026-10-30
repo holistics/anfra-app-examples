@@ -1,0 +1,31 @@
+{
+  "source_system": "demo_snapshot",
+  "snapshot_label": "Sample snapshot, 14 Oct 2026 (from the planning package templates)",
+  "source_as_of": "2026-10-14T18:00:00+07:00",
+  "stage_dictionary": {
+    "lead_to_verify": "lead",
+    "qualified": "qualified",
+    "contacted": "qualified",
+    "meeting_scheduled": "meeting",
+    "meeting_done": "meeting",
+    "proposal_sent": "proposal",
+    "negotiation": "negotiation",
+    "contract_sent": "contract_sent",
+    "contract_signed": "won"
+  },
+  "work_status_dictionary": {
+    "assigned": "todo",
+    "doing": "in_progress",
+    "review": "in_review",
+    "done": "done"
+  },
+  "owner_roles": {
+    "account": "account",
+    "bd": "bd",
+    "designer": "design",
+    "studio": "studio"
+  },
+  "default_service_code": "ECO-LIVE",
+  "default_done_when": "Update the project and set the next action",
+  "default_work_done_when": "Done, with a link to the output"
+}

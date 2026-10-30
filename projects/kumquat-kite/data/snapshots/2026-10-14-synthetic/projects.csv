@@ -1,0 +1,4 @@
+project_id,client_id,title,job_code,commercial_stage,delivery_state,owner_role,next_action,next_action_due,currency,contract_value_net,contract_reference,contract_signed_date,service_code,service_group,brief_status,data_classification
+demo-project-001,demo-client-001,Sample livestream setup,,contract_signed,planning,account,Review cost change,2026-10-20,VND,100000000,CT-SAMPLE-001,2026-10-02,ECO-LIVE,ecommerce,missing,synthetic
+demo-project-002,demo-client-002,Double Day 11.11 livestream (sample),,proposal_sent,not_started,bd,Call back to settle the budget,2026-10-17,VND,,,,,ecommerce,missing,synthetic
+demo-project-003,demo-client-003,Festive season TVC shoot (sample),KK26-0093,contract_signed,in_production,account,Confirm the shoot schedule with the client,2026-10-16,VND,150000000,CT-SAMPLE-003,2026-09-26,PRD-MEDIA,production,received,synthetic

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Cash and acceptance (governed)</title>
+</head>
+<body>
+<main data-anfra-container="page" data-anfra-label="Cash and acceptance">
+  <div id="filters" class="filters" data-anfra-container="controls" data-anfra-label="Filters"></div>
+  <header class="row spread" style="margin-bottom:12px">
+    <div><h1>Cash and acceptance</h1><p class="small muted">What the client has accepted (verified by Finance) and what has been received, kept apart from contract value. Not invoices, not receivables.</p></div>
+    <div class="small muted" id="fresh" style="text-align:right"></div>
+  </header>
+
+  <section class="grid cards" data-anfra-container="kpis" data-anfra-label="Totals">
+    <div class="block recorded" data-anfra-block="accepted" data-anfra-label="Verified acceptance" data-anfra-query="totals"><h2>Verified acceptance</h2><div class="figure" id="k-acc">…</div><p class="small muted note" id="k-acc-sub"></p><div class="status" id="totals-status"></div></div>
+    <div class="block recorded" data-anfra-block="net" data-anfra-label="Received net of VAT" data-anfra-query="totals"><h2>Received, net of VAT</h2><div class="figure" id="k-net">…</div><p class="small muted note">Comparable with acceptance (also net of VAT).</p></div>
+    <div class="block recorded" data-anfra-block="gross" data-anfra-label="Received including VAT" data-anfra-query="totals"><h2>Received, incl. VAT</h2><div class="figure" id="k-gross">…</div><p class="small muted note">Not comparable with net figures: kept apart.</p></div>
+  </section>
+
+  <section class="block" data-anfra-block="chart" data-anfra-label="Acceptance and cash by project" data-anfra-query="byProject">
+    <h2>By project</h2>
+    <div class="chart tall" id="c-projects" role="img" aria-label="Verified acceptance and cash received by project"></div>
+    <div class="status" id="projects-status"></div></section>
+
+  <section class="block" data-anfra-block="table" data-anfra-label="Acceptance and cash table" data-anfra-query="byProject">
+    <h2>Projects with acceptance or cash recorded</h2><div id="projects"></div></section>
+
+  <section class="block" data-anfra-block="why" data-anfra-label="Why this number?" data-anfra-query="totals byProject">
+    <details class="why"><summary>Why this number?</summary><div id="why"></div></details></section>
+</main>
+
+<script>
+  const kit = document.createElement('script');
+  kit.src = new URL('panel-kit.js', document.baseURI).href;
+  kit.onload = () => KK.start(main);
+  kit.onerror = () => { document.body.textContent = 'This panel could not load its helpers. Reload the page.'; };
+  document.head.append(kit);
+
+  function main(K) {
+    const { esc, isNull } = K;
+    const DS = 'kumquat_finance';
+    const app = Anfra.createApp({ title: 'Cash and acceptance', timezone: 'Asia/Ho_Chi_Minh' });
+    const f = K.filters(app, DS);
+    const totals = app.createQuery('totals', { dataset: DS, aql: `explore { measures {
+        acc: verified_acceptance, acc_pending: submitted_acceptance, net: receipts_net, gross: receipts_gross, last: last_committed_at } }` });
+    const byProject = app.createQuery('byProject', { dataset: DS, aql: `explore {
+        dimensions { ref: projects.project_ref, title: projects.title, client: clients.display_name }
+        measures { acc: verified_acceptance, acc_pending: submitted_acceptance, net: receipts_net, gross: receipts_gross, residual: management_residual }
+        filters { money_facts.basis == 'recorded' }
+        sorts { ref asc } }` });
+    f.map(totals, byProject);
+    f.wire();
+
+    function render() {
+      K.status(totals, 'totals-status'); K.status(byProject, 'projects-status', 'No acceptance or cash recorded in this scope.');
+      [totals, byProject].forEach(K.first);
+      const r = totals.result?.rows?.[0];
+      if (r) {
+        document.getElementById('k-acc').innerHTML = K.vnd(r.acc, '0 VND');
+        document.getElementById('k-acc-sub').innerHTML = `${K.vnd(r.acc_pending, '0 VND')} waiting for Finance verification.`;
+        document.getElementById('k-net').innerHTML = K.vnd(r.net, '0 VND');
+        document.getElementById('k-gross').innerHTML = K.vnd(r.gross, '0 VND');
+        K.fresh('fresh', r.last, totals);
+      }
+      if (byProject.result) {
+        const rows = byProject.result.rows;
+        K.paged('projects', { rows, pageSize: 10,
+          head: '<th>Project</th><th class="n">Verified acceptance</th><th class="n">Waiting for Finance</th><th class="n">Received, net</th><th class="n">Received, incl. VAT</th><th class="n">Residual</th>',
+          row: (x) => `<tr><td><b>${esc(x.ref)}</b> ${esc(x.title)}<span class="sub">${esc(x.client)}</span></td><td class="n">${K.vnd(x.acc, '0 VND')}</td><td class="n">${K.vnd(x.acc_pending, '0 VND')}</td>
+            <td class="n">${K.vnd(x.net, '0 VND')}</td><td class="n">${K.vnd(x.gross, '0 VND')}</td>
+            <td class="n">${isNull(x.residual) ? '<span class="chip warn" title="A receipt includes VAT, so it is not compared with acceptance (net of VAT).">not comparable</span>' : K.vnd(x.residual)}</td></tr>`,
+          note: '<p class="small muted note">Residual = verified acceptance − cash received net of VAT, only when no receipt includes VAT. Negative = paid in advance.</p>' });
+        if (rows.length) {
+          K.chart('c-projects', {
+            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: K.tipVnd },
+            legend: { top: 0, data: ['Verified acceptance', 'Received, net of VAT', 'Received, incl. VAT'] },
+            xAxis: { type: 'category', data: rows.map((x) => x.ref) },
+            yAxis: K.axisVnd,
+            series: [
+              { name: 'Verified acceptance', type: 'bar', barMaxWidth: 28, data: rows.map((x) => K.num(x.acc)), itemStyle: { color: K.COLORS.info } },
+              { name: 'Received, net of VAT', type: 'bar', barMaxWidth: 28, data: rows.map((x) => K.num(x.net)), itemStyle: { color: K.COLORS.approved } },
+              { name: 'Received, incl. VAT', type: 'bar', barMaxWidth: 28, data: rows.map((x) => K.num(x.gross)), itemStyle: { color: K.COLORS.muted } },
+            ],
+          });
+        }
+      }
+      if (r) {
+        K.why('why', {
+          metrics: ['verified_acceptance', 'submitted_acceptance', 'receipts_net', 'receipts_gross', 'management_residual'],
+          items: [
+            ['Date basis', 'Projects signed in the period (contract-signed date, Asia/Ho_Chi_Minh); every acceptance and receipt of those projects counts.'],
+            ['Filters applied', `${f.describe()}. The AQL that ran:<pre class="aql">${esc(totals.result.debug?.executedAql ?? '')}</pre>`],
+            ['Tax basis', 'Acceptance is net of VAT. Receipts say whether they are net or include VAT; the two are never added together, and a residual is shown only on the same basis.'],
+            ['Exclusions', 'Contract value is not here: accepted work and cash received are separate facts. A deposit is cash received, never revenue.'],
+          ],
+        });
+      }
+    }
+    app.subscribe(render);
+    app.execute({ force: true });
+  }
+</script>
+</body>
+</html>

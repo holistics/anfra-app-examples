@@ -1,0 +1,26 @@
+{
+  "about": "Scheduling settings for the next-action suggestions, fixed for this demo: a Monday-to-Friday calendar in Asia/Ho_Chi_Minh and an effort estimate per step. They are estimates, not measurements, and the app says so wherever it uses them. Workload and holidays are not part of the demo's estimate.",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "workingDays": [
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri"
+  ],
+  "effortWorkingDays": {
+    "next_action.prepare": 1,
+    "contract.prepare": 1,
+    "account_owner.prepare": 1,
+    "brief.prepare": 2,
+    "job_code.approve": 1,
+    "approved_revenue.prepare": 1,
+    "approved_revenue.approve": 2,
+    "cost_complete.prepare": 2,
+    "cost_complete.approve": 2,
+    "finance_review.approve": 2,
+    "work_on_time.prepare": 2,
+    "acceptance.prepare": 2,
+    "acceptance.approve": 2
+  }
+}

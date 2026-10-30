@@ -1,0 +1,4 @@
+activity_id,project_id,occurred_at,stage,author_role,note,data_classification
+demo-act-001,demo-project-002,2026-10-06T10:00:00+07:00,contacted,bd,"Client is interested in a 3-livestream package; quotation to follow",synthetic
+demo-act-002,demo-project-002,2026-10-13T15:30:00+07:00,proposal_sent,bd,"Quotation sent; the client asked for a cheaper set option",synthetic
+demo-act-003,demo-project-777,2026-10-12T09:00:00+07:00,contacted,bd,Weekly note that matches no opportunity,synthetic

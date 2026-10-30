@@ -1,0 +1,356 @@
+{
+  "title": "Fictional example: TP Production Studio",
+  "reviewed": "2026-10-30",
+  "business": "TP Production Studio",
+  "hero": {
+    "eyebrow": "Fictional example \u00b7 TP Production Studio",
+    "title": "One record for every job, from the first conversation to the acceptance Finance verifies",
+    "lead": "Explore Kumquat Kite with a fictional production business, sample projects and demo personas.",
+    "note": "All business records and scenarios are synthetic. This guide contains no customer research or measured customer outcomes."
+  },
+  "intro": [
+    "TP Production Studio is a fictional business in this public example.",
+    "Use the sample projects to explore CRM handoffs, tasks and approved financial reporting."
+  ],
+  "naming": "Studio is also the name of a team in the app.",
+  "latest": "The scenarios below are invented demonstrations of app features, not findings from customer records.",
+  "why": [
+    {
+      "id": "P1",
+      "title": "Repeated data entry",
+      "level": "data",
+      "asOf": "2026-10-30",
+      "impact": "Capture an opportunity once and carry it through delivery.",
+      "detail": "Illustrative workflow challenge for the fictional demo business.",
+      "evidence": "Synthetic scenario created for this public example.",
+      "docs": [
+        "sample-guide"
+      ]
+    },
+    {
+      "id": "P2",
+      "title": "Unclear handoffs",
+      "level": "data",
+      "asOf": "2026-10-30",
+      "impact": "Assign a next action, owner and due date.",
+      "detail": "Illustrative workflow challenge for the fictional demo business.",
+      "evidence": "Synthetic scenario created for this public example.",
+      "docs": [
+        "sample-guide"
+      ]
+    },
+    {
+      "id": "P3",
+      "title": "Unreviewed money changes",
+      "level": "data",
+      "asOf": "2026-10-30",
+      "impact": "Propose changes before Finance approves them.",
+      "detail": "Illustrative workflow challenge for the fictional demo business.",
+      "evidence": "Synthetic scenario created for this public example.",
+      "docs": [
+        "sample-guide"
+      ]
+    },
+    {
+      "id": "P4",
+      "title": "Missing cost inputs",
+      "level": "data",
+      "asOf": "2026-10-30",
+      "impact": "Keep missing cost unknown instead of displaying a false margin.",
+      "detail": "Illustrative workflow challenge for the fictional demo business.",
+      "evidence": "Synthetic scenario created for this public example.",
+      "docs": [
+        "sample-guide"
+      ]
+    },
+    {
+      "id": "P5",
+      "title": "Different financial stages",
+      "level": "data",
+      "asOf": "2026-10-30",
+      "impact": "Separate contract, acceptance and cash.",
+      "detail": "Illustrative workflow challenge for the fictional demo business.",
+      "evidence": "Synthetic scenario created for this public example.",
+      "docs": [
+        "sample-guide"
+      ]
+    },
+    {
+      "id": "P6",
+      "title": "Inconsistent reporting",
+      "level": "data",
+      "asOf": "2026-10-30",
+      "impact": "Use the same governed definitions across reports.",
+      "detail": "Illustrative workflow challenge for the fictional demo business.",
+      "evidence": "Synthetic scenario created for this public example.",
+      "docs": [
+        "sample-guide"
+      ]
+    },
+    {
+      "id": "P8",
+      "title": "Scattered job details",
+      "level": "data",
+      "asOf": "2026-10-30",
+      "impact": "Keep project details and linked documents together.",
+      "detail": "Illustrative workflow challenge for the fictional demo business.",
+      "evidence": "Synthetic scenario created for this public example.",
+      "docs": [
+        "sample-guide"
+      ]
+    },
+    {
+      "id": "P9",
+      "title": "Multiple job identifiers",
+      "level": "data",
+      "asOf": "2026-10-30",
+      "impact": "Connect the internal project ID and Finance job code.",
+      "detail": "Illustrative workflow challenge for the fictional demo business.",
+      "evidence": "Synthetic scenario created for this public example.",
+      "docs": [
+        "sample-guide"
+      ]
+    },
+    {
+      "id": "P10",
+      "title": "Missed follow-ups",
+      "level": "data",
+      "asOf": "2026-10-30",
+      "impact": "Track the next commercial action.",
+      "detail": "Illustrative workflow challenge for the fictional demo business.",
+      "evidence": "Synthetic scenario created for this public example.",
+      "docs": [
+        "sample-guide"
+      ]
+    },
+    {
+      "id": "P11",
+      "title": "Unclear session plans",
+      "level": "data",
+      "asOf": "2026-10-30",
+      "impact": "Record requested sessions and assignees.",
+      "detail": "Illustrative workflow challenge for the fictional demo business.",
+      "evidence": "Synthetic scenario created for this public example.",
+      "docs": [
+        "sample-guide"
+      ]
+    }
+  ],
+  "what": [
+    {
+      "capability": "One record per job, from the first conversation to cash received",
+      "status": "implemented",
+      "addresses": [
+        "P1",
+        "P8",
+        "P9"
+      ],
+      "href": "#/crm",
+      "where": "Clients & opportunities, Job 360",
+      "detail": "An opportunity becomes the project without retyping anything. The internal ID and the Finance job code live on the same record."
+    },
+    {
+      "capability": "A next action with an owner, a due date and what \"done\" means",
+      "status": "implemented",
+      "addresses": [
+        "P2",
+        "P10"
+      ],
+      "href": "#/home",
+      "where": "My next actions",
+      "detail": "Every queue item says why it is there, who owns it and when it is due."
+    },
+    {
+      "capability": "Help on every readiness check",
+      "status": "implemented",
+      "addresses": [
+        "P2"
+      ],
+      "href": "#/p/NP-0003/overview",
+      "where": "Job 360 \u2192 Overview",
+      "detail": "Each check says what it means, what is missing or waiting, who does the next step (by name when the project names someone), where, and what completes it. It offers only what your role may do."
+    },
+    {
+      "capability": "Next steps suggested after each save",
+      "status": "implemented",
+      "addresses": [
+        "P2",
+        "P10"
+      ],
+      "href": "#/p/NP-0001/overview",
+      "where": "Job 360 \u2192 Suggested next actions",
+      "detail": "When a save completes a check, the next eligible steps appear with an owner, a dated estimate and how it was worked out. A suggestion assigns nothing until someone saves it."
+    },
+    {
+      "capability": "Handoffs as tasks with a brief and a review",
+      "status": "implemented",
+      "addresses": [
+        "P2"
+      ],
+      "href": "#/tasks/mine",
+      "where": "Tasks",
+      "detail": "Account assigns Design and Studio work with a brief link and a due date; the output comes back for review."
+    },
+    {
+      "capability": "Studio sessions recorded",
+      "status": "implemented",
+      "addresses": [
+        "P11"
+      ],
+      "href": "#/tasks/studio",
+      "where": "Tasks \u2192 Studio sessions",
+      "detail": "Each session is recorded with its project, room, planned and actual times, status and assignee. They are records, not reservations."
+    },
+    {
+      "capability": "Cost and scope changes proposed with evidence, approved by Finance",
+      "status": "implemented",
+      "addresses": [
+        "P3"
+      ],
+      "href": "#/finance",
+      "where": "Finance review",
+      "detail": "The governed scenario shows the effect first. Approval saves a new revision and its audit event in one transaction; the earlier figure stays explainable."
+    },
+    {
+      "capability": "Permissions checked by the database",
+      "status": "implemented",
+      "addresses": [
+        "P3"
+      ],
+      "detail": "Who may change what is enforced by the database itself, not by hidden buttons. Nobody can give themselves Finance authority."
+    },
+    {
+      "capability": "Unknown cost stays unknown",
+      "status": "implemented",
+      "addresses": [
+        "P4"
+      ],
+      "href": "#/reports/quality",
+      "where": "Job 360 readiness, Data quality report",
+      "detail": "A line without an amount keeps its project out of margin and is listed, never counted as 0."
+    },
+    {
+      "capability": "Contract, acceptance and cash kept apart",
+      "status": "implemented",
+      "addresses": [
+        "P5"
+      ],
+      "href": "#/reports/cash",
+      "where": "Job 360 \u2192 Money, Cash & acceptance report",
+      "detail": "Commercial stage, delivery, financial verification and payment are four separate states."
+    },
+    {
+      "capability": "Governed reports that explain their numbers",
+      "status": "implemented",
+      "addresses": [
+        "P6",
+        "P8"
+      ],
+      "href": "#/reports",
+      "where": "Reports",
+      "detail": "Every figure comes from one set of definitions; \"Why this number?\" shows the definition, date basis, filters, freshness and records."
+    },
+    {
+      "capability": "Bring a sheet in with one template",
+      "status": "implemented",
+      "addresses": [
+        "P1"
+      ],
+      "href": "#/admin/import",
+      "where": "Import & access",
+      "detail": "The sheet is filled in on one template and imported as a CSV file. Rows are matched on the sheet's own IDs, so importing the same sheet twice changes nothing."
+    },
+    {
+      "capability": "Holistics reports kept with CRM records",
+      "status": "implemented",
+      "addresses": [
+        "P6"
+      ],
+      "href": "#/reports/holistics",
+      "where": "Reports \u2192 Holistics reports",
+      "detail": "Links to reports built in Holistics, next to the client or project they are about. This opens Holistics; it does not move data."
+    },
+    {
+      "capability": "A guided walkthrough of one project's whole lifecycle",
+      "status": "implemented",
+      "addresses": [
+        "P2"
+      ],
+      "where": "the top bar \u2192 Start walkthrough",
+      "detail": "On the real screens, with a new sample project and the demo personas: BD, Account and Finance each do their part, in turn."
+    }
+  ],
+  "tools": [
+    {
+      "name": "Spreadsheets",
+      "examples": "Google Sheets, Excel, Lark Sheets",
+      "status": "implemented",
+      "text": "Fill in one import template and bring it in as a CSV file. Rows are matched on the sheet's own IDs, so importing it again changes nothing."
+    },
+    {
+      "name": "Notes and documents",
+      "examples": "Notion, Obsidian, shared drives",
+      "status": "implemented",
+      "text": "They stay where they are. Job 360 keeps a link to each document, with its type and who added it."
+    },
+    {
+      "name": "Holistics",
+      "examples": "Reports and dashboards",
+      "status": "implemented",
+      "text": "Reports built in Holistics are linked from the client or project they are about. Each one opens in Holistics."
+    },
+    {
+      "name": "PostgreSQL",
+      "examples": "Database, permissions",
+      "status": "implemented",
+      "text": "Every record and every permission check lives in one PostgreSQL database; the screens cannot get round it."
+    },
+    {
+      "name": "Anfra",
+      "examples": "Governed figures",
+      "status": "implemented",
+      "text": "Gross profit, margin, acceptance and cash come from one set of definitions, and each figure can explain itself."
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is any of this real customer data?",
+      "a": "No. The records, screenshots and guide use synthetic examples."
+    },
+    {
+      "q": "What has been measured so far?",
+      "a": "This example makes no claim about customer outcomes."
+    },
+    {
+      "q": "Who can change a money figure?",
+      "a": "Account proposes a change with a reason and evidence; Finance approves or rejects it, never its own. The database enforces this, not the screens, and the earlier figure stays explainable."
+    },
+    {
+      "q": "Does it replace the accounting package or the collaboration tools?",
+      "a": "No. It keeps one record per job and the approvals around its money, next to the tools the teams use today. A sheet comes in as a CSV file, on one import template."
+    },
+    {
+      "q": "What do I need to run it?",
+      "a": "Node.js, PostgreSQL through Docker, and Anfra 0.8.0. The README describes local setup."
+    },
+    {
+      "q": "How do I explore the demo?",
+      "a": "Choose a demo persona and start the guided walkthrough from the top bar."
+    }
+  ],
+  "documents": [
+    {
+      "id": "sample-guide",
+      "title": "Synthetic example guide",
+      "type": "Sample documentation",
+      "date": "30 Oct 2026",
+      "basedOn": "Fictional demo records and application workflows",
+      "summary": "How to explore the synthetic example without customer material."
+    }
+  ],
+  "pending": [],
+  "method": [
+    "All business examples are fictional.",
+    "This guide uses made-up examples to explain the app."
+  ]
+}

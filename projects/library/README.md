@@ -3,7 +3,7 @@
 Walk a book marketplace's catalogue as a low-poly 3D library: rooms sized by revenue share, shelves filled by genre share, and a book that opens into a spread with a governed price what-if.
 
 - Demo: https://anfra-library.pages.holistics.dev
-- Video: to be added
+- Video: https://media.holistics.io/4bb15370-3d-library.mp4
 - Author: Zap
 
 Start outside the building, then drill in: library → room (market, audience or category) → shelf (genre) → book. Six rooms take their floor area from revenue share, each of the eight shelves fills with its genre's share, and forty spines stand on every shelf. Click a book and it flies to the camera and opens into a two-page spread with its units, revenue, rank and growth against the previous period, plus a price what-if driven by an AML param. Every number is a live AQL `explore` against the `library` dataset, and the sidebar's breadcrumb chips are the Query Input filters. Period and grain are controls; the room axis is switchable.

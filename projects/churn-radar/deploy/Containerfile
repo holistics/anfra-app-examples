@@ -1,0 +1,10 @@
+# Churn Radar: anfra serve (loopback) behind a gateway that also serves the copilot.
+# Build with deploy/build.sh, which stages the repo into ~/.cache/anfra-deploy/.
+FROM ghcr.io/holistics/anfra:0.7.1@sha256:9a082b8f118b4fe275c7d4e3ea8e6540aa844b49b1f17da642dc78222e7cb8b7
+COPY --chown=1000:1000 repo/ /churn-radar/
+COPY --chown=1000:1000 gateway /usr/local/bin/gateway
+USER 1000:1000
+WORKDIR /churn-radar
+EXPOSE 8080
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/gateway"]
+CMD []

@@ -22,3 +22,16 @@ Synthetic, written by `scripts/generate_data.py` (seeded): the same fictional "I
 ## Copilot (optional)
 
 The optional copilot works like AI Margin Radar's: `node scripts/ai-proxy.mjs` with `OPENAI_API_KEY` in a git-ignored `.env.local`. The key stays on your machine.
+
+## Run it in a container, with the copilot
+
+`deploy/` builds one image: `anfra serve` on loopback behind a small Go gateway (`deploy/gateway`). The gateway is the only public port. It forwards only what the app needs (the app's own AQL, no raw SQL or MCP) and serves the copilot's OpenAI calls at `/ai`, so the key stays on the server. Without a key the app works and the copilot shows as offline.
+
+```sh
+uv run --with "duckdb<2" --with numpy --with pandas scripts/generate_data.py   # the image copies data/inkwell.duckdb
+deploy/build.sh churn-radar:local                        # needs Go and podman
+podman run --rm -p 8080:8080 -e OPENAI_API_KEY=sk-... churn-radar:local
+```
+
+Open http://127.0.0.1:8080. Optional: `OPENAI_MODEL` (default `gpt-5-mini`) and `OPENAI_REASONING_EFFORT` (default `low`). Pass the key at run time, never bake it into the image.
+

@@ -1,0 +1,90 @@
+Model treatment_events {
+  type: 'table'
+  label: 'Treatment Events'
+  description: "Treatment decisions on a patient's record (a drug started, stopped or its dose changed, a titration plan started) and CGM device events. The dose steps a patient takes while carrying out a titration are daily doses in insulin_doses, not rows here."
+  data_source_name: 'health'
+  table_name: 'treatment_events'
+
+  dimension id {
+    label: 'Event Id'
+    type: 'number'
+    hidden: true
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension patient_id {
+    label: 'Patient Id'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.patient_id }};;
+  }
+  dimension occurred_on {
+    label: 'Occurred On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.occurred_on }};;
+  }
+  dimension kind {
+    label: 'Kind'
+    type: 'text'
+    description: "What happened: \"drug_started\", \"drug_stopped\", \"dose_changed\", \"titration_started\" (a plan the patient carries out, such as raising basal insulin 2 U every 3 days to a fasting target), or a CGM device event: \"cgm_started\", \"cgm_interrupted\", \"cgm_resumed\"."
+    definition: @sql {{ #SOURCE.kind }};;
+  }
+  dimension description {
+    label: 'Description'
+    type: 'text'
+    description: 'The change as recorded on the patient record.'
+    definition: @sql {{ #SOURCE.description }};;
+  }
+  dimension drug {
+    label: 'Drug'
+    type: 'text'
+    description: 'The drug the change is about (for example "Insulin glargine"). Empty for CGM device events.'
+    definition: @sql {{ #SOURCE.drug }};;
+  }
+  dimension drug_class {
+    label: 'Drug Class'
+    type: 'text'
+    description: 'The class of the drug, such as "basal insulin", "sulfonylurea", "biguanide", "statin" or "ACE inhibitor".'
+    definition: @sql {{ #SOURCE.drug_class }};;
+  }
+  dimension dose_before {
+    label: 'Dose Before'
+    type: 'number'
+    description: 'The dose before the change, in the dose unit. Empty when the drug starts.'
+    definition: @sql {{ #SOURCE.dose_before }};;
+  }
+  dimension dose_after {
+    label: 'Dose After'
+    type: 'number'
+    description: 'The dose after the change, in the dose unit. Empty when the drug stops, and for a titration, whose doses follow in insulin_doses.'
+    definition: @sql {{ #SOURCE.dose_after }};;
+  }
+  dimension statin_intensity {
+    label: 'Statin Intensity'
+    type: 'text'
+    description: 'For a statin started or changed: "high" for atorvastatin 40–80 mg or rosuvastatin 20–40 mg a day, "moderate" for any other statin dose (ADA Standards of Care 2026, Table 10.1). Empty for other drugs and when the statin stops.'
+    definition: @sql case
+      when {{ #SOURCE.drug_class }} <> 'statin' or {{ #SOURCE.dose_after }} is null then null
+      when ({{ #SOURCE.drug }} = 'Atorvastatin' and {{ #SOURCE.dose_after }} >= 40) or ({{ #SOURCE.drug }} = 'Rosuvastatin' and {{ #SOURCE.dose_after }} >= 20) then 'high'
+      else 'moderate'
+    end ;;
+  }
+  dimension dose_unit {
+    label: 'Dose Unit'
+    type: 'text'
+    description: 'Unit of the doses: "U/day", "mg/day" or "mg/week".'
+    definition: @sql {{ #SOURCE.dose_unit }};;
+  }
+  dimension lowers_glucose {
+    label: 'Glucose-Lowering'
+    type: 'truefalse'
+    description: 'The change is to a glucose-lowering drug (insulin, metformin, a sulfonylurea, an SGLT2 inhibitor, a GLP-1 receptor agonist, a DPP-4 inhibitor, ...): the changes a glucose report is read against.'
+    definition: @sql {{ #SOURCE.lowers_glucose }};;
+  }
+  dimension lowers_blood_pressure {
+    label: 'Blood-Pressure-Lowering'
+    type: 'truefalse'
+    description: 'The change is to a blood-pressure-lowering drug (an ACE inhibitor, an ARB, a calcium channel blocker, a thiazide diuretic, ...). A patient on one has hypertension, an ASCVD risk factor that lowers the LDL goal.'
+    definition: @sql {{ #SOURCE.lowers_blood_pressure }};;
+  }
+}

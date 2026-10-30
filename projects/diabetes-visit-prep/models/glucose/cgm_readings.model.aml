@@ -1,0 +1,113 @@
+// Glucose limits in mg/dL (International Consensus on Time in Range, 2019; tight range from the 2025 AGP Report), each
+// written once for the band dimensions below and the dataset's metrics.
+Func glucose_very_low_mgdl() {
+  @sql 54 ;;
+}
+Func glucose_range_low_mgdl() {
+  @sql 70 ;;
+}
+Func glucose_tight_high_mgdl() {
+  @sql 140 ;;
+}
+Func glucose_range_high_mgdl() {
+  @sql 180 ;;
+}
+Func glucose_very_high_mgdl() {
+  @sql 250 ;;
+}
+// A sensor reports every 5 minutes; a standard CGM report covers 14 days.
+Func readings_per_day() {
+  @sql 288 ;;
+}
+Func report_days() {
+  @sql 14 ;;
+}
+// The AGP lays every day over one day in slots of this many minutes.
+Func time_of_day_slot_minutes() {
+  @sql 30 ;;
+}
+
+Model cgm_readings {
+  type: 'table'
+  label: 'CGM Readings'
+  description: 'One continuous glucose monitor reading every 5 minutes per patient, in mg/dL.'
+  data_source_name: 'health'
+  table_name: 'cgm_readings'
+
+  dimension id {
+    label: 'Reading Id'
+    type: 'number'
+    hidden: true
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension patient_id {
+    label: 'Patient Id'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.patient_id }};;
+  }
+  dimension read_at {
+    label: 'Read At'
+    type: 'datetime'
+    description: 'When the sensor took the reading (local clinic time).'
+    definition: @sql {{ #SOURCE.read_at }};;
+  }
+  dimension glucose_mgdl {
+    label: 'Glucose (mg/dL)'
+    type: 'number'
+    description: 'Interstitial glucose as reported by the sensor.'
+    definition: @sql {{ #SOURCE.glucose_mgdl }};;
+  }
+
+  // Glucose ranges (International Consensus on Time in Range, 2019), defined once here so the
+  // report metrics and the time-lapse frames (patient_days) count readings the same way.
+  dimension in_range {
+    label: 'In Range (70–180 mg/dL)'
+    type: 'truefalse'
+    description: 'The reading is from 70 to 180 mg/dL.'
+    definition: @sql {{ #SOURCE.glucose_mgdl }} between ${glucose_range_low_mgdl()} and ${glucose_range_high_mgdl()};;
+  }
+  dimension in_tight_range {
+    label: 'In Tight Range (70–140 mg/dL)'
+    type: 'truefalse'
+    description: 'The reading is from 70 to 140 mg/dL, the part of the target range near normal glucose.'
+    definition: @sql {{ #SOURCE.glucose_mgdl }} between ${glucose_range_low_mgdl()} and ${glucose_tight_high_mgdl()};;
+  }
+  dimension below_range {
+    label: 'Below Range (under 70 mg/dL)'
+    type: 'truefalse'
+    description: 'The reading is under 70 mg/dL (hypoglycemia).'
+    definition: @sql {{ #SOURCE.glucose_mgdl }} < ${glucose_range_low_mgdl()};;
+  }
+  dimension very_low {
+    label: 'Very Low (under 54 mg/dL)'
+    type: 'truefalse'
+    description: 'The reading is under 54 mg/dL (level 2 hypoglycemia). Also below range.'
+    definition: @sql {{ #SOURCE.glucose_mgdl }} < ${glucose_very_low_mgdl()};;
+  }
+  dimension above_range {
+    label: 'Above Range (over 180 mg/dL)'
+    type: 'truefalse'
+    description: 'The reading is over 180 mg/dL.'
+    definition: @sql {{ #SOURCE.glucose_mgdl }} > ${glucose_range_high_mgdl()};;
+  }
+  dimension glucose_band {
+    label: 'Glucose Band'
+    type: 'text'
+    description: 'The range the reading falls in: "very_low" under 54, "low" 54 to 69, "in_range" 70 to 180, "high" 181 to 250, "very_high" over 250 mg/dL.'
+    definition: @sql case
+      when {{ #SOURCE.glucose_mgdl }} < ${glucose_very_low_mgdl()} then 'very_low'
+      when {{ #SOURCE.glucose_mgdl }} < ${glucose_range_low_mgdl()} then 'low'
+      when {{ #SOURCE.glucose_mgdl }} > ${glucose_very_high_mgdl()} then 'very_high'
+      when {{ #SOURCE.glucose_mgdl }} > ${glucose_range_high_mgdl()} then 'high'
+      else 'in_range'
+    end;;
+  }
+  dimension very_high {
+    label: 'Very High (over 250 mg/dL)'
+    type: 'truefalse'
+    description: 'The reading is over 250 mg/dL (level 2 hyperglycemia). Also above range.'
+    definition: @sql {{ #SOURCE.glucose_mgdl }} > ${glucose_very_high_mgdl()};;
+  }
+}

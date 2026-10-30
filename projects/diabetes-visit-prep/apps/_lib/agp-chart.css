@@ -1,0 +1,52 @@
+/* Styles for VisitPrep.agpChart (agp-chart.js). Uses the page's tokens: --ink, --ink-muted, --surface, --line-faint,
+   --line-strong, --glucose-in-range and --agp-*. The bands use one blue hue light to dark, as on the AGP Report; an
+   earlier window's median is gray, so only the current report has color. */
+.agp-chart { position: relative; display: flex; flex-direction: column; gap: 4px; user-select: none; }
+.agp-chart[hidden] { display: none; }
+.agp-chart-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-bottom: 4px; font-size: 12px; color: var(--ink-muted); }
+.agp-chart-legend-item { display: flex; align-items: center; gap: 6px; min-height: 18px; }
+.agp-chart-key { width: 14px; height: 10px; border-radius: 2px; flex: none; }
+.agp-chart-key.outer { background: var(--agp-outer); }
+.agp-chart-key.inner { background: var(--agp-inner); }
+.agp-chart-key.median { height: 0; border-radius: 0; border-top: 2px solid var(--agp-median); }
+.agp-chart-key.median.earlier { border-top-color: var(--agp-earlier); }
+.agp-chart-key.target { background: color-mix(in srgb, var(--glucose-in-range) 45%, transparent); }
+.agp-chart-key.trace { height: 0; border-radius: 0; border-top: 2px solid var(--ink); }
+/* Room for the longest day name ("Wed, 30 Sept") beside its key, so the legend wraps the same whichever day is traced. */
+.agp-chart-legend-item:has(.agp-chart-key.trace) { min-width: 8em; }
+.agp-chart:not(.tracing) .agp-chart-legend-item:has(.agp-chart-key.trace) { visibility: hidden; }
+.agp-chart-stage { display: grid; grid-template-columns: var(--label-column-width, 32px) 1fr 32px; gap: 6px; margin-top: 8px; }
+.agp-chart-y-labels, .agp-chart-limit-labels { position: relative; }
+.agp-chart-y-label { position: absolute; transform: translateY(-50%); font-size: 11px; line-height: 14px; color: var(--ink-muted); white-space: nowrap; }
+.agp-chart-y-labels .agp-chart-y-label { right: 0; }
+.agp-chart-limit-labels .agp-chart-y-label { left: 0; color: var(--ink); }
+.agp-chart-plot { position: relative; height: 260px; cursor: crosshair; outline-offset: 2px; }
+.agp-chart-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.agp-chart-svg * { vector-effect: non-scaling-stroke; }
+.agp-chart-target { fill: color-mix(in srgb, var(--glucose-in-range) 14%, transparent); }
+.agp-chart-grid { stroke: var(--line-faint); stroke-width: 1; }
+.agp-chart-reference { stroke: var(--line-strong); stroke-width: 1; }
+.agp-chart-reference.emphasis { stroke: var(--agp-target); }
+.agp-chart-band.outer { fill: var(--agp-outer); }
+.agp-chart-band.inner { fill: var(--agp-inner); }
+.agp-chart-median { fill: none; stroke: var(--agp-median); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.agp-chart-median.earlier { stroke: var(--agp-earlier); stroke-width: 2; }
+/* A traced day is read against the profile, so the profile fades behind it. */
+.agp-chart.tracing .agp-chart-band, .agp-chart.tracing .agp-chart-median { opacity: .45; }
+.agp-chart-trace { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
+.agp-chart-crosshair { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px solid var(--ink); pointer-events: none; }
+.agp-chart-dot { position: absolute; width: 8px; height: 8px; margin: -6px 0 0 -6px; border: 2px solid var(--surface); border-radius: 50%; background: var(--agp-median); pointer-events: none; }
+.agp-chart-dot.earlier { background: var(--agp-earlier); }
+.agp-chart-ticks { position: relative; height: 18px; margin: 0 38px 0 calc(var(--label-column-width, 32px) + 6px); font-size: 12px; color: var(--ink-muted); }
+.agp-chart-tick { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.agp-chart-tick:first-child { transform: none; }
+.agp-chart-tick:last-child { transform: translateX(-100%); }
+/* On a narrow axis (a phone) every 6 hours, not 3, so the labels don't run into each other. */
+.agp-chart-ticks { container-type: inline-size; }
+@container (max-width: 400px) { .agp-chart-tick:nth-child(even) { visibility: hidden; } }
+.agp-chart-tooltip { position: absolute; z-index: 2; pointer-events: none; font-size: 12px; line-height: 1.45; color: var(--surface); background: var(--ink); border-radius: 6px; padding: 6px 8px; }
+.agp-chart-tooltip table { border-collapse: collapse; }
+.agp-chart-tooltip th, .agp-chart-tooltip td { padding: 1px 0; text-align: right; font-weight: 400; white-space: nowrap; }
+.agp-chart-tooltip th + th, .agp-chart-tooltip td { padding-left: 14px; font-variant-numeric: tabular-nums; }
+.agp-chart-tooltip thead th { font-weight: 600; }
+.agp-chart-tooltip th:first-child { text-align: left; }

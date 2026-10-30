@@ -1,0 +1,59 @@
+/* Styles for VisitPrep.divergingTimeline (diverging-timeline.js). Uses the page's tokens: --ink, --ink-muted, --surface, --page, --hatch,
+   --accent, --line-center, --card. */
+.diverging-timeline { --markers-height: 40px; position: relative; display: flex; flex-direction: column; user-select: none; }
+.diverging-timeline[hidden] { display: none; }
+.diverging-timeline-stage { position: relative; padding-top: var(--markers-height); }
+/* Laid over the plot too, so each stem runs down through the columns; only the labels take the pointer. */
+.diverging-timeline-markers { position: absolute; z-index: 1; top: 0; left: 0; right: 0; height: calc(var(--markers-height) + var(--up-height) + var(--down-height)); pointer-events: none; }
+.diverging-timeline-marker { position: absolute; bottom: 0; top: 0; width: 0; display: flex; flex-direction: column; align-items: center; }
+.diverging-timeline-marker-label { font-size: 12px; font-weight: 600; white-space: nowrap; line-height: 18px; cursor: default; pointer-events: auto; }
+.diverging-timeline-marker.second-row .diverging-timeline-marker-label { margin-top: 20px; }
+.diverging-timeline-marker-stem { flex: 1; width: 1px; background: var(--ink); }
+.diverging-timeline-marker.emphasis .diverging-timeline-marker-stem { width: 2px; }
+.diverging-timeline-marker.described .diverging-timeline-marker-label { color: var(--accent); }
+.diverging-timeline-marker.described .diverging-timeline-marker-stem { width: 2px; background: var(--accent); }
+.diverging-timeline-plot { position: relative; height: calc(var(--up-height) + var(--down-height)); cursor: crosshair; touch-action: none; }
+.diverging-timeline-columns { position: relative; height: 100%; display: flex; gap: 2px; }
+.diverging-timeline-columns.dense { gap: 1px; }
+.diverging-timeline-column { flex: 1; min-width: 0; display: grid; grid-template-rows: var(--up-height) var(--down-height); justify-items: center; }
+.diverging-timeline-column:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.diverging-timeline-column.hatched { background: var(--hatch); }
+.diverging-timeline-column.partial .diverging-timeline-segment { opacity: .45; }
+.diverging-timeline-up, .diverging-timeline-down { width: 100%; max-width: 24px; display: flex; gap: 2px; }
+.diverging-timeline-up { flex-direction: column-reverse; justify-content: flex-start; }
+.diverging-timeline-down { flex-direction: column; }
+.diverging-timeline-columns.dense .diverging-timeline-up, .diverging-timeline-columns.dense .diverging-timeline-down { gap: 1px; }
+.diverging-timeline-segment { flex: none; min-height: 1px; }
+/* The outermost segment is the data end: rounded away from the center line, square at it. */
+.diverging-timeline-up .diverging-timeline-segment:last-child { border-radius: 5px 5px 0 0; }
+.diverging-timeline-down .diverging-timeline-segment:last-child { border-radius: 0 0 5px 5px; }
+/* Above the marker stems, so a target label is never crossed by one. */
+.diverging-timeline-lines { position: absolute; z-index: 2; inset: 0; pointer-events: none; }
+.diverging-timeline-center { position: absolute; left: 0; right: 0; top: var(--up-height); border-top: 1px solid var(--line-center); }
+.diverging-timeline-reference { position: absolute; left: 0; right: 0; border-top: 1.5px dashed color-mix(in srgb, var(--accent) 70%, transparent); }
+.diverging-timeline-reference-label { position: absolute; right: 0; font-size: 11px; font-weight: 600; line-height: 14px; color: var(--accent); background: var(--card); padding: 0 4px; border-radius: 3px; }
+.diverging-timeline-reference.up .diverging-timeline-reference-label { bottom: 1px; }
+.diverging-timeline-reference.down .diverging-timeline-reference-label { top: 1px; }
+.diverging-timeline-windows { position: absolute; inset: 0; pointer-events: none; }
+.diverging-timeline-wash { position: absolute; top: 0; bottom: 0; border-radius: 8px; background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.diverging-timeline-wash.emphasis { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.diverging-timeline-drag { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--accent) 18%, transparent); border: 1px solid var(--accent); box-sizing: border-box; pointer-events: none; }
+.diverging-timeline-ticks { position: relative; height: 18px; margin-top: 4px; font-size: 12px; color: var(--ink-muted); }
+.diverging-timeline-tick { position: absolute; top: 0; white-space: nowrap; transform: translateX(-50%); }
+.diverging-timeline-tick.start { left: 0; transform: none; }
+.diverging-timeline-tick.end { right: 0; transform: none; }
+.diverging-timeline-brackets { position: relative; height: 36px; margin-top: 4px; }
+.diverging-timeline-brackets.two-rows { height: 72px; }
+.diverging-timeline-bracket { position: absolute; top: 0; height: 6px; cursor: default; box-sizing: border-box; border: 1.5px solid var(--ink-muted); border-top: 0; border-radius: 0 0 3px 3px; }
+.diverging-timeline-bracket.second-row { top: 36px; }
+.diverging-timeline-bracket.emphasis { border-color: var(--accent); border-width: 2px; }
+.diverging-timeline-bracket-label { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 600; white-space: nowrap; color: var(--ink-muted); }
+.diverging-timeline-bracket.emphasis .diverging-timeline-bracket-label { color: var(--accent); }
+.diverging-timeline-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 4px; font-size: 12px; color: var(--ink-muted); }
+.diverging-timeline-legend-heading { font-weight: 600; color: var(--ink); }
+.diverging-timeline-legend-heading:not(:first-child) { margin-left: 12px; }
+.diverging-timeline-legend-item:last-child { margin-left: 12px; }
+.diverging-timeline-legend-item { display: flex; align-items: center; gap: 6px; }
+.diverging-timeline-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.diverging-timeline-swatch.hatched { background: var(--hatch); }
+.diverging-timeline-tooltip { position: absolute; z-index: 2; pointer-events: none; transform: translateX(-50%); white-space: pre; font-size: 12px; line-height: 1.45; color: var(--surface); background: var(--ink); border-radius: 6px; padding: 6px 8px; }

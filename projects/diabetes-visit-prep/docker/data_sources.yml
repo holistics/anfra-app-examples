@@ -1,0 +1,7 @@
+# The image's data source. /api/core.query runs any SQL a visitor sends, so DuckDB opens the
+# file read-only and without file access (read_csv, COPY ... TO, ATTACH, INSTALL all fail).
+data_sources:
+  health:
+    type: duckdb
+    connection:
+      path: /repo/data/health.duckdb?access_mode=read_only&enable_external_access=false

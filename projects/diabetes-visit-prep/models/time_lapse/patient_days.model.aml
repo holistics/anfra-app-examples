@@ -1,0 +1,296 @@
+Model patient_days {
+  type: 'query'
+  label: 'Patient Days'
+  description: "One row per patient per day, from the patient's first record to the day their record is current to: that day's CGM counts and every result as it stood that day. The time-lapse frames are computed from it."
+  data_source_name: 'health'
+  models: [patients, cgm_readings, lab_results, blood_pressure_readings, complication_screenings, treatment_events]
+  query: @sql
+    with cgm_days as (
+      select c.patient_id, cast(c.read_at as date) as day,
+        count(*) as readings,
+        count(*) filter (where c.in_range) as readings_in_range,
+        count(*) filter (where c.below_range) as readings_below_range,
+        count(*) filter (where c.very_low) as readings_very_low,
+        count(*) filter (where c.above_range) as readings_above_range,
+        count(*) filter (where c.very_high) as readings_very_high
+      from {{ #cgm_readings as c }}
+      group by 1, 2
+    ),
+    lab_days as (
+      select l.patient_id, l.taken_on as day,
+        max(l.value) filter (where l.test = 'hba1c') as hba1c_pct,
+        max(l.value) filter (where l.test = 'egfr') as egfr,
+        max(l.value) filter (where l.test = 'uacr') as uacr,
+        max(l.value) filter (where l.test = 'ldl') as ldl
+      from {{ #lab_results as l }}
+      group by 1, 2
+    ),
+    -- The eGFR trend as it stood on each lab day: the least-squares slope through every eGFR up to it, per year
+    -- (regr_slope skips the days without an eGFR).
+    lab_slope_days as (
+      select patient_id, day,
+        regr_slope(egfr, epoch(day)) over (partition by patient_id order by day rows between unbounded preceding and current row)
+          * 365.25 * 86400 as egfr_slope_per_year
+      from lab_days
+    ),
+    uacr_median_days as (
+      select patient_id, day,
+        median(uacr) over (partition by patient_id order by day rows between 2 preceding and current row) as uacr_last_3_median
+      from lab_days
+      where uacr is not null
+    ),
+    -- Treatment events can predate the patient's first record, so each day sums every start (+1) and stop (-1) up to it.
+    blood_pressure_drug_events as (
+      select t.patient_id, t.occurred_on as day,
+        case t.kind when 'drug_started' then 1 when 'drug_stopped' then -1 else 0 end as change
+      from {{ #treatment_events as t }}
+      where t.lowers_blood_pressure
+    ),
+    statin_events as (
+      select t.patient_id, t.occurred_on as day,
+        case t.kind when 'drug_started' then 1 when 'drug_stopped' then -1 else 0 end as change
+      from {{ #treatment_events as t }}
+      where t.drug_class = 'statin'
+    ),
+    bp_days as (
+      select b.patient_id, b.measured_on as day,
+        max(b.systolic_mmhg) as systolic_mmhg, max(b.diastolic_mmhg) as diastolic_mmhg
+      from {{ #blood_pressure_readings as b }}
+      group by 1, 2
+    ),
+    screening_days as (
+      select s.patient_id, s.screened_on as day,
+        max(s.result) filter (where s.kind = 'retinal') as retinal_result,
+        max(s.result) filter (where s.kind = 'foot') as foot_result
+      from {{ #complication_screenings as s }}
+      group by 1, 2
+    ),
+    record_days as (
+      select patient_id, day from cgm_days
+      union select patient_id, day from lab_days
+      union select patient_id, day from bp_days
+      union select patient_id, day from screening_days
+    ),
+    -- Ends where patients.data_as_of does: the later of the last CGM reading and the last lab sample.
+    spans as (
+      select r.patient_id, min(r.day) as first_day,
+        (select max(x.day) from (select patient_id, day from cgm_days union all select patient_id, day from lab_days) x
+          where x.patient_id = r.patient_id) as last_day
+      from record_days r
+      group by 1
+    ),
+    spine as (
+      select patient_id, cast(unnest(generate_series(first_day, last_day, interval 1 day)) as date) as day
+      from spans
+    )
+    select
+      d.patient_id || '-' || strftime(d.day, '%Y-%m-%d') as id,
+      d.patient_id,
+      d.day,
+      coalesce(c.readings, 0) as readings,
+      coalesce(c.readings_in_range, 0) as readings_in_range,
+      coalesce(c.readings_below_range, 0) as readings_below_range,
+      coalesce(c.readings_very_low, 0) as readings_very_low,
+      coalesce(c.readings_above_range, 0) as readings_above_range,
+      coalesce(c.readings_very_high, 0) as readings_very_high,
+      l.patient_id is not null or b.patient_id is not null as had_visit,
+      last_value(l.hba1c_pct ignore nulls) over w as hba1c_pct,
+      last_value(case when l.hba1c_pct is not null then d.day end ignore nulls) over w as hba1c_taken_on,
+      last_value(l.egfr ignore nulls) over w as egfr,
+      min(case when l.egfr is not null then d.day end) over w as first_egfr_on,
+      last_value(case when l.egfr is not null then d.day end ignore nulls) over w as egfr_taken_on,
+      last_value(lt.egfr_slope_per_year ignore nulls) over w as egfr_slope_per_year,
+      last_value(l.uacr ignore nulls) over w as uacr,
+      last_value(um.uacr_last_3_median ignore nulls) over w as uacr_last_3_median,
+      last_value(case when l.uacr is not null then d.day end ignore nulls) over w as uacr_taken_on,
+      last_value(l.ldl ignore nulls) over w as ldl,
+      last_value(case when l.ldl is not null then d.day end ignore nulls) over w as ldl_taken_on,
+      last_value(b.systolic_mmhg ignore nulls) over w as systolic_mmhg,
+      last_value(b.diastolic_mmhg ignore nulls) over w as diastolic_mmhg,
+      last_value(case when b.systolic_mmhg is not null then d.day end ignore nulls) over w as blood_pressure_measured_on,
+      (select coalesce(sum(e.change), 0) from blood_pressure_drug_events e where e.patient_id = d.patient_id and e.day <= d.day)
+        as active_blood_pressure_drugs_count,
+      (select coalesce(sum(e.change), 0) from statin_events e where e.patient_id = d.patient_id and e.day <= d.day)
+        as active_statins_count,
+      year(d.day) - p.birth_year as age_years,
+      last_value(case when s.retinal_result is not null then d.day end ignore nulls) over w as retinal_screened_on,
+      last_value(s.retinal_result ignore nulls) over w as retinal_result,
+      last_value(case when s.foot_result is not null then d.day end ignore nulls) over w as foot_screened_on,
+      last_value(s.foot_result ignore nulls) over w as foot_result
+    from spine d
+    left join cgm_days c using (patient_id, day)
+    left join lab_days l using (patient_id, day)
+    left join lab_slope_days lt using (patient_id, day)
+    left join uacr_median_days um using (patient_id, day)
+    left join {{ #patients as p }} on p.id = d.patient_id
+    left join bp_days b using (patient_id, day)
+    left join screening_days s using (patient_id, day)
+    window w as (partition by d.patient_id order by d.day rows between unbounded preceding and current row)
+  ;;
+
+  dimension id {
+    label: 'Patient Day Id'
+    type: 'text'
+    hidden: true
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension patient_id {
+    label: 'Patient Id'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.patient_id }};;
+  }
+  dimension day {
+    label: 'Day'
+    type: 'date'
+    definition: @sql {{ #SOURCE.day }};;
+  }
+  dimension readings {
+    label: 'CGM Readings That Day'
+    type: 'number'
+    definition: @sql {{ #SOURCE.readings }};;
+  }
+  dimension readings_in_range {
+    label: 'CGM Readings In Range That Day'
+    type: 'number'
+    definition: @sql {{ #SOURCE.readings_in_range }};;
+  }
+  dimension readings_below_range {
+    label: 'CGM Readings Below Range That Day'
+    type: 'number'
+    definition: @sql {{ #SOURCE.readings_below_range }};;
+  }
+  dimension readings_very_low {
+    label: 'CGM Readings Very Low That Day'
+    type: 'number'
+    definition: @sql {{ #SOURCE.readings_very_low }};;
+  }
+  dimension readings_above_range {
+    label: 'CGM Readings Above Range That Day'
+    type: 'number'
+    definition: @sql {{ #SOURCE.readings_above_range }};;
+  }
+  dimension readings_very_high {
+    label: 'CGM Readings Very High That Day'
+    type: 'number'
+    definition: @sql {{ #SOURCE.readings_very_high }};;
+  }
+  dimension had_visit {
+    label: 'Visit Day'
+    type: 'truefalse'
+    description: 'A clinic visit happened that day: a lab sample was taken or blood pressure was measured in clinic.'
+    definition: @sql {{ #SOURCE.had_visit }};;
+  }
+  dimension hba1c_pct {
+    label: 'Latest HbA1c (%)'
+    type: 'number'
+    description: 'The most recent lab HbA1c taken on or before this day.'
+    definition: @sql {{ #SOURCE.hba1c_pct }};;
+  }
+  dimension hba1c_taken_on {
+    label: 'Latest HbA1c Taken On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.hba1c_taken_on }};;
+  }
+  dimension egfr {
+    label: 'Latest eGFR'
+    type: 'number'
+    definition: @sql {{ #SOURCE.egfr }};;
+  }
+  dimension first_egfr_on {
+    label: 'First eGFR Taken On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.first_egfr_on }};;
+  }
+  dimension egfr_taken_on {
+    label: 'Latest eGFR Taken On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.egfr_taken_on }};;
+  }
+  dimension egfr_slope_per_year {
+    label: 'eGFR Trend (per year)'
+    type: 'number'
+    description: 'The least-squares slope through every eGFR on or before this day, in mL/min/1.73m² per year.'
+    definition: @sql {{ #SOURCE.egfr_slope_per_year }};;
+  }
+  dimension uacr {
+    label: 'Latest UACR (mg/g)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.uacr }};;
+  }
+  dimension uacr_last_3_median {
+    label: 'UACR, Last 3 Tests (mg/g)'
+    type: 'number'
+    description: 'The median of the last three UACR results on or before that day (fewer when fewer were on record).'
+    definition: @sql {{ #SOURCE.uacr_last_3_median }};;
+  }
+  dimension uacr_taken_on {
+    label: 'Latest UACR Taken On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.uacr_taken_on }};;
+  }
+  dimension ldl {
+    label: 'Latest LDL (mg/dL)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ldl }};;
+  }
+  dimension ldl_taken_on {
+    label: 'Latest LDL Taken On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.ldl_taken_on }};;
+  }
+  dimension systolic_mmhg {
+    label: 'Latest Systolic BP (mmHg)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.systolic_mmhg }};;
+  }
+  dimension diastolic_mmhg {
+    label: 'Latest Diastolic BP (mmHg)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.diastolic_mmhg }};;
+  }
+  dimension blood_pressure_measured_on {
+    label: 'Latest Blood Pressure Measured On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.blood_pressure_measured_on }};;
+  }
+  dimension active_blood_pressure_drugs_count {
+    label: 'Blood-Pressure-Lowering Drugs That Day'
+    type: 'number'
+    description: 'How many blood-pressure-lowering drugs the patient was on that day: started and not stopped.'
+    definition: @sql {{ #SOURCE.active_blood_pressure_drugs_count }};;
+  }
+  dimension active_statins_count {
+    label: 'Statins That Day'
+    type: 'number'
+    description: 'How many statins the patient was on that day: started and not stopped.'
+    definition: @sql {{ #SOURCE.active_statins_count }};;
+  }
+  dimension age_years {
+    label: 'Age That Day (years)'
+    type: 'number'
+    description: 'Age in the year of that day, from the birth year.'
+    definition: @sql {{ #SOURCE.age_years }};;
+  }
+  dimension retinal_screened_on {
+    label: 'Latest Retinal Screening On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.retinal_screened_on }};;
+  }
+  dimension retinal_result {
+    label: 'Latest Retinal Screening Result'
+    type: 'text'
+    definition: @sql {{ #SOURCE.retinal_result }};;
+  }
+  dimension foot_screened_on {
+    label: 'Latest Foot Exam On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.foot_screened_on }};;
+  }
+  dimension foot_result {
+    label: 'Latest Foot Exam Result'
+    type: 'text'
+    definition: @sql {{ #SOURCE.foot_result }};;
+  }
+}

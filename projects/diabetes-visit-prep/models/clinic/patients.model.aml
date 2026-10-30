@@ -1,0 +1,42 @@
+Model patients {
+  type: 'table'
+  label: 'Patients'
+  description: 'One row per patient on the clinic panel. Synthetic.'
+  data_source_name: 'health'
+  table_name: 'patients'
+
+  dimension id {
+    label: 'Patient Id'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension display_name {
+    label: 'Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.display_name }};;
+  }
+  dimension birth_year {
+    label: 'Birth Year'
+    type: 'number'
+    definition: @sql {{ #SOURCE.birth_year }};;
+  }
+  dimension glucose_target_set {
+    label: 'Glucose Target Set'
+    type: 'text'
+    description: "\"standard\", or \"older_high_risk\" for an older adult with complex or intermediate health: three or more chronic illnesses, two or more impaired activities of daily living, or mild to moderate cognitive impairment (ADA Standards of Care 2026, Table 13.2). Set by the clinician in the care plan, not derived from the data."
+    definition: @sql {{ #SOURCE.glucose_target_set }};;
+  }
+  dimension sex {
+    label: 'Sex'
+    type: 'text'
+    description: "\"female\" or \"male\", as recorded. The body map draws the matching body."
+    definition: @sql {{ #SOURCE.sex }};;
+  }
+  dimension diabetes_type {
+    label: 'Diabetes Type'
+    type: 'text'
+    description: 'T1 or T2.'
+    definition: @sql {{ #SOURCE.diabetes_type }};;
+  }
+}

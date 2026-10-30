@@ -1,0 +1,4 @@
+apps:
+  walkable-insights.html:
+    name: Walk the city
+    order: 1

@@ -1,0 +1,202 @@
+// Walkable neighbourhoods (SYNTHETIC). Mock rows built from published effect sizes.
+// Built by data/build_walkable_db.py into data/walkable.duckdb. One model per CSV; no joins.
+
+Model street_layout {
+  type: 'table'
+  label: 'Street layout'
+  data_source_name: 'walkable'
+  table_name: 'street_layout'
+
+  dimension city_id {
+    label: 'Neighbourhood ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension region {
+    label: 'Region (fictional)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.region }};;
+  }
+  dimension density_band {
+    label: 'Density band'
+    type: 'text'
+    definition: @sql {{ #SOURCE.density_band }};;
+  }
+  dimension integration_band {
+    label: 'Street integration band (z)'
+    type: 'text'
+    definition: @sql CASE WHEN {{ #SOURCE.street_integration_z }} < -1 THEN '1. Under -1' WHEN {{ #SOURCE.street_integration_z }} < 0 THEN '2. -1 to 0' WHEN {{ #SOURCE.street_integration_z }} < 1 THEN '3. 0 to 1' ELSE '4. 1 or more' END;;
+  }
+  dimension street_integration_z {
+    label: 'Street integration (z)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.street_integration_z }};;
+  }
+  dimension destinations_400m_z {
+    label: 'Destinations within 400 m (z)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.destinations_400m_z }};;
+  }
+  dimension transport_walk_z {
+    label: 'Transport walking (z)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.transport_walk_z }};;
+  }
+  dimension leisure_walk_z {
+    label: 'Leisure walking (z)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.leisure_walk_z }};;
+  }
+}
+
+Model walk_baseline {
+  type: 'table'
+  label: 'Walkable neighbourhood baseline'
+  data_source_name: 'walkable'
+  table_name: 'walk_baseline'
+
+  dimension row_id {
+    label: 'Neighbourhood ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension region {
+    label: 'Region (fictional)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.region }};;
+  }
+  dimension income_group {
+    label: 'Income group'
+    type: 'text'
+    definition: @sql {{ #SOURCE.income_group }};;
+  }
+  dimension walk_group {
+    label: 'Walk group (Walk Score 50 cut-off)'
+    type: 'text'
+    definition: @sql CASE WHEN {{ #SOURCE.walk_group }} = 'walkable' THEN 'Walkable' ELSE 'Car dependent' END;;
+  }
+  dimension walk_score {
+    label: 'Walk Score (0 to 100)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_score_0_100 }};;
+  }
+  dimension baseline_walk_min {
+    label: 'Transport walking, baseline (min/week)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.transport_walk_min_per_week_baseline }};;
+  }
+}
+
+Model mixed_use_walk {
+  type: 'table'
+  label: 'Mixed use and walking change'
+  data_source_name: 'walkable'
+  table_name: 'mixed_use_walk'
+
+  dimension row_id {
+    label: 'Neighbourhood ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension region {
+    label: 'Region (fictional)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.region }};;
+  }
+  dimension area_band {
+    label: 'Area band'
+    type: 'text'
+    definition: @sql {{ #SOURCE.area_band }};;
+  }
+  dimension composite_z {
+    label: 'Walkability composite (z)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_composite_z }};;
+  }
+  dimension walk_change_5yr {
+    label: '5-year change in walking (min/week)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_change_5yr_min_per_week }};;
+  }
+}
+
+Model parking_car {
+  type: 'table'
+  label: 'Parking supply and car share'
+  data_source_name: 'walkable'
+  table_name: 'parking_car'
+
+  dimension row_id {
+    label: 'Neighbourhood ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension region {
+    label: 'Region (fictional)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.region }};;
+  }
+  dimension density_band {
+    label: 'Density band'
+    type: 'text'
+    definition: @sql {{ #SOURCE.density_band }};;
+  }
+  dimension spaces_per_resident {
+    label: 'Parking spaces per resident'
+    type: 'number'
+    definition: @sql {{ #SOURCE.parking_spaces_per_resident }};;
+  }
+  dimension spaces_band {
+    label: 'Parking spaces per resident (0.1 steps)'
+    type: 'number'
+    definition: @sql FLOOR({{ #SOURCE.parking_spaces_per_resident }} * 10) / 10;;
+  }
+  dimension car_share_pct {
+    label: 'Car commute share (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.car_commute_share_pct }};;
+  }
+}
+
+Model proximity_local {
+  type: 'table'
+  label: 'Proximity and local use'
+  data_source_name: 'walkable'
+  table_name: 'proximity_local'
+
+  dimension row_id {
+    label: 'Neighbourhood ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension region {
+    label: 'Region (fictional)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.region }};;
+  }
+  dimension income_group {
+    label: 'Income group'
+    type: 'text'
+    definition: @sql {{ #SOURCE.income_group }};;
+  }
+  dimension access_index {
+    label: 'Amenity access index (0 to 1)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.amenity_access_index_0_1 }};;
+  }
+  dimension access_band {
+    label: 'Amenity access (0.2 steps)'
+    type: 'number'
+    definition: @sql FLOOR({{ #SOURCE.amenity_access_index_0_1 }} * 5) / 5;;
+  }
+  dimension local_share_pct {
+    label: 'Local consumption trips (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.local_consumption_trips_pct }};;
+  }
+}

@@ -1,0 +1,5 @@
+data_sources:
+  walkable:
+    type: duckdb
+    connection:
+      path: data/walkable.duckdb?access_mode=read_only&enable_external_access=false

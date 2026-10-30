@@ -1,0 +1,2531 @@
+// Walkable insights v2 (mostly SYNTHETIC). Built by data/build_walkable_db.py into data/walkable.duckdb.
+// Generated from the wk_* tables. Nesting: wk_countries <- wk_cities <- wk_neighbourhoods <- wk_streets.
+// REAL columns: see wk_provenance (Althoff, WHO, UN WUP, UN-Habitat, city surveys, Boeing 2025, ERA5). See wk_sources.
+
+Model wk_countries {
+  type: 'table'
+  label: 'Country (40 real countries; mostly REAL columns, see wk_provenance)'
+  data_source_name: 'walkable'
+  table_name: 'wk_countries'
+
+  dimension iso3 {
+    label: 'ISO3 code'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.iso3 }};;
+  }
+
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+
+  dimension local_name {
+    label: 'Local name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.local_name }};;
+  }
+
+  dimension region {
+    label: 'Region'
+    type: 'text'
+    definition: @sql {{ #SOURCE.region }};;
+  }
+
+  dimension sdg_region {
+    label: 'Sdg region'
+    type: 'text'
+    definition: @sql {{ #SOURCE.sdg_region }};;
+  }
+
+  dimension steps_per_day {
+    label: 'Steps per day'
+    type: 'number'
+    definition: @sql {{ #SOURCE.steps_per_day }};;
+  }
+
+  dimension steps_is_published {
+    label: 'Steps is published'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.steps_is_published }};;
+  }
+
+  dimension activity_gini {
+    label: 'Activity inequality (Gini) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.activity_gini }};;
+  }
+
+  dimension obesity_pct {
+    label: 'Obesity (%, WHO 2022) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.obesity_pct }};;
+  }
+
+  dimension overweight_pct {
+    label: 'Overweight (%, WHO 2022) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.overweight_pct }};;
+  }
+
+  dimension urban_share_pct {
+    label: 'Urban share (%) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.urban_share_pct }};;
+  }
+
+  dimension road_deaths_per_100k {
+    label: 'Road deaths per 100k REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.road_deaths_per_100k }};;
+  }
+
+  dimension road_deaths_2021 {
+    label: 'Road deaths 2021 REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.road_deaths_2021 }};;
+  }
+
+  dimension population {
+    label: 'Population 2025 REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.population }};;
+  }
+
+  dimension urban_is_real {
+    label: 'Urban is real'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.urban_is_real }};;
+  }
+
+  dimension road_deaths_is_real {
+    label: 'Road deaths is real'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.road_deaths_is_real }};;
+  }
+
+  dimension population_is_real {
+    label: 'Population is real'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.population_is_real }};;
+  }
+
+  dimension n_urban_centres {
+    label: 'Urban centres (Boeing 2025)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.n_urban_centres }};;
+  }
+
+  dimension urban_density_per_km2 {
+    label: 'People per km2 (urban centres, Boeing 2025) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.urban_density_per_km2 }};;
+  }
+
+  dimension intersection_density_per_km2 {
+    label: 'Intersections per km2 (Boeing 2025) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.intersection_density_per_km2 }};;
+  }
+
+  dimension street_km_per_km2 {
+    label: 'Street km per km2 (Boeing 2025) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.street_km_per_km2 }};;
+  }
+
+  dimension street_circuity {
+    label: 'Street circuity (Boeing 2025) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.street_circuity }};;
+  }
+
+  dimension share_4way_pct {
+    label: '4-way intersections (%) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.share_4way_pct }};;
+  }
+
+  dimension share_deadend_pct {
+    label: 'Dead ends (%) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.share_deadend_pct }};;
+  }
+
+  dimension n_cities {
+    label: 'N cities'
+    type: 'number'
+    definition: @sql {{ #SOURCE.n_cities }};;
+  }
+
+  dimension is_default {
+    label: 'Is default'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_default }};;
+  }
+
+  dimension gini_is_published {
+    label: 'Gini is published'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.gini_is_published }};;
+  }
+
+  dimension obesity_is_real {
+    label: 'Obesity is real'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.obesity_is_real }};;
+  }
+
+  dimension people_near_services_pct {
+    label: 'People near services (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.people_near_services_pct }};;
+  }
+
+  dimension block_density_per_km2 {
+    label: 'Block density (per km2; city mean = Boeing 2025 intersection density)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.block_density_per_km2 }};;
+  }
+
+  dimension tree_canopy_pct {
+    label: 'Tree canopy (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.tree_canopy_pct }};;
+  }
+
+  dimension safe_speed_share_pct {
+    label: 'Safe speed streets (% at or under 30 km/h)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.safe_speed_share_pct }};;
+  }
+
+  dimension car_free_space_pct {
+    label: 'Vehicle-free space (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.car_free_space_pct }};;
+  }
+
+  dimension transit_near_pct {
+    label: 'Transit nearness (% within 500 m bus / 1 km rail, SDG 11.2.1)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.transit_near_pct }};;
+  }
+
+  dimension walk_index_0_100 {
+    label: 'Walk index (0 to 100)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_index_0_100 }};;
+  }
+
+  dimension currency_code {
+    label: 'Currency code (ISO 4217)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency_code }};;
+  }
+
+  dimension currency_symbol {
+    label: 'Currency symbol'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency_symbol }};;
+  }
+
+  dimension usd_fx_rate {
+    label: 'Local units per 1 USD (approx., Oct 2026, synthetic)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.usd_fx_rate }};;
+  }
+
+  dimension price_level_vs_usa {
+    label: 'Price level vs USA (synthetic)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.price_level_vs_usa }};;
+  }
+}
+
+Model wk_cities {
+  type: 'table'
+  label: 'City (mixed: REAL transit, mode share, street network, heat; calibrated synthetic radar)'
+  data_source_name: 'walkable'
+  table_name: 'wk_cities'
+
+  dimension city_id {
+    label: 'City ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.city_id }};;
+  }
+
+  dimension iso3 {
+    label: 'ISO3 code'
+    type: 'text'
+    definition: @sql {{ #SOURCE.iso3 }};;
+  }
+
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+
+  dimension local_name {
+    label: 'Local name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.local_name }};;
+  }
+
+  dimension lat {
+    label: 'Latitude'
+    type: 'number'
+    definition: @sql {{ #SOURCE.lat }};;
+  }
+
+  dimension lon {
+    label: 'Longitude'
+    type: 'number'
+    definition: @sql {{ #SOURCE.lon }};;
+  }
+
+  dimension n_neighbourhoods {
+    label: 'N neighbourhoods'
+    type: 'number'
+    definition: @sql {{ #SOURCE.n_neighbourhoods }};;
+  }
+
+  dimension people_near_services_pct {
+    label: 'People near services (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.people_near_services_pct }};;
+  }
+
+  dimension block_density_per_km2 {
+    label: 'Block density (per km2; city mean = Boeing 2025 intersection density)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.block_density_per_km2 }};;
+  }
+
+  dimension tree_canopy_pct {
+    label: 'Tree canopy (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.tree_canopy_pct }};;
+  }
+
+  dimension safe_speed_share_pct {
+    label: 'Safe speed streets (% at or under 30 km/h)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.safe_speed_share_pct }};;
+  }
+
+  dimension car_free_space_pct {
+    label: 'Vehicle-free space (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.car_free_space_pct }};;
+  }
+
+  dimension transit_near_pct {
+    label: 'Transit nearness (% within 500 m bus / 1 km rail, SDG 11.2.1)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.transit_near_pct }};;
+  }
+
+  dimension transit_near_is_real {
+    label: 'Transit near is real'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.transit_near_is_real }};;
+  }
+
+  dimension walk_index_0_100 {
+    label: 'Walk index (0 to 100)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_index_0_100 }};;
+  }
+
+  dimension walk_group {
+    label: 'Walk group (Walkable / Vehicle-dependent)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.walk_group }};;
+  }
+
+  dimension parking_per_resident {
+    label: 'Parking per resident'
+    type: 'number'
+    definition: @sql {{ #SOURCE.parking_per_resident }};;
+  }
+
+  dimension car_commute_pct {
+    label: 'Car commute (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.car_commute_pct }};;
+  }
+
+  dimension car_share_source {
+    label: 'Car share source'
+    type: 'text'
+    definition: @sql {{ #SOURCE.car_share_source }};;
+  }
+
+  dimension motorbike_share_pct {
+    label: 'Motorbike share (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.motorbike_share_pct }};;
+  }
+
+  dimension modal_walk_pct {
+    label: 'Modal walk (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.modal_walk_pct }};;
+  }
+
+  dimension modal_cycle_pct {
+    label: 'Modal cycle (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.modal_cycle_pct }};;
+  }
+
+  dimension modal_pt_pct {
+    label: 'Modal pt (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.modal_pt_pct }};;
+  }
+
+  dimension modal_private_motor_pct {
+    label: 'Modal private motor (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.modal_private_motor_pct }};;
+  }
+
+  dimension modal_year {
+    label: 'Modal year'
+    type: 'text'
+    definition: @sql {{ #SOURCE.modal_year }};;
+  }
+
+  dimension modal_is_real {
+    label: 'Modal is real'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.modal_is_real }};;
+  }
+
+  dimension transport_walk_min_week {
+    label: 'Transport walk (walk min) week'
+    type: 'number'
+    definition: @sql {{ #SOURCE.transport_walk_min_week }};;
+  }
+
+  dimension overweight_pct_2001 {
+    label: 'Overweight (%) 2001'
+    type: 'number'
+    definition: @sql {{ #SOURCE.overweight_pct_2001 }};;
+  }
+
+  dimension overweight_pct_2012 {
+    label: 'Overweight (%) 2012'
+    type: 'number'
+    definition: @sql {{ #SOURCE.overweight_pct_2012 }};;
+  }
+
+  dimension walk_quintile {
+    label: 'Walk quintile'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_quintile }};;
+  }
+
+  dimension transport_cost_share_pct {
+    label: 'Transport cost share (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.transport_cost_share_pct }};;
+  }
+
+  dimension housing_cost_share_pct {
+    label: 'Housing cost share (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.housing_cost_share_pct }};;
+  }
+
+  dimension mean_temp_c {
+    label: 'Mean temperature (C)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.mean_temp_c }};;
+  }
+
+  dimension rain_days_yr {
+    label: 'Rain days per year'
+    type: 'number'
+    definition: @sql {{ #SOURCE.rain_days_yr }};;
+  }
+
+  dimension weather_type {
+    label: 'Weather type'
+    type: 'text'
+    definition: @sql {{ #SOURCE.weather_type }};;
+  }
+
+  dimension hottest_month_max_c {
+    label: 'Hottest month max c'
+    type: 'number'
+    definition: @sql {{ #SOURCE.hottest_month_max_c }};;
+  }
+
+  dimension has_beach {
+    label: 'Has beach'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.has_beach }};;
+  }
+
+  dimension has_river {
+    label: 'Has river'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.has_river }};;
+  }
+
+  dimension urban_density_per_km2 {
+    label: 'People per km2 (urban centres, Boeing 2025) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.urban_density_per_km2 }};;
+  }
+
+  dimension intersection_density_per_km2 {
+    label: 'Intersections per km2 (Boeing 2025) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.intersection_density_per_km2 }};;
+  }
+
+  dimension street_km_per_km2 {
+    label: 'Street km per km2 (Boeing 2025) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.street_km_per_km2 }};;
+  }
+
+  dimension street_circuity {
+    label: 'Street circuity (Boeing 2025) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.street_circuity }};;
+  }
+
+  dimension share_4way_pct {
+    label: '4-way intersections (%) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.share_4way_pct }};;
+  }
+
+  dimension share_deadend_pct {
+    label: 'Dead ends (%) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.share_deadend_pct }};;
+  }
+
+  dimension safe_speed_anchor_pct {
+    label: 'Safe speed anchor (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.safe_speed_anchor_pct }};;
+  }
+
+  dimension speed_policy {
+    label: 'Speed policy'
+    type: 'text'
+    definition: @sql {{ #SOURCE.speed_policy }};;
+  }
+
+  dimension is_default {
+    label: 'Is default'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_default }};;
+  }
+
+  dimension ht_cost_share_pct {
+    label: 'Ht cost share (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ht_cost_share_pct }};;
+  }
+
+  dimension ht_affordable {
+    label: 'Ht affordable'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.ht_affordable }};;
+  }
+
+  dimension housing_affordable {
+    label: 'Housing affordable'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.housing_affordable }};;
+  }
+
+  dimension currency_code {
+    label: 'Currency code (ISO 4217)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency_code }};;
+  }
+
+  dimension currency_symbol {
+    label: 'Currency symbol'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency_symbol }};;
+  }
+
+  dimension town_name {
+    label: 'Town name (Walk Town / Vehicle Town)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.town_name }};;
+  }
+
+  dimension home_median_usd {
+    label: 'City home median (USD)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.home_median_usd }};;
+  }
+
+  dimension home_median_local {
+    label: 'City home median (local currency)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.home_median_local }};;
+  }
+
+  dimension motorbike_is_real {
+    label: 'Motorbike is real'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.motorbike_is_real }};;
+  }
+
+  dimension walk_share_pct {
+    label: 'People who walk (% of trips)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_share_pct }};;
+  }
+
+  dimension walk_share_is_real {
+    label: 'Walk share is real'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.walk_share_is_real }};;
+  }
+
+  dimension sidewalk_clear_score {
+    label: 'Sidewalk clear score (0-100; 100 = clear, wide, tidy)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sidewalk_clear_score }};;
+  }
+
+  dimension shops_per_100m {
+    label: 'Shops per 100m'
+    type: 'number'
+    definition: @sql {{ #SOURCE.shops_per_100m }};;
+  }
+}
+
+Model wk_neighbourhoods {
+  type: 'table'
+  label: 'Neighbourhood (synthetic values; real district names)'
+  data_source_name: 'walkable'
+  table_name: 'wk_neighbourhoods'
+
+  dimension nbhd_id {
+    label: 'Neighbourhood ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.nbhd_id }};;
+  }
+
+  dimension city_id {
+    label: 'City ID'
+    type: 'text'
+    definition: @sql {{ #SOURCE.city_id }};;
+  }
+
+  dimension iso3 {
+    label: 'ISO3 code'
+    type: 'text'
+    definition: @sql {{ #SOURCE.iso3 }};;
+  }
+
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+
+  dimension name_note {
+    label: 'Name note'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name_note }};;
+  }
+
+  dimension map_x {
+    label: 'Map x (0 to 1)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.map_x }};;
+  }
+
+  dimension map_y {
+    label: 'Map y (0 to 1)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.map_y }};;
+  }
+
+  dimension centrality {
+    label: 'Centrality'
+    type: 'number'
+    definition: @sql {{ #SOURCE.centrality }};;
+  }
+
+  dimension walk_rank_0_1 {
+    label: 'Walk rank 0 1'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_rank_0_1 }};;
+  }
+
+  dimension people_near_services_pct {
+    label: 'People near services (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.people_near_services_pct }};;
+  }
+
+  dimension block_density_per_km2 {
+    label: 'Block density (per km2; city mean = Boeing 2025 intersection density)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.block_density_per_km2 }};;
+  }
+
+  dimension tree_canopy_pct {
+    label: 'Tree canopy (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.tree_canopy_pct }};;
+  }
+
+  dimension safe_speed_share_pct {
+    label: 'Safe speed streets (% at or under 30 km/h)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.safe_speed_share_pct }};;
+  }
+
+  dimension car_free_space_pct {
+    label: 'Vehicle-free space (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.car_free_space_pct }};;
+  }
+
+  dimension transit_near_pct {
+    label: 'Transit nearness (% within 500 m bus / 1 km rail, SDG 11.2.1)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.transit_near_pct }};;
+  }
+
+  dimension walk_score_0_100 {
+    label: 'Walk score (0 to 100)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_score_0_100 }};;
+  }
+
+  dimension park_min {
+    label: 'Park (walk min)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.park_min }};;
+  }
+
+  dimension beach_min {
+    label: 'Beach (walk min)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.beach_min }};;
+  }
+
+  dimension river_min {
+    label: 'River (walk min)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.river_min }};;
+  }
+
+  dimension museum_min {
+    label: 'Museum (walk min)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.museum_min }};;
+  }
+
+  dimension hospital_min {
+    label: 'Hospital (walk min)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.hospital_min }};;
+  }
+
+  dimension cafe_min {
+    label: 'Cafe (walk min)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cafe_min }};;
+  }
+
+  dimension restaurant_min {
+    label: 'Restaurant (walk min)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.restaurant_min }};;
+  }
+
+  dimension mall_min {
+    label: 'Mall (walk min)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.mall_min }};;
+  }
+
+  dimension school_min {
+    label: 'School (walk min)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.school_min }};;
+  }
+
+  dimension transit_stop_min {
+    label: 'Transit stop (walk min)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.transit_stop_min }};;
+  }
+
+  dimension local_trip_share_pct {
+    label: 'Local trip share (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.local_trip_share_pct }};;
+  }
+
+  dimension amenity_access_index {
+    label: 'Amenity access index'
+    type: 'number'
+    definition: @sql {{ #SOURCE.amenity_access_index }};;
+  }
+
+  dimension amenities_within_15_min {
+    label: 'Amenities within 15 (walk min)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.amenities_within_15_min }};;
+  }
+
+  dimension land_residential_pct {
+    label: 'Land residential (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.land_residential_pct }};;
+  }
+
+  dimension land_commercial_pct {
+    label: 'Land commercial (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.land_commercial_pct }};;
+  }
+
+  dimension land_green_pct {
+    label: 'Land green (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.land_green_pct }};;
+  }
+
+  dimension land_parking_pct {
+    label: 'Land parking (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.land_parking_pct }};;
+  }
+
+  dimension detour_ratio {
+    label: 'Detour ratio'
+    type: 'number'
+    definition: @sql {{ #SOURCE.detour_ratio }};;
+  }
+
+  dimension home_value_usd {
+    label: 'Home value usd'
+    type: 'number'
+    definition: @sql {{ #SOURCE.home_value_usd }};;
+  }
+
+  dimension home_value_slope_usd_per_point {
+    label: 'Home value slope usd per point'
+    type: 'number'
+    definition: @sql {{ #SOURCE.home_value_slope_usd_per_point }};;
+  }
+
+  dimension kids_roam_m {
+    label: 'Kids roam m'
+    type: 'number'
+    definition: @sql {{ #SOURCE.kids_roam_m }};;
+  }
+
+  dimension mean_temp_c {
+    label: 'Mean temperature (C)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.mean_temp_c }};;
+  }
+
+  dimension rain_days_yr {
+    label: 'Rain days per year'
+    type: 'number'
+    definition: @sql {{ #SOURCE.rain_days_yr }};;
+  }
+
+  dimension weather_type {
+    label: 'Weather type'
+    type: 'text'
+    definition: @sql {{ #SOURCE.weather_type }};;
+  }
+
+  dimension summer_peak_c {
+    label: 'Summer peak c'
+    type: 'number'
+    definition: @sql {{ #SOURCE.summer_peak_c }};;
+  }
+
+  dimension has_beach {
+    label: 'Has beach'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.has_beach }};;
+  }
+
+  dimension has_river {
+    label: 'Has river'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.has_river }};;
+  }
+
+  dimension is_default {
+    label: 'Is default'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_default }};;
+  }
+
+  dimension home_value_index {
+    label: 'Home value index'
+    type: 'number'
+    definition: @sql {{ #SOURCE.home_value_index }};;
+  }
+
+  dimension currency_code {
+    label: 'Currency code (ISO 4217)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency_code }};;
+  }
+
+  dimension currency_symbol {
+    label: 'Currency symbol'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency_symbol }};;
+  }
+
+  dimension home_value_usd_is_real_median {
+    label: 'Home value usd is real median'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.home_value_usd_is_real_median }};;
+  }
+
+  dimension home_value_local {
+    label: 'Home value (local currency, synthetic)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.home_value_local }};;
+  }
+
+  dimension home_value_slope_local_per_point {
+    label: 'Home value per walk score point (local currency)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.home_value_slope_local_per_point }};;
+  }
+
+  dimension sidewalk_clear_score {
+    label: 'Sidewalk clear score (0-100; 100 = clear, wide, tidy)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sidewalk_clear_score }};;
+  }
+
+  dimension shops_per_100m {
+    label: 'Shops per 100m'
+    type: 'number'
+    definition: @sql {{ #SOURCE.shops_per_100m }};;
+  }
+}
+
+Model wk_streets {
+  type: 'table'
+  label: 'Street (synthetic)'
+  data_source_name: 'walkable'
+  table_name: 'wk_streets'
+
+  dimension street_id {
+    label: 'Street ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.street_id }};;
+  }
+
+  dimension nbhd_id {
+    label: 'Neighbourhood ID'
+    type: 'text'
+    definition: @sql {{ #SOURCE.nbhd_id }};;
+  }
+
+  dimension city_id {
+    label: 'City ID'
+    type: 'text'
+    definition: @sql {{ #SOURCE.city_id }};;
+  }
+
+  dimension iso3 {
+    label: 'ISO3 code'
+    type: 'text'
+    definition: @sql {{ #SOURCE.iso3 }};;
+  }
+
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+
+  dimension street_type {
+    label: 'Street type'
+    type: 'text'
+    definition: @sql {{ #SOURCE.street_type }};;
+  }
+
+  dimension traffic_veh_day {
+    label: 'Traffic veh day'
+    type: 'number'
+    definition: @sql {{ #SOURCE.traffic_veh_day }};;
+  }
+
+  dimension speed_kmh {
+    label: 'Speed kmh'
+    type: 'number'
+    definition: @sql {{ #SOURCE.speed_kmh }};;
+  }
+
+  dimension speed_mph {
+    label: 'Speed mph'
+    type: 'number'
+    definition: @sql {{ #SOURCE.speed_mph }};;
+  }
+
+  dimension is_safe_speed {
+    label: 'Is safe speed'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_safe_speed }};;
+  }
+
+  dimension canopy_pct {
+    label: 'Canopy (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.canopy_pct }};;
+  }
+
+  dimension crossing_m {
+    label: 'Crossing m'
+    type: 'number'
+    definition: @sql {{ #SOURCE.crossing_m }};;
+  }
+
+  dimension crossing_time_s_at_1_2 {
+    label: 'Crossing time s at 1 2'
+    type: 'number'
+    definition: @sql {{ #SOURCE.crossing_time_s_at_1_2 }};;
+  }
+
+  dimension crossing_time_s_at_0_8 {
+    label: 'Crossing time s at 0 8'
+    type: 'number'
+    definition: @sql {{ #SOURCE.crossing_time_s_at_0_8 }};;
+  }
+
+  dimension friends_per_resident {
+    label: 'Friends per resident'
+    type: 'number'
+    definition: @sql {{ #SOURCE.friends_per_resident }};;
+  }
+
+  dimension acquaintances_per_resident {
+    label: 'Acquaintances per resident'
+    type: 'number'
+    definition: @sql {{ #SOURCE.acquaintances_per_resident }};;
+  }
+
+  dimension ped_death_risk_pct {
+    label: 'Ped death risk (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ped_death_risk_pct }};;
+  }
+
+  dimension ped_death_risk_pct_age70 {
+    label: 'Ped death risk (%) age70'
+    type: 'number'
+    definition: @sql {{ #SOURCE.ped_death_risk_pct_age70 }};;
+  }
+
+  dimension canopy_cooling_c {
+    label: 'Canopy cooling c'
+    type: 'number'
+    definition: @sql {{ #SOURCE.canopy_cooling_c }};;
+  }
+
+  dimension sidewalk_m {
+    label: 'Sidewalk m'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sidewalk_m }};;
+  }
+
+  dimension shop_fronts {
+    label: 'Shop fronts'
+    type: 'number'
+    definition: @sql {{ #SOURCE.shop_fronts }};;
+  }
+
+  dimension is_default {
+    label: 'Is default'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_default }};;
+  }
+
+  dimension currency_code {
+    label: 'Currency code (ISO 4217)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency_code }};;
+  }
+
+  dimension currency_symbol {
+    label: 'Currency symbol'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency_symbol }};;
+  }
+
+  dimension length_m {
+    label: 'Length m'
+    type: 'number'
+    definition: @sql {{ #SOURCE.length_m }};;
+  }
+
+  dimension street_width_m {
+    label: 'Street width m'
+    type: 'number'
+    definition: @sql {{ #SOURCE.street_width_m }};;
+  }
+
+  dimension vehicle_lanes {
+    label: 'Vehicle lanes'
+    type: 'number'
+    definition: @sql {{ #SOURCE.vehicle_lanes }};;
+  }
+
+  dimension parking_lanes {
+    label: 'Kerb parking lanes'
+    type: 'number'
+    definition: @sql {{ #SOURCE.parking_lanes }};;
+  }
+
+  dimension sidewalk_width_m {
+    label: 'Sidewalk width, each side (m)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sidewalk_width_m }};;
+  }
+
+  dimension sidewalk_clear_width_m {
+    label: 'Clear walking width, each side (m)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sidewalk_clear_width_m }};;
+  }
+
+  dimension green_strip_m {
+    label: 'Green strip m'
+    type: 'number'
+    definition: @sql {{ #SOURCE.green_strip_m }};;
+  }
+
+  dimension space_vehicles_pct {
+    label: 'Street width for vehicles (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.space_vehicles_pct }};;
+  }
+
+  dimension space_people_pct {
+    label: 'Street width for people (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.space_people_pct }};;
+  }
+
+  dimension space_green_pct {
+    label: 'Street width for trees and green (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.space_green_pct }};;
+  }
+
+  dimension shops_count {
+    label: 'Shops count'
+    type: 'number'
+    definition: @sql {{ #SOURCE.shops_count }};;
+  }
+
+  dimension amenities_count {
+    label: 'Amenities count'
+    type: 'number'
+    definition: @sql {{ #SOURCE.amenities_count }};;
+  }
+
+  dimension services_count {
+    label: 'Services count'
+    type: 'number'
+    definition: @sql {{ #SOURCE.services_count }};;
+  }
+
+  dimension businesses_per_100m {
+    label: 'Shops, cafes and services per 100 m'
+    type: 'number'
+    definition: @sql {{ #SOURCE.businesses_per_100m }};;
+  }
+
+  dimension sidewalk_parked_vehicles_pct {
+    label: 'Sidewalk parked vehicles (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sidewalk_parked_vehicles_pct }};;
+  }
+
+  dimension sidewalk_stalls_pct {
+    label: 'Sidewalk stalls (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sidewalk_stalls_pct }};;
+  }
+
+  dimension sidewalk_litter_pct {
+    label: 'Sidewalk litter (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sidewalk_litter_pct }};;
+  }
+
+  dimension sidewalk_broken_paving_pct {
+    label: 'Sidewalk broken paving (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sidewalk_broken_paving_pct }};;
+  }
+
+  dimension sidewalk_clear_score {
+    label: 'Sidewalk clear score (0-100; 100 = clear, wide, tidy)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sidewalk_clear_score }};;
+  }
+
+  dimension walk_share_pct {
+    label: 'People who walk (% of trips)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_share_pct }};;
+  }
+
+  dimension pedestrians_per_hour {
+    label: 'People on foot per hour (peak)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pedestrians_per_hour }};;
+  }
+
+  dimension scenario_kind {
+    label: 'Scenario kind'
+    type: 'text'
+    definition: @sql {{ #SOURCE.scenario_kind }};;
+  }
+
+  dimension scenario_label {
+    label: 'Scenario label'
+    type: 'text'
+    definition: @sql {{ #SOURCE.scenario_label }};;
+  }
+
+  dimension after_vehicle_lanes {
+    label: 'After vehicle lanes'
+    type: 'number'
+    definition: @sql {{ #SOURCE.after_vehicle_lanes }};;
+  }
+
+  dimension after_space_vehicles_pct {
+    label: 'After: street width for vehicles (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.after_space_vehicles_pct }};;
+  }
+
+  dimension after_space_people_pct {
+    label: 'After: street width for people (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.after_space_people_pct }};;
+  }
+
+  dimension after_space_green_pct {
+    label: 'After: street width for trees and green (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.after_space_green_pct }};;
+  }
+
+  dimension after_sidewalk_clear_score {
+    label: 'After sidewalk clear score'
+    type: 'number'
+    definition: @sql {{ #SOURCE.after_sidewalk_clear_score }};;
+  }
+
+  dimension after_foot_traffic_change_pct {
+    label: 'After foot traffic change (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.after_foot_traffic_change_pct }};;
+  }
+
+  dimension after_shop_sales_change_pct {
+    label: 'After shop sales change (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.after_shop_sales_change_pct }};;
+  }
+
+  dimension after_pedestrians_per_hour {
+    label: 'After pedestrians per hour'
+    type: 'number'
+    definition: @sql {{ #SOURCE.after_pedestrians_per_hour }};;
+  }
+
+  dimension after_walk_share_pct {
+    label: 'After walk share (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.after_walk_share_pct }};;
+  }
+
+  dimension anchor_foot_traffic_change_pct {
+    label: 'Anchor foot traffic change (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.anchor_foot_traffic_change_pct }};;
+  }
+
+  dimension anchor_shop_sales_change_pct {
+    label: 'Anchor shop sales change (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.anchor_shop_sales_change_pct }};;
+  }
+
+  dimension anchor_n_cases {
+    label: 'Anchor n cases'
+    type: 'number'
+    definition: @sql {{ #SOURCE.anchor_n_cases }};;
+  }
+
+  dimension road_cases_total {
+    label: 'Road cases total'
+    type: 'number'
+    definition: @sql {{ #SOURCE.road_cases_total }};;
+  }
+
+  dimension walking_trips_index {
+    label: 'Foot traffic index (city median = 100)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walking_trips_index }};;
+  }
+
+  dimension shop_sales_month_usd {
+    label: 'Shop sales month usd'
+    type: 'number'
+    definition: @sql {{ #SOURCE.shop_sales_month_usd }};;
+  }
+
+  dimension shop_sales_month_local {
+    label: 'Sales per business a month (local currency)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.shop_sales_month_local }};;
+  }
+
+  dimension after_shop_sales_month_local {
+    label: 'Sales per business a month after the makeover (local currency)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.after_shop_sales_month_local }};;
+  }
+}
+
+Model wk_canopy_temp {
+  type: 'table'
+  label: 'Curve: tree canopy vs temperature (Ziter 2019)'
+  data_source_name: 'walkable'
+  table_name: 'wk_canopy_temp'
+
+  dimension canopy_pct {
+    label: 'Canopy (%)'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.canopy_pct }};;
+  }
+
+  dimension cooling_f {
+    label: 'Cooling f'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cooling_f }};;
+  }
+
+  dimension cooling_c {
+    label: 'Cooling c'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cooling_c }};;
+  }
+
+  dimension afternoon_temp_c {
+    label: 'Afternoon temp c'
+    type: 'number'
+    definition: @sql {{ #SOURCE.afternoon_temp_c }};;
+  }
+
+  dimension above_threshold {
+    label: 'Above threshold'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.above_threshold }};;
+  }
+}
+
+Model wk_design_corr {
+  type: 'table'
+  label: 'Steps vs urban design across countries (computed from REAL data)'
+  data_source_name: 'walkable'
+  table_name: 'wk_design_corr'
+
+  dimension x_field {
+    label: 'X field'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.x_field }};;
+  }
+
+  dimension x_label {
+    label: 'X label'
+    type: 'text'
+    definition: @sql {{ #SOURCE.x_label }};;
+  }
+
+  dimension y_field {
+    label: 'Y field'
+    type: 'text'
+    definition: @sql {{ #SOURCE.y_field }};;
+  }
+
+  dimension n_countries {
+    label: 'N countries'
+    type: 'number'
+    definition: @sql {{ #SOURCE.n_countries }};;
+  }
+
+  dimension pearson_r {
+    label: 'Pearson r'
+    type: 'number'
+    definition: @sql {{ #SOURCE.pearson_r }};;
+  }
+
+  dimension r_squared {
+    label: 'R squared'
+    type: 'number'
+    definition: @sql {{ #SOURCE.r_squared }};;
+  }
+
+  dimension slope_steps_per_unit {
+    label: 'Slope steps per unit'
+    type: 'number'
+    definition: @sql {{ #SOURCE.slope_steps_per_unit }};;
+  }
+
+  dimension intercept_steps {
+    label: 'Intercept steps'
+    type: 'number'
+    definition: @sql {{ #SOURCE.intercept_steps }};;
+  }
+
+  dimension x_min {
+    label: 'X (walk min)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.x_min }};;
+  }
+
+  dimension x_max {
+    label: 'X max'
+    type: 'number'
+    definition: @sql {{ #SOURCE.x_max }};;
+  }
+
+  dimension fit_steps_at_x_min {
+    label: 'Fit steps at x (walk min)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.fit_steps_at_x_min }};;
+  }
+
+  dimension fit_steps_at_x_max {
+    label: 'Fit steps at x max'
+    type: 'number'
+    definition: @sql {{ #SOURCE.fit_steps_at_x_max }};;
+  }
+
+  dimension strength {
+    label: 'Strength'
+    type: 'text'
+    definition: @sql {{ #SOURCE.strength }};;
+  }
+
+  dimension direction {
+    label: 'Direction'
+    type: 'text'
+    definition: @sql {{ #SOURCE.direction }};;
+  }
+
+  dimension sort_order {
+    label: 'Sort order'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sort_order }};;
+  }
+}
+
+Model wk_home_value_walk {
+  type: 'table'
+  label: 'Curve: home value vs Walk Score (Cortright 2009)'
+  data_source_name: 'walkable'
+  table_name: 'wk_home_value_walk'
+
+  dimension row_key {
+    label: 'Row key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql CAST({{ #SOURCE.market }} AS VARCHAR) || '|' || CAST({{ #SOURCE.walk_score }} AS VARCHAR);;
+  }
+
+  dimension market {
+    label: 'Market'
+    type: 'text'
+    definition: @sql {{ #SOURCE.market }};;
+  }
+
+  dimension walk_score {
+    label: 'Walk score'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_score }};;
+  }
+
+  dimension usd_per_point {
+    label: 'Usd per point'
+    type: 'number'
+    definition: @sql {{ #SOURCE.usd_per_point }};;
+  }
+
+  dimension home_value_usd {
+    label: 'Home value usd'
+    type: 'number'
+    definition: @sql {{ #SOURCE.home_value_usd }};;
+  }
+}
+
+Model wk_ht_affordability {
+  type: 'table'
+  label: 'Housing + transport affordability (CNT H+T)'
+  data_source_name: 'walkable'
+  table_name: 'wk_ht_affordability'
+
+  dimension cost_basis {
+    label: 'Cost basis'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.cost_basis }};;
+  }
+
+  dimension affordable_neighbourhoods_pct {
+    label: 'Affordable neighbourhoods (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.affordable_neighbourhoods_pct }};;
+  }
+
+  dimension sort_order {
+    label: 'Sort order'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sort_order }};;
+  }
+}
+
+Model wk_kids_roam_decade {
+  type: 'table'
+  label: 'Children travelling alone by decade (Shaw 2013)'
+  data_source_name: 'walkable'
+  table_name: 'wk_kids_roam_decade'
+
+  dimension year {
+    label: 'Year'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.year }};;
+  }
+
+  dimension travel_home_alone_pct {
+    label: 'Travel home alone (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.travel_home_alone_pct }};;
+  }
+
+  dimension roam_radius_m {
+    label: 'Roam radius m'
+    type: 'number'
+    definition: @sql {{ #SOURCE.roam_radius_m }};;
+  }
+
+  dimension is_published_pct {
+    label: 'Is published (%)'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_published_pct }};;
+  }
+}
+
+Model wk_older_walk_speed {
+  type: 'table'
+  label: 'Curve: walking speeds aged 65+ (Asher 2012)'
+  data_source_name: 'walkable'
+  table_name: 'wk_older_walk_speed'
+
+  dimension row_key {
+    label: 'Row key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql CAST({{ #SOURCE.sex }} AS VARCHAR) || '|' || CAST({{ #SOURCE.speed_bin_lo_ms }} AS VARCHAR);;
+  }
+
+  dimension sex {
+    label: 'Sex'
+    type: 'text'
+    definition: @sql {{ #SOURCE.sex }};;
+  }
+
+  dimension speed_bin_lo_ms {
+    label: 'Speed bin lo ms'
+    type: 'number'
+    definition: @sql {{ #SOURCE.speed_bin_lo_ms }};;
+  }
+
+  dimension speed_bin_hi_ms {
+    label: 'Speed bin hi ms'
+    type: 'number'
+    definition: @sql {{ #SOURCE.speed_bin_hi_ms }};;
+  }
+
+  dimension speed_mid_ms {
+    label: 'Speed mid ms'
+    type: 'number'
+    definition: @sql {{ #SOURCE.speed_mid_ms }};;
+  }
+
+  dimension share_pct {
+    label: 'Share (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.share_pct }};;
+  }
+
+  dimension slower_than_crossing {
+    label: 'Slower than crossing'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.slower_than_crossing }};;
+  }
+
+  dimension mean_speed_ms {
+    label: 'Mean speed ms'
+    type: 'number'
+    definition: @sql {{ #SOURCE.mean_speed_ms }};;
+  }
+
+  dimension share_slower_pct {
+    label: 'Share slower (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.share_slower_pct }};;
+  }
+}
+
+Model wk_overweight_trend {
+  type: 'table'
+  label: 'Overweight trend by walkability quintile (Creatore 2016)'
+  data_source_name: 'walkable'
+  table_name: 'wk_overweight_trend'
+
+  dimension row_key {
+    label: 'Row key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql CAST({{ #SOURCE.walk_quintile }} AS VARCHAR) || '|' || CAST({{ #SOURCE.year }} AS VARCHAR);;
+  }
+
+  dimension walk_quintile {
+    label: 'Walk quintile'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_quintile }};;
+  }
+
+  dimension quintile_label {
+    label: 'Quintile label'
+    type: 'text'
+    definition: @sql {{ #SOURCE.quintile_label }};;
+  }
+
+  dimension year {
+    label: 'Year'
+    type: 'number'
+    definition: @sql {{ #SOURCE.year }};;
+  }
+
+  dimension overweight_pct {
+    label: 'Overweight (%, WHO 2022) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.overweight_pct }};;
+  }
+
+  dimension change_2001_2012_pts {
+    label: 'Change 2001 2012 pts'
+    type: 'number'
+    definition: @sql {{ #SOURCE.change_2001_2012_pts }};;
+  }
+
+  dimension change_is_significant {
+    label: 'Change is significant'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.change_is_significant }};;
+  }
+
+  dimension level_2001_is_published {
+    label: 'Level 2001 is published'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.level_2001_is_published }};;
+  }
+}
+
+Model wk_parking_car {
+  type: 'table'
+  label: 'Curve: parking vs car commuting (McCahill 2016)'
+  data_source_name: 'walkable'
+  table_name: 'wk_parking_car'
+
+  dimension spaces_per_resident {
+    label: 'Spaces per resident'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.spaces_per_resident }};;
+  }
+
+  dimension car_commute_pct {
+    label: 'Car commute (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.car_commute_pct }};;
+  }
+}
+
+Model wk_provenance {
+  type: 'table'
+  label: 'Column provenance (real or synthetic)'
+  data_source_name: 'walkable'
+  table_name: 'wk_provenance'
+
+  dimension row_key {
+    label: 'Row key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql CAST({{ #SOURCE.table_name }} AS VARCHAR) || '|' || CAST({{ #SOURCE.column_names }} AS VARCHAR);;
+  }
+
+  dimension table_name {
+    label: 'Table name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.table_name }};;
+  }
+
+  dimension column_names {
+    label: 'Column names'
+    type: 'text'
+    definition: @sql {{ #SOURCE.column_names }};;
+  }
+
+  dimension real_or_synthetic {
+    label: 'Real or synthetic'
+    type: 'text'
+    definition: @sql {{ #SOURCE.real_or_synthetic }};;
+  }
+}
+
+Model wk_regions {
+  type: 'table'
+  label: 'SDG region: street networks and density (REAL, Boeing 2025) and Althoff steps'
+  data_source_name: 'walkable'
+  table_name: 'wk_regions'
+
+  dimension sdg_region {
+    label: 'Sdg region'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.sdg_region }};;
+  }
+
+  dimension region_short {
+    label: 'Region short'
+    type: 'text'
+    definition: @sql {{ #SOURCE.region_short }};;
+  }
+
+  dimension n_urban_centres {
+    label: 'Urban centres (Boeing 2025)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.n_urban_centres }};;
+  }
+
+  dimension urban_density_per_km2 {
+    label: 'People per km2 (urban centres, Boeing 2025) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.urban_density_per_km2 }};;
+  }
+
+  dimension intersection_density_per_km2 {
+    label: 'Intersections per km2 (Boeing 2025) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.intersection_density_per_km2 }};;
+  }
+
+  dimension street_km_per_km2 {
+    label: 'Street km per km2 (Boeing 2025) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.street_km_per_km2 }};;
+  }
+
+  dimension street_circuity {
+    label: 'Street circuity (Boeing 2025) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.street_circuity }};;
+  }
+
+  dimension share_4way_pct {
+    label: '4-way intersections (%) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.share_4way_pct }};;
+  }
+
+  dimension share_deadend_pct {
+    label: 'Dead ends (%) REAL'
+    type: 'number'
+    definition: @sql {{ #SOURCE.share_deadend_pct }};;
+  }
+
+  dimension althoff_n_countries {
+    label: 'Althoff n countries'
+    type: 'number'
+    definition: @sql {{ #SOURCE.althoff_n_countries }};;
+  }
+
+  dimension steps_mean_of_countries {
+    label: 'Steps mean of countries'
+    type: 'number'
+    definition: @sql {{ #SOURCE.steps_mean_of_countries }};;
+  }
+
+  dimension steps_user_weighted {
+    label: 'Steps user weighted'
+    type: 'number'
+    definition: @sql {{ #SOURCE.steps_user_weighted }};;
+  }
+
+  dimension gini_mean_of_countries {
+    label: 'Gini mean of countries'
+    type: 'number'
+    definition: @sql {{ #SOURCE.gini_mean_of_countries }};;
+  }
+
+  dimension althoff_countries {
+    label: 'Althoff countries'
+    type: 'text'
+    definition: @sql {{ #SOURCE.althoff_countries }};;
+  }
+
+  dimension n_app_countries {
+    label: 'N app countries'
+    type: 'number'
+    definition: @sql {{ #SOURCE.n_app_countries }};;
+  }
+
+  dimension in_chart {
+    label: 'In chart'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.in_chart }};;
+  }
+
+  dimension sort_order {
+    label: 'Sort order'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sort_order }};;
+  }
+}
+
+Model wk_road_cases {
+  type: 'table'
+  label: 'Big roads vs local shops: published cases (REAL)'
+  data_source_name: 'walkable'
+  table_name: 'wk_road_cases'
+
+  dimension case_id {
+    label: 'Case id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.case_id }};;
+  }
+
+  dimension case_name {
+    label: 'Case'
+    type: 'text'
+    definition: @sql {{ #SOURCE.case_name }};;
+  }
+
+  dimension city {
+    label: 'City'
+    type: 'text'
+    definition: @sql {{ #SOURCE.city }};;
+  }
+
+  dimension iso3 {
+    label: 'ISO3 code'
+    type: 'text'
+    definition: @sql {{ #SOURCE.iso3 }};;
+  }
+
+  dimension country {
+    label: 'Country'
+    type: 'text'
+    definition: @sql {{ #SOURCE.country }};;
+  }
+
+  dimension intervention {
+    label: 'Intervention'
+    type: 'text'
+    definition: @sql {{ #SOURCE.intervention }};;
+  }
+
+  dimension year {
+    label: 'Year'
+    type: 'text'
+    definition: @sql {{ #SOURCE.year }};;
+  }
+
+  dimension metric {
+    label: 'Metric'
+    type: 'text'
+    definition: @sql {{ #SOURCE.metric }};;
+  }
+
+  dimension before_value {
+    label: 'Before'
+    type: 'number'
+    definition: @sql {{ #SOURCE.before_value }};;
+  }
+
+  dimension after_value {
+    label: 'After'
+    type: 'number'
+    definition: @sql {{ #SOURCE.after_value }};;
+  }
+
+  dimension before_text {
+    label: 'Before text'
+    type: 'text'
+    definition: @sql {{ #SOURCE.before_text }};;
+  }
+
+  dimension after_text {
+    label: 'After text'
+    type: 'text'
+    definition: @sql {{ #SOURCE.after_text }};;
+  }
+
+  dimension unit {
+    label: 'Unit'
+    type: 'text'
+    definition: @sql {{ #SOURCE.unit }};;
+  }
+
+  dimension change_pct {
+    label: 'Change (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.change_pct }};;
+  }
+
+  dimension comparison {
+    label: 'Comparison'
+    type: 'text'
+    definition: @sql {{ #SOURCE.comparison }};;
+  }
+
+  dimension comparison_kind {
+    label: 'Comparison kind'
+    type: 'text'
+    definition: @sql {{ #SOURCE.comparison_kind }};;
+  }
+
+  dimension on_index_chart {
+    label: 'On index chart'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.on_index_chart }};;
+  }
+
+  dimension is_counter_example {
+    label: 'Is counter example'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_counter_example }};;
+  }
+
+  dimension evidence_grade {
+    label: 'Evidence grade'
+    type: 'text'
+    definition: @sql {{ #SOURCE.evidence_grade }};;
+  }
+
+  dimension evidence_level {
+    label: 'Evidence level'
+    type: 'text'
+    definition: @sql {{ #SOURCE.evidence_level }};;
+  }
+
+  dimension source {
+    label: 'Source'
+    type: 'text'
+    definition: @sql {{ #SOURCE.source }};;
+  }
+
+  dimension url {
+    label: 'Url'
+    type: 'text'
+    definition: @sql {{ #SOURCE.url }};;
+  }
+
+  dimension sort_order {
+    label: 'Sort order'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sort_order }};;
+  }
+}
+
+Model wk_shop_spend_by_mode {
+  type: 'table'
+  label: 'Shop spend by travel mode (TfL 2018)'
+  data_source_name: 'walkable'
+  table_name: 'wk_shop_spend_by_mode'
+
+  dimension mode {
+    label: 'Mode'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.mode }};;
+  }
+
+  dimension spend_gbp_month {
+    label: 'Spend gbp month'
+    type: 'number'
+    definition: @sql {{ #SOURCE.spend_gbp_month }};;
+  }
+
+  dimension trips_per_month {
+    label: 'Trips per month'
+    type: 'number'
+    definition: @sql {{ #SOURCE.trips_per_month }};;
+  }
+
+  dimension vs_car_pct {
+    label: 'Vs car (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.vs_car_pct }};;
+  }
+
+  dimension sort_order {
+    label: 'Sort order'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sort_order }};;
+  }
+
+  dimension spend_per_trip_gbp {
+    label: 'Spend per trip gbp'
+    type: 'number'
+    definition: @sql {{ #SOURCE.spend_per_trip_gbp }};;
+  }
+
+  dimension mode_key {
+    label: 'Mode key'
+    type: 'text'
+    definition: @sql {{ #SOURCE.mode_key }};;
+  }
+
+  dimension spend_usd_month {
+    label: 'Spend usd month'
+    type: 'number'
+    definition: @sql {{ #SOURCE.spend_usd_month }};;
+  }
+
+  dimension currency_code {
+    label: 'Currency code (ISO 4217)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency_code }};;
+  }
+
+  dimension currency_symbol {
+    label: 'Currency symbol'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency_symbol }};;
+  }
+}
+
+Model wk_shop_spend_local {
+  type: 'table'
+  label: 'Shop spend by travel mode per country, local currency (synthetic: TfL 2018 x price level, approx. FX Oct 2026)'
+  data_source_name: 'walkable'
+  table_name: 'wk_shop_spend_local'
+
+  dimension row_key {
+    label: 'Row key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql CAST({{ #SOURCE.iso3 }} AS VARCHAR) || '|' || CAST({{ #SOURCE.mode }} AS VARCHAR);;
+  }
+
+  dimension iso3 {
+    label: 'ISO3 code'
+    type: 'text'
+    definition: @sql {{ #SOURCE.iso3 }};;
+  }
+
+  dimension country {
+    label: 'Country'
+    type: 'text'
+    definition: @sql {{ #SOURCE.country }};;
+  }
+
+  dimension mode {
+    label: 'Mode'
+    type: 'text'
+    definition: @sql {{ #SOURCE.mode }};;
+  }
+
+  dimension mode_key {
+    label: 'Mode key'
+    type: 'text'
+    definition: @sql {{ #SOURCE.mode_key }};;
+  }
+
+  dimension spend_local_month {
+    label: 'Spend a month (local currency)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.spend_local_month }};;
+  }
+
+  dimension spend_usd_month {
+    label: 'Spend usd month'
+    type: 'number'
+    definition: @sql {{ #SOURCE.spend_usd_month }};;
+  }
+
+  dimension trips_per_month {
+    label: 'Trips per month'
+    type: 'number'
+    definition: @sql {{ #SOURCE.trips_per_month }};;
+  }
+
+  dimension spend_per_trip_local {
+    label: 'Spend per trip (local currency)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.spend_per_trip_local }};;
+  }
+
+  dimension vs_car_pct {
+    label: 'Vs car (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.vs_car_pct }};;
+  }
+
+  dimension currency_code {
+    label: 'Currency code (ISO 4217)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency_code }};;
+  }
+
+  dimension currency_symbol {
+    label: 'Currency symbol'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency_symbol }};;
+  }
+
+  dimension sort_order {
+    label: 'Sort order'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sort_order }};;
+  }
+}
+
+Model wk_sources {
+  type: 'table'
+  label: 'Sources'
+  data_source_name: 'walkable'
+  table_name: 'wk_sources'
+
+  dimension claim_id {
+    label: 'Claim id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.claim_id }};;
+  }
+
+  dimension claim {
+    label: 'Claim'
+    type: 'text'
+    definition: @sql {{ #SOURCE.claim }};;
+  }
+
+  dimension number_text {
+    label: 'Number text'
+    type: 'text'
+    definition: @sql {{ #SOURCE.number_text }};;
+  }
+
+  dimension source {
+    label: 'Source'
+    type: 'text'
+    definition: @sql {{ #SOURCE.source }};;
+  }
+
+  dimension url {
+    label: 'Url'
+    type: 'text'
+    definition: @sql {{ #SOURCE.url }};;
+  }
+
+  dimension real_or_synthetic {
+    label: 'Real or synthetic'
+    type: 'text'
+    definition: @sql {{ #SOURCE.real_or_synthetic }};;
+  }
+
+  dimension licence {
+    label: 'Licence'
+    type: 'text'
+    definition: @sql {{ #SOURCE.licence }};;
+  }
+
+  dimension in_story {
+    label: 'In story'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.in_story }};;
+  }
+}
+
+Model wk_speed_risk {
+  type: 'table'
+  label: 'Curve: speed vs pedestrian death risk (Tefft 2011)'
+  data_source_name: 'walkable'
+  table_name: 'wk_speed_risk'
+
+  dimension row_key {
+    label: 'Row key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql CAST({{ #SOURCE.grid }} AS VARCHAR) || '|' || CAST({{ #SOURCE.speed_mph }} AS VARCHAR) || '|' || CAST({{ #SOURCE.age_group }} AS VARCHAR);;
+  }
+
+  dimension grid {
+    label: 'Grid'
+    type: 'text'
+    definition: @sql {{ #SOURCE.grid }};;
+  }
+
+  dimension speed_mph {
+    label: 'Speed mph'
+    type: 'number'
+    definition: @sql {{ #SOURCE.speed_mph }};;
+  }
+
+  dimension speed_kmh {
+    label: 'Speed kmh'
+    type: 'number'
+    definition: @sql {{ #SOURCE.speed_kmh }};;
+  }
+
+  dimension age_group {
+    label: 'Age group'
+    type: 'text'
+    definition: @sql {{ #SOURCE.age_group }};;
+  }
+
+  dimension death_risk_pct {
+    label: 'Death risk (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.death_risk_pct }};;
+  }
+
+  dimension published_risk_pct {
+    label: 'Published risk (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.published_risk_pct }};;
+  }
+}
+
+Model wk_street_connectivity_walk {
+  type: 'table'
+  label: 'Street connectivity vs transport walking (Koohsari 2014)'
+  data_source_name: 'walkable'
+  table_name: 'wk_street_connectivity_walk'
+
+  dimension connectivity_z {
+    label: 'Connectivity z'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.connectivity_z }};;
+  }
+
+  dimension total_effect_z {
+    label: 'Total effect z'
+    type: 'number'
+    definition: @sql {{ #SOURCE.total_effect_z }};;
+  }
+
+  dimension via_destinations_z {
+    label: 'Via destinations z'
+    type: 'number'
+    definition: @sql {{ #SOURCE.via_destinations_z }};;
+  }
+
+  dimension direct_z {
+    label: 'Direct z'
+    type: 'number'
+    definition: @sql {{ #SOURCE.direct_z }};;
+  }
+}
+
+Model wk_traffic_friends {
+  type: 'table'
+  label: 'Curve: traffic vs friends (Appleyard 1981)'
+  data_source_name: 'walkable'
+  table_name: 'wk_traffic_friends'
+
+  dimension traffic_veh_day {
+    label: 'Traffic veh day'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.traffic_veh_day }};;
+  }
+
+  dimension friends_per_resident {
+    label: 'Friends per resident'
+    type: 'number'
+    definition: @sql {{ #SOURCE.friends_per_resident }};;
+  }
+
+  dimension acquaintances_per_resident {
+    label: 'Acquaintances per resident'
+    type: 'number'
+    definition: @sql {{ #SOURCE.acquaintances_per_resident }};;
+  }
+
+  dimension is_published_point {
+    label: 'Is published point'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_published_point }};;
+  }
+
+  dimension street_label {
+    label: 'Street label'
+    type: 'text'
+    definition: @sql {{ #SOURCE.street_label }};;
+  }
+}
+
+Model wk_transit_walk_dist {
+  type: 'table'
+  label: 'Curve: walk distance to transit (El-Geneidy 2014)'
+  data_source_name: 'walkable'
+  table_name: 'wk_transit_walk_dist'
+
+  dimension row_key {
+    label: 'Row key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql CAST({{ #SOURCE.mode }} AS VARCHAR) || '|' || CAST({{ #SOURCE.distance_m }} AS VARCHAR);;
+  }
+
+  dimension mode {
+    label: 'Mode'
+    type: 'text'
+    definition: @sql {{ #SOURCE.mode }};;
+  }
+
+  dimension distance_m {
+    label: 'Distance m'
+    type: 'number'
+    definition: @sql {{ #SOURCE.distance_m }};;
+  }
+
+  dimension share_riders_pct {
+    label: 'Share riders (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.share_riders_pct }};;
+  }
+
+  dimension p85_distance_m {
+    label: 'P85 distance m'
+    type: 'number'
+    definition: @sql {{ #SOURCE.p85_distance_m }};;
+  }
+}
+
+Model wk_walk_minutes_twin {
+  type: 'table'
+  label: 'Walk Town vs Vehicle Town (McCormack 2023 walk minutes; synthetic trip mix)'
+  data_source_name: 'walkable'
+  table_name: 'wk_walk_minutes_twin'
+
+  dimension walk_group {
+    label: 'Walk group (Walkable / Vehicle-dependent)'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.walk_group }};;
+  }
+
+  dimension transport_walk_min_week {
+    label: 'Transport walk (walk min) week'
+    type: 'number'
+    definition: @sql {{ #SOURCE.transport_walk_min_week }};;
+  }
+
+  dimension overweight_pct_2001 {
+    label: 'Overweight (%) 2001'
+    type: 'number'
+    definition: @sql {{ #SOURCE.overweight_pct_2001 }};;
+  }
+
+  dimension overweight_pct_2012 {
+    label: 'Overweight (%) 2012'
+    type: 'number'
+    definition: @sql {{ #SOURCE.overweight_pct_2012 }};;
+  }
+
+  dimension overweight_change_pts {
+    label: 'Overweight change pts'
+    type: 'number'
+    definition: @sql {{ #SOURCE.overweight_change_pts }};;
+  }
+
+  dimension walk_change_after_move_min_week {
+    label: 'Walk change after move (walk min) week'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_change_after_move_min_week }};;
+  }
+
+  dimension walk_change_is_significant {
+    label: 'Walk change is significant'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.walk_change_is_significant }};;
+  }
+
+  dimension walk_source {
+    label: 'Walk source'
+    type: 'text'
+    definition: @sql {{ #SOURCE.walk_source }};;
+  }
+
+  dimension overweight_source {
+    label: 'Overweight source'
+    type: 'text'
+    definition: @sql {{ #SOURCE.overweight_source }};;
+  }
+
+  dimension sort_order {
+    label: 'Sort order'
+    type: 'number'
+    definition: @sql {{ #SOURCE.sort_order }};;
+  }
+
+  dimension town_name {
+    label: 'Town name (Walk Town / Vehicle Town)'
+    type: 'text'
+    definition: @sql {{ #SOURCE.town_name }};;
+  }
+
+  dimension walk_share_pct {
+    label: 'People who walk (% of trips)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_share_pct }};;
+  }
+
+  dimension cycle_share_pct {
+    label: 'Cycle share (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.cycle_share_pct }};;
+  }
+
+  dimension transit_share_pct {
+    label: 'Transit share (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.transit_share_pct }};;
+  }
+
+  dimension car_share_pct {
+    label: 'Car share (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.car_share_pct }};;
+  }
+
+  dimension motorbike_share_pct {
+    label: 'Motorbike share (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.motorbike_share_pct }};;
+  }
+
+  dimension car_min_week {
+    label: 'Car (walk min) week'
+    type: 'number'
+    definition: @sql {{ #SOURCE.car_min_week }};;
+  }
+
+  dimension motorbike_min_week {
+    label: 'Motorbike (walk min) week'
+    type: 'number'
+    definition: @sql {{ #SOURCE.motorbike_min_week }};;
+  }
+
+  dimension walk_min_week {
+    label: 'Walk (walk min) week'
+    type: 'number'
+    definition: @sql {{ #SOURCE.walk_min_week }};;
+  }
+
+  dimension vehicle_share_pct {
+    label: 'Vehicle share (%)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.vehicle_share_pct }};;
+  }
+
+  dimension mix_source {
+    label: 'Mix source'
+    type: 'text'
+    definition: @sql {{ #SOURCE.mix_source }};;
+  }
+}
+
+Model wk_weather_walk {
+  type: 'table'
+  label: 'Curve: temperature and rain vs walking (Obradovich and Fowler 2017)'
+  data_source_name: 'walkable'
+  table_name: 'wk_weather_walk'
+
+  dimension row_key {
+    label: 'Row key'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql CAST({{ #SOURCE.max_temp_c }} AS VARCHAR) || '|' || CAST({{ #SOURCE.weather }} AS VARCHAR);;
+  }
+
+  dimension max_temp_c {
+    label: 'Max temp c'
+    type: 'number'
+    definition: @sql {{ #SOURCE.max_temp_c }};;
+  }
+
+  dimension rain_day {
+    label: 'Rain day'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.rain_day }};;
+  }
+
+  dimension weather {
+    label: 'Weather'
+    type: 'text'
+    definition: @sql {{ #SOURCE.weather }};;
+  }
+
+  dimension activity_index {
+    label: 'Activity index'
+    type: 'number'
+    definition: @sql {{ #SOURCE.activity_index }};;
+  }
+}

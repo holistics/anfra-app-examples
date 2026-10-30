@@ -1,7 +1,14 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
-  "formatter": { "indentStyle": "space", "lineWidth": 110 },
-  "javascript": { "formatter": { "quoteStyle": "single" } },
+  "formatter": {
+    "indentStyle": "space",
+    "lineWidth": 110
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
   "files": {
     "includes": [
       "src/**",
@@ -16,5 +23,10 @@
       "!data/*.sql",
       "!data/*.md"
     ]
+  },
+  "html": {
+    "formatter": {
+      "enabled": true
+    }
   }
 }

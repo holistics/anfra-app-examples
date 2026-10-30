@@ -1,0 +1,38 @@
+Model nether_offering {
+  type: 'table'
+  label: 'Offering'
+  data_source_name: 'nether'
+  table_name: 'offering'
+
+  dimension offering_id {
+    label: 'Offering Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.offering_id }} ;;
+  }
+  dimension person_id {
+    label: 'Person Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.person_id }} ;;
+  }
+  dimension temple_id {
+    label: 'Temple Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.temple_id }} ;;
+  }
+  dimension offered_on {
+    label: 'Offered On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.offered_on }} ;;
+  }
+  dimension kind {
+    label: 'Kind'
+    type: 'text'
+    definition: @sql {{ #SOURCE.kind }} ;;
+  }
+  dimension value {
+    label: 'Value'
+    type: 'number'
+    definition: @sql {{ #SOURCE.value }} ;;
+  }
+}

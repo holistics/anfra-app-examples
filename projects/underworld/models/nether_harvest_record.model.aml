@@ -1,0 +1,33 @@
+Model nether_harvest_record {
+  type: 'table'
+  label: 'Harvest Record'
+  data_source_name: 'nether'
+  table_name: 'harvest_record'
+
+  dimension harvest_id {
+    label: 'Harvest Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.harvest_id }} ;;
+  }
+  dimension estate_id {
+    label: 'Estate Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.estate_id }} ;;
+  }
+  dimension season_year {
+    label: 'Season Year'
+    type: 'number'
+    definition: @sql {{ #SOURCE.season_year }} ;;
+  }
+  dimension crop {
+    label: 'Crop'
+    type: 'text'
+    definition: @sql {{ #SOURCE.crop }} ;;
+  }
+  dimension yield_measure {
+    label: 'Yield Measure'
+    type: 'number'
+    definition: @sql {{ #SOURCE.yield_measure }} ;;
+  }
+}

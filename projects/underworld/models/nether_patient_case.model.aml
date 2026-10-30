@@ -1,0 +1,43 @@
+Model nether_patient_case {
+  type: 'table'
+  label: 'Patient Case'
+  data_source_name: 'nether'
+  table_name: 'patient_case'
+
+  dimension patient_case_id {
+    label: 'Patient Case Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.patient_case_id }} ;;
+  }
+  dimension healer_person_id {
+    label: 'Healer Person Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.healer_person_id }} ;;
+  }
+  dimension patient_person_id {
+    label: 'Patient Person Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.patient_person_id }} ;;
+  }
+  dimension ailment_id {
+    label: 'Ailment Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.ailment_id }} ;;
+  }
+  dimension treated_on {
+    label: 'Treated On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.treated_on }} ;;
+  }
+  dimension outcome {
+    label: 'Outcome'
+    type: 'text'
+    definition: @sql {{ #SOURCE.outcome }} ;;
+  }
+  dimension fee {
+    label: 'Fee'
+    type: 'number'
+    definition: @sql {{ #SOURCE.fee }} ;;
+  }
+}

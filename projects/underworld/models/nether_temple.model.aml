@@ -1,0 +1,23 @@
+Model nether_temple {
+  type: 'table'
+  label: 'Temple'
+  data_source_name: 'nether'
+  table_name: 'temple'
+
+  dimension temple_id {
+    label: 'Temple Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.temple_id }} ;;
+  }
+  dimension deity {
+    label: 'Deity'
+    type: 'text'
+    definition: @sql {{ #SOURCE.deity }} ;;
+  }
+  dimension location {
+    label: 'Location'
+    type: 'text'
+    definition: @sql {{ #SOURCE.location }} ;;
+  }
+}

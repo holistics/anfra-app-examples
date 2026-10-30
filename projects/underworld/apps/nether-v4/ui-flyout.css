@@ -1,0 +1,16 @@
+/* NetherUI.flyout: see ui-flyout.js. Colours match the workbench menus it opens from. */
+.nui-flyout-row{display:flex;align-items:center;gap:10px;margin:6px 0;padding:10px 12px;border:1px solid #a28a585c;border-radius:6px;color:#cfd8cc;font:12px var(--sans);cursor:default}
+.nui-flyout-row>span{flex:1}
+.nui-flyout-row small{color:#a9bba6;font:11px var(--sans)}
+.nui-flyout-row svg{width:6px;height:10px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.nui-flyout-row:hover,.nui-flyout-row:focus-visible,.nui-flyout-row[aria-expanded=true]{border-color:#c4aa76;background:#c4aa760f;color:#e1cea4;outline:none}
+.nui-flyout{position:fixed;z-index:60;display:flex;flex-direction:column;width:270px;height:420px;overflow:hidden;padding:10px;border:1px solid #a4a48666;border-radius:6px;background:#1b302ffb;box-shadow:0 14px 34px #0008;backdrop-filter:blur(8px);scrollbar-width:thin;scrollbar-color:#6f5f3d transparent}
+.nui-flyout--wide{width:350px}
+.nui-flyout[hidden]{display:none}
+.nui-flyout__title{flex:none;margin:0 0 8px;padding:2px 4px 10px;border-bottom:1px solid #a4b8b326;font:600 12px var(--sans);color:#d3bb86}
+.nui-flyout .wb-hint{padding:4px 6px;margin:0}
+/* Plain items directly inside a panel (fields to pick, actions). */
+.nui-flyout__body>button{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px 8px 14px;text-align:left;border-radius:4px;color:#cfd8cc;font:12px var(--sans)}
+.nui-flyout__body>button:hover{background:#b2ba8b1f;color:#e1cea4}
+.nui-flyout__body>button span{width:14px;color:#b9a572;text-align:center}
+.nui-flyout__body{flex:1;min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:#6f5f3d transparent}

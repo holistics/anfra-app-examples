@@ -1,0 +1,23 @@
+Model nether_book_copy {
+  type: 'table'
+  label: 'Book Copy'
+  data_source_name: 'nether'
+  table_name: 'book_copy'
+
+  dimension copy_id {
+    label: 'Copy Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.copy_id }} ;;
+  }
+  dimension book_id {
+    label: 'Book Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.book_id }} ;;
+  }
+  dimension library_id {
+    label: 'Library Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.library_id }} ;;
+  }
+}

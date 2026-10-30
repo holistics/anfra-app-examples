@@ -1,0 +1,38 @@
+Model nether_ownership_transaction {
+  type: 'table'
+  label: 'Ownership Transaction'
+  data_source_name: 'nether'
+  table_name: 'ownership_transaction'
+
+  dimension txn_id {
+    label: 'Txn Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.txn_id }} ;;
+  }
+  dimension asset_id {
+    label: 'Asset Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.asset_id }} ;;
+  }
+  dimension seller_person_id {
+    label: 'Seller Person Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.seller_person_id }} ;;
+  }
+  dimension buyer_person_id {
+    label: 'Buyer Person Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.buyer_person_id }} ;;
+  }
+  dimension transacted_on {
+    label: 'Transacted On'
+    type: 'date'
+    definition: @sql {{ #SOURCE.transacted_on }} ;;
+  }
+  dimension price {
+    label: 'Price'
+    type: 'number'
+    definition: @sql {{ #SOURCE.price }} ;;
+  }
+}

@@ -1,0 +1,31 @@
+Dataset nether_identity {
+  label: 'The Book of Names'
+  description: 'Who a soul was, who they were bound to, and what permit they carry.'
+  data_source_name: 'nether'
+
+  models: [
+    nether_person,
+    nether_relationship,
+    nether_passage_permit,
+  ]
+
+  relationships: [
+    relationship(nether_relationship.person_a_id > nether_person.person_id, true),
+    relationship(nether_relationship.person_b_id > nether_person.person_id, false),
+    relationship(nether_passage_permit.person_id > nether_person.person_id, true),
+  ]
+
+  metric souls_bonded {
+    label: 'Souls bonded'
+    type: 'number'
+    description: 'Bonds recorded against this soul: marriages, kinships, wardships.'
+    definition: @aql nether_relationship | count(nether_relationship.relationship_id) ;;
+  }
+
+  metric permits_held {
+    label: 'Permits held'
+    type: 'number'
+    description: 'Passage permits issued in this soul’s name, spent or not.'
+    definition: @aql nether_passage_permit | count(nether_passage_permit.permit_id) ;;
+  }
+}

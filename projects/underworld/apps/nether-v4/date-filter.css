@@ -1,0 +1,71 @@
+.date-filter-pop{max-height:calc(100svh - 80px)}
+.date-filter-pop>.analytic-pop-body{padding:16px;overflow:auto}
+.date-condition-fields{display:grid;grid-template-columns:minmax(0,1fr) 155px;gap:8px;align-items:center;margin-bottom:14px}
+.date-condition-fields>span{grid-column:1/-1;font:13px var(--sans);color:#c8ceb7}
+.date-condition-fields .metric-select{margin:0;min-width:0;justify-content:flex-start}
+.date-condition-fields .metric-select>span:first-child{margin:0}.date-condition-fields .metric-select>span:last-child{margin-left:auto}
+.date-condition-fields select{margin:0;min-width:0}
+.date-calendar-layout{display:flex;gap:16px;min-width:0}
+.date-presets{display:flex;flex-direction:column;flex:0 0 135px;border-right:1px solid #98a07c44;padding-right:12px;gap:2px}
+.date-presets button{text-align:left;min-height:34px;padding:7px 8px;border-radius:4px;font:12px var(--sans)}
+.date-presets button[aria-pressed=true]{background:#aab6802b;color:#e1d3a4}
+.date-presets [data-date-preset=fixed]{border-top:1px solid #98a07c44;border-radius:0;margin-top:7px;padding-top:12px}
+.date-calendars{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;flex:1;min-width:0}
+.date-calendars.is-single{grid-template-columns:1fr}
+.date-month{min-width:0}
+.date-month>header{display:grid;grid-template-columns:24px minmax(0,1fr) 84px 24px;gap:4px;align-items:center;margin-bottom:9px}
+.date-month>header{height:46px}.date-month>header>.ui-select{min-width:0}.date-month>header .ui-select-trigger{min-height:32px;height:32px;padding:3px 5px;font-size:13px}
+.date-month>header>button{padding:2px;min-height:32px;font:24px Georgia,serif}
+.date-month>header select{border:0;margin:0;padding:3px 4px;background:none;min-height:32px;font:600 13px var(--sans)}
+.date-year{display:flex;align-items:center;gap:2px;color:#c1c9b0;font:11px var(--sans)}
+.date-year input[type=number]{appearance:textfield;width:53px;min-height:32px;margin:0;padding:3px;border:1px solid #89977944;background:transparent;text-align:center;font:600 13px var(--sans)}
+.date-year input::-webkit-inner-spin-button{appearance:none}
+.date-month-grid{display:grid;grid-template-columns:30px repeat(7,minmax(0,1fr));gap:3px 0;align-items:center;min-width:0}
+.date-month-grid>.date-weekday,.date-week-head{padding:6px 0 10px;border-bottom:1px solid #98a07c44;font:600 11px var(--sans);color:#aab99f;text-align:center;margin-bottom:5px}
+.date-week-number{font:9px var(--sans);color:#829989;text-align:left}
+.date-month-grid .date-day{display:grid;place-items:center;min-width:0;width:100%;min-height:31px;padding:2px;font:12px var(--sans);color:#d3d7bc;position:relative;cursor:pointer;border:1px solid transparent;border-radius:3px}
+.date-month-grid .date-day.is-adjacent{color:#6c8274}
+.date-month-grid .date-day.is-today{border-color:#a3b085}
+.date-month-grid .date-day.is-range{background:#9aaa6c33;border-radius:0}
+.date-month-grid .date-day.is-endpoint{border:1px solid #d4bf81;background:#63734b;color:#f2e8c4;border-radius:4px}
+.date-month-grid .date-day:focus-visible{outline:2px solid #d4bf81;outline-offset:-2px}
+.date-range-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:17px 0 8px;color:#c4ccb5;font:12px var(--sans)}
+.date-range-heading>label,.date-include{display:flex;align-items:center;gap:7px;font:12px var(--sans)}
+.date-range-heading input,.date-include input{accent-color:#a6b775;width:14px;height:14px}
+.date-exact-inputs{display:flex;align-items:center;gap:10px;min-width:0}
+.date-exact-inputs>label{flex:1;min-width:0;color:#96ab99;font:10px var(--sans)}
+.date-exact-inputs input{margin:5px 0 0!important;font-variant-numeric:tabular-nums}
+.date-phrase-label{display:block;color:#aebb9f;font:11px var(--sans);margin:0 0 10px}
+.date-phrase-label>input{margin-top:5px!important}
+.date-include{margin:13px 0}
+.date-rank-form{display:grid;gap:10px;padding-top:5px}
+.date-rank-form>label{display:grid;grid-template-columns:95px minmax(0,1fr);gap:10px;align-items:center;font:12px var(--sans);color:#bbc6ae}
+.date-rank-form input,.date-rank-form select,.date-rank-form .metric-select{margin:0!important;min-width:0}
+.date-resolved{font:12px/1.65 var(--sans);color:#c3caa5;border-top:1px solid #98a07c44;padding-top:12px;margin:13px 0 0;overflow-wrap:anywhere}
+.date-coverage{font:11px/1.6 var(--sans);color:#dfbc84;border-left:2px solid #a98c50;padding-left:9px;margin:8px 0}
+.date-filter-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid #98a07c44;flex-wrap:wrap}
+.date-filter-foot>small{margin-right:auto;color:#91a68f;font:11px var(--sans)}
+.date-filter-foot .nui-btn{font-size:11px;padding:8px 11px}
+.condition-inline-values .date-inline-trigger{display:block;text-align:left;min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:12px var(--sans);padding:9px 5px;color:#c8cfb0}
+@media(max-width:700px){.date-filter-pop>.analytic-pop-body{padding:12px}.date-calendar-layout{flex-direction:column;gap:12px}.date-presets{flex:auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-right:0;border-bottom:1px solid #98a07c44;padding:0 0 9px}.date-presets button{font-size:10px;padding:7px 4px}.date-presets [data-date-preset=fixed]{margin:0;border:0;padding:7px 4px}.date-calendars{grid-template-columns:1fr;gap:18px}.date-month-grid .date-day{min-height:32px}.date-month>header{grid-template-columns:24px minmax(0,1fr) 88px 24px}.date-condition-fields{grid-template-columns:1fr}.date-exact-inputs{gap:6px}.date-exact-inputs input{padding:8px 5px!important;font-size:11px!important}.date-filter-foot>small{width:100%}.date-rank-form>label{grid-template-columns:80px minmax(0,1fr)}}
+
+/* A date condition stays compact. Its value opens the calendar in a second panel. */
+.date-filter-pop{max-height:calc(100svh - 24px)}
+.date-filter-pop>.analytic-pop-body{padding:16px}
+.date-condition-fields{display:grid;grid-template-columns:1fr;gap:8px;margin:0}
+.date-condition-fields>span{grid-column:1;margin-bottom:3px;font:14px var(--sans)}
+.date-condition-fields .metric-select,.date-condition-fields .date-operator{width:100%;min-height:43px;margin:0}
+.date-condition-value{display:grid;gap:8px;margin-top:8px}
+.date-condition-value>input,.date-condition-value>select{margin:0!important}
+.date-value-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:43px;padding:9px 12px;text-align:left;color:#cbd1b8;background:#10242a;border:1px solid #84978366;border-radius:7px}
+.date-value-trigger>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.date-value-trigger>span:last-child{color:#a6b597}
+.date-filter-pop .date-resolved{margin:10px 0 0;padding:0;border:0;font-size:11px}
+.date-filter-pop .date-coverage:empty,.date-filter-pop .condition-error:empty{display:none}
+.date-filter-foot{margin-top:8px;padding-top:8px}
+.date-filter-pop.is-picking-date .date-filter-foot{visibility:hidden}
+.date-calendar-pop{max-height:calc(100svh - 24px)}
+.date-calendar-pop>.analytic-pop-body{padding:16px;overflow:auto}
+.date-calendar-pop .date-phrase-label{margin-bottom:14px}
+.date-calendar-pop .date-month-grid .date-day{min-height:34px}
+@media(max-width:700px){.date-calendar-pop>.analytic-pop-body{padding:12px}.date-filter-pop>.analytic-pop-body{padding:12px}}

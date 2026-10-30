@@ -1,0 +1,33 @@
+Model nether_holding {
+  type: 'table'
+  label: 'Holding'
+  data_source_name: 'nether'
+  table_name: 'holding'
+
+  dimension holding_id {
+    label: 'Holding Id'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.holding_id }} ;;
+  }
+  dimension person_id {
+    label: 'Person Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.person_id }} ;;
+  }
+  dimension estate_id {
+    label: 'Estate Id'
+    type: 'text'
+    definition: @sql {{ #SOURCE.estate_id }} ;;
+  }
+  dimension from_date {
+    label: 'From Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.from_date }} ;;
+  }
+  dimension to_date {
+    label: 'To Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.to_date }} ;;
+  }
+}

@@ -1,0 +1,14 @@
+Model usage_assets {
+  type: 'table'
+  label: 'Assets'
+  description: "What people use: 14 dashboards (Data Apps) and 45 metrics. The asset behind each event. A dashboard's name is its app path; a metric's name is its dataset metric name."
+  data_source_name: 'usage_duckdb'
+  table_name: 'public.assets'
+
+  dimension asset_id { label: 'Asset ID' type: 'number' primary_key: true hidden: true }
+  dimension asset_type { label: 'Asset Type' type: 'text' description: "'dashboard' or 'metric'." }
+  dimension name { label: 'Name' type: 'text' description: "Unique. A dashboard's Data App path (pulse-gym/studio-overview); a metric's name in its dataset (revenue)." }
+  dimension label { label: 'Title' type: 'text' description: "What readers see. Not unique: Member Retention is both a dashboard and a metric; tell them apart with asset_type." }
+  dimension dataset { label: 'Dataset' type: 'text' description: "The dataset a metric belongs to: 'pulse', 'pulse_marketing' or 'pulse_ops'. Empty for dashboards." }
+  dimension created_on { label: 'Created On' type: 'date' description: 'No event comes before it.' }
+}

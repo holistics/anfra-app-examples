@@ -1,0 +1,49 @@
+// Every instrument. Public VN tickers with invented prices; VN-Index is the benchmark.
+Model dim_assets {
+  type: 'query'
+  label: 'Assets'
+  description: '''
+One row per instrument: stocks, ETFs, a bond fund, SJC gold, and the VN-Index benchmark
+(never held). Class, sector and country feed the Insights gauges.
+'''
+  data_source_name: 'finance'
+  query: @sql
+    SELECT symbol, name, asset_class, asset_sub_class, coalesce(sector, 'Unknown') AS sector,
+           coalesce(country, 'Unknown') AS country
+    FROM assets
+  ;;
+
+  dimension symbol {
+    label: 'Symbol'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.symbol }};;
+  }
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension asset_class {
+    label: 'Asset class'
+    type: 'text'
+    description: 'EQUITY · FIXED_INCOME · COMMODITY · INDEX.'
+    definition: @sql {{ #SOURCE.asset_class }};;
+  }
+  dimension asset_sub_class {
+    label: 'Sub-class'
+    type: 'text'
+    description: 'Stock · ETF · Bond fund · Gold · Benchmark.'
+    definition: @sql {{ #SOURCE.asset_sub_class }};;
+  }
+  dimension sector {
+    label: 'Sector'
+    type: 'text'
+    definition: @sql {{ #SOURCE.sector }};;
+  }
+  dimension country {
+    label: 'Region'
+    type: 'text'
+    definition: @sql {{ #SOURCE.country }};;
+  }
+}

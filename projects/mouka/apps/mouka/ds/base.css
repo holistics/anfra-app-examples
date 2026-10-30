@@ -1,0 +1,21 @@
+/* mouka base: reset, body type, utilities, focus. Values come from ds/tokens.css. */
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--page); color: var(--ink); font: var(--fw-regular) var(--fs-body)/var(--lh-body) var(--sans); -webkit-font-smoothing: antialiased; font-feature-settings: 'tnum' 1; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+input { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+
+/* C2 tabular lining figures on every number, including text set with the font shorthand */
+*, *::before, *::after { font-variant-numeric: tabular-nums lining-nums !important; }
+
+/* utilities */
+.num { font-variant-numeric: tabular-nums; }
+.pos { color: var(--pos-ink); } .neg { color: var(--neg-ink); } .muted { color: var(--ink-3); } .ink2 { color: var(--ink-2); }
+.warn { color: var(--warn-ink); }
+.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.i.sm { width: 14px; height: 14px; } .i.xs { width: 12px; height: 12px; }
+
+/* C17 one visible focus ring on every interactive element */
+:focus { outline: none; }
+:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-sm); }

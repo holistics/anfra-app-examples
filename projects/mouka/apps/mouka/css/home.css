@@ -1,0 +1,119 @@
+/* Home (three tabs: Net worth · Spending · Investments). Page-only rules; tokens only, no literal colours (ds-lint).
+   Everything shared (card head, hero block, list row, tile, segmented switches, ranges, key) is in ds/components.css. */
+
+/* ---------- Net worth */
+.nw-sw { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 3px; }
+
+/* ---------- Net worth: Summary (per side: header · split bar by group · each group with its accounts) + the identity */
+.nw-sum { display: grid; gap: var(--sp-5); }
+.nw-sum:not(:empty) { padding-top: var(--sp-2); }   /* air under the head's switch when it takes its own row */
+.nw-sum-grp + .nw-sum-grp { margin-top: var(--sp-2); }
+#hi-acc-list.nw-sum { gap: 0; }   /* Investments › Accounts: groups sit straight in the list, spaced like the Summary's */
+.nw-sum-hd { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+.nw-sum-hd h3 { margin: 0; font: var(--fw-medium) var(--fs-body)/1.3 var(--sans); color: var(--ink); }
+.nw-sum-hd .amt { font-size: var(--fs-body); font-weight: var(--fw-medium); }
+.nw-split { display: flex; gap: 2px; height: 8px; margin: var(--sp-3) 0 var(--sp-2); }
+.nw-split > div { border-radius: var(--r-sm); min-width: 4px; transition: opacity .15s; }
+.nw-split:has(.on) > div:not(.on) { opacity: .3; }
+/* a group: swatch · name · subtotal (13px medium ink); its accounts under it, their text starting under the group's name
+   (swatch 10 + gap 12 = 22px), names in secondary ink, no colour of their own */
+.nw-sum .lline { min-height: 32px; margin: 0 calc(-1 * var(--sp-2)); padding: 0 var(--sp-2); border-radius: var(--r-sm); }
+.nw-sum .lline .t, .nw-sum .lline .v { font-size: var(--fs-2); }
+.nw-sum .lline .v { font-weight: var(--fw-medium); }
+.nw-sum .lline .a { font-size: var(--fs-2); font-weight: var(--fw-medium); }   /* the 1M change: 13px like the row (18 Oct, Nhi; was 14px) */
+.nw-sum.hide-pct .nw-sum-line .a { display: none; }   /* the % switch off (Home › Investments › Accounts) */
+.nw-sum.hide-pct .nw-sum-line { grid-template-columns: minmax(0, 1fr) auto; }   /* …and the amount stays flush right */
+.nw-sum-gline { grid-template-columns: 10px minmax(0, 1fr) auto minmax(52px, auto); column-gap: var(--sp-3); }
+.nw-sum-gline .t { font-weight: var(--fw-medium); }
+/* the group's name (Investments ⌄, and Bills ⌄ on Recurring): 13px like its value and its rows (18 Oct, Nhi) */
+.nw-sum-gline .disc, .rc-gline .disc { font-size: var(--fs-2); }
+.nw-sum-gline .disc .t, .rc-gline .disc .t { font-size: inherit; }   /* the name's own span would take .lline .t's 15px */
+.nw-sum-line { padding-left: calc(var(--sp-2) + 22px) !important; min-height: 30px !important; }
+.nw-sum-line .t { color: var(--ink-2); }
+.nw-sum-grp.on .nw-sum-gline { background: var(--row-hover); }
+.nw-sum-line:hover { background: var(--row-hover); }
+.nw-sum-line.active { background: var(--fill-subtle); }
+.nw-sum-line.dim .t, .nw-sum-line.dim .v { color: var(--ink-3); }
+.nw-sum-line:focus-visible { outline: none; box-shadow: inset var(--focus-ring); }
+
+/* ---------- Net worth: inspector (one account) */
+.nw-insp { display: grid; gap: var(--sp-5); }
+.nw-insp .label { margin-bottom: var(--sp-2); }
+.chart.nw-insp-chart { height: 180px; }
+.nw-src { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-2); }
+.nw-src > span:nth-child(2) { flex: 1; }
+.nw-src .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pos); flex: none; }
+.nw-src.late .dot { background: var(--warn); }
+.nw-src.stale .dot { background: var(--neg); }
+.nw-insp .warn { margin-top: var(--sp-2); font-size: var(--fs-2); color: var(--warn-ink); }
+
+/* ---------- Spending */
+.hs-cal { margin-top: var(--sp-3); }
+.hs-gwrap { position: relative; }
+.chart.hs-gauge { height: 180px; }
+.hs-gc { position: absolute; left: 0; right: 0; top: 72px; text-align: center; pointer-events: none; }
+.hs-gc > * { pointer-events: auto; }
+.hs-gc .hero { margin: 2px 0; }
+#hs-cat-rows { margin-top: var(--sp-3); }
+/* 19 Oct, Nhi: the secondary info a step lighter, Latest's dates and the categories' shares (--ink-meta, 4.66:1 on the card) */
+#hs-latest-list .lrow-main .s, #hs-cat-rows .lline .a { color: var(--ink-meta, var(--ink-3)); }
+/* …and the budget's "of ₫7.2M", the same step lighter; the holdings' second lines (Home › Investments) sit on a tint, where
+   --ink-meta drops to 4.24:1, so they take --ink-3 (≥ 4.5:1 on every surface), still a step under --ink-2 */
+#hs-cat-rows .lrow-end .s { color: var(--ink-meta, var(--ink-3)); }
+#hi-tv .lrow-main .s, #hi-tm .lrow-main .s { color: var(--ink-3); }
+.lrow.hs-bud .s { overflow: visible; }
+.lrow.hs-bud .progress { margin-top: 6px; }
+.lrow.dim .t, .lrow.dim .v { color: var(--ink-3); }
+.hs-upc-note { margin-top: var(--sp-3); }
+.em { color: var(--ink); font-weight: var(--fw-medium); }   /* the one emphasis inside a sentence (medium, never bold) */
+.menu-sp { display: inline-block; width: 14px; }
+.hs-cmp .key { margin: 0; }
+
+/* ---------- Investments */
+.hi-hold-grid { align-items: stretch; }
+.hi-box { padding: var(--sp-3) var(--sp-4) var(--sp-1); }
+.hi-box-h { padding-bottom: var(--sp-2); font: var(--fw-medium) var(--fs-2)/1.3 var(--sans); color: var(--ink); }   /* a sub-heading inside a card: the .label style */
+.hi-box .lrow { border-bottom-color: var(--border); }
+.lrow.hi-mover .lrow-end { display: flex; align-items: center; gap: var(--sp-3); }
+.hi-spark { display: block; width: 64px; height: 26px; }
+@container (max-width: 420px) { .hi-hold-grid { grid-template-columns: minmax(0, 1fr); } }
+@container (max-width: 300px) { .hi-spark { display: none; } }
+.hero.hi-inc-v { margin-top: var(--sp-1); }
+.chart.hi-inc-chart { height: 120px; margin: var(--sp-2) 0 var(--sp-3); }
+
+/* accounts sit just inside their group (past the caret: 12 + gap 6) */
+/* the account inspector's Source label carries how current the source is: "Source · as of Oct 14" */
+.nw-insp .label .sep, .nw-insp .label .muted { font-weight: var(--fw-regular); color: var(--ink-3); }
+
+/* Net worth › Monthly pace: the pace (hero) and the all-time change on the left; the three drivers that add up to that
+   change on the right, each with a bar in its account group's tone (gains = Investments, contributions = Cash, debt = Liabilities) */
+.pace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: var(--sp-6); align-items: start; }
+.pace-lead .sub { margin-top: var(--sp-2); }
+.pace-drivers .label { margin-bottom: var(--sp-1); font-size: var(--fs-body); color: var(--ink); }   /* a sub-heading: the Summary's side-header type */
+/* 17 Oct (Nhi): the rows read at body size, names in the Summary's account-name ink */
+.pace-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--sp-3); row-gap: var(--sp-2); padding: var(--sp-2) 0; }
+.pace-row .t { font-size: var(--fs-body); color: var(--ink-2); }
+.pace-row .v { font-size: var(--fs-body); font-weight: var(--fw-medium); font-variant-numeric: tabular-nums; }
+.pace-bar { grid-column: 1 / -1; height: 8px; border-radius: var(--r-pill); background: var(--fill-subtle); overflow: hidden; }
+.pace-bar > div { height: 100%; min-width: 6px; border-radius: inherit; }
+@container (max-width: 560px) { .pace { grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); } }
+
+/* Spend this month: the month's cash flow beside the hero, income · spending · net (17 Oct, Nhi's reference) */
+.flow-kpis { display: grid; grid-auto-flow: column; gap: var(--sp-6); text-align: right; padding-top: var(--sp-1); }
+.flow-kpis .k { font: var(--fw-medium) var(--fs-label)/1.3 var(--font-label); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.flow-kpis .v { margin-top: 6px; font-size: var(--fs-body); font-weight: var(--fw-medium); color: var(--ink); font-variant-numeric: tabular-nums; }
+.flow-kpis .v.pos { color: var(--pos-ink); } .flow-kpis .v.neg { color: var(--neg-ink); } .flow-kpis .v.muted { color: var(--ink-3); }
+@container (max-width: 560px) { .flow-kpis { text-align: left; } }
+/* the category list wears the Net worth Summary's row type: 13px, names and amounts medium, shares regular */
+.cat-rows .lline .t, .cat-rows .lline .v { font-size: var(--fs-row); font-weight: var(--fw-medium); color: var(--ink); }
+.cat-rows .lline .a { font-size: var(--fs-row); }
+.cat-rows .lline { min-height: 48px; }   /* 17 Oct (Nhi): more air between the rows */
+.cat-rows .lline.dim .t, .cat-rows .lline.dim .v { color: var(--ink-3); }
+
+/* Spending › Latest: a transaction list (17 Oct, Nhi's reference): two lines per row, larger type, hairlines between rows */
+.tx-list .lrow { padding: var(--sp-3) 0; border-bottom: 1px solid var(--border); }
+.tx-list .lrow:last-child { border-bottom: 0; }
+.tx-list .lrow .t, .tx-list .lrow-end .v { font-size: var(--fs-body); font-weight: var(--fw-medium); }
+.tx-list .lrow .s { margin-top: 2px; font-size: var(--fs-2); color: var(--ink-2); }
+.tx-list .lrow-end .v .pos { color: var(--pos-ink); }
+.tx-list .lrow.dim .t, .tx-list .lrow.dim .v { color: var(--ink-3); }

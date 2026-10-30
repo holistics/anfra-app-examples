@@ -1,0 +1,7 @@
+# DuckDB needs no credentials. `finance` is the synthetic DuckDB in db/, opened read-only;
+# the path is relative to this folder. Rebuilding it (db/build_duckdb.py) needs anfra serve stopped.
+data_sources:
+  finance:
+    type: duckdb
+    connection:
+      path: db/finance.duckdb?access_mode=read_only

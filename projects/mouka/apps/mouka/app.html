@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en" data-theme="terracotta">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mouka</title>
+  <link rel="icon" href="img/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Roboto+Mono:wght@400&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap">
+  <!-- design system: tokens (edit these) → themes → base → layout (shell, grid, breakpoints) → components → pages -->
+  <link rel="stylesheet" href="ds/tokens.css">
+  <link rel="stylesheet" href="ds/themes.css">
+  <link rel="stylesheet" href="ds/base.css">
+  <link rel="stylesheet" href="ds/layout.css">
+  <link rel="stylesheet" href="ds/components.css">
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/defs.css">
+  <link rel="stylesheet" href="css/ask.css">
+  <link rel="stylesheet" href="css/spending.css">
+  <link rel="stylesheet" href="css/invest.css">
+  <link rel="stylesheet" href="css/forecast.css">
+  <link rel="stylesheet" href="ds/panel.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+</head>
+<body data-app-title="mouka" data-default-view="home">
+  <div class="shell">
+    <nav class="sidebar" id="sidebar" aria-label="Main" data-anfra-container="sidebar" data-anfra-label="Sidebar">
+      <div class="brand-row"><div class="brand" title="mouka"><img class="logo" src="img/logo.png" alt="">mouka</div>
+        <button class="sq bare nav-toggle nav-bell ntf-btn" type="button" data-action="notify" aria-haspopup="dialog" aria-expanded="false" aria-label="Notifications" title="Notifications">
+          <svg class="i" viewBox="0 0 24 24" data-icon="bell"></svg><span class="ntf-dot" hidden></span></button>
+        <button class="sq bare nav-toggle" type="button" data-nav-toggle aria-expanded="true" aria-controls="sidebar" aria-label="Collapse sidebar" title="Collapse sidebar ([)">
+          <svg class="i" viewBox="0 0 24 24" data-icon="sidebar"></svg></button></div>
+      <div class="nav-gap"></div>
+      <button class="nav-item" data-nav="ask" type="button" title="Ask AI (coming soon)" data-anfra-block="nav-ask" data-anfra-label="Ask AI">
+        <svg class="i" viewBox="0 0 24 24" data-icon="ask"></svg>Ask AI<span class="soon-tag nav-soon">Soon</span></button>
+      <button class="nav-item" data-nav="home" type="button" title="Home" data-anfra-block="nav-home" data-anfra-label="Home">
+        <svg class="i" viewBox="0 0 24 24" data-icon="home"></svg>Home</button>
+      <button class="nav-item" data-nav="spending" type="button" title="Cash flow" data-anfra-block="nav-spending" data-anfra-label="Cash flow">
+        <svg class="i" viewBox="0 0 24 24" data-icon="cashflow"></svg>Cash flow</button>
+      <button class="nav-item" data-nav="invest" type="button" title="Invest" data-anfra-block="nav-invest" data-anfra-label="Invest">
+        <svg class="i" viewBox="0 0 24 24" data-icon="invest"></svg>Invest</button>
+      <button class="nav-item" data-nav="forecast" type="button" title="Forecast" data-anfra-block="nav-forecast" data-anfra-label="Forecast">
+        <svg class="i" viewBox="0 0 24 24" data-icon="forecast"></svg>Forecast</button>
+      <div class="nav-group">Trust</div>
+      <button class="nav-item" type="button" title="Accounts" data-hc="accounts" data-anfra-block="nav-accounts" data-anfra-label="Accounts" data-anfra-query="og2_side_acc">
+        <svg class="i" viewBox="0 0 24 24" data-icon="accounts"></svg>Accounts<svg class="i sm nav-chev" viewBox="0 0 24 24" data-icon="chev"></svg></button>
+      <button class="nav-item" data-nav="defs" type="button" title="Definitions" data-anfra-block="nav-defs" data-anfra-label="Definitions">
+        <svg class="i" viewBox="0 0 24 24" data-icon="defs"></svg>Definitions</button>
+      <div class="asof-note" data-anfra-block="asof" data-anfra-label="Data as of" data-anfra-query="meta og2_fresh" data-hc="fresh"><span class="fresh-dot" data-fresh-dot role="img"></span>As of <span class="num" id="asof"></span></div>
+      <div class="nav-resize" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" aria-controls="sidebar" tabindex="0" aria-valuemin="180" aria-valuemax="320" aria-valuenow="220" title="Click to collapse or expand · drag to resize"></div>
+      <div class="side-foot" data-anfra-block="side-foot" data-anfra-label="You">
+        <span class="menu-wrap me-wrap"><button class="me-btn" type="button" data-menu-btn aria-haspopup="menu" aria-expanded="false" aria-label="Pham Thu Ha: settings and users" title="Pham Thu Ha">
+          <span class="me-av" aria-hidden="true">HA</span><span class="me-n">Pham Thu Ha</span><svg class="i sm me-chev" viewBox="0 0 24 24" data-icon="down"></svg></button>
+          <div class="menu me-menu" role="menu" hidden>
+            <button type="button" role="menuitem" data-k="settings" aria-disabled="true"><svg class="i sm" viewBox="0 0 24 24" data-icon="settings"></svg><span>Settings</span><span class="soon-tag">Soon</span></button>
+            <button type="button" role="menuitem" data-k="users" aria-disabled="true"><svg class="i sm" viewBox="0 0 24 24" data-icon="users"></svg><span>Users</span><span class="soon-tag">Soon</span></button>
+          </div></span>
+      </div>
+    </nav>
+    <div class="nav-scrim" data-nav-scrim></div>
+    <main id="views" data-anfra-container="views" data-anfra-label="Views"></main>
+  </div>
+
+  <!-- xs (< 600px frame): the sidebar becomes a bottom tab bar; Forecast, Accounts, Definitions and Design move into More -->
+  <nav class="tabbar" data-anfra-container="tabbar" data-anfra-label="Tab bar">
+    <button class="nav-item" data-nav="ask" type="button"><svg class="i" viewBox="0 0 24 24" data-icon="ask"></svg>Ask AI</button>
+    <button class="nav-item" data-nav="home" type="button"><svg class="i" viewBox="0 0 24 24" data-icon="home"></svg>Home</button>
+    <button class="nav-item" data-nav="spending" type="button"><svg class="i" viewBox="0 0 24 24" data-icon="cashflow"></svg>Cash flow</button>
+    <button class="nav-item" data-nav="invest" type="button"><svg class="i" viewBox="0 0 24 24" data-icon="invest"></svg>Invest</button>
+    <button type="button" data-more><svg class="i" viewBox="0 0 24 24" data-icon="more"></svg>More</button>
+  </nav>
+  <div class="more-sheet" hidden data-anfra-render="skip">
+    <div class="sheet" role="dialog" aria-label="More">
+      <div class="grab"></div>
+      <button class="nav-item" type="button" data-nav="forecast"><svg class="i" viewBox="0 0 24 24" data-icon="forecast"></svg>Forecast</button>
+      <button class="nav-item" type="button" data-hc="accounts"><svg class="i" viewBox="0 0 24 24" data-icon="accounts"></svg>Accounts</button>
+      <button class="nav-item" type="button" data-nav="defs"><svg class="i" viewBox="0 0 24 24" data-icon="defs"></svg>Definitions</button>
+      <div class="asof-note"><span class="fresh-dot" data-fresh-dot role="img"></span>As of <span class="num" data-asof></span></div>
+    </div>
+  </div>
+
+  <div id="trace-pop" class="trace-pop" hidden data-anfra-render="skip"></div>
+  <div id="hc" class="hc" hidden data-anfra-render="skip"></div>
+
+  <!-- the shared machinery (query registry, router, periods, trace) is this app's own copy in js/core; no ../ paths -->
+  <script src="js/core/format.js"></script>
+  <script src="js/core/core.js"></script>
+  <script src="js/core/charts.js"></script>
+  <script src="js/core/definitions.js"></script>
+  <script src="js/core/trace.js"></script>
+  <script src="ds/presets.js"></script>
+  <script src="js/ds/tokens.js"></script>
+  <script src="js/ds/history.js"></script>
+  <script src="js/ds/icons.js"></script>
+  <script src="js/ds/components.js"></script>
+  <script src="js/ds/layout.js"></script>
+  <script src="js/origin.js"></script>
+  <script src="js/shared.js"></script>
+  <script src="js/notify.js"></script>
+  <script src="js/views/home_networth.js"></script>
+  <script src="js/views/home_spending.js"></script>
+  <script src="js/views/home_invest.js"></script>
+  <script src="js/cat.js"></script>
+  <script src="js/views/ask.js"></script>
+  <script src="js/views/sp_cashflow.js"></script>
+  <script src="js/views/sp_transactions.js"></script>
+  <script src="js/views/sp_recurring.js"></script>
+  <script src="js/views/sp_credit.js"></script>
+  <script src="js/views/inv_shared.js"></script>
+  <script src="js/views/inv_performance.js"></script>
+  <script src="js/views/inv_holdings.js"></script>
+  <script src="js/views/fc_networth.js"></script>
+  <script src="js/views/fc_cash.js"></script>
+  <script src="js/views/defs.js"></script>
+  <script src="js/pages.js"></script>
+  <script src="js/ds/panel.js"></script>
+  <script src="js/shell.js"></script>
+  <script src="js/core/main.js"></script>
+</body>
+</html>

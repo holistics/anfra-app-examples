@@ -1,0 +1,194 @@
+Model dim_reward_cycles {
+  type: 'query'
+  label: 'Reward cycles'
+  description: '''
+One row per cashback cycle of a card with an active **rate** rung in `cashback_milestones`
+(today: MAX VIB, 8% points up to 1,000,000 a cycle). The close day and the rung come from
+that table, never from code. A cycle runs from the day after one close to the next close
+(MAX VIB: 16th → 15th) and is named by its closing date.
+
+Day counts follow cspipeline cashback.milestone_progress, relative to the data as-of date:
+- a closed cycle has every day elapsed and none left;
+- in the current cycle, `days_elapsed` counts the as-of day and `days_left` does not.
+'''
+  data_source_name: 'finance'
+  query: @sql
+    WITH latest AS (
+      SELECT max(d) AS as_of FROM (
+        SELECT txn_date AS d FROM transactions
+        UNION ALL
+        SELECT CAST(occurred_at AT TIME ZONE 'Asia/Ho_Chi_Minh' AS DATE) FROM bank_movements
+      ) x
+    ),
+    rung AS (
+      SELECT src, cycle_close_day AS cd, threshold_minor, reward_minor, plan_name, valid_through
+      FROM cashback_milestones
+      WHERE active AND accrual = 'rate' AND cycle_close_day IS NOT NULL
+    ),
+    first_line AS (
+      SELECT CASE s.bank WHEN 'TCB' THEN 'credit' WHEN 'VIB' THEN 'vib_credit' ELSE s.bank END AS src,
+             min(t.txn_date) AS d0
+      FROM transactions t JOIN statements s ON s.id = t.statement_id
+      GROUP BY 1
+    ),
+    ends AS (
+      SELECT r.*, a.as_of,
+             CAST(unnest(generate_series(
+               CAST(CASE WHEN day(f.d0) > r.cd THEN make_date(year(f.d0), month(f.d0), r.cd) + INTERVAL 1 MONTH
+                         ELSE make_date(year(f.d0), month(f.d0), r.cd) END AS TIMESTAMP),
+               CAST(CASE WHEN day(a.as_of) > r.cd THEN make_date(year(a.as_of), month(a.as_of), r.cd) + INTERVAL 1 MONTH
+                         ELSE make_date(year(a.as_of), month(a.as_of), r.cd) END AS TIMESTAMP),
+               INTERVAL 1 MONTH)) AS DATE) AS cycle_end
+      FROM rung r JOIN first_line f USING (src) CROSS JOIN latest a
+    ),
+    c AS (
+      SELECT *, CAST(cycle_end - INTERVAL 1 MONTH + INTERVAL 1 DAY AS DATE) AS cycle_start FROM ends
+    )
+    SELECT
+      src || ':' || strftime(cycle_end, '%Y-%m-%d')                         AS cycle_key,
+      src,
+      cycle_start,
+      cycle_end,
+      strftime(cycle_start, '%d %b') || ' – ' || strftime(cycle_end, '%d %b %Y') AS cycle_label,
+      strftime(cycle_end, '%Y-%m')                                           AS cycle_month_key,
+      date_diff('day', cycle_start, cycle_end) + 1                           AS days_in_cycle,
+      CASE WHEN as_of > cycle_end THEN date_diff('day', cycle_start, cycle_end) + 1
+           WHEN as_of < cycle_start THEN 0
+           ELSE date_diff('day', cycle_start, as_of) + 1 END                 AS days_elapsed,
+      CASE WHEN as_of > cycle_end THEN 0
+           WHEN as_of < cycle_start THEN date_diff('day', cycle_start, cycle_end) + 1
+           ELSE date_diff('day', as_of, cycle_end) END                       AS days_left,
+      CASE WHEN as_of > cycle_end THEN NULL
+           WHEN as_of < cycle_start THEN date_diff('day', cycle_start, cycle_end) + 1
+           ELSE date_diff('day', as_of, cycle_end) END                       AS days_left_if_open,
+      CASE WHEN as_of > cycle_end OR as_of < cycle_start THEN NULL
+           ELSE date_diff('day', cycle_start, as_of) + 1 END                 AS days_elapsed_if_open,
+      as_of BETWEEN cycle_start AND cycle_end                                AS is_current,
+      as_of > cycle_end                                                      AS is_closed,
+      threshold_minor                                                        AS threshold_vnd,
+      reward_minor                                                           AS reward_cap_vnd,
+      CAST(reward_minor AS DOUBLE) / threshold_minor                         AS reward_rate,
+      plan_name,
+      valid_through,
+      valid_through IS NULL OR cycle_end <= valid_through                    AS is_within_plan
+    FROM c
+  ;;
+
+  dimension cycle_key {
+    label: 'Cycle key'
+    type: 'text'
+    primary_key: true
+    description: 'src:closing-date, e.g. vib_credit:2026-10-15.'
+    definition: @sql {{ #SOURCE.cycle_key }};;
+  }
+  dimension src {
+    label: 'Card'
+    type: 'text'
+    description: 'The card the cycle belongs to.'
+    definition: @sql {{ #SOURCE.src }};;
+  }
+  dimension cycle_start {
+    label: 'Cycle start'
+    type: 'date'
+    description: 'First day of the cycle (the day after the previous close).'
+    definition: @sql {{ #SOURCE.cycle_start }};;
+  }
+  dimension cycle_end {
+    label: 'Cycle close'
+    type: 'date'
+    description: 'Closing day of the cycle (inclusive). Use this to order cycles.'
+    definition: @sql {{ #SOURCE.cycle_end }};;
+  }
+  dimension cycle_label {
+    label: 'Cycle'
+    type: 'text'
+    description: 'e.g. 16 Sep – 15 Oct 2026.'
+    definition: @sql {{ #SOURCE.cycle_label }};;
+  }
+  dimension cycle_month_key {
+    label: 'Cycle month'
+    type: 'text'
+    description: 'YYYY-MM of the closing date: cspipeline names a cycle by its closing month.'
+    definition: @sql {{ #SOURCE.cycle_month_key }};;
+  }
+  dimension days_in_cycle {
+    label: 'Days in cycle'
+    type: 'number'
+    definition: @sql {{ #SOURCE.days_in_cycle }};;
+  }
+  dimension days_elapsed {
+    label: 'Days elapsed'
+    type: 'number'
+    description: 'Days of the cycle on or before the as-of date, the as-of day included.'
+    definition: @sql {{ #SOURCE.days_elapsed }};;
+  }
+  dimension days_left {
+    label: 'Days left'
+    type: 'number'
+    description: 'Days after the as-of date until the close. 0 on the close day and for closed cycles.'
+    definition: @sql {{ #SOURCE.days_left }};;
+  }
+  dimension days_left_if_open {
+    label: 'Days left (open cycles)'
+    type: 'number'
+    hidden: true
+    description: 'days_left, NULL once the cycle has closed. Drives daily_spend_needed.'
+    definition: @sql {{ #SOURCE.days_left_if_open }};;
+  }
+  dimension days_elapsed_if_open {
+    label: 'Days elapsed (open cycles)'
+    type: 'number'
+    hidden: true
+    description: 'days_elapsed for the cycle in progress, NULL otherwise. Drives the projections.'
+    definition: @sql {{ #SOURCE.days_elapsed_if_open }};;
+  }
+  dimension is_current {
+    label: 'Is current cycle'
+    type: 'truefalse'
+    description: 'The cycle containing the data as-of date.'
+    definition: @sql {{ #SOURCE.is_current }};;
+  }
+  dimension is_closed {
+    label: 'Is closed'
+    type: 'truefalse'
+    description: 'The close is before the as-of date.'
+    definition: @sql {{ #SOURCE.is_closed }};;
+  }
+  dimension threshold_vnd {
+    label: 'Cap threshold (VND)'
+    type: 'number'
+    description: 'Spend at which the cap is reached (12,500,000).'
+    definition: @sql {{ #SOURCE.threshold_vnd }};;
+  }
+  dimension reward_cap_vnd {
+    label: 'Reward cap (points)'
+    type: 'number'
+    description: 'Most points one cycle can earn (1,000,000). 1 point = ₫1 at cash-out.'
+    definition: @sql {{ #SOURCE.reward_cap_vnd }};;
+  }
+  dimension reward_rate {
+    label: 'Reward rate'
+    type: 'number'
+    format: '0.0%'
+    description: 'reward_cap / threshold = 0.08.'
+    definition: @sql {{ #SOURCE.reward_rate }};;
+  }
+  dimension plan_name {
+    label: 'Plan'
+    type: 'text'
+    description: 'The card plan the rung belongs to (Pro).'
+    definition: @sql {{ #SOURCE.plan_name }};;
+  }
+  dimension valid_through {
+    label: 'Rate valid through'
+    type: 'date'
+    description: 'Last day the rate is guaranteed.'
+    definition: @sql {{ #SOURCE.valid_through }};;
+  }
+  dimension is_within_plan {
+    label: 'Is within plan'
+    type: 'truefalse'
+    description: 'The cycle closes on or before valid_through.'
+    definition: @sql {{ #SOURCE.is_within_plan }};;
+  }
+}

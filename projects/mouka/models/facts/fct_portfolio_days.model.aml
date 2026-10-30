@@ -1,0 +1,64 @@
+// One row per day for the securities accounts: what performance is computed on.
+Model fct_portfolio_days {
+  type: 'table'
+  label: 'Portfolio days'
+  description: '''
+**Grain:** one local day, from the first data day to the data as-of date, for the securities
+accounts only (SSI and gold). Cash accounts are left out on purpose: salary arriving in TCB
+is not an investment return (the "mixed mode" Wealthfolio cannot compute).
+
+`daily_return` = (value − that day\'s net contribution) ÷ yesterday\'s value − 1, with flows at
+the end of the day. `log_return` = ln(1 + daily_return): summing it over any period and taking
+exp − 1 is the time-weighted return. `bench_log_return` is the same for VN-Index.
+'''
+  data_source_name: 'finance'
+  table_name: 'mat_portfolio_days'   // precomputed by db/materialize.py from db/sql/fct_portfolio_days.sql (see there for the logic)
+
+  dimension date_key {
+    label: 'Date'
+    type: 'date'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.date_key }};;
+  }
+  dimension value_vnd {
+    label: 'Invested value (VND)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.value_vnd }};;
+  }
+  dimension prev_value_vnd {
+    label: 'Previous value (VND)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.prev_value_vnd }};;
+  }
+  dimension net_flow_vnd {
+    label: 'Net contribution (VND)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.net_flow_vnd }};;
+  }
+  dimension daily_return {
+    label: 'Daily return'
+    type: 'number'
+    definition: @sql {{ #SOURCE.daily_return }};;
+  }
+  dimension log_return {
+    label: 'Log return'
+    type: 'number'
+    definition: @sql {{ #SOURCE.log_return }};;
+  }
+  dimension is_trading_day {
+    label: 'Is trading day'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_trading_day }};;
+  }
+  dimension bench_close {
+    label: 'VN-Index'
+    type: 'number'
+    definition: @sql {{ #SOURCE.bench_close }};;
+  }
+  dimension bench_log_return {
+    label: 'VN-Index log return'
+    type: 'number'
+    definition: @sql {{ #SOURCE.bench_log_return }};;
+  }
+}

@@ -1,0 +1,116 @@
+// Wealthfolio's Activities list: one row per activity, in VND.
+Model fct_activities {
+  type: 'query'
+  label: 'Activities'
+  description: '''
+**Grain:** one Wealthfolio activity: an opening holding, a buy, a sale, a dividend, interest,
+a deposit or a withdrawal. USD amounts are converted at the latest rate on or before the day.
+Account and asset names are carried on the row so a list needs no join.
+'''
+  data_source_name: 'finance'
+  query: @sql
+    WITH fx AS (SELECT rate_date, vnd_per_unit FROM fx_rates WHERE currency = 'USD'),
+    a AS (
+      SELECT a.*, CAST(a.activity_date AT TIME ZONE 'Asia/Ho_Chi_Minh' AS DATE) AS activity_day
+      FROM activities a
+    )
+    SELECT a.id AS activity_id, a.account_id, ac.name AS account_name, a.symbol,
+           coalesce(s.name, 'Cash') AS asset_name, a.activity_type, a.activity_day,
+           CAST(a.activity_date AT TIME ZONE 'Asia/Ho_Chi_Minh' AS TIMESTAMP) AS activity_at_local,
+           a.quantity, a.unit_price, a.currency,
+           CASE WHEN a.currency = 'USD' THEN round(a.amount_minor / 100.0 * f.vnd_per_unit)
+                ELSE a.amount_minor END AS amount_vnd,
+           a.fee_minor AS fee_vnd, a.comment, a.is_opening
+    FROM a
+    JOIN accounts ac ON ac.id = a.account_id
+    LEFT JOIN assets s ON s.symbol = a.symbol
+    ASOF LEFT JOIN fx f ON a.activity_day >= f.rate_date
+  ;;
+
+  dimension activity_id {
+    label: 'Activity ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.activity_id }};;
+  }
+  dimension account_id {
+    label: 'Account ID'
+    type: 'text'
+    definition: @sql {{ #SOURCE.account_id }};;
+  }
+  dimension account_name {
+    label: 'Account'
+    type: 'text'
+    definition: @sql {{ #SOURCE.account_name }};;
+  }
+  dimension symbol {
+    label: 'Symbol'
+    type: 'text'
+    definition: @sql {{ #SOURCE.symbol }};;
+  }
+  dimension asset_name {
+    label: 'Instrument'
+    type: 'text'
+    definition: @sql {{ #SOURCE.asset_name }};;
+  }
+  dimension activity_type {
+    label: 'Type'
+    type: 'text'
+    description: 'ADD_HOLDING · BUY · SELL · DIVIDEND · INTEREST · DEPOSIT · WITHDRAWAL.'
+    definition: @sql {{ #SOURCE.activity_type }};;
+  }
+  dimension activity_day {
+    label: 'Date'
+    type: 'date'
+    hidden: true
+    definition: @sql {{ #SOURCE.activity_day }};;
+  }
+  dimension activity_at_local {
+    label: 'Time (local)'
+    type: 'datetime'
+    description: 'Vietnam wall-clock time, no zone. Correct in a UTC query; a query or app with a timezone shifts it again, so use activity_at there.'
+    definition: @sql {{ #SOURCE.activity_at_local }};;
+  }
+  dimension activity_at {
+    label: 'Time'
+    type: 'datetime'
+    description: 'The instant of the activity. It shows in the query\'s timezone, so an app set to Asia/Ho_Chi_Minh reads Vietnam time.'
+    definition: @sql {{ #SOURCE.activity_at_local }} AT TIME ZONE 'Asia/Ho_Chi_Minh';;
+  }
+  dimension quantity {
+    label: 'Quantity'
+    type: 'number'
+    definition: @sql {{ #SOURCE.quantity }};;
+  }
+  dimension unit_price {
+    label: 'Price'
+    type: 'number'
+    definition: @sql {{ #SOURCE.unit_price }};;
+  }
+  dimension amount_vnd {
+    label: 'Amount (VND)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.amount_vnd }};;
+  }
+  dimension fee_vnd {
+    label: 'Fee (VND)'
+    type: 'number'
+    definition: @sql {{ #SOURCE.fee_vnd }};;
+  }
+  dimension currency {
+    label: 'Currency'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency }};;
+  }
+  dimension comment {
+    label: 'Comment'
+    type: 'text'
+    definition: @sql {{ #SOURCE.comment }};;
+  }
+  dimension is_opening {
+    label: 'Is opening'
+    type: 'truefalse'
+    description: 'The state on the first data day, not a flow.'
+    definition: @sql {{ #SOURCE.is_opening }};;
+  }
+}

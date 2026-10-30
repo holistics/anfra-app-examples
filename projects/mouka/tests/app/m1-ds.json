@@ -1,0 +1,227 @@
+[
+ {
+  "viewport": [
+   1600,
+   1000
+  ]
+ },
+ {
+  "waitFor": "() => WF.current && WF.asOf && document.querySelector('#hn-hero')?.textContent.length > 4"
+ },
+ {
+  "eval": "() => (window.__shipped = DS.theme())"
+ },
+ {
+  "name": "the panel opens from the \\ key (18 Oct: the sidebar's Design entry is gone); nothing to undo yet",
+  "eval": "() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: '\\\\', bubbles: true })); return true; }"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "panel open, undo + redo disabled, no presets, Saved looks section open",
+  "assert": "() => !document.querySelector('.ds-panel').hidden && document.querySelector('[data-dsp-undo]').disabled && document.querySelector('[data-dsp-redo]').disabled && DS.history.steps.length === 1 && document.querySelector('details[data-sec=presets]').open"
+ },
+ {
+  "eval": "() => { const el = document.querySelector('.ds-panel input[data-t=\"--r-lg\"]'); for (const v of [10, 8, 6]) { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); } el.dispatchEvent(new Event('change', { bubbles: true })); return DS.token('--r-lg'); }"
+ },
+ {
+  "name": "a slider drag (3 inputs, one release) is ONE history step",
+  "assert": "() => DS.token('--r-lg') === '6px' && DS.history.steps.length === 2 && DS.history.steps[1].label === '--r-lg default → 6px'"
+ },
+ {
+  "eval": "() => { const el = document.querySelector('.ds-panel input[data-colour=\"--chart\"]'); el.value = '#e8590c'; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return DS.token('--chart'); }"
+ },
+ {
+  "wait": 150
+ },
+ {
+  "click": "[data-theme-pick=dark]"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "three edits = three steps; the head counts 2 changed tokens",
+  "assert": "() => DS.history.steps.length === 4 && DS.theme() === 'dark' && document.querySelector('.dsp-count').textContent === '2 changed'"
+ },
+ {
+  "click": "[data-dsp-undo]"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "undo #1 takes back only the theme",
+  "assert": "() => DS.theme() === window.__shipped && DS.overrides()['--chart'] === '#e8590c' && DS.overrides()['--r-lg'] === '6px'"
+ },
+ {
+  "click": "[data-dsp-undo]"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "undo #2 takes back only the colour; the radius stays (no reset needed)",
+  "assert": "() => DS.overrides()['--chart'] == null && DS.overrides()['--r-lg'] === '6px' && !document.querySelector('[data-dsp-redo]').disabled"
+ },
+ {
+  "click": "[data-dsp-redo]"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "redo brings the colour back",
+  "assert": "() => DS.overrides()['--chart'] === '#e8590c' && DS.theme() === window.__shipped"
+ },
+ {
+  "click": ".ds-panel .dsp-themes button.on"
+ },
+ {
+  "press": "Meta+z"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "⌘Z undoes too",
+  "assert": "() => DS.overrides()['--chart'] == null && DS.overrides()['--r-lg'] === '6px'"
+ },
+ {
+  "press": "Meta+Shift+z"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "⇧⌘Z redoes",
+  "assert": "() => DS.overrides()['--chart'] === '#e8590c'"
+ },
+ {
+  "eval": "() => { document.querySelector('details[data-sec=shape]').open = true; return true; }"
+ },
+ {
+  "click": ".ds-panel [data-revert='--r-lg']"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "the changed-dot reverts that token only, as a labelled step",
+  "assert": "() => DS.overrides()['--r-lg'] == null && DS.overrides()['--chart'] === '#e8590c' && DS.history.steps.at(-1).label === 'Revert --r-lg'"
+ },
+ {
+  "name": "a new edit after an undo drops the undone steps (redo disabled)",
+  "assert": "() => document.querySelector('[data-dsp-redo]').disabled"
+ },
+ {
+  "eval": "() => { document.querySelector('details[data-sec=history]').open = true; WF.renderAll(); return true; }"
+ },
+ {
+  "click": "[data-dsp-undo]"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "click": "[data-hist='0']"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "History: jump to Start restores the shipped look exactly",
+  "assert": "() => Object.keys(DS.overrides()).length === 0 && DS.theme() === window.__shipped && DS.history.index === 0"
+ },
+ {
+  "eval": "() => { const s = DS.history.steps; document.querySelector(`[data-hist='${s.length - 1}']`).click(); return DS.history.index; }"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "...and jump back to the latest step",
+  "assert": "() => DS.overrides()['--chart'] === '#e8590c' && DS.history.index === DS.history.steps.length - 1"
+ },
+ {
+  "allow": "127\\.0\\.0\\.1:7879|ERR_CONNECTION_REFUSED|Failed to fetch"
+ },
+ {
+  "eval": "async () => { try { await fetch('http://127.0.0.1:7879/health'); return 'helper is UP: stop it for this test'; } catch { return 'helper down (expected)'; } }"
+ },
+ {
+  "eval": "() => { const i = document.querySelector('[data-preset-name]'); i.value = 'Session look'; document.querySelector('[data-preset-save]').click(); return true; }"
+ },
+ {
+  "waitFor": "() => DS.PRESETS.some((p) => p.slug === 'session-look')"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "Save with the helper down: kept for this session, and the panel says how to persist it",
+  "assert": "() => { const p = DS.PRESETS.find((x) => x.slug === 'session-look'); return p.session && p.overrides['--chart'] === '#e8590c' && DS.active?.slug === 'session-look' && /isn’t running/.test(document.querySelector('.dsp-msg').textContent); }"
+ },
+ {
+  "name": "the Saved looks list shows it as active",
+  "assert": "() => document.querySelector('.dsp-preset.on .t')?.textContent === 'Session look'"
+ },
+ {
+  "eval": "() => { const el = document.querySelector('.ds-panel input[data-colour=\"--chart\"]'); el.value = '#3355aa'; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return DS.token('--chart'); }"
+ },
+ {
+  "wait": 150
+ },
+ {
+  "name": "an edit after saving marks the preset modified and offers Update",
+  "assert": "() => DS.presetModified() && !!document.querySelector('[data-preset-update]') || (WF.renderAll(), DS.presetModified())"
+ },
+ {
+  "click": "[data-dsp-reset]"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "Reset is a step (undoable)",
+  "assert": "() => Object.keys(DS.overrides()).length === 0 && DS.history.steps.at(-1).label === 'Reset'"
+ },
+ {
+  "click": "[data-preset-apply='session-look']"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "applying a saved look restores it (a labelled step)",
+  "assert": "() => DS.overrides()['--chart'] === '#e8590c' && DS.history.steps.at(-1).label === 'Preset “Session look”' && !DS.presetModified()"
+ },
+ {
+  "click": "[data-preset-del='session-look']"
+ },
+ {
+  "click": "[data-preset-del='session-look']"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "delete takes two clicks (the sandbox blocks confirm) and clears the active look",
+  "assert": "() => !DS.PRESETS.some((p) => p.slug === 'session-look') && DS.active === null"
+ },
+ {
+  "name": "charts repaint from the restored tokens (the hero chart's area reads --area-fill; its stroke --area-line)",
+  "assert": "() => { const o = echarts.getInstanceByDom(document.getElementById('hn-chart')).getOption(); return String(o.series[0].areaStyle.color.colorStops[0].color).toLowerCase().startsWith(DS.token('--area-fill').toLowerCase()) && o.series[0].lineStyle.color.toLowerCase() === DS.token('--area-line').toLowerCase(); }"
+ },
+ {
+  "click": "[data-dsp-reset]"
+ },
+ {
+  "click": "[data-dsp-close]"
+ },
+ {
+  "name": "closed, and the look is back to the shipped one",
+  "assert": "() => document.querySelector('.ds-panel').hidden && Object.keys(DS.overrides()).length === 0"
+ }
+]

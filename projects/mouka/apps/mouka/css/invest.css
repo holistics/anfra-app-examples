@@ -1,0 +1,167 @@
+/* Invest (18 Oct): Performance · Holdings. Page-only rules; tokens only, no literal colours (ds-lint).
+   The shared pieces (card, hero block, rows, disclosure, pace rows, notes, split bar) are in ds/components.css and css/home.css. */
+
+/* ---------- Performance › Return */
+/* the race: two lanes on one scale (you in the chart's line colour, the index in its reference colour), a knob at each
+   end with the % beside it (left of it when negative), the gap in points on a dashed connector between them. Gutters
+   keep the % inside the card: right always, left only when a return is negative (then a zero tick shows). */
+@property --inv-x { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
+/* its own card since 19 Oct (Nhi: "put this on a separate section"), at body size */
+.inv-race { --inv-gl: 0px; --inv-gr: 64px; position: relative; isolation: isolate; display: grid; grid-template-columns: max-content 1fr; column-gap: var(--sp-4); margin: var(--sp-1) 0 0; font-size: var(--fs-body); }
+.inv-race.has-zero { --inv-gl: 64px; }
+.inv-race .inv-scale { position: relative; margin: 0 var(--inv-gr) 0 var(--inv-gl); }
+.inv-lane, .inv-gap, .inv-zero { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: center; }
+.inv-gap .inv-scale, .inv-zero .inv-scale { grid-column: 2; }
+.inv-lane { min-height: 32px; animation: inv-run 700ms var(--ease-out) both; }
+.inv-lane .nm { color: var(--ink-2); }
+.inv-lane .inv-scale { --c: var(--race-you); height: 12px; border-radius: 999px; background: var(--chart-track); }
+.inv-lane[data-k=ix] .inv-scale { --c: var(--race-ix); }
+.inv-lane .bar { position: absolute; top: 0; bottom: 0; left: min(var(--inv-x), var(--inv-z)); width: max(var(--inv-x) - var(--inv-z), var(--inv-z) - var(--inv-x)); border-radius: inherit; background: var(--c); }
+/* 19 Oct (Nhi: "less like a slider"): no knob, a thicker bar in a lighter brown; the % sits just past its end */
+.inv-lane .pct { position: absolute; z-index: 2; top: 50%; left: calc(var(--inv-x) + 8px); transform: translateY(-50%); white-space: nowrap; font-weight: var(--fw-medium); font-variant-numeric: tabular-nums; color: var(--ink); }
+.inv-lane[data-k=ix] .pct { color: var(--ink-2); }
+.inv-lane .pct.l { left: auto; right: calc(100% - var(--inv-x) + 8px); }
+.inv-race.has-zero .inv-lane .inv-scale::after { content: ''; position: absolute; z-index: 1; top: -5px; bottom: -5px; left: var(--inv-z); width: 1px; background: var(--ink-3); }
+.inv-zero span { position: absolute; left: var(--inv-z); top: 0; transform: translateX(-50%); font-size: var(--fs-label); color: var(--ink-3); }
+.inv-zero .inv-scale { height: 16px; }
+.inv-gap { animation: inv-fade 300ms 450ms both; }
+.inv-gap .inv-scale { height: 30px; }
+.inv-gap .dash { position: absolute; bottom: 5px; height: 0; border-top: 1.5px dashed var(--border-strong); }
+.inv-gap .lbl { position: absolute; top: 2px; white-space: nowrap; font-size: var(--fs-2); color: var(--ink-3); }
+#inv-race-gap { font-weight: var(--fw-medium); color: var(--ink-2); }
+.inv-gap[data-w=ahead] .dash { border-color: var(--pos); }
+.inv-gap[data-w=ahead] #inv-race-gap { color: var(--pos-ink); }
+.inv-gap[data-w=behind] .dash { border-color: var(--neg); }
+.inv-gap[data-w=behind] #inv-race-gap { color: var(--neg-ink); }
+@keyframes inv-run { from { --inv-x: var(--inv-z); } }
+@keyframes inv-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .inv-lane, .inv-gap { animation: none; } }
+/* the race left for its own card (19 Oct), so the chart is back to the shared frame's height */
+.inv-scope { margin: var(--sp-3) 0 0; font-size: var(--fs-label); color: var(--ink-meta, var(--ink-3)); text-align: center; }
+
+/* ---------- Performance › What moved it (19 Oct, Nhi: "hard to understand"): one sum read left to right in an outlined box,
+   Invested + You added + Your gain = Invested now (each term: its name, the value, the date under the two ends; the sign
+   sits in the gap before it), then "Your gain came from" as Net worth's pace rows on one scale. A narrow card stacks the
+   sum into a receipt: one term a line, the sign before the name. */
+.inv-eq { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: var(--sp-6); padding: var(--sp-4) var(--sp-5); border-radius: var(--r-md); background: var(--tint); }   /* 19 Oct (round 3, Nhi): the light beige of the kpi strips; the dates move up to --ink-2 to keep 4.5:1 on it */
+.inv-eq:empty { display: none; }
+.inv-eq-t { position: relative; display: grid; align-content: start; gap: 2px; min-width: 0; }
+.inv-eq-t .k { font-size: var(--fs-2); color: var(--ink-2); }
+.inv-eq-t .v { font-size: var(--fs-card-hero); font-weight: var(--fw-medium); color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.inv-eq-t .v.pos { color: var(--pos-ink); } .inv-eq-t .v.neg { color: var(--neg-ink); }
+.inv-eq-t .d { min-height: 1lh; font-size: var(--fs-2); color: var(--ink-2); }
+.inv-eq-t .op { position: absolute; left: calc(-1 * var(--sp-6) / 2); top: calc(var(--fs-2) * 1.45 + 2px); transform: translateX(-50%); font-size: var(--fs-card-hero); line-height: 1.45; color: var(--ink-3); }
+.inv-eq-t[data-part=e] .v { font-weight: var(--fw-medium); }
+.inv-br-parts { margin-top: var(--sp-5); }
+.inv-br-parts .label { margin-bottom: var(--sp-1); font-size: var(--fs-body); color: var(--ink); }
+@container (max-width: 560px) {
+  .inv-eq { grid-template-columns: minmax(0, 1fr); row-gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); }
+  .inv-eq-t { grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; column-gap: var(--sp-2); }
+  .inv-eq-t .op { position: static; transform: none; width: 1ch; font-size: var(--fs-body); line-height: inherit; }
+  .inv-eq-t:not(:has(.op))::before { content: ''; width: 1ch; }
+  .inv-eq-t .k { font-size: var(--fs-body); }
+  .inv-eq-t .v { order: 3; font-size: var(--fs-body); }
+  .inv-eq-t .d { grid-column: 2; grid-row: 2; min-height: 0; }
+  .inv-eq-t .d:empty { display: none; }
+  .inv-eq-t[data-part=e] { padding-top: var(--sp-2); border-top: 1px solid var(--rule); }
+}
+
+/* ---------- Performance › Winners and drags: each holding's price move as a bar from one zero line. The symbols have their
+   own column; the plot runs from the biggest loss to the biggest gain, so zero sits at maxLoss / (maxLoss + maxGain) of it
+   (--inv-z, set by the view), and its gutters hold the value at each bar's outer end, so a bar never meets a label. */
+.inv-movers { --inv-gl: 0px; --inv-gr: 0px; position: relative; isolation: isolate; display: grid; grid-template-columns: max-content 1fr; column-gap: var(--sp-4); margin: var(--sp-2) 0 0; font-size: var(--fs-body); }
+.inv-movers.has-loss { --inv-gl: 68px; }
+.inv-movers.has-gain { --inv-gr: 68px; }
+.inv-mv { position: relative; display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: center; min-height: 36px; cursor: pointer; }
+.inv-mv::before { content: ''; position: absolute; z-index: -1; inset: 0 calc(-1 * var(--sp-2)); border-radius: var(--r-sm); }
+.inv-mv:hover::before { background: var(--row-hover); }
+.inv-mv:focus-visible { outline: none; }
+.inv-mv:focus-visible::before { box-shadow: inset var(--focus-ring); }
+.inv-mv .s { font-weight: var(--fw-medium); color: var(--ink); white-space: nowrap; }   /* 19 Oct, Nhi: the symbols at body size */
+.inv-mv-plot { position: relative; height: 10px; margin: 0 var(--inv-gr) 0 var(--inv-gl); }
+.inv-mv-plot::before { content: ''; position: absolute; top: -11px; bottom: -11px; left: var(--inv-z); width: 1px; background: var(--border-strong); }
+.inv-mv-bar { position: absolute; top: 0; bottom: 0; left: var(--inv-z); width: max(2px, var(--inv-x) - var(--inv-z)); border-radius: 0 3px 3px 0; background: var(--gain-fill); transform-origin: left;   /* 19 Oct, Nhi: mint */ animation: inv-mv-grow 600ms var(--ease-out) both; }
+.inv-mv-bar.neg { left: auto; right: calc(100% - var(--inv-z)); width: max(2px, var(--inv-z) - var(--inv-x)); border-radius: 3px 0 0 3px; background: var(--neg); transform-origin: right; }
+.inv-mv .amt { position: absolute; top: 50%; left: calc(var(--inv-x) + 8px); transform: translateY(-50%); white-space: nowrap; font-size: var(--fs-2); font-weight: var(--fw-medium); font-variant-numeric: tabular-nums; color: var(--pos-ink); animation: inv-fade 300ms 350ms both; }
+.inv-mv .amt.l { left: auto; right: calc(100% - var(--inv-x) + 8px); color: var(--neg-ink); }
+.hc .inv-hc-foot { margin-top: 8px; }
+.inv-mv-more { grid-column: 1 / -1; padding: 2px 0 4px; font-size: var(--fs-label); color: var(--ink-3); }
+@keyframes inv-mv-grow { from { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .inv-mv-bar, .inv-mv .amt { animation: none; } }
+
+/* ---------- Performance › Risk and Income (rail) */
+/* Risk: the governed worst drop as the card's number, its sentence, the dip under a waterline at 0%, volatility under it */
+.hero.inv-risk-k { margin-top: var(--sp-1); }
+.inv-risk-sub { margin: 2px 0 0; color: var(--ink-meta, var(--ink-2)); }
+.chart.inv-dip { height: 112px; margin: var(--sp-5) 0 var(--sp-4); }   /* 19 Oct, Nhi: room under the sentence and above Volatility */
+.chart.inv-dip[hidden] { display: none; }
+.inv-risk-vol { margin: 0; font-size: var(--fs-2); color: var(--ink-3); }
+.inv-risk-vol .num { color: var(--ink-2); font-weight: var(--fw-medium); }
+.hero.inv-inc-v { margin-top: var(--sp-1); }
+.chart.inv-inc-chart { height: 120px; margin: var(--sp-2) 0 var(--sp-3); }
+
+/* ---------- Holdings › the list: Net worth's group rows over two-line holding rows */
+.inv-split { margin: var(--sp-4) 0 var(--sp-3); }
+.inv-split .split { height: 10px; }
+.inv-list, #inv-closed { display: grid; }
+.inv-grp + .inv-grp, #inv-closed .inv-grp { margin-top: var(--sp-3); }
+.inv-gline { min-height: 40px; margin: 0 calc(-1 * var(--sp-2)); padding: 0 var(--sp-2); border-radius: var(--r-sm); }
+.inv-gline .disc { font-size: var(--fs-body); }
+.inv-gline .disc .t { font-size: inherit; }
+.inv-gline .a { font-size: var(--fs-2); color: var(--ink-3); font-weight: var(--fw-regular); }
+.inv-gline .v { font-size: var(--fs-body); font-weight: var(--fw-medium); }
+.inv-grp.on .inv-gline { background: var(--row-hover); }
+.inv-sw-closed { background: var(--chart-rest); }
+/* a holding: the row's text starts under the group's name (swatch 10 + gap 12) */
+.lrow.inv-row { margin: 0 calc(-1 * var(--sp-2)); padding: var(--sp-2) var(--sp-2) var(--sp-2) calc(var(--sp-2) + 22px); border-radius: var(--r-sm); cursor: pointer; }
+.lrow.inv-row:hover { background: var(--row-hover); }
+.lrow.inv-row:hover .t { text-decoration: none; }
+.lrow.inv-row.active { background: var(--fill-subtle); }
+.lrow.inv-row:focus-visible { outline: none; box-shadow: inset var(--focus-ring); }
+.lrow.inv-row .lrow-end .s { font-weight: var(--fw-medium); }
+/* 19 Oct, Nhi: every line of a holding at body size (15px), the % as big as the value; the second line's name a step lighter */
+.lrow.inv-row .t, .lrow.inv-row .lrow-end .v, .lrow.inv-row .s, .lrow.inv-row .lrow-end .s { font-size: var(--fs-body); }
+.lrow.inv-row .t { font-weight: var(--fw-regular); }
+.lrow.inv-row .lrow-main .s { color: var(--ink-meta, var(--ink-3)); }
+.inv-list.hide-pct .inv-w, .inv-list.hide-pct .inv-gw { display: none; }
+/* the reconcile (19 Oct, Nhi: "vague, sizes not consistent"): a small sum under a rule, every line at body size:
+   Holdings + cash not yet invested = Invested in total, the last line linking to Home › Investments, which shows the same */
+.inv-cash { margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--rule); }
+.inv-cash:empty { display: none; }
+.inv-cash .lline { min-height: 32px; }
+.inv-cash .lline .t, .inv-cash .lline .v { font-size: var(--fs-body); }
+.inv-cash .lline .t { color: var(--ink-2); }
+.inv-cash .lline .t .muted { margin-left: var(--sp-1); font-size: var(--fs-2); color: var(--ink-meta, var(--ink-3)); }
+.inv-cash .lline .v { font-weight: var(--fw-medium); }
+.inv-cash .lline.inv-cash-tot { margin-top: var(--sp-1); padding-top: var(--sp-2); border-top: 1px dashed var(--rule); }
+.inv-cash .lline.inv-cash-tot .t { color: var(--ink); font-weight: var(--fw-medium); }
+.inv-cash-foot { display: flex; align-items: center; gap: var(--sp-2); margin-top: var(--sp-2); font-size: var(--fs-2); color: var(--ink-2); }
+.inv-cash-foot .ok { display: inline-flex; align-items: center; gap: 6px; }
+.inv-cash-foot .ok .i { width: 14px; height: 14px; color: var(--pos-ink); }
+.btn.link.inv-cash-go { padding: 0; margin-left: auto; font-size: var(--fs-2); color: var(--ink-2); }
+
+/* ---------- Holdings › Allocation (rail): the half ring with the total in its middle, a line per kind or account */
+.inv-ring-wrap { position: relative; }
+.chart.inv-ring { height: 170px; }
+.inv-ring-c { position: absolute; left: 0; right: 0; top: 70px; text-align: center; pointer-events: none; }
+.hero.inv-ring-v { margin: 0 0 2px; }
+.inv-alloc-list { margin-top: var(--sp-2); gap: 0; }
+.inv-alloc-list .inv-al { min-height: 32px; }
+.inv-alloc-list .inv-al .t { font-weight: var(--fw-regular); }
+.inv-alloc-list .inv-al .a { font-weight: var(--fw-regular); color: var(--ink-2); }
+
+/* ---------- the holding drawer (rail) */
+.inv-insp { display: grid; gap: var(--sp-5); }
+.inv-insp .label { margin-bottom: var(--sp-2); }
+.inv-insp-h { display: flex; align-items: center; gap: var(--sp-3); }
+.inv-insp-n { min-width: 0; }
+.inv-insp-n .t { font-size: var(--fs-row); font-weight: var(--fw-medium); color: var(--ink); }
+.inv-insp-n .s { font-size: var(--fs-2); color: var(--ink-2); }
+.chart.inv-insp-chart { height: 180px; }
+.inv-insp-key { margin-top: var(--sp-2); }
+.key .sw.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--area-line); }
+.key .sw.dot.hollow { background: var(--surface); box-shadow: inset 0 0 0 2px var(--area-line); }
+.inv-facts .lline, .inv-acts .lline { min-height: 32px; }
+.inv-facts .lline .t, .inv-acts .lline .t { font-size: var(--fs-2); color: var(--ink-2); }
+.inv-facts .lline .v, .inv-acts .lline .v { font-size: var(--fs-2); font-weight: var(--fw-medium); }
+.inv-acts .day-head { padding-top: var(--sp-3); }

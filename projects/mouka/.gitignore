@@ -1,0 +1,14 @@
+# synthetic-data tooling
+db/.venv/
+db/*.duckdb.tmp
+db/*.duckdb.wal
+__pycache__/
+
+# app checks
+tests/app/node_modules/
+tests/app/*.png
+tests/app/*.log
+tests/app/*.csv
+
+# icon libraries: build-time only (scripts/gen_icons.py)
+scripts/icons/node_modules/

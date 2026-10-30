@@ -1,0 +1,40 @@
+// Raw source table of the investment layer (db/invest.py).
+Model raw_quotes {
+  type: 'table'
+  label: 'Raw · quotes'
+  description: '''
+Source table `quotes`: one synthetic close per symbol per business day.
+'''
+  data_source_name: 'finance'
+  table_name: 'quotes'
+
+  dimension quote_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    description: 'symbol:quote_date.'
+    definition: @sql {{ #SOURCE.symbol }} || ':' || CAST({{ #SOURCE.quote_date }} AS VARCHAR);;
+  }
+  dimension symbol {
+    label: 'Symbol'
+    type: 'text'
+    definition: @sql {{ #SOURCE.symbol }};;
+  }
+  dimension quote_date {
+    label: 'Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.quote_date }};;
+  }
+  dimension close {
+    label: 'Close'
+    type: 'number'
+    definition: @sql {{ #SOURCE.close }};;
+  }
+
+  measure row_count {
+    label: 'Rows'
+    type: 'number'
+    description: 'Number of rows.'
+    definition: @aql count(raw_quotes.quote_key) ;;
+  }
+}

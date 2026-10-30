@@ -1,0 +1,52 @@
+// Raw source table of the investment layer (db/invest.py). For audit and lineage; analysis goes
+// through the wealth dataset.
+Model raw_accounts {
+  type: 'table'
+  label: 'Raw · accounts'
+  description: '''
+Source table `accounts`: every account Wealthfolio would list. `src` ties the bank and card
+accounts to the cspipeline ledger.
+'''
+  data_source_name: 'finance'
+  table_name: 'accounts'
+
+  dimension id {
+    label: 'ID'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension account_type {
+    label: 'Type'
+    type: 'text'
+    description: 'CASH · SECURITIES · CREDIT_CARD.'
+    definition: @sql {{ #SOURCE.account_type }};;
+  }
+  dimension account_group {
+    label: 'Group'
+    type: 'text'
+    definition: @sql {{ #SOURCE.account_group }};;
+  }
+  dimension currency {
+    label: 'Currency'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency }};;
+  }
+  dimension src {
+    label: 'Ledger source'
+    type: 'text'
+    definition: @sql {{ #SOURCE.src }};;
+  }
+
+  measure row_count {
+    label: 'Rows'
+    type: 'number'
+    description: 'Number of rows.'
+    definition: @aql count(raw_accounts.id) ;;
+  }
+}

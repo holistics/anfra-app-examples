@@ -1,0 +1,99 @@
+Model fct_card_statements {
+  type: 'query'
+  label: 'Card statements'
+  description: '''
+**Grain:** one card statement.
+
+- **TCB:** one real statement a month, closing on the 20th and due 25 days later, with an
+  outstanding balance and a minimum payment.
+- **MAX VIB:** one *synthetic* calendar-month container that cspipeline makes for its email
+  alerts, with no balances. For VIB cycles use dim_reward_cycles, not these rows.
+'''
+  data_source_name: 'finance'
+  query: @sql
+    SELECT
+      id,
+      CASE bank WHEN 'TCB' THEN 'credit' WHEN 'VIB' THEN 'vib_credit' ELSE bank END AS src,
+      bank,
+      card_last4,
+      period_start,
+      period_end,
+      bank || ' ' || strftime(period_start, '%d %b') || ' – ' || strftime(period_end, '%d %b %Y') AS statement_label,
+      synthetic AS is_synthetic,
+      outstanding_balance_minor AS outstanding_balance_vnd,
+      min_payment_minor AS min_payment_vnd,
+      payment_due_date,
+      CAST(fetched_at AT TIME ZONE 'Asia/Ho_Chi_Minh' AS TIMESTAMP) AS fetched_at_local
+    FROM statements
+  ;;
+
+  dimension id {
+    label: 'Statement ID'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.id }};;
+  }
+  dimension src {
+    label: 'Card'
+    type: 'text'
+    description: 'credit (TCB) or vib_credit.'
+    definition: @sql {{ #SOURCE.src }};;
+  }
+  dimension bank {
+    label: 'Bank'
+    type: 'text'
+    definition: @sql {{ #SOURCE.bank }};;
+  }
+  dimension card_last4 {
+    label: 'Card last 4'
+    type: 'text'
+    definition: @sql {{ #SOURCE.card_last4 }};;
+  }
+  dimension period_start {
+    label: 'Period start'
+    type: 'date'
+    definition: @sql {{ #SOURCE.period_start }};;
+  }
+  dimension period_end {
+    label: 'Statement date'
+    type: 'date'
+    description: 'The close date: the statement covers period_start to period_end inclusive.'
+    definition: @sql {{ #SOURCE.period_end }};;
+  }
+  dimension statement_label {
+    label: 'Statement'
+    type: 'text'
+    description: 'e.g. TCB 22 Aug – 20 Sep 2026.'
+    definition: @sql {{ #SOURCE.statement_label }};;
+  }
+  dimension is_synthetic {
+    label: 'Is synthetic'
+    type: 'truefalse'
+    description: 'True for the MAX VIB calendar-month containers.'
+    definition: @sql {{ #SOURCE.is_synthetic }};;
+  }
+  dimension outstanding_balance_vnd {
+    label: 'Outstanding balance (VND)'
+    type: 'number'
+    description: 'TCB only: the balance owed at the close. Previous balance + every line on the statement.'
+    definition: @sql {{ #SOURCE.outstanding_balance_vnd }};;
+  }
+  dimension min_payment_vnd {
+    label: 'Minimum payment (VND)'
+    type: 'number'
+    description: 'TCB only: 5% of the balance.'
+    definition: @sql {{ #SOURCE.min_payment_vnd }};;
+  }
+  dimension payment_due_date {
+    label: 'Due date'
+    type: 'date'
+    description: 'TCB only.'
+    definition: @sql {{ #SOURCE.payment_due_date }};;
+  }
+  dimension fetched_at_local {
+    label: 'Fetched at'
+    type: 'datetime'
+    description: 'When the pipeline fetched the statement, local time.'
+    definition: @sql {{ #SOURCE.fetched_at_local }};;
+  }
+}

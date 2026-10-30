@@ -1,0 +1,50 @@
+// Raw source table of the investment layer (db/invest.py).
+Model raw_assets {
+  type: 'table'
+  label: 'Raw · assets'
+  description: '''
+Source table `assets`: one row per instrument (public VN tickers, invented prices) plus the
+VN-Index benchmark.
+'''
+  data_source_name: 'finance'
+  table_name: 'assets'
+
+  dimension symbol {
+    label: 'Symbol'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.symbol }};;
+  }
+  dimension name {
+    label: 'Name'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension asset_class {
+    label: 'Class'
+    type: 'text'
+    definition: @sql {{ #SOURCE.asset_class }};;
+  }
+  dimension asset_sub_class {
+    label: 'Sub-class'
+    type: 'text'
+    definition: @sql {{ #SOURCE.asset_sub_class }};;
+  }
+  dimension sector {
+    label: 'Sector'
+    type: 'text'
+    definition: @sql {{ #SOURCE.sector }};;
+  }
+  dimension country {
+    label: 'Country'
+    type: 'text'
+    definition: @sql {{ #SOURCE.country }};;
+  }
+
+  measure row_count {
+    label: 'Rows'
+    type: 'number'
+    description: 'Number of rows.'
+    definition: @aql count(raw_assets.symbol) ;;
+  }
+}

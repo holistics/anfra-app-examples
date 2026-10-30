@@ -1,0 +1,625 @@
+[
+ {
+  "viewport": [
+   1600,
+   1000
+  ]
+ },
+ {
+  "waitFor": "() => WF.current && WF.asOf && [...WF.registry.values()].every((r) => r.query.state !== 'executing') && document.querySelector('#hn-hero')?.textContent.length > 4"
+ },
+ {
+  "name": "xl frame (1600px window → ~1326px frame)",
+  "assert": "() => DS.bp() === 'xl' && innerWidth >= 1280"
+ },
+ {
+  "name": "Home has three tabs in order, Net worth active; one segmented row",
+  "assert": "() => [...document.querySelectorAll('.view:not([hidden]) .tabs .tab')].map((t) => t.textContent).join('|') === 'Net worth|Spending|Investments' && document.querySelector('.view:not([hidden]) .tab.active').textContent === 'Net worth'"
+ },
+ {
+  "name": "the sidebar is the refs' IA: Home, Cash flow (was Spending, 18 Oct), Invest, Forecast | Trust: Accounts, Definitions (18 Oct: no Design entry; \\ opens the panel) (19 Oct: Ask AI carries a Soon tag)",
+  "assert": "() => [...document.querySelectorAll('.sidebar .nav-item')].map((b) => [...b.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim()).join('|') === 'Ask AI|Home|Cash flow|Invest|Forecast|Accounts|Definitions' && document.querySelector('.sidebar [data-nav=ask] .soon-tag')?.textContent === 'Soon' && !document.querySelector('.sidebar .ds-entry, [data-ds-panel]')"
+ },
+ {
+  "name": "Net worth hero = nw_kpi:nw, exact đồng, delta line with the range word",
+  "assert": "() => { const h = document.querySelector('#hn-hero [data-trace]'); return h.dataset.trace === 'nw_kpi:nw' && /^₫\\d{1,3}(,\\d{3})+$/.test(h.textContent) && /past month$/.test(document.getElementById('hn-hero-delta').textContent.trim()); }"
+ },
+ {
+  "name": "the delta is a tinted pill (arrow + unsigned amount and %, --fw-delta 500), the period word regular in --ink-meta (18 Oct)",
+  "assert": "() => { const d = document.getElementById('hn-hero-delta'), p = d.querySelector('.dpill'); const cs = getComputedStyle(p); return !!p && /^(pos|neg)$/.test([...p.classList].find((c) => c !== 'dpill') ?? '') && !!p.querySelector('svg.i') && !/[+−-]/.test(p.textContent) && cs.fontWeight === '500' && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && getComputedStyle(d.querySelector('.muted')).fontWeight === '400'; }"
+ },
+ {
+  "name": "the Net worth hero has no Forecast button",
+  "assert": "() => !document.querySelector('[data-anfra-block=hn-main] .hero-act') && !document.querySelector('[data-anfra-block=hn-main] [data-go=forecast]')"
+ },
+ {
+  "name": "the area chart wears the neutral area tokens (creme beige in mouka): stroke --area-line, fill --area-fill",
+  "assert": "() => { const o = echarts.getInstanceByDom(document.getElementById('hn-chart')).getOption(); return o.series[0].lineStyle.color.toLowerCase() === DS.token('--area-line').toLowerCase() && String(o.series[0].areaStyle.color.colorStops[0].color).toLowerCase().startsWith(DS.token('--area-fill').toLowerCase()); }"
+ },
+ {
+  "name": "the dates sit clear of the right axis' bottom value (x labels 16px under the plot)",
+  "assert": "() => echarts.getInstanceByDom(document.getElementById('hn-chart')).getOption().xAxis[0].axisLabel.margin >= 16"
+ },
+ {
+  "name": "a card's ⓘ is hidden until the card is hovered or focused",
+  "assert": "() => getComputedStyle(document.querySelector('[data-anfra-block=hn-sum] .explain')).opacity === '0'"
+ },
+ {
+  "click": "[data-anfra-block=hn-sum] .explain"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "name": "the rail card's ⓘ opens its popover on the side with more room (left), height capped and scrollable, inside the window",
+  "assert": "() => { const p = document.getElementById('trace-pop'), r = p.getBoundingClientRect(), b = document.querySelector('[data-anfra-block=hn-sum] .explain').getBoundingClientRect(); return !p.hidden && p.dataset.side === 'left' && r.right <= b.left && r.left >= 0 && r.bottom <= innerHeight && r.height <= 521 && getComputedStyle(p).overflowY === 'auto'; }"
+ },
+ {
+  "eval": "() => { document.body.click(); return true; }"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "click": "[data-anfra-block=hn-main] .explain"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "name": "the main card's ⓘ opens it on the right",
+  "assert": "() => { const p = document.getElementById('trace-pop'), r = p.getBoundingClientRect(), b = document.querySelector('[data-anfra-block=hn-main] .explain').getBoundingClientRect(); return !p.hidden && p.dataset.side === 'right' && r.left >= b.right && r.right <= innerWidth; }"
+ },
+ {
+  "eval": "() => { document.body.click(); return true; }"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "the net worth identity adds up exactly: assets − liabilities = net worth",
+  "assert": "() => { const n = (q, k, f = (r) => true) => Number((WF.registry.get(q).query.result.rows.find(f) ?? {})[k]); return Math.abs(n('nw_kpi', 'assets') + n('nw_kpi', 'liab') - n('nw_kpi', 'nw')) < 1 && Math.abs(n('og4_networth_side', 'v', (r) => String(r.liab) === 'false') - n('nw_kpi', 'assets')) < 1; }"
+ },
+ {
+  "name": "Summary: per side a header (name · total), a split bar with one segment per GROUP in the group's tone, then each group (swatch · name · subtotal) with its accounts under it",
+  "assert": "() => { const t = WF.registry.get('og4_networth_tree').query.result.rows, g = WF.registry.get('og4_networth_grp').query.result.rows; const ok = (k, L) => { const side = document.querySelector(`#hn-sum-list [data-sum=${k}]`), gs = g.filter((r) => String(r.liab) === L); const segs = [...side.querySelectorAll('.nw-split [data-g]')], grps = [...side.querySelectorAll('.nw-sum-grp')]; return side.querySelector('.nw-sum-hd h3') && segs.map((s) => s.dataset.g).join('|') === gs.map((r) => r.g).join('|') && grps.map((e) => e.dataset.g).join('|') === gs.map((r) => r.g).join('|') && grps.every((e) => [...e.querySelectorAll('[data-acct]')].map((r) => r.dataset.acct).sort().join('|') === t.filter((a) => a.g === e.dataset.g && String(a.liab) === L).map((a) => a.id).sort().join('|')); }; return ok('assets', 'false') && ok('liab', 'true'); }"
+ },
+ {
+  "name": "the colour stands for the group only: segments and group swatches wear the group tone, accounts have no swatch",
+  "assert": "() => { const css = (v) => getComputedStyle(document.body).getPropertyValue(v).trim(); return [...document.querySelectorAll('#hn-sum-list .nw-sum-grp')].every((e) => { const sw = getComputedStyle(e.querySelector('.nw-sum-gline .nw-sw')).backgroundColor, seg = getComputedStyle(document.querySelector(`#hn-sum-list .nw-split [data-g=\"${e.dataset.g}\"]`)).backgroundColor; return sw === seg && !e.querySelector('[data-acct] .nw-sw'); }); }"
+ },
+ {
+  "name": "Cash lists every cash account, USD included; accounts largest first inside a group",
+  "assert": "() => { const t = WF.registry.get('og4_networth_tree').query.result.rows; const cash = [...document.querySelectorAll('#hn-sum-list .nw-sum-grp[data-g=Cash] [data-acct]')].map((r) => t.find((a) => a.id === r.dataset.acct)); return cash.some((a) => a.id === 'usd') && cash.every((a, i) => i === 0 || Math.abs(Number(cash[i - 1].v)) >= Math.abs(Number(a.v))); }"
+ },
+ {
+  "name": "Totals / Percent is an icon switch (₫ | %) in the head; account rows 13px with medium values, group names medium; no Net worth box",
+  "assert": "() => { const r = document.querySelector('#hn-sum-list [data-acct]'), gl = document.querySelector('#hn-sum-list .nw-sum-gline .t'), sw = document.querySelector('[data-anfra-block=hn-sum] .card-head #hn-sum-mode'); return sw && sw.classList.contains('segicons') && [...sw.querySelectorAll('button')].every((b) => b.getAttribute('aria-label')) && getComputedStyle(r.querySelector('.t')).fontSize === '13px' && getComputedStyle(r.querySelector('.v')).fontWeight === '500' && getComputedStyle(gl).fontWeight === '500' && !document.querySelector('#hn-sum-list .nw-eq'); }"
+ },
+ {
+  "eval": "() => { const r = document.querySelector('#hn-sum-list [data-acct]'); r.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); return r.dataset.acct; }"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "hovering an account lights its group's segment and dims the others",
+  "assert": "() => { const g = document.querySelector('#hn-sum-list [data-acct]').closest('.nw-sum-grp').dataset.g; const s = document.querySelector(`#hn-sum-list .nw-split [data-g=\"${g}\"]`), o = [...document.querySelectorAll('#hn-sum-list [data-sum=assets] .nw-split [data-g]')].find((x) => x !== s); return s.classList.contains('on') && Number(getComputedStyle(o).opacity) < 0.5; }"
+ },
+ {
+  "eval": "() => { document.getElementById('hn-sum-list').dispatchEvent(new MouseEvent('mouseleave')); return true; }"
+ },
+ {
+  "eval": "() => { window.__mw = document.querySelector('[data-anfra-block=hn-main]').getBoundingClientRect().width; return window.__mw; }"
+ },
+ {
+  "click": "#hn-sum-list [data-acct]"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "clicking an account row opens that account's inspector",
+  "assert": "() => { const r = document.querySelector('#hn-sum-list [data-acct]'); const d = document.querySelector('.inspector:not([hidden]) .dh .card-title'); return d && d.textContent === r.querySelector('.t').textContent.trim() && r.classList.contains('active'); }"
+ },
+ {
+  "name": "the account opens in the rail in the Summary's place (the Net worth card keeps its width); ‹ back (focused) instead of ×; Source · <date>",
+  "assert": "() => { const rail = document.querySelector('[data-anfra-container=hn-rail]'), d = rail.querySelector('.inspector:not([hidden])'), sum = document.querySelector('[data-anfra-block=hn-sum]'); const b = d && d.querySelector('.dh .back'); const lbl = [...d.querySelectorAll('.label')].find((l) => /^Source/.test(l.textContent)); return !!d && !sum.offsetParent && b && b.getAttribute('aria-label') === 'Back to Summary' && b.compareDocumentPosition(d.querySelector('.dh .card-title')) & Node.DOCUMENT_POSITION_FOLLOWING && !d.querySelector('[aria-label=Close]') && document.activeElement === b && Math.abs(document.querySelector('[data-anfra-block=hn-main]').getBoundingClientRect().width - window.__mw) < 1 && lbl && /^Source · (as of|through|current)/.test(lbl.textContent.trim()) && !d.querySelector('.nw-src .num'); }"
+ },
+ {
+  "click": ".inspector:not([hidden]) .dh .back"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "‹ back brings the Summary back in the rail, the inspector gone, focus on the account row, no row left highlighted",
+  "assert": "() => { const sum = document.querySelector('[data-anfra-block=hn-sum]'), a = document.activeElement; return !!sum.offsetParent && !document.querySelector('[data-anfra-container=hn-rail] .inspector:not([hidden])') && a && a.matches('#hn-sum-list [data-acct]') && !document.querySelector('#hn-sum-list [data-acct].active'); }"
+ },
+ {
+  "click": "#hn-sum-list [data-toggle=Investments]"
+ },
+ {
+  "name": "Summary groups fold: a chevron after the group's name (a button, aria-expanded) hides that group's accounts only",
+  "assert": "() => { const b = document.querySelector('#hn-sum-list [data-toggle=Investments]'); const g = b.closest('.nw-sum-grp'); return b.matches('.disc.end') && b.lastElementChild.matches('svg') && b.getAttribute('aria-expanded') === 'false' && [...g.querySelectorAll('[data-acct]')].every((r) => r.hidden) && [...document.querySelectorAll('#hn-sum-list .nw-sum-grp[data-g=Cash] [data-acct]')].every((r) => !r.hidden); }"
+ },
+ {
+  "click": "#hn-sum-list [data-toggle=Investments]"
+ },
+ {
+  "name": "...and unfolds",
+  "assert": "() => [...document.querySelectorAll('#hn-sum-list .nw-sum-grp[data-g=Investments] [data-acct]')].every((r) => !r.hidden) && document.querySelector('#hn-sum-list [data-toggle=Investments]').getAttribute('aria-expanded') === 'true'"
+ },
+ {
+  "name": "the Summary's sides sum to net worth",
+  "assert": "() => { const n = (q, k, f = (r) => true) => Number((WF.registry.get(q).query.result.rows.find(f) ?? {})[k]); const s = WF.registry.get('og4_networth_side').query.result.rows.reduce((a, r) => a + Number(r.v), 0); return Math.abs(s - n('nw_kpi', 'nw')) < 1; }"
+ },
+ {
+  "name": "card heads follow the anatomy: an h2 title as a quiet uppercase label (13px, 400, tracked, ink-3), ≤ 1 control, an ⓘ explain right after the title (no card ✦); no underline tabs in a card head",
+  "assert": "() => [...document.querySelectorAll('.view:not([hidden]) .card-head')].every((h) => { const t = h.querySelector('h2.card-title'), cs = t && getComputedStyle(t); return t && cs.textTransform === 'uppercase' && cs.fontSize === '13px' && cs.fontWeight === '400' && parseFloat(cs.letterSpacing) > 0.5 && cs.color === getComputedStyle(document.body).getPropertyValue('--ink-3').trim().replace(/^#(..)(..)(..)$/, (_, r, g, b) => `rgb(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)})`) && h.querySelectorAll('.head-ctl').length <= 1 && !h.querySelector('.sq.ai') && (!h.querySelector('.explain') || h.querySelector('h2.card-title').nextElementSibling.classList.contains('explain')); }) && !document.querySelector('.view:not([hidden]) .card-head .underline-tabs')"
+ },
+ {
+  "name": "one range set: 1M 3M 6M YTD 1Y ALL",
+  "assert": "() => [...document.querySelectorAll('.view:not([hidden]) .ranges')].every((r) => [...r.querySelectorAll('[data-k]')].map((b) => b.dataset.k).join(' ') === '1M 3M 6M YTD 1Y ALL')"
+ },
+ {
+  "name": "hierarchy: the title (24) steps under the hero (36); the hero is the one display size",
+  "assert": "() => { const t = getComputedStyle(document.querySelector('.view:not([hidden]) .head h1')), h = getComputedStyle(document.querySelector('#hn-hero')); return t.fontSize === '24px' && h.fontSize === '36px' && document.querySelectorAll('.view:not([hidden]) .hero.page').length === 1; }"
+ },
+ {
+  "name": "colour: signed numbers use the text-safe ink (≥ 4.5:1), not the fill colour",
+  "assert": "() => { const p = document.querySelector('#hn-hero-delta .pos'); return getComputedStyle(p).color === getComputedStyle(document.body).getPropertyValue('--pos-ink').trim().replace(/^#(..)(..)(..)$/, (_, r, g, b) => `rgb(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)})`); }"
+ },
+ {
+  "name": "the trace button wears the privacy button's look (17 Oct, Nhi) with a formula icon",
+  "assert": "() => { const t = document.querySelector('.view:not([hidden]) .head [data-action=trace]'), e = document.querySelector('.view:not([hidden]) .head [data-action=privacy]'); return !t.classList.contains('ai') && getComputedStyle(t).backgroundColor === getComputedStyle(e).backgroundColor && getComputedStyle(t).backgroundImage === 'none' && OG.ICONS.formula.includes(t.querySelector('svg.i path').getAttribute('d')); }"
+ },
+ {
+  "name": "the right rail is sticky beside the main column (≥ 900px)",
+  "assert": "() => getComputedStyle(document.querySelector('.view:not([hidden]) .row > .rail')).position === 'sticky'"
+ },
+ {
+  "name": "tabs are a tablist with aria-selected; the nav marks the current page",
+  "assert": "() => document.querySelector('.view:not([hidden]) .tabs').getAttribute('role') === 'tablist' && document.querySelector('.view:not([hidden]) .tab.active').getAttribute('aria-selected') === 'true' && document.querySelector('.sidebar [data-nav=home]').getAttribute('aria-current') === 'page'"
+ },
+ {
+  "click": "#hn-sum-mode [data-k=percent]"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "Percent: every group and account shows its governed share of its side (og4_networth_grp:share / og4_networth_tree:share)",
+  "assert": "() => { const t = WF.registry.get('og4_networth_tree').query.result.rows, g = WF.registry.get('og4_networth_grp').query.result.rows; const rs = [...document.querySelectorAll('#hn-sum-list [data-acct]')], gs = [...document.querySelectorAll('#hn-sum-list .nw-sum-grp')]; return rs.every((r) => { const a = t.find((x) => x.id === r.dataset.acct); return r.querySelector('.v').textContent.trim() === OG.pct1(a.share) && r.querySelector('[data-trace=\"og4_networth_tree:share\"]'); }) && gs.every((e) => { const x = g.find((y) => y.g === e.dataset.g); return e.querySelector('.nw-sum-gline .v').textContent.trim() === OG.pct1(x.share); }) && document.querySelector('#hn-sum-mode [data-k=percent]').classList.contains('active'); }"
+ },
+ {
+  "click": "#hn-sum-mode [data-k=totals]"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "Totals: back to balances (liabilities shown as what is owed, unsigned)",
+  "assert": "() => [...document.querySelectorAll('#hn-sum-list [data-acct] .v')].every((v) => /^₫/.test(v.textContent.trim()))"
+ },
+ {
+  "eval": "() => { window.__w = document.getElementById('hn-chart').getBoundingClientRect().width; return window.__w; }"
+ },
+ {
+  "eval": "() => { window.__tt = document.querySelector('[data-anfra-block=hn-main] .card-title').getBoundingClientRect().top; return window.__tt; }"
+ },
+ {
+  "click": "[data-anfra-block=hn-main] [data-fold]"
+ },
+ {
+  "wait": 450
+ },
+ {
+  "name": "a card folds to its head without the head moving (body animates to 0, inert and invisible; the control and the lone action step out; aria-expanded false)",
+  "assert": "() => { const c = document.querySelector('[data-anfra-block=hn-main]'), b = c.querySelector('.card-body'); return c.classList.contains('folded') && b.inert && getComputedStyle(b).visibility === 'hidden' && b.getBoundingClientRect().height <= 9 && getComputedStyle(c.querySelector('.head-ctl')).display === 'none' && getComputedStyle(c.querySelector('.card-head > .menu-wrap')).display === 'none' && Math.abs(c.querySelector('.card-title').getBoundingClientRect().top - window.__tt) < 0.5 && c.querySelector('[data-fold]').getAttribute('aria-expanded') === 'false' && c.getBoundingClientRect().height < 90; }"
+ },
+ {
+  "click": "[data-anfra-block=hn-main] [data-fold]"
+ },
+ {
+  "wait": 450
+ },
+ {
+  "name": "...and unfolds with the chart back at full width",
+  "assert": "() => Math.abs(document.getElementById('hn-chart').getBoundingClientRect().width - window.__w) < 2 && echarts.getInstanceByDom(document.getElementById('hn-chart')).getWidth() > 300"
+ },
+ {
+  "name": "...the head still hasn't moved, and the body is live again (not inert)",
+  "assert": "() => { const c = document.querySelector('[data-anfra-block=hn-main]'); return Math.abs(c.querySelector('.card-title').getBoundingClientRect().top - window.__tt) < 0.5 && !c.querySelector('.card-body').inert && !c.classList.contains('folding'); }"
+ },
+ {
+  "name": "card titles line up with the content under them (the fold caret sits in the padding)",
+  "assert": "() => { const t = document.querySelector('[data-anfra-block=hn-main] .card-title').getBoundingClientRect(), h = document.getElementById('hn-hero').getBoundingClientRect(); return Math.abs(t.left - h.left) < 2; }"
+ },
+ {
+  "name": "sidebar: the freshness dot is green when every source in use is current (a ₫0 card such as TCB Visa is idle, not out of sync)",
+  "assert": "() => document.querySelector('#sidebar [data-fresh-dot]').classList.contains('ok') && document.querySelector('.brand').textContent.trim() === 'mouka'"
+ },
+ {
+  "name": "a card with ONE utility action shows that action's icon, not a ⋮ (17 Oct, Nhi)",
+  "assert": "() => { const b = document.querySelector('#hn-main-menu.one > [data-k=accounts]'); return !!b && b.getAttribute('aria-label') === 'Filter accounts…' && !document.querySelector('[data-anfra-block=hn-main] [data-menu-btn]') && !!document.querySelector('#hn-sum-menu.one > [data-k=csv]'); }"
+ },
+ {
+  "click": "#hn-main-menu [data-k=accounts]"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "the Filter accounts icon opens the account popover (the click that opened it does not close it)",
+  "assert": "() => !!document.querySelector('.popover[data-anfra-block=og-account-pop]')"
+ },
+ {
+  "press": "Escape"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "Escape closes the account popover; no filter chip while every account shows",
+  "assert": "() => !document.querySelector('.popover') && document.getElementById('hn-main-info').textContent.trim() === ''"
+ },
+ {
+  "click": "[data-nav-toggle]"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "sidebar: the toggle collapses it to the icon rail at xl",
+  "assert": "() => document.documentElement.classList.contains('rail') && Math.round(document.querySelector('.sidebar').getBoundingClientRect().width) === 64 && document.querySelector('[data-nav-toggle]').getAttribute('aria-expanded') === 'false'"
+ },
+ {
+  "press": "["
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "sidebar: [ expands it again",
+  "assert": "() => !document.documentElement.classList.contains('rail') && document.querySelector('.sidebar').getBoundingClientRect().width > 200"
+ },
+ {
+  "eval": "() => { const h = document.querySelector('.nav-resize').getBoundingClientRect(); return [h.left + h.width / 2, h.top + 300]; }"
+ },
+ {
+  "eval": "() => { window.__x = document.querySelector('.sidebar').getBoundingClientRect().left; return true; }"
+ },
+ {
+  "pageEval": "() => { const f = document.querySelector('iframe').getBoundingClientRect(); window.__fx = f.left; window.__fy = f.top; return [f.left, f.top]; }"
+ },
+ {
+  "eval": "() => { const s = document.querySelector('.sidebar').getBoundingClientRect(); const h = document.querySelector('.nav-resize'); const fire = (type, x) => h.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 1, button: 0, clientX: x, clientY: 300 })); h.setPointerCapture = () => {}; fire('pointerdown', s.right); fire('pointermove', s.left + 260); fire('pointerup', s.left + 260); return Math.round(document.querySelector('.sidebar').getBoundingClientRect().width); }"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "sidebar: dragging the edge resizes it (260px) and the grid follows; it is not a design-token edit",
+  "assert": "() => Math.round(document.querySelector('.sidebar').getBoundingClientRect().width) === 260 && Object.keys(DS.overrides()).length === 0 && document.querySelector('.nav-resize').getAttribute('aria-valuenow') === '260'"
+ },
+ {
+  "eval": "() => { const s = document.querySelector('.sidebar').getBoundingClientRect(); const h = document.querySelector('.nav-resize'); const fire = (type, x) => h.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 1, button: 0, clientX: x, clientY: 300 })); fire('pointerdown', s.right); fire('pointermove', s.left + 400); fire('pointerup', s.left + 400); return true; }"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "sidebar: the width stops at 320px",
+  "assert": "() => Math.round(document.querySelector('.sidebar').getBoundingClientRect().width) === 320"
+ },
+ {
+  "eval": "() => { document.querySelector('.nav-resize').focus(); return true; }"
+ },
+ {
+  "press": "ArrowLeft"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "sidebar: ← on the focused handle narrows it by 8px",
+  "assert": "() => Math.round(document.querySelector('.sidebar').getBoundingClientRect().width) === 312"
+ },
+ {
+  "eval": "() => { const s = document.querySelector('.sidebar').getBoundingClientRect(); const h = document.querySelector('.nav-resize'); const fire = (type, x) => h.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 1, button: 0, clientX: x, clientY: 300 })); fire('pointerdown', s.right); fire('pointermove', s.left + 80); fire('pointerup', s.left + 80); return true; }"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "sidebar: dragging under 120px snaps to the icon rail",
+  "assert": "() => document.documentElement.classList.contains('rail')"
+ },
+ {
+  "click": "[data-nav-toggle]"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "eval": "() => { document.querySelector('.nav-resize').dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); return true; }"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "sidebar: double-click resets to the token width",
+  "assert": "() => Math.round(document.querySelector('.sidebar').getBoundingClientRect().width) === parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-w-xl'))"
+ },
+ {
+  "name": "xl grid: main 8 / rail 4, rail to the right of main, top edges aligned",
+  "assert": "() => { const m = document.querySelector('[data-anfra-block=hn-main]').getBoundingClientRect(), s = document.querySelector('[data-anfra-block=hn-sum]').getBoundingClientRect(), g = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap')); const col = (m.width - 7 * g) / 8; return Math.abs(s.width - (4 * col + 3 * g)) < 2 && s.left > m.right && Math.abs(s.top - m.top) < 1; }"
+ },
+ {
+  "click": ".view:not([hidden]) .tab:nth-child(2)"
+ },
+ {
+  "waitFor": "() => WF.current.id === 'home/spending' && [...WF.registry.values()].every((r) => r.query.state !== 'executing') && document.querySelector('#hs-hero')?.textContent.length > 4"
+ },
+ {
+  "name": "Spending: the tab follows; hero = sp_kpi_1m:spent; the delta compares the same days (inverted tone)",
+  "assert": "() => document.querySelector('.view:not([hidden]) .tab.active').textContent === 'Spending' && document.querySelector('#hs-hero [data-trace]').dataset.trace === 'sp_kpi_1m:spent' && /vs \\w{3} 1–\\d+$/.test(document.getElementById('hs-hero-delta').textContent.trim())"
+ },
+ {
+  "name": "one base per card: no budget line on the all-spend chart",
+  "assert": "() => { const o = echarts.getInstanceByDom(document.getElementById('hs-chart')).getOption(); return !o.series[0].markLine || !(o.series[0].markLine.data ?? []).length; }"
+ },
+ {
+  "name": "the categories add up to the hero",
+  "assert": "() => { const n = (q, k, f = (r) => true) => Number((WF.registry.get(q).query.result.rows.find(f) ?? {})[k]); const s = WF.registry.get('sp_cats').query.result.rows.reduce((a, r) => a + Math.max(0, Number(r.spent)), 0); return Math.abs(s - n('sp_kpi_1m', 'spent')) < 1; }"
+ },
+ {
+  "name": "Spending: no Upcoming card; Latest sits under Spend this month (main column), a two-line transaction list with signed amounts; the breakdown alone in the rail",
+  "assert": "() => { const m = document.querySelector('[data-anfra-block=hs-month]').getBoundingClientRect(), l = document.querySelector('[data-anfra-block=hs-latest]').getBoundingClientRect(); return !document.querySelector('[data-anfra-block=hs-upc]') && Math.abs(m.left - l.left) < 2 && Math.abs(m.width - l.width) < 2 && l.top > m.bottom && document.querySelectorAll('#hs-latest-list .lrow').length > 0 && /^[+-]₫/.test(document.querySelector('#hs-latest-list .lrow-end .v').textContent.trim()) && document.querySelector('.view:not([hidden]) .row > .rail').children.length === 1; }"
+ },
+ {
+  "name": "Spend this month: income · spending · net beside the hero (no income yet reads —; net = income − spending)",
+  "assert": "() => { const f = document.getElementById('hs-flow'); const v = [...f.querySelectorAll('.v')].map((x) => x.textContent.trim()); return [...f.querySelectorAll('.k')].map((x) => x.textContent).join('|') === 'Income|Spending|Net' && v.length === 3 && v[2].startsWith('-'); }"
+ },
+ {
+  "name": "the rail's text switch fills its row in a narrow card (Expenses | Budget)",
+  "assert": "() => { const c = document.querySelector('[data-anfra-block=hs-cats]'), s = c.querySelector('.seg-btns'); return c.getBoundingClientRect().width > 400 || s.getBoundingClientRect().width > c.getBoundingClientRect().width - 60; }"
+ },
+ {
+  "click": "#hs-ctab [data-k=budget]"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "Budget switch: budget base rows (spent of limit)",
+  "assert": "() => document.querySelectorAll('#hs-cat-rows .lrow.hs-bud').length > 0 && /of ₫/.test(document.querySelector('#hs-cat-rows .lrow-end .s').textContent)"
+ },
+ {
+  "click": ".view:not([hidden]) .tab:nth-child(3)"
+ },
+ {
+  "waitFor": "() => WF.current.id === 'home/invest' && [...WF.registry.values()].every((r) => r.query.state !== 'executing') && document.querySelector('#hi-hero')?.textContent.length > 4 && document.querySelector('#hi-inc-v')?.textContent.length > 4"
+ },
+ {
+  "name": "Investments hero = the invested value = the Investments group subtotal (value and 1M change)",
+  "assert": "() => { const n = (q, k, f = (r) => true) => Number((WF.registry.get(q).query.result.rows.find(f) ?? {})[k]); const inv = (r) => r.g === 'Investments'; return Math.abs(n('og5_home_inv_kpi', 'v') - n('og4_networth_grp', 'v', inv)) < 1 && Math.abs(n('og5_home_inv_kpi', 'ch') - n('og4_networth_grp', 'ch', inv)) < 1; }"
+ },
+ {
+  "name": "linked card titles (Holdings ›, Investment income ›) wear the same uppercase label",
+  "assert": "() => [...document.querySelectorAll('.view:not([hidden]) .card-title button')].length > 0 && [...document.querySelectorAll('.view:not([hidden]) .card-title button')].every((b) => getComputedStyle(b).textTransform === 'uppercase' && parseFloat(getComputedStyle(b).letterSpacing) > 0.5)"
+ },
+ {
+  "name": "...and it is NOT all assets (one number, one home)",
+  "assert": "() => { const n = (q, k, f = (r) => true) => Number((WF.registry.get(q).query.result.rows.find(f) ?? {})[k]); return n('og5_home_inv_kpi', 'v') < n('nw_kpi', 'assets') - 1; }"
+ },
+ {
+  "name": "each tab's hero owns a different fact (data-own)",
+  "assert": "() => ['net-worth', 'spend-month', 'invested'].every((k) => document.querySelectorAll(`[data-own=\"${k}\"]`).length === 1)"
+ },
+ {
+  "name": "accounts list: Investments first, then Cash, no liabilities",
+  "assert": "() => [...document.querySelectorAll('#hi-acc-list .nw-sum-gline .disc .t')].map((g) => g.textContent.trim()).join('|') === 'Investments|Cash'"
+ },
+ {
+  "click": "#hi-acc-list [data-acct]"
+ },
+ {
+  "waitFor": "() => document.querySelector('[data-anfra-container=hi-rail] .inspector:not([hidden]) #hi-insp .hero')"
+ },
+ {
+  "name": "...the inspector names the clicked account, the row is highlighted, the Accounts card steps aside, ‹ back says where it goes",
+  "assert": "() => { const rail = document.querySelector('[data-anfra-container=hi-rail]'), d = rail.querySelector('.inspector:not([hidden])'), r = document.querySelector('#hi-acc-list [data-acct].active'); const b = d && d.querySelector('.dh .back'); return !!r && d.querySelector('.dh .card-title').textContent === r.querySelector('.t').textContent.trim() && !document.querySelector('[data-anfra-block=hi-acc]').offsetParent && b && b.getAttribute('aria-label') === 'Back to Accounts'; }"
+ },
+ {
+  "click": "[data-anfra-container=hi-rail] .inspector:not([hidden]) .dh .back"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "...‹ back brings the Accounts card back, nothing left highlighted",
+  "assert": "() => !!document.querySelector('[data-anfra-block=hi-acc]').offsetParent && !document.querySelector('[data-anfra-container=hi-rail] .inspector:not([hidden])') && !document.querySelector('#hi-acc-list [data-acct].active')"
+ },
+ {
+  "name": "no horizontal overflow (xl)",
+  "assert": "() => document.documentElement.scrollWidth <= innerWidth + 1"
+ },
+ {
+  "viewport": [
+   1440,
+   1000
+  ]
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "lg (1440px window): sidebar, still 8 / 4, no overflow",
+  "assert": "() => DS.bp() === 'lg' && document.querySelector('.sidebar').getBoundingClientRect().width > 150 && document.querySelector('[data-anfra-block=hi-acc]').getBoundingClientRect().left > document.querySelector('[data-anfra-block=hi-port]').getBoundingClientRect().right && document.documentElement.scrollWidth <= innerWidth + 1"
+ },
+ {
+  "viewport": [
+   1280,
+   1000
+  ]
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "md (1280px window): the sidebar is an icon rail; the grid stays 8 / 4",
+  "assert": "() => DS.bp() === 'md' && Math.round(document.querySelector('.sidebar').getBoundingClientRect().width) === 64 && document.querySelector('[data-anfra-block=hi-acc]').getBoundingClientRect().left > document.querySelector('[data-anfra-block=hi-port]').getBoundingClientRect().right && document.documentElement.scrollWidth <= innerWidth + 1"
+ },
+ {
+  "click": "[data-nav-toggle]"
+ },
+ {
+  "wait": 500
+ },
+ {
+  "name": "md: the toggle opens the full sidebar OVER the page (the grid keeps the rail column), with a scrim",
+  "assert": "() => { const s = document.querySelector('.sidebar'); return document.documentElement.classList.contains('nav-open') && getComputedStyle(s).position === 'fixed' && s.getBoundingClientRect().width > 200 && Number(getComputedStyle(s).opacity) === 1 && getComputedStyle(document.querySelector('.nav-scrim')).display === 'block' && document.querySelector('main#views').getBoundingClientRect().left < 80; }"
+ },
+ {
+  "click": ".sidebar [data-nav=home]"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "md: picking a page closes the overlay",
+  "assert": "() => !document.documentElement.classList.contains('nav-open') && document.documentElement.classList.contains('rail')"
+ },
+ {
+  "viewport": [
+   1100,
+   1000
+  ]
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "sm: one column; the rail's two cards side by side under the main column",
+  "assert": "() => { const p = document.querySelector('[data-anfra-block=hi-hold]').getBoundingClientRect(), a = document.querySelector('[data-anfra-block=hi-acc]').getBoundingClientRect(), i = document.querySelector('[data-anfra-block=hi-inc]').getBoundingClientRect(); return DS.bp() === 'sm' && a.top > p.bottom && Math.abs(a.top - i.top) < 1 && i.left > a.right && document.documentElement.scrollWidth <= innerWidth + 1; }"
+ },
+ {
+  "click": ".view:not([hidden]) .tab:nth-child(1)"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "sm: a single rail card takes the full width",
+  "assert": "() => { const m = document.querySelector('[data-anfra-block=hn-main]').getBoundingClientRect(), s = document.querySelector('[data-anfra-block=hn-sum]').getBoundingClientRect(); return Math.abs(s.left - m.left) < 1 && Math.abs(s.right - m.right) < 1; }"
+ },
+ {
+  "viewport": [
+   390,
+   900
+  ]
+ },
+ {
+  "wait": 1000
+ },
+ {
+  "name": "xs (phone): no sidebar, a bottom tab bar of 5, the page tabs fill the width, no overflow",
+  "assert": "() => DS.bp() === 'xs' && getComputedStyle(document.querySelector('.sidebar')).display === 'none' && document.querySelectorAll('.tabbar > button').length === 5 && getComputedStyle(document.querySelector('.tabbar')).position === 'fixed' && Math.abs(document.querySelector('.view:not([hidden]) .tabs').getBoundingClientRect().width - document.querySelector('.view:not([hidden]) .head').getBoundingClientRect().width) < 2 && document.documentElement.scrollWidth <= innerWidth + 1"
+ },
+ {
+  "name": "xs: a Summary row stays on one line",
+  "assert": "() => [...document.querySelectorAll('#hn-sum-list [data-acct]')].every((r) => r.getBoundingClientRect().height < 48)"
+ },
+ {
+  "click": ".tabbar [data-more]"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "More opens a sheet with Forecast, Accounts, Definitions (18 Oct: no Design entry)",
+  "assert": "() => !document.querySelector('.more-sheet').hidden && [...document.querySelectorAll('.more-sheet .nav-item')].map((b) => b.textContent.trim()).join('|') === 'Forecast|Accounts|Definitions'"
+ },
+ {
+  "click": ".more-sheet [data-nav=defs]"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "a pick in the sheet opens the page and closes the sheet",
+  "assert": "() => WF.current.id === 'defs' && document.querySelector('.more-sheet').hidden"
+ },
+ {
+  "click": ".tabbar [data-nav=spending]"
+ },
+ {
+  "wait": 500
+ },
+ {
+  "name": "the tab bar opens Cash flow (In & out first, 18 Oct) and marks it",
+  "assert": "() => WF.current.id === 'spending/cashflow' && !!document.querySelector('.view:not([hidden]) [data-anfra-block=cf-flow]') && document.querySelector('.tabbar [data-nav=spending]').classList.contains('active')"
+ },
+ {
+  "viewport": [
+   1600,
+   1000
+  ]
+ },
+ {
+  "click": ".sidebar [data-nav=home]"
+ },
+ {
+  "wait": 500
+ },
+ {
+  "name": "Home remembers the last tab (lastTab)",
+  "assert": "() => WF.current.id === 'home/networth'"
+ },
+ {
+  "viewport": [
+   1600,
+   1000
+  ]
+ },
+ {
+  "click": ".sidebar [data-nav=home]"
+ },
+ {
+  "waitFor": "() => ['og_card_bill','og_vib','og_ntf_due','og2_fresh'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 500
+ },
+ {
+  "name": "notifications: the bell sits in the sidebar's head next to the collapse toggle (19 Oct), its dot counting what needs attention (the TCB Visa bill due within 7 days, MAX VIB behind pace); the header has ✦ trace, hide balances, then + Add last; no Design entry",
+  "assert": "() => { const h = document.querySelector('.view:not([hidden]) .head'), b = document.querySelector('.sidebar .brand-row [data-action=notify]'), acts = [...h.querySelectorAll('.circle')].filter((x) => x.offsetParent).map((x) => x.dataset.action ?? (x.classList.contains('add-btn') ? 'add' : '?')); const its = OG.notify.items(); return !!b && b.nextElementSibling?.matches('[data-nav-toggle]') && acts.join('|') === 'trace|privacy|add' && its.length >= 2 && b.querySelector('.ntf-dot').hidden && its.some((x) => x.go === 'spending/credit' && /TCB Visa bill due/.test(x.title)) && its.some((x) => /MAX VIB cashback/.test(x.title)) && !document.querySelector('.sidebar .ds-entry'); }"
+ },
+ {
+  "click": ".sidebar [data-action=notify]"
+ },
+ {
+  "name": "the bell opens the list: one row per item (tone dot, title, the governed numbers); opening marks them seen",
+  "assert": "() => { const p = document.querySelector('.ntf-pop'), r = p?.getBoundingClientRect(); return !!p && p.querySelectorAll('.ntf-i').length === OG.notify.items().length && r.left >= 0 && r.right <= innerWidth && document.querySelector('.sidebar .ntf-dot').hidden && document.querySelector('.sidebar [data-action=notify]').getAttribute('aria-expanded') === 'true'; }"
+ },
+ {
+  "click": ".ntf-pop .ntf-i"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "name": "an item opens the page that owns it (the bill → Cash flow › Credit) and the list closes",
+  "assert": "() => WF.current.id === 'spending/credit' && !document.querySelector('.ntf-pop')"
+ },
+ {
+  "name": "19 Oct: + Add opens Transaction · Account · Asset, each marked Soon (not built); the profile menu at the sidebar's foot offers Settings and Users",
+  "assert": "() => { const a = document.querySelector('.view:not([hidden]) .add-btn'); a.click(); const m = a.nextElementSibling, ok1 = !m.hidden && [...m.querySelectorAll('[role=menuitem]')].map((x) => x.textContent.replace('Soon', '').trim()).join('|') === 'Transaction|Account|Asset' && m.querySelectorAll('.soon-tag').length === 3; document.body.click(); const me = document.querySelector('.me-btn'); me.click(); const mm = me.nextElementSibling, ok2 = !mm.hidden && /Settings/.test(mm.textContent) && /Users/.test(mm.textContent) && mm.getBoundingClientRect().bottom <= me.getBoundingClientRect().top; document.body.click(); return ok1 && ok2; }"
+ },
+ {
+  "name": "19 Oct: icon-only buttons get a tooltip (the header's ✦ trace says what it does)",
+  "assert": "async () => { const b = document.querySelector('.view:not([hidden]) [data-action=trace]'); b.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); await new Promise((r) => setTimeout(r, 600)); const t = document.getElementById('og-tip'); const ok = !t.hidden && /Trace every number/.test(t.textContent) && !b.hasAttribute('title'); document.body.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); return ok; }"
+ }
+]

@@ -1,0 +1,46 @@
+// Raw source table, 1:1 with the cspipeline replica (db/schema.duckdb.sql). For audit and lineage;
+// analysis goes through personal_finance.
+Model raw_fx_rates {
+  type: 'table'
+  label: 'Raw · FX rates'
+  description: '''
+Source table `fx_rates`: daily VND per unit of a foreign currency.
+'''
+  data_source_name: 'finance'
+  table_name: 'fx_rates'
+
+  dimension fx_key {
+    label: 'Key'
+    type: 'text'
+    primary_key: true
+    description: 'currency:rate_date.'
+    definition: @sql {{ #SOURCE.currency }} || ':' || CAST({{ #SOURCE.rate_date }} AS VARCHAR);;
+  }
+  dimension currency {
+    label: 'Currency'
+    type: 'text'
+    definition: @sql {{ #SOURCE.currency }};;
+  }
+  dimension rate_date {
+    label: 'Rate date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.rate_date }};;
+  }
+  dimension vnd_per_unit {
+    label: 'VND per unit'
+    type: 'number'
+    definition: @sql {{ #SOURCE.vnd_per_unit }};;
+  }
+  dimension source {
+    label: 'Source'
+    type: 'text'
+    definition: @sql {{ #SOURCE.source }};;
+  }
+
+  measure row_count {
+    label: 'Rows'
+    type: 'number'
+    description: 'Number of rows.'
+    definition: @aql count(raw_fx_rates.fx_key) ;;
+  }
+}

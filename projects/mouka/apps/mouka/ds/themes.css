@@ -1,0 +1,261 @@
+/* mouka theme presets: terracotta (the default since 17 Oct, set in app.html), mouka (the previous default), calm (= :root), dark, contrast. Each preset overrides semantic tokens from ds/tokens.css and nothing else; :root itself is
+   "calm". Switch with <html data-theme="…"> in app.html, DS.theme('dark') in JS, or the theme panel (press \).
+   To add a preset: copy a block, rename it, change the values, and add its name to DS.THEMES (js/ds/tokens.js).
+   Chart colours stay 6-digit hex (the area fade appends an alpha byte). */
+
+/* ---------- dark: warm near-black surfaces, the same one chart blue lifted for contrast */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0f100e;
+  --surface: #181917;
+  --tint: #1e1f1c;
+  --fill-subtle: #242522;
+  --fill-active: #30312d;
+  --fill-circle: #242522;
+  --fill-initial: #2b2c29;
+  --row-hover: #1d1e1b;
+  --stripe: #20211e;
+  --knob: #f2f2ef;
+  --border: #2b2c29;
+  --border-strong: #3b3c38;
+  --rule: #252623;
+  --rule-soft: #282926;
+  --ink: #f2f2ef;
+  --ink-2: #b6b7b2;
+  --ink-3: #9a9b94;
+  --on-ink: #0f100e;
+  --pos: #3fbd8b;   --pos-tint: #15342a;   --pos-ink: #3fbd8b;
+  --neg: #f06a5d;   --neg-tint: #3b1b18;   --neg-border: #6d2b25;   --neg-ink: #f47c70;
+  --warn: #e8b04f;  --warn-tint: #3b2b10;  --warn-ring: #4b3613;  --warn-ink: #f0bd62;  --warn-ink-strong: #f6ca78;
+  --info-ink: #6db9f5; --info-tint: #11293e;
+  --budget: #8dc740;
+  --ai: #a3a0ff;  --ai-ink: #cbc9ff;  --ai-tint: #25233f;  --ai-border: #3c3971;  --ai-wash: #1d1c2f;
+  --note-tint: #172131;  --note-border: #24334b;
+  --gift-from: #3d8ccc;  --gift-to: #5a63c9;
+  --overlay: rgb(0 0 0 / .6);
+  --chart: #3aaaff;  --chart-line: #3aaaff;
+  --chart-soft: #2c70a4;
+  --chart-on: #04192b;
+  --chart-done: #2c70a4;
+  --tone-interest: #3f9a6e;
+  --chart-pace: #1f4f79;
+  --chart-track: #282926;
+  --chart-ref: #5d5e59;
+  --chart-compare: #7b7c77;
+  --chart-rest: #4a4b47;
+  --flow-in: var(--pos);   /* dark: --chart is blue, so money in is the green */
+  --chart-hist: #6f7279;
+  --chart-past: #4b4d48;
+  --chart-past-2: #353732;
+  --heat-1: #182431; --heat-2: #1f4f79; --heat-4: #a0d4ff;
+  --cat-fallback: #6f7279;
+  --tip-shadow: 0 10px 28px rgb(0 0 0 / .5);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / .4), 0 1px 3px rgb(0 0 0 / .3);
+  --shadow-pop: 0 12px 32px rgb(0 0 0 / .55), 0 2px 6px rgb(0 0 0 / .35);
+  --knob-shadow: 0 1px 2px rgb(0 0 0 / .5);
+  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px rgb(58 170 255 / .6);
+  --focus-border: rgb(58 170 255);  --focus-halo: 0 0 0 3px rgb(58 170 255 / .28);
+}
+
+/* ---------- contrast: the calm layout with stronger ink, lines and status colours (an accessibility check) */
+:root[data-theme="contrast"] {
+  --page: #f6f7f4;
+  --tint: #eff0ec;
+  --fill-subtle: #e8e9e5;
+  --fill-active: #d9dad6;
+  --border: #b9b9b6;
+  --border-strong: #8f8f8c;
+  --rule: #d0d0cd;
+  --rule-soft: #d0d0cd;
+  --ink-2: #2f2f2f;
+  --ink-3: #5d5d5d;
+  --pos: #11734d;  --pos-ink: #11734d;
+  --neg: #b3261e;  --neg-ink: #b3261e;
+  --warn: #c98a1f;  --warn-ink: #7a4500;  --warn-ink-strong: #663a00;
+  --budget: #3f6b00;
+  --ai: #5b57e0;  --ai-ink: #3a36a8;
+  --chart: #0b79d0;
+  --chart-soft: #5fb3f0;
+  --chart-past: #a9ada4;
+  --chart-past-2: #cdd0c8;
+  --chart-ref: #7a7a7a;
+  --chart-compare: #6b6b6b;
+  --chart-hist: #7c8189;
+  --heat-4: #08528f;
+  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px #0b79d0;
+  --focus-border: #0b79d0;  --focus-halo: 0 0 0 1px #0b79d0;
+  --chart-line: #1677c4;
+}
+
+/* ---------- mouka: warm off-white, beige lines, brown ink; teal (mouka's NRR trend) is the data colour, terracotta the
+   brand accent (the ✦ trace button), pink the loss colour, periwinkle the ✦; serif titles and hero numbers (Merriweather). Category chips use mouka's series palette
+   (--cat-<slug>, read by OG.catColor before the AML colour), none of them near the teal (C12). */
+:root[data-theme="mouka"] {
+  --serif: Merriweather, Georgia, serif;
+  --font-title: var(--serif);  --fw-title: 700;
+  --font-hero: var(--serif);   --fw-hero: 700;  --fw-hero-page: 700;
+  --font-label: var(--sans);
+  --page: #f8f8f7;
+  --surface: #ffffff;
+  --tint: #f5f5f4;
+  --fill-subtle: #f2f2f1;
+  --fill-active: #e8e8e6;
+  --fill-circle: #efefee;
+  --fill-initial: #ececea;
+  --row-hover: #f9f9f8;
+  --stripe: #f3f3f2;
+  --border: #e7e7e5;
+  --border-strong: #d8d8d5;
+  --rule: #eeeeec;
+  --rule-soft: #ededeb;
+  --ink: #252424;
+  --ink-2: #595857;
+  --ink-3: #696866;
+  --on-ink: #ffffff;
+  --chip-ink: #252424;
+  --pos: #4a9a3c;   --pos-tint: #edf6e8;   --pos-ink: #36752b;
+  --neg: #d6456d;   --neg-tint: #fce9ee;   --neg-border: #f4bccb;   --neg-ink: #b8355c;
+  --warn: #f0c674;  --warn-tint: #fdf4e1;  --warn-ring: #f9e6bd;  --warn-ink: #8f5f0f;  --warn-ink-strong: #7f560c;
+  --info-ink: #2f7cc4; --info-tint: #e6f2fe;
+  --budget: #6aa84f;
+  --ai: #7471e6;  --ai-ink: #4f4bb5;  --ai-tint: #efeefe;  --ai-border: #d6d4fb;  --ai-wash: #f9f9ff;
+  --note-tint: #fcf5f2;  --note-border: #f1e3dc;
+  --gift-from: #f0a487;  --gift-to: #d4694a;
+  --brand-ink: #b3b1ad; --brand-mark: #d6d5d2; --brand-mark-fill: #d6d5d2; --brand-mark-radius: 7px;
+  --chart: #6bccbd;
+  --chart-line: #2f9384;   /* the stroke: ≥ 3:1 on white; the area keeps the light teal */
+  --chart-soft: #a8e4dc;
+  --chart-on: #134e46;
+  --chart-done: #a8e4dc;
+  --chart-pace: #cdeee8;
+  --chart-area-alpha: 80;
+  --chart-area-end: #f5efe4;
+  /* the area charts in a neutral creme beige (17 Oct, Nhi): the history reads as context, the numbers lead */
+  --area-line: #9a8462;   /* 3.6:1 on white */
+  --area-fill: #dccaa8;
+  --chart-track: #efefed;
+  --chart-ref: #bcbbb8;
+  --chart-compare: #aeadaa;
+  --chart-hist: #b2b1ae;
+  --chart-past: #e2e2df;
+  --chart-past-2: #eeeeec;
+  --heat-1: #f0faf8; --heat-2: #b5e9e0; --heat-4: #2f8f80;
+  --cat-fallback: #b2b1ae;
+  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px rgb(107 204 189 / .6);
+  --focus-border: #3f9f90;  --focus-halo: 0 0 0 3px rgb(107 204 189 / .3);
+  /* category chips and the gauge: mouka's series palette */
+  --cat-food-drinks: #f2c877;
+  --cat-transport: #e8a48c;
+  --cat-bills: #9b98f5;
+  --cat-cat: #ef8aa8;
+  --cat-well-being: #a8d08d;
+  --cat-shopee: #a5d0fa;
+  --cat-subscriptions: #c3b6f5;
+  --cat-learning: #7fb5ec;
+  --cat-savings: #b9d3a0;
+  --cat-investing: #e4c89b;
+  --cat-other: #d6d5d2;
+  --tone-interest: #b9d3a0;
+  --cat-untagged: #e6e6e3;
+}
+
+/* ---------- terracotta (17 Oct, Nhi): mouka's type and layout in the Supercart reference palette. Colours only: every
+   value is a swatch of that palette, or (marked "derived") the same hue stepped darker until it passes the text rules
+   (≥ 4.5:1 on every surface and tint) or the stroke rule (≥ 3:1). Series order = the reference's: terracotta → sky →
+   periwinkle → mustard, warm grey for "other". The fills stay light (values are always labelled); lines use the strong
+   steps. Liabilities wear periwinkle, not the loss pink: terracotta beside pink fails the colour-blind check (ΔE 10.5). */
+:root[data-theme="terracotta"] {
+  --serif: Merriweather, Georgia, serif;
+  --font-title: var(--serif);  --fw-title: 700;
+  --font-hero: var(--serif);   --fw-hero: 700;  --fw-hero-page: 700;
+  --font-label: var(--sans);
+  /* surfaces: warm paper, white cards */
+  --page: #f8f6f4;
+  --surface: #ffffff;
+  --tint: #f6f4f1;
+  --fill-subtle: #f5f1ea;
+  --fill-active: #ebe6e0;
+  --fill-circle: #ebe6e0;
+  --fill-initial: #ebe6e0;
+  --row-hover: #fcf8f2;
+  --stripe: #f8f6f4;
+  /* lines: warm greys */
+  --border: #ebe6e0;
+  --border-strong: #e2e1dd;
+  --rule: #f5f1ea;
+  --rule-soft: #f6f4f1;
+  /* ink: warm near-black; -2 / -3 derived from the palette's browns (6.96 / 4.65:1 at worst) */
+  --ink: #2a2522;
+  --ink-2: #5a504a;
+  --ink-3: #776a60;
+  --date-ink: #8f704a;   /* 18 Oct, Nhi: the due dates in beige; the sand #d4b48c darkened to 4.58:1 on white */
+  --ink-meta: #7f7268;   /* 18 Oct, Nhi: the info lines a step lighter than --ink-3 (4.66:1 on the white card) */
+  --on-ink: #ffffff;
+  --chip-ink: #2a2522;
+  /* status: a clean green, the palette's terracotta and amber; *-ink derived to ≥ 4.5:1 */
+  --pos: #34c759;   --pos-tint: #e7f8eb;   --pos-ink: #0b8139;   /* 17 Oct: a fresh green (the --budget green, one green app-wide); text stays the darker ink */
+  --neg: #e1653e;   --neg-tint: #fdf0ea;   --neg-border: #f5c6b4;   --neg-ink: #b84a26;   /* 17 Oct: the palette's terracotta (fills); text a deeper shade, ≥ 4.5:1 */
+  --warn: #fba900;  --warn-tint: #ffedcc;  --warn-ring: #ffdd9f;  --warn-ink: #925d39;  --warn-ink-strong: #57372b;
+  --info-ink: #00759a; --info-tint: #e8f5fb;
+  --budget: #34c759;   /* 17 Oct: a fresh green, not olive */
+  /* trace + explain: the palette's terracotta (17 Oct, Nhi: not violet). Mark ≥ 3:1, ink ≥ 4.5:1 on every surface and tint */
+  --ai: #e1653e;  --ai-ink: #b84a26;  --ai-tint: #fdf0ea;  --ai-border: #f5c6b4;  --ai-wash: #fef7f3;
+  --note-tint: #ffece8;  --note-border: #fce0da;
+  --gift-from: #f4815f;  --gift-to: #e1653e;
+  --nav-toggle-ink: #998670;   /* light beige, 3.25:1 on --page */
+  --brand-ink: #b3a092; --brand-mark: #e1653e; --brand-mark-fill: #e1653e; --brand-mark-radius: 7px;
+  --overlay: rgb(42 37 34 / .38);
+  /* charts (17 Oct): a warm brown line over a beige fill; red now only means a loss */
+  --chart: #8f6d50;
+  --chart-line: #8f6d50;   /* 4.7:1 on white */
+  --chart-soft: #95d2ff;   /* series 2, sky */
+  --chart-on: #ffffff;     /* text on the brown fill, 4.7:1 */
+  --chart-done: #b08b68;
+  --chart-pace: #efe4d8;
+  --chart-area-alpha: 33;  /* the reference draws plain lines: a whisper of fill under the history */
+  --chart-area-end: #ffffff;
+  --area-line: #8f6d50;
+  --area-fill: #c9a888;
+  --chart-track: #f6f4f1;
+  --chart-ref: #b3a092;
+  --chart-compare: #a29186;
+  --chart-rest: #e2e1dd;   /* the palette's warm grey for "other" */
+  --flow-out: #e1653e;     /* 17 Oct, Nhi: spending in Cash flow wears terracotta */
+  --chart-bar: #d9c2aa;    /* 17 Oct, Nhi: the drill-downs' month bars in a light sand, not the brown */
+  --chart-hist: #b3a092;
+  --chart-past: #e2e1dd;   /* the reference's "Other" */
+  --chart-past-2: #ebe6e0;
+  --heat-1: #f5ede4; --heat-2: #d6bc9f; --heat-4: #6f5038;   /* one brown, light → dark */
+  --cat-fallback: #b3a092;
+  --tone-invest: #9998ff; --tone-cash: #95d2ff; --tone-liab: var(--neg);   /* 17 Oct: liabilities and losses share the palette's terracotta */
+  --tone-bonus: #86dcc6;      /* 18 Oct, Nhi: Bonus mint */
+  --fc-line: #3b95d9;   /* 19 Oct, Nhi: Forecast's chart in baby blue; the line a stronger step (3.2:1 on white) */
+  --fc-hist: #6bb8f0;   /* the history a lighter step of the same blue */
+  --fc-band: #95d2ff;   /* the band between the paces: the palette's sky, washed */
+  --fc-whatif: #239683; /* the what-if line in a deep mint, apart from the blue (3.6:1) */
+  --line-up: #239683; --line-down: #e1653e;   /* 19 Oct, Nhi: a line in mint above its zero / pace, terracotta under it (mint 3.6:1, terracotta 3.2:1 on white) */
+  --net-line: #8f6d50;   /* 19 Oct, Nhi: Cash flow's Net line in the chart brown */
+  --race-you: #c9a888; --race-ix: #e2d6c8;   /* 19 Oct, Nhi: the race in a lighter brown, the index a pale sand */
+  --card-vib: #fbc260;   /* 19 Oct, Nhi: MAX VIB in yellow, apart from TCB Visa's terracotta (Credit's chart, Next 30 days) */
+  --gain-fill: #86dcc6;       /* 19 Oct, Nhi: Winners and drags' gain bars in the same mint (the values keep --pos-ink) */
+  --tone-interest: #fbc260;   /* 18 Oct, Nhi: Interest a warm yellow-orange */
+  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px rgb(225 101 62 / .55);
+  --focus-border: #e1653e;  --focus-halo: 0 0 0 3px rgb(225 101 62 / .16);
+  /* category colours: the ten swatches of Nhi's category sheet, mapped as her reference sheet maps them (17 Oct:
+     Ăn uống mint, Hoá đơn lime, Nuôi mèo terracotta, Học tập peach, Tiết kiệm green; Du lịch's sky → Transport; Di chuyển's
+     pink → Shopee; Nhi: Other takes the sky, Transport a sand beige). The usual top three (Shopee, Food, Well-being) then stack pink → mint → mustard, warm / cool
+     alternating like the reference. Untagged stays a pale grey, never a mid taupe: a muddy grey beside the candy
+     colours is what broke the harmony. Solid tiles with a white icon (--cat-icon); the gauge arcs use the same. */
+  --cat-shopee: #ff81a6;          /* pink */
+  --cat-food-drinks: #7fe1d9;     /* mint */
+  --cat-well-being: #fac666;      /* mustard */
+  --cat-bills: #bfda1f;           /* lime */
+  --cat-cat: #e16540;             /* terracotta */
+  --cat-learning: #ffb37a;        /* peach */
+  --cat-transport: #b4b1ab;       /* grey (18 Oct, Nhi: was sand beige, which Other took) */
+  --cat-investing: #0f7ea0;       /* deep teal */
+  --cat-savings: #9fe870;         /* green */
+  --cat-subscriptions: #9999ff;   /* periwinkle */
+  --cat-other: #d4b48c;           /* sand beige (18 Oct, Nhi: was sky, the same as Salary; then slate, then Transport's beige) */
+  --cat-untagged: #dcd7d0;        /* paler, then --chart-rest on top */
+}

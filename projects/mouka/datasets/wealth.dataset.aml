@@ -1,0 +1,589 @@
+// The governed layer behind the Wealthfolio clone: net worth, holdings, activities, income and
+// performance. personal_finance keeps serving spending.
+
+Dataset wealth {
+  label: 'Wealth'
+  description: '''
+# Wealth (synthetic)
+
+Pham Thu Ha's accounts, holdings and performance, Wealthfolio-shaped. **Every value is
+synthetic.** Tickers are public VN instruments; quantities, costs and prices are invented.
+
+## What it can answer
+- **Net worth:** every account's value per day, liabilities (credit cards) negative, and where the change came from.
+- **Holdings:** quantity, price, value, cost, unrealized and realized P&L per position.
+- **Income:** dividends and interest, as Wealthfolio's Income tab counts them.
+- **Performance:** time-weighted return, volatility and max drawdown of the securities accounts, against VN-Index.
+
+## Definitions that matter
+- Values are at the **end of the period** (the last day in the selection); "start" is the first day.
+- Performance covers the **securities accounts** (SSI and gold) only. Cash accounts would turn salary into "returns".
+- Dates are Vietnam local time. "Today" is the data as-of date.
+'''
+  data_source_name: 'finance'
+  owner: 'hoang.do@holistics.io'
+
+  models: [
+    fct_account_days, fct_position_days, fct_activities, fct_portfolio_days,
+    dim_dates, dim_accounts, dim_assets,
+  ]
+
+  // A galaxy with no loop of active links: each fact keeps the links it can without closing a loop,
+  // and every metric that needs another link switches it on with with_relationships (the budgets
+  // pattern in personal_finance). Holdings, income and activity METRICS switch on their account link,
+  // so a filter on dim_accounts.account_id narrows them. Two things it does not narrow: the
+  // performance metrics (one combined securities portfolio by design) and a dimension-only list of
+  // fct_activities rows (filter those on fct_activities.account_id). To break holdings down BY
+  // account, use the account_* metrics: the per-symbol totals error under a dim_accounts dimension.
+  relationships: [
+    relationship(fct_account_days.date_key > dim_dates.date_key, true),
+    relationship(fct_account_days.account_id > dim_accounts.account_id, true),
+    relationship(fct_position_days.symbol > dim_assets.symbol, true),
+    relationship(fct_position_days.date_key > dim_dates.date_key, true),
+    relationship(fct_position_days.account_id > dim_accounts.account_id, false),
+    relationship(fct_activities.activity_day > dim_dates.date_key, true),
+    relationship(fct_activities.account_id > dim_accounts.account_id, false),
+    relationship(fct_activities.symbol > dim_assets.symbol, false),
+    relationship(fct_portfolio_days.date_key > dim_dates.date_key, true),
+  ]
+
+  // ================================================================ Accounts and net worth
+
+  metric account_value {
+    label: 'Account value'
+    type: 'number'
+    description: 'Value at the end of the period: cash + holdings at market; a credit card is minus its debt. Semi-additive: break down by dim_accounts.'
+    definition: @aql fct_account_days | max_by(fct_account_days.value_vnd, fct_account_days.date_key) ;;
+    format: '#,###0'
+  }
+  metric account_value_start {
+    label: 'Account value (start)'
+    type: 'number'
+    definition: @aql fct_account_days | min_by(fct_account_days.value_vnd, fct_account_days.date_key) ;;
+    format: '#,###0'
+  }
+  metric account_change {
+    label: 'Change'
+    type: 'number'
+    definition: @aql coalesce(account_value, 0) - coalesce(account_value_start, 0) ;;
+    format: '#,###0'
+  }
+  metric account_change_pct {
+    label: 'Change %'
+    type: 'number'
+    definition: @aql safe_divide(account_change, abs(account_value_start)) ;;
+    format: '0.00%'
+  }
+  metric accounts_value {
+    label: 'Value'
+    type: 'number'
+    description: 'Sum of each account\'s end-of-period value, for any grouping of accounts (group, currency).'
+    definition: @aql unique(dim_accounts.account_id) | select(v: account_value) | sum(v) ;;
+    format: '#,###0'
+  }
+  metric accounts_change {
+    label: 'Change'
+    type: 'number'
+    definition: @aql unique(dim_accounts.account_id) | select(v: account_change) | sum(v) ;;
+    format: '#,###0'
+  }
+  metric cash_balance {
+    label: 'Cash balance'
+    type: 'number'
+    description: 'Cash in every account at the end of the period: bank accounts, deposits, USD, and the cash inside SSI and gold.'
+    definition: @aql unique(dim_accounts.account_id) | select(v: fct_account_days | max_by(fct_account_days.cash_vnd, fct_account_days.date_key)) | sum(v) ;;
+    format: '#,###0'
+  }
+  metric assets_daily {
+    label: 'Assets (daily)'
+    type: 'number'
+    description: 'Sum of every non-liability account\'s value on a day.'
+    definition: @aql fct_account_days | where(dim_accounts.is_liability is false) | sum(fct_account_days.value_vnd) ;;
+    format: '#,###0'
+  }
+  metric debt_daily {
+    label: 'Debt (daily)'
+    type: 'number'
+    description: 'Sum of the credit cards\' values on a day (negative).'
+    definition: @aql fct_account_days | where(dim_accounts.is_liability is true) | sum(fct_account_days.value_vnd) ;;
+    format: '#,###0'
+  }
+  metric net_worth_daily {
+    label: 'Net worth (daily)'
+    type: 'number'
+    description: 'THE net worth definition: every account\'s value on a day, credit cards negative (= assets_daily + debt_daily). Every other net worth number is built on it.'
+    definition: @aql fct_account_days | sum(fct_account_days.value_vnd) ;;
+    format: '#,###0'
+  }
+  metric net_worth {
+    label: 'Net worth'
+    type: 'number'
+    description: 'net_worth_daily on the last day of the period.'
+    definition: @aql max_by(unique(dim_dates.date_key) | select(v: net_worth_daily), v, dim_dates.date_key) ;;
+    format: '#,###0'
+  }
+  metric net_worth_start {
+    label: 'Net worth (start)'
+    type: 'number'
+    description: 'net_worth_daily on the first day of the period.'
+    definition: @aql min_by(unique(dim_dates.date_key) | select(v: net_worth_daily), v, dim_dates.date_key) ;;
+    format: '#,###0'
+  }
+  metric net_worth_change {
+    label: 'Net worth change'
+    type: 'number'
+    definition: @aql net_worth - net_worth_start ;;
+    format: '#,###0'
+  }
+  metric net_worth_change_pct {
+    label: 'Net worth change %'
+    type: 'number'
+    definition: @aql safe_divide(net_worth_change, net_worth_start) ;;
+    format: '0.00%'
+  }
+  metric assets_value {
+    label: 'Portfolio value'
+    type: 'number'
+    description: 'assets_daily on the last day of the period: every account except the credit cards.'
+    definition: @aql max_by(unique(dim_dates.date_key) | select(v: assets_daily), v, dim_dates.date_key) ;;
+    format: '#,###0'
+  }
+  metric assets_value_start {
+    label: 'Portfolio value (start)'
+    type: 'number'
+    definition: @aql min_by(unique(dim_dates.date_key) | select(v: assets_daily), v, dim_dates.date_key) ;;
+    format: '#,###0'
+  }
+  metric assets_change {
+    label: 'Portfolio change'
+    type: 'number'
+    definition: @aql assets_value - assets_value_start ;;
+    format: '#,###0'
+  }
+  metric assets_change_pct {
+    label: 'Portfolio change %'
+    type: 'number'
+    definition: @aql safe_divide(assets_change, assets_value_start) ;;
+    format: '0.00%'
+  }
+  metric investment_gains {
+    label: 'Investment gains'
+    type: 'number'
+    description: 'Market moves on positions + dividends + interest over the period, after its first day (the start values are taken after that day\'s movements).'
+    definition: @aql (fct_account_days | sum(fct_account_days.price_gain_vnd + fct_account_days.income_vnd)) - coalesce(min_by(unique(dim_dates.date_key) | select(v: fct_account_days | sum(fct_account_days.price_gain_vnd + fct_account_days.income_vnd)), v, dim_dates.date_key), 0) ;;
+    format: '#,###0'
+  }
+  metric debt_change {
+    label: 'New debt'
+    type: 'number'
+    description: 'The part of the net worth change that is not assets: the debt as net worth counts it. Negative when debt grew.'
+    definition: @aql net_worth_change - assets_change ;;
+    format: '#,###0'
+  }
+  metric saved_from_income {
+    label: 'Contributions'
+    type: 'number'
+    description: 'Asset growth that is not investment gains: what Ha saved from income.'
+    definition: @aql assets_change - investment_gains ;;
+    format: '#,###0'
+  }
+  metric tracked_days {
+    label: 'Tracked days'
+    type: 'number'
+    hidden: true
+    definition: @aql fct_account_days | count_distinct(fct_account_days.date_key) ;;
+    format: '#,###0'
+  }
+  metric net_worth_monthly_pace {
+    label: 'Monthly pace'
+    type: 'number'
+    description: 'Net worth change ÷ tracked days × 30.4375.'
+    definition: @aql safe_divide(net_worth_change, tracked_days) * 30.4375 ;;
+    format: '#,###0'
+  }
+  metric net_worth_projected_1y {
+    label: 'Projected net worth, 1 year'
+    type: 'number'
+    description: 'Net worth at the end of the period + monthly pace × 12: a straight line at the pace of the filtered period, not a market forecast. Filter the last 12 months for a recent-pace scenario.'
+    definition: @aql net_worth + net_worth_monthly_pace * 12 ;;
+    format: '#,###0'
+  }
+  metric net_worth_projected_3y {
+    label: 'Projected net worth, 3 years'
+    type: 'number'
+    description: 'Net worth at the end of the period + monthly pace × 36: a straight line at the pace of the filtered period, not a market forecast. Filter the last 12 months for a recent-pace scenario.'
+    definition: @aql net_worth + net_worth_monthly_pace * 36 ;;
+    format: '#,###0'
+  }
+  metric net_worth_projected_5y {
+    label: 'Projected net worth, 5 years'
+    type: 'number'
+    description: 'Net worth at the end of the period + monthly pace × 60: a straight line at the pace of the filtered period, not a market forecast. Filter the last 12 months for a recent-pace scenario.'
+    definition: @aql net_worth + net_worth_monthly_pace * 60 ;;
+    format: '#,###0'
+  }
+  metric net_worth_projected_10y {
+    label: 'Projected net worth, 10 years'
+    type: 'number'
+    description: 'Net worth at the end of the period + monthly pace × 120: a straight line at the pace of the filtered period, not a market forecast. Filter the last 12 months for a recent-pace scenario.'
+    definition: @aql net_worth + net_worth_monthly_pace * 120 ;;
+    format: '#,###0'
+  }
+  metric account_holdings {
+    label: 'Holdings value'
+    type: 'number'
+    description: 'Holdings at market at the end of the period, at account grain: use it (not holdings_value) when breaking down by dim_accounts.'
+    definition: @aql unique(dim_accounts.account_id) | select(v: fct_account_days | max_by(fct_account_days.holdings_vnd, fct_account_days.date_key)) | sum(v) ;;
+    format: '#,###0'
+  }
+  metric account_book_cost {
+    label: 'Book cost'
+    type: 'number'
+    description: 'What the open positions cost, at account grain (break down by dim_accounts).'
+    definition: @aql unique(dim_accounts.account_id) | select(v: fct_account_days | max_by(fct_account_days.book_cost_vnd, fct_account_days.date_key)) | sum(v) ;;
+    format: '#,###0'
+  }
+  metric account_holdings_count {
+    label: 'Holdings'
+    type: 'number'
+    description: 'Open positions at the end of the period, at account grain (break down by dim_accounts).'
+    definition: @aql unique(dim_accounts.account_id) | select(v: fct_account_days | max_by(fct_account_days.open_positions, fct_account_days.date_key)) | sum(v) ;;
+    format: '#,###0'
+  }
+  metric portfolio_value {
+    label: 'Portfolio value'
+    type: 'number'
+    description: 'Invested (holdings at market) + cash balance. Equals assets_value.'
+    definition: @aql coalesce(account_holdings, 0) + coalesce(cash_balance, 0) ;;
+    format: '#,###0'
+  }
+  metric invested_pct {
+    label: 'Invested %'
+    type: 'number'
+    definition: @aql safe_divide(account_holdings, portfolio_value) ;;
+    format: '0.00%'
+  }
+  metric book_cost_pct {
+    label: 'Book cost %'
+    type: 'number'
+    definition: @aql safe_divide(account_book_cost, portfolio_value) ;;
+    format: '0.00%'
+  }
+
+  // ================================================================ Holdings
+
+  metric holding_quantity {
+    label: 'Quantity'
+    type: 'number'
+    description: 'Units held at the end of the period. Break down by dim_assets.symbol.'
+    definition: @aql fct_position_days | max_by(fct_position_days.quantity, fct_position_days.date_key) | with_relationships(fct_position_days.account_id > dim_accounts.account_id) ;;
+    format: '#,###0'
+  }
+  metric holding_price {
+    label: 'Today\'s price'
+    type: 'number'
+    description: 'Latest close at the end of the period, VND.'
+    definition: @aql fct_position_days | max_by(fct_position_days.price, fct_position_days.date_key) | with_relationships(fct_position_days.account_id > dim_accounts.account_id) ;;
+    format: '#,###0'
+  }
+  metric holding_day_change_pct {
+    label: 'Day change'
+    type: 'number'
+    description: 'Price change on the last day of the period vs the day before.'
+    definition: @aql fct_position_days | max_by(fct_position_days.day_change_pct, fct_position_days.date_key) | with_relationships(fct_position_days.account_id > dim_accounts.account_id) ;;
+    format: '0.00%'
+  }
+  metric holding_value {
+    label: 'Total value'
+    type: 'number'
+    description: 'Quantity × price at the end of the period.'
+    definition: @aql fct_position_days | max_by(fct_position_days.market_value_vnd, fct_position_days.date_key) | with_relationships(fct_position_days.account_id > dim_accounts.account_id) ;;
+    format: '#,###0'
+  }
+  metric holding_book_cost {
+    label: 'Book cost'
+    type: 'number'
+    description: 'What the open position cost, fees included.'
+    definition: @aql fct_position_days | max_by(fct_position_days.book_cost_vnd, fct_position_days.date_key) | with_relationships(fct_position_days.account_id > dim_accounts.account_id) ;;
+    format: '#,###0'
+  }
+  metric holding_cost_basis {
+    label: 'Cost basis'
+    type: 'number'
+    hidden: true
+    description: 'Everything ever paid for the position, kept after it closes.'
+    definition: @aql fct_position_days | max_by(fct_position_days.cost_basis_vnd, fct_position_days.date_key) | with_relationships(fct_position_days.account_id > dim_accounts.account_id) ;;
+    format: '#,###0'
+  }
+  metric holding_unrealized {
+    label: 'Unrealized P&L'
+    type: 'number'
+    definition: @aql fct_position_days | max_by(fct_position_days.unrealized_pnl_vnd, fct_position_days.date_key) | with_relationships(fct_position_days.account_id > dim_accounts.account_id) ;;
+    format: '#,###0'
+  }
+  metric holding_realized {
+    label: 'Realized P&L'
+    type: 'number'
+    definition: @aql fct_position_days | max_by(fct_position_days.realized_pnl_vnd, fct_position_days.date_key) | with_relationships(fct_position_days.account_id > dim_accounts.account_id) ;;
+    format: '#,###0'
+  }
+  metric holding_return {
+    label: 'Total return'
+    type: 'number'
+    description: 'Unrealized + realized P&L. Dividends are income, not return.'
+    definition: @aql coalesce(holding_unrealized, 0) + coalesce(holding_realized, 0) ;;
+    format: '#,###0'
+  }
+  metric holding_return_pct {
+    label: 'Total return %'
+    type: 'number'
+    definition: @aql safe_divide(holding_return, holding_cost_basis) ;;
+    format: '0.00%'
+  }
+  metric holdings_value {
+    label: 'Invested'
+    type: 'number'
+    description: 'Market value of every position at the end of the period.'
+    definition: @aql unique(dim_assets.symbol) | select(v: holding_value) | sum(v) ;;
+    format: '#,###0'
+  }
+  metric book_cost {
+    label: 'Book cost'
+    type: 'number'
+    definition: @aql unique(dim_assets.symbol) | select(v: holding_book_cost) | sum(v) ;;
+    format: '#,###0'
+  }
+  metric unrealized_pnl {
+    label: 'Unrealized P&L'
+    type: 'number'
+    definition: @aql unique(dim_assets.symbol) | select(v: holding_unrealized) | sum(v) ;;
+    format: '#,###0'
+  }
+  metric unrealized_pnl_pct {
+    label: 'Unrealized P&L %'
+    type: 'number'
+    definition: @aql safe_divide(unrealized_pnl, book_cost) ;;
+    format: '0.00%'
+  }
+  metric holdings_count {
+    label: 'Holdings'
+    type: 'number'
+    description: 'Open positions at the end of the period.'
+    definition: @aql unique(dim_assets.symbol) | select(v: case(when: holding_quantity > 0, then: 1, else: 0)) | sum(v) ;;
+    format: '#,###0'
+  }
+  metric price_gain {
+    label: 'Price gain'
+    type: 'number'
+    description: 'What market moves added to the positions over the period.'
+    definition: @aql fct_position_days | sum(fct_position_days.price_gain_vnd) | with_relationships(fct_position_days.account_id > dim_accounts.account_id) ;;
+    format: '#,###0'
+  }
+
+  // ================================================================ Income and activities
+
+  metric dividend_income {
+    label: 'Dividends'
+    type: 'number'
+    description: 'Cash dividends received, net of the 5% tax withheld.'
+    definition: @aql fct_activities | where(fct_activities.activity_type == 'DIVIDEND') | sum(fct_activities.amount_vnd) | with_relationships(fct_activities.account_id > dim_accounts.account_id, fct_activities.symbol > dim_assets.symbol) ;;
+    format: '#,###0'
+  }
+  metric interest_income {
+    label: 'Interest'
+    type: 'number'
+    description: 'Term-deposit interest, at each maturity or renewal.'
+    definition: @aql fct_activities | where(fct_activities.activity_type == 'INTEREST') | sum(fct_activities.amount_vnd) | with_relationships(fct_activities.account_id > dim_accounts.account_id, fct_activities.symbol > dim_assets.symbol) ;;
+    format: '#,###0'
+  }
+  metric investment_income {
+    label: 'Income'
+    type: 'number'
+    description: 'Dividends + interest: what Wealthfolio\'s Income tab counts. One sum over both activity types (not dividend_income + interest_income), so a running total over it accumulates correctly.'
+    definition: @aql fct_activities | where(fct_activities.activity_type in ['DIVIDEND', 'INTEREST']) | sum(fct_activities.amount_vnd) | with_relationships(fct_activities.account_id > dim_accounts.account_id, fct_activities.symbol > dim_assets.symbol) ;;
+    format: '#,###0'
+  }
+  metric activities_count {
+    label: 'Activities'
+    type: 'number'
+    definition: @aql fct_activities | count(fct_activities.activity_id) | with_relationships(fct_activities.account_id > dim_accounts.account_id, fct_activities.symbol > dim_assets.symbol) ;;
+    format: '#,###0'
+  }
+
+  // ================================================================ Performance (securities accounts)
+
+  metric twr {
+    label: 'Time-weighted return'
+    type: 'number'
+    description: 'exp(Σ log returns) − 1 over the period: the return of the SSI and gold accounts combined, with deposits taken out. An account filter does not apply.'
+    definition: @aql exp(fct_portfolio_days | sum(fct_portfolio_days.log_return)) - 1 ;;
+    format: '0.00%'
+  }
+  metric benchmark_return {
+    label: 'VN-Index return'
+    type: 'number'
+    definition: @aql exp(fct_portfolio_days | sum(fct_portfolio_days.bench_log_return)) - 1 ;;
+    format: '0.00%'
+  }
+  metric volatility {
+    label: 'Volatility'
+    type: 'number'
+    description: 'Sample standard deviation of trading-day returns × √250 (annualized), SSI and gold combined. An account filter does not apply.'
+    definition: @aql (fct_portfolio_days | where(fct_portfolio_days.is_trading_day is true) | stdev(fct_portfolio_days.daily_return)) * sqrt(250) ;;
+    format: '0.00%'
+  }
+  metric max_drawdown {
+    label: 'Max drawdown'
+    type: 'number'
+    description: 'Worst fall from a running peak of the TWR index, inside the selected period. The peak starts at the value before the period, so a loss on its first day counts.'
+    definition: @aql unique(dim_dates.date_key) | select(v: exp(running_total(fct_portfolio_days | sum(fct_portfolio_days.log_return), dim_dates.date_key)) / case(when: window_max(exp(running_total(fct_portfolio_days | sum(fct_portfolio_days.log_return), dim_dates.date_key)), order: dim_dates.date_key) > 1, then: window_max(exp(running_total(fct_portfolio_days | sum(fct_portfolio_days.log_return), dim_dates.date_key)), order: dim_dates.date_key), else: 1) - 1) | min(v) ;;
+    format: '0.00%'
+  }
+  metric invested_value_end {
+    label: 'Invested value'
+    type: 'number'
+    definition: @aql fct_portfolio_days | max_by(fct_portfolio_days.value_vnd, fct_portfolio_days.date_key) ;;
+    format: '#,###0'
+  }
+  metric invested_value_start {
+    label: 'Invested value (start)'
+    type: 'number'
+    description: 'Value at the end of the day before the period.'
+    definition: @aql fct_portfolio_days | min_by(fct_portfolio_days.prev_value_vnd, fct_portfolio_days.date_key) ;;
+    format: '#,###0'
+  }
+  metric invested_net_flows {
+    label: 'Net contributions'
+    type: 'number'
+    definition: @aql fct_portfolio_days | sum(fct_portfolio_days.net_flow_vnd) ;;
+    format: '#,###0'
+  }
+  metric portfolio_gain_loss {
+    label: 'Gain / loss'
+    type: 'number'
+    description: 'End value − start value − net contributions.'
+    definition: @aql invested_value_end - invested_value_start - invested_net_flows ;;
+    format: '#,###0'
+  }
+  metric simple_return {
+    label: 'Value return'
+    type: 'number'
+    description: 'Gain / loss ÷ (start value + net contributions).'
+    definition: @aql safe_divide(portfolio_gain_loss, invested_value_start + invested_net_flows) ;;
+    format: '0.00%'
+  }
+  metric cumulative_twr {
+    label: 'Cumulative return'
+    type: 'number'
+    description: 'TWR from the start of the selection to each day. Needs dim_dates.date_key in the explore.'
+    definition: @aql exp(running_total(fct_portfolio_days | sum(fct_portfolio_days.log_return), dim_dates.date_key)) - 1 ;;
+    format: '0.00%'
+  }
+  metric cumulative_benchmark {
+    label: 'VN-Index (cumulative)'
+    type: 'number'
+    definition: @aql exp(running_total(fct_portfolio_days | sum(fct_portfolio_days.bench_log_return), dim_dates.date_key)) - 1 ;;
+    format: '0.00%'
+  }
+  metric income_months {
+    label: 'Months'
+    type: 'number'
+    hidden: true
+    definition: @aql fct_portfolio_days | count_distinct(dim_dates.month_key) ;;
+    format: '#,###0'
+  }
+  metric income_monthly_avg {
+    label: 'Monthly average'
+    type: 'number'
+    definition: @aql safe_divide(investment_income, income_months) ;;
+    format: '#,###0'
+  }
+
+  view {
+    group performance {
+      metric twr
+      metric benchmark_return
+      metric volatility
+      metric max_drawdown
+      metric invested_value_end
+      metric invested_value_start
+      metric invested_net_flows
+      metric portfolio_gain_loss
+      metric simple_return
+      metric cumulative_twr
+      metric cumulative_benchmark
+      metric income_monthly_avg
+    }
+    group net_worth {
+      metric account_holdings
+      metric account_book_cost
+      metric account_holdings_count
+      metric account_value
+      metric account_value_start
+      metric account_change
+      metric account_change_pct
+      metric accounts_value
+      metric accounts_change
+      metric cash_balance
+      metric assets_daily
+      metric debt_daily
+      metric net_worth_daily
+      metric net_worth
+      metric net_worth_start
+      metric net_worth_change
+      metric net_worth_change_pct
+      metric assets_value
+      metric assets_value_start
+      metric assets_change
+      metric assets_change_pct
+      metric investment_gains
+      metric debt_change
+      metric saved_from_income
+      metric net_worth_monthly_pace
+      metric net_worth_projected_1y
+      metric net_worth_projected_3y
+      metric net_worth_projected_5y
+      metric net_worth_projected_10y
+      metric portfolio_value
+      metric invested_pct
+      metric book_cost_pct
+    }
+    group holdings {
+      metric holding_quantity
+      metric holding_price
+      metric holding_day_change_pct
+      metric holding_value
+      metric holding_book_cost
+      metric holding_unrealized
+      metric holding_realized
+      metric holding_return
+      metric holding_return_pct
+      metric holdings_value
+      metric book_cost
+      metric unrealized_pnl
+      metric unrealized_pnl_pct
+      metric holdings_count
+      metric price_gain
+    }
+    group income {
+      metric dividend_income
+      metric interest_income
+      metric investment_income
+      metric activities_count
+    }
+    model fct_account_days {
+    }
+    model fct_position_days {
+    }
+    model fct_activities {
+    }
+    model fct_portfolio_days {
+    }
+    model dim_accounts {
+    }
+    model dim_assets {
+    }
+    model dim_dates {
+    }
+  }
+}

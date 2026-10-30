@@ -1,0 +1,70 @@
+Model fct_cash_ahead {
+  type: 'table'
+  label: 'Cash ahead'
+  description: '''
+**Grain:** one expected movement of spendable cash (TCB debit + Timo) in the 30 days after the data as-of date.
+Forecast › Next 30 days reads it. An expectation from history, not a bill the bank sent.
+
+- **Payday:** each salary series of `fct_recurring` (its next date and latest amount), money in.
+- **Family:** money sent to family (`flow_type = family_support`) from a bank account, seen at least twice in the
+  3 months before the as-of date; the next date on the latest one's day of month, the latest amount.
+- **Card payments:** each card is paid from the bank on a steady day of month (MAX VIB: `pipeline_flow = othercard`,
+  TCB Visa: `settlement`), seen at least twice in 3 months. The next payment is about a month of that card's spending:
+  its spending a day over its last 90 days of card lines × 30.4375 (card lines can stop before the as-of date, so
+  "owed today" would undercount). Future card spending in the window is what these payments pay for.
+- **TCB Visa statement:** a statement due in the window that is not paid in full yet (statement balance minus the
+  payments to the card from the bank accounts since it closed) replaces the TCB Visa estimate.
+
+Not counted, because they have no fixed schedule: investing top-ups, savings deposits, transfers between your own
+accounts, pot moves and friends paying back. Bills on the cards are inside the card payments.
+Everyday spending from the bank accounts is a rate, not an event: see `everyday_spend_daily`.
+'''
+  data_source_name: 'finance'
+  table_name: 'mat_cash_ahead'   // precomputed by db/materialize.py from db/sql/fct_cash_ahead.sql (see there for the logic)
+
+  dimension event_key {
+    label: 'Event'
+    type: 'text'
+    primary_key: true
+    description: 'kind · label · date.'
+    definition: @sql {{ #SOURCE.event_key }};;
+  }
+  dimension event_date {
+    label: 'Expected on'
+    type: 'date'
+    definition: @sql {{ #SOURCE.event_date }};;
+  }
+  dimension kind {
+    label: 'Kind'
+    type: 'text'
+    description: 'income (payday), family (money sent to family) or card (a card payment: a statement, or about a month of card spending).'
+    definition: @sql {{ #SOURCE.kind }};;
+  }
+  dimension label {
+    label: 'What'
+    type: 'text'
+    definition: @sql {{ #SOURCE.label }};;
+  }
+  dimension detail {
+    label: 'Detail'
+    type: 'text'
+    definition: @sql {{ #SOURCE.detail }};;
+  }
+  dimension amount_vnd {
+    label: 'Expected amount'
+    type: 'number'
+    description: 'Signed: money in is positive, money out negative.'
+    definition: @sql {{ #SOURCE.amount_vnd }};;
+  }
+  dimension src {
+    label: 'Account'
+    type: 'text'
+    description: 'The bank account the money moves through (tcb_debit or timo).'
+    definition: @sql {{ #SOURCE.src }};;
+  }
+  dimension days_ahead {
+    label: 'Days ahead'
+    type: 'number'
+    definition: @sql {{ #SOURCE.days_ahead }};;
+  }
+}

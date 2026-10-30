@@ -1,0 +1,459 @@
+[
+ {
+  "viewport": [
+   1600,
+   1000
+  ]
+ },
+ {
+  "waitFor": "() => !!WF.current && !!WF.asOf"
+ },
+ {
+  "click": ".sidebar [data-nav=forecast]"
+ },
+ {
+  "waitFor": "() => ['og8_fc_12m','og8_fc_all','og8_fc_curve','og8_fc_months','og8_fc_events'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 700
+ },
+ {
+  "name": "Forecast opens on Net worth: two tabs (Net worth · Next 30 days), one page hero (data-own nw-projected-1y), no placeholder",
+  "assert": "() => WF.current.id === 'forecast/networth' && [...document.querySelector('.view:not([hidden])').querySelectorAll('.tabs .tab')].map((t) => t.textContent).join('|') === 'Net worth|Next 30 days' && document.querySelector('.view:not([hidden])').querySelectorAll('.hero.page').length === 1 && !!document.querySelector('.view:not([hidden])').querySelector('.hero.page[data-own=\"nw-projected-1y\"]') && !document.querySelector('[data-anfra-block=next-forecast]')"
+ },
+ {
+  "name": "hero = the governed 1-year projection at the last-12-months pace, exact; the pill = projection − today",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); const k = one('og8_fc_12m'); return digits(document.querySelector('#fc-hero').textContent) === Math.round(num(k.p1)) && Math.abs(num(k.p1) - num(k.nw) - num(k.gain1)) < 1 && !!document.querySelector('#fc-hero-delta [data-trace=\"og8_fc_12m:gain1\"]'); }"
+ },
+ {
+  "name": "the band ends on the governed projections at the horizon (3Y default): both edges named in the key",
+  "assert": "() => { const c = echarts.getInstanceByDom(document.querySelector('#fc-chart')).getOption(); const s = (n) => c.series.find((x) => x.name === n).data.at(-1); const r = WF.registry.get('og8_fc_12m').query.result.rows[0], a = WF.registry.get('og8_fc_all').query.result.rows[0]; return document.querySelector('#fc-h [data-k=\"3Y\"]').classList.contains('active') && Math.abs(s('12-month pace')[1] - Number(r.p3)) < 1 && Math.abs(s('All-time pace')[1] - Number(a.p3)) < 1 && s('12-month pace')[0] === WF.addMonths(WF.asOf, 36) && !!document.querySelector('#fc-key [data-trace=\"og8_fc_12m:p3\"]') && !!document.querySelector('#fc-key [data-trace=\"og8_fc_all:p3\"]'); }"
+ },
+ {
+  "click": "#fc-h [data-k='10Y']"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "10Y moves the chart's end to 10 years out and the key to the 10-year values (≈, 2 significant figures)",
+  "assert": "() => { const c = echarts.getInstanceByDom(document.querySelector('#fc-chart')).getOption(); return c.xAxis[0].max === WF.addMonths(WF.asOf, 120) && /≈/.test(document.querySelector('#fc-key').textContent) && !!document.querySelector('#fc-key [data-trace=\"og8_fc_12m:p10\"]'); }"
+ },
+ {
+  "name": "road: four flags (1Y exact = p1, the rest ≈) traced to 12m, in month order, the ₫1B star before 1Y, all-time values in the stop hover card",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); const v = WF.views.get('forecast/networth'), r = one('og8_fc_12m'); const ks = [...document.querySelectorAll('#fc-road .fc-stop')].map((e) => e.dataset.k); const want = v.stops(r).map((s) => s.k); const ls = [...document.querySelectorAll('#fc-road .fc-mile')]; const c = v.cross(r); const hc = OG.hc['fc-stop'](ls[1]); return JSON.stringify(ks) === JSON.stringify(want) && ls.length === 4 && digits(ls[0].querySelector('.v').textContent) === Math.round(num(r.p1)) && ls.slice(1).every((l) => /≈/.test(l.querySelector('.v').textContent)) && ls.every((l, i) => l.querySelector('[data-trace]')?.dataset.trace === 'og8_fc_12m:' + ['p1','p3','p5','p10'][i]) && /og8_fc_all:p3/.test(hc) && (!c || (ks.indexOf('cross') < ks.indexOf('p1')) === (c.m < 12)) && !document.querySelector('#fc-miles-list .fc-cross'); }"
+ },
+ {
+  "name": "stops(): no crossing when the pace is not positive",
+  "assert": "() => { const s = WF.views.get('forecast/networth').stops({ nw: 9e8, pace: -1, p1: 1, p3: 2, p5: 3, p10: 4 }); return s.length === 4 && !s.some((x) => x.k === 'cross') && s.map((x) => x.m).join() === '12,36,60,120'; }"
+ },
+ {
+  "name": "road labels never overlap (1600)",
+  "assert": "() => { const rs = [...document.querySelectorAll('#fc-road .fc-stop-lab')].map((e) => e.getBoundingClientRect()); return rs.length >= 4 && rs.every((a, i) => rs.every((b, j) => i >= j || a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top)); }"
+ },
+ {
+  "click": ".view:not([hidden]) [data-action=privacy]"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "privacy: the road's stop values blur like the hero (the 1Y stop is the exact hero); the ₫1B star, a milestone, stays readable",
+  "assert": "() => { const f = (s) => { const e = document.querySelector(s); return e ? getComputedStyle(e).filter : null; }; const star = f('#fc-road .fc-star .fc-stop-lab .v'); return document.body.classList.contains('privacy') && f('#fc-road .fc-mile[data-k=p1] .fc-stop-lab .v') !== 'none' && [...document.querySelectorAll('#fc-road .fc-mile .fc-stop-lab .v')].every((e) => getComputedStyle(e).filter !== 'none') && f('#fc-hero') !== 'none' && (star === null || star === 'none'); }"
+ },
+ {
+  "click": ".view:not([hidden]) [data-action=privacy]"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "privacy off: the road's values are clear again",
+  "assert": "() => !document.body.classList.contains('privacy') && getComputedStyle(document.querySelector('#fc-road .fc-mile[data-k=p1] .fc-stop-lab .v')).filter === 'none'"
+ },
+ {
+  "eval": "() => { document.querySelector('#fc-road .fc-mile[data-k=p3]').scrollIntoView({ block: 'center' }); return true; }"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "eval": "() => { document.querySelector('#fc-road .fc-mile[data-k=p3]').focus({ preventScroll: true }); return !document.getElementById('hc').hidden; }"
+ },
+ {
+  "press": "Enter"
+ },
+ {
+  "wait": 100
+ },
+ {
+  "eval": "() => { document.querySelector('#fc-notes-list').dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); return true; }"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "a road stop: Enter pins its hover card (a pointer elsewhere no longer closes it)",
+  "assert": "() => { const h = document.getElementById('hc'); return !h.hidden && /og8_fc_all:p3/.test(h.innerHTML); }"
+ },
+ {
+  "press": "Escape"
+ },
+ {
+  "eval": "() => { const s = document.querySelector('#fc-road .fc-mile[data-k=p5]'); s.focus({ preventScroll: true }); return document.activeElement === s; }"
+ },
+ {
+  "press": " "
+ },
+ {
+  "wait": 100
+ },
+ {
+  "eval": "() => { document.querySelector('#fc-notes-list').dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); return true; }"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "…and Space pins it too, without scrolling the page",
+  "assert": "() => { const h = document.getElementById('hc'); return !h.hidden && /og8_fc_all:p5/.test(h.innerHTML) && document.activeElement?.dataset.k === 'p5'; }"
+ },
+ {
+  "press": "Escape"
+ },
+ {
+  "viewport": [
+   1600,
+   560
+  ]
+ },
+ {
+  "wait": 400
+ },
+ {
+  "eval": "() => { document.querySelector('#fc-road').scrollIntoView({ block: 'center' }); return document.scrollingElement.scrollTop; }"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "press": "Shift"
+ },
+ {
+  "eval": "() => { document.querySelector('#fc-road .fc-mile[data-k=p1]').focus({ preventScroll: true }); return !document.getElementById('hc').hidden && document.activeElement.matches(':focus-visible'); }"
+ },
+ {
+  "name": "a keyboard-focused card follows a small scroll (its stop still in sight)",
+  "assert": "async () => { const t0 = document.scrollingElement.scrollTop; document.scrollingElement.scrollBy(0, -30); await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok))); const h = document.getElementById('hc'), r = document.querySelector('#fc-road .fc-mile[data-k=p1]').getBoundingClientRect(); return t0 >= 30 && document.scrollingElement.scrollTop === t0 - 30 && !h.hidden && (Math.abs(parseFloat(h.style.top) - (r.bottom + 8)) < 2 || Math.abs(parseFloat(h.style.top) + h.offsetHeight + 8 - r.top) < 2); }"
+ },
+ {
+  "name": "fix: once its stop scrolls out of sight the keyboard-focused card closes (no card clamped at the edge)",
+  "assert": "async () => { document.scrollingElement.scrollTo(0, 0); await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok))); return document.querySelector('#fc-road .fc-mile[data-k=p1]').getBoundingClientRect().top > innerHeight && document.getElementById('hc').hidden; }"
+ },
+ {
+  "eval": "() => { document.activeElement?.blur(); return true; }"
+ },
+ {
+  "viewport": [
+   1600,
+   1000
+  ]
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "Worth knowing: the bonus months' share, the pace vs all time, the ₫1B crossing (an estimate)",
+  "assert": "() => { const k = [...document.querySelectorAll('#fc-notes-list .note')].map((n) => n.dataset.k); return ['bonus', 'pace', 'cross'].every((x) => k.includes(x)) && /estimate/.test(document.querySelector('#fc-notes-list [data-k=cross]').textContent); }"
+ },
+ {
+  "name": "What drives it (a popover off the hero line since round 3): the three governed drivers sum to the year's change",
+  "assert": "() => { OG.hcOpen(document.getElementById('fc-drv-btn'), { pin: true, instant: true }); const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); const k = one('og8_fc_12m'); const ok0 = !document.querySelector('[data-anfra-block=fc-drivers]') && !!document.getElementById('fc-drv-btn').closest('#fc-hero-delta') && document.querySelectorAll('#hc #fc-drv-rows .fc-drv').length === 3 && Math.abs(num(k.saved) + num(k.gains) + num(k.debt) - num(k.ch)) < 2; const ok = ok0; OG.hcClose(); return ok; }"
+ },
+ {
+  "name": "What if starts 'As now', no what-if line",
+  "assert": "() => document.querySelector('#fc-extra-v').textContent === 'As now' && !echarts.getInstanceByDom(document.querySelector('#fc-chart')).getOption().series.some((x) => x.name === 'What if')"
+ },
+ {
+  "eval": "() => { const s = document.querySelector('#fc-extra'); s.value = '1000000'; s.dispatchEvent(new Event('input')); return true; }"
+ },
+ {
+  "wait": 400
+ },
+ {
+  "name": "+₫1M a month: the what-if line appears and ends ₫120M above the 10-year projection; the text says estimate and carries no trace",
+  "assert": "() => { const c = echarts.getInstanceByDom(document.querySelector('#fc-chart')).getOption(); const w = c.series.find((x) => x.name === 'What if'); const r = WF.registry.get('og8_fc_12m').query.result.rows[0]; const out = document.querySelector('#fc-wi-out'); return !!w && Math.abs(w.data.at(-1)[1] - (Number(r.p10) + 120e6)) < 1 && /estimate/.test(out.textContent) && !out.querySelector('[data-trace]') && document.querySelector('#fc-extra').getAttribute('aria-valuetext') === 'save ₫1M more a month' && !document.querySelector('#fc-wi-reset').hidden; }"
+ },
+ {
+  "click": "#fc-wi-reset"
+ },
+ {
+  "wait": 300
+ },
+ {
+  "name": "Reset puts it back to 'As now'",
+  "assert": "() => document.querySelector('#fc-extra').value === '0' && document.querySelector('#fc-extra-v').textContent === 'As now' && document.querySelector('#fc-wi-reset').hidden"
+ },
+ {
+  "name": "19 Oct: What if sits above Worth knowing in the rail; the quick picks are there",
+  "assert": "() => { const r = document.querySelector('.view:not([hidden]) [data-anfra-block=fc-whatif]'); return !!r && r.nextElementSibling === document.querySelector('.view:not([hidden]) [data-anfra-block=fc-notes]') && document.querySelectorAll('#fc-wi-chips [data-v]').length === 4; }"
+ },
+ {
+  "click": "#fc-wi-chips [data-v='5000000']"
+ },
+ {
+  "name": "…a quick pick sets the slider (+₫5M), is pressed, and shows the two figures side by side, how much sooner the next ₫1B comes, and the what-if line in mint",
+  "assert": "() => { const o = echarts.getInstanceByDom(document.querySelector('#fc-chart')).getOption(), w = o.series.find((x) => x.name === 'What if'); return document.querySelector('#fc-extra').value === '5000000' && document.querySelector('#fc-wi-chips [data-v=\"5000000\"]').getAttribute('aria-pressed') === 'true' && document.querySelectorAll('#fc-wi-out .fc-wi-fig').length === 2 && !!document.querySelector('#fc-wi-out .fc-wi-fig.wi.pos') && !document.querySelector('#fc-wi-out .fc-wi-bar') && /sooner/.test(document.querySelector('#fc-wi-out').textContent) && /estimate/.test(document.querySelector('#fc-wi-out').textContent) && w.lineStyle.color.toLowerCase() === DS.token('--line-up').toLowerCase() && !!document.querySelector('#fc-wi-reset').closest('.card-head') && document.querySelector('#fc-extra-v').closest('.slider-h') && getComputedStyle(document.querySelector('.fc-wi .slider-h')).flexDirection === 'column'; }"
+ },
+ {
+  "click": "#fc-wi-chips [data-v='-5000000']"
+ },
+ {
+  "name": "…saving less draws the what-if line in terracotta and says later",
+  "assert": "() => { const o = echarts.getInstanceByDom(document.querySelector('#fc-chart')).getOption(), w = o.series.find((x) => x.name === 'What if'); return w.lineStyle.color.toLowerCase() === DS.token('--line-down').toLowerCase() && !!document.querySelector('#fc-wi-out .fc-wi-fig.wi.neg') && /later/.test(document.querySelector('#fc-wi-out').textContent); }"
+ },
+ {
+  "click": "#fc-wi-reset"
+ },
+ {
+  "name": "19 Oct (round 3): the progress strip lives in the ₫1B star's hover card: today's net worth (traced) as a share of the next ₫1B",
+  "assert": "() => { const v = WF.views.get('forecast/networth'), r = WF.registry.get('og8_fc_12m').query.result.rows[0], c = v.cross(r), s = document.querySelector('.fc-star'); if (!c) return !s; if (document.querySelector('[data-anfra-block=fc-miles] .fc-prog') || s.dataset.hc !== 'fc-goal' || s.tabIndex !== 0) return false; OG.hcOpen(s, { instant: true }); const h = document.getElementById('hc'), b = h.querySelector('.fc-prog-bar'); const ok = !h.hidden && !!h.querySelector('[data-trace=\"og8_fc_12m:nw\"]') && !!b && Number(b.getAttribute('aria-valuenow')) === Math.round(Number(r.nw) / c.at * 100); OG.hcClose(); return ok; }"
+ },
+ {
+  "name": "19 Oct: no empty state line leaves a gap under Worth knowing",
+  "assert": "() => { const s = document.querySelector('#fc-notes-state'); return !s.textContent.trim() ? s.getBoundingClientRect().height === 0 : true; }"
+ },
+ {
+  "click": ".view:not([hidden]) .tabs [data-go='forecast/cash']"
+ },
+ {
+  "name": "fix: while the 30-day query runs, the cards say Loading… (never a blank page)",
+  "assert": "() => { const q = WF.registry.get('og8_fc_cash').query; const st = (id) => { const e = document.getElementById(id); return !!e && !e.hidden && /Loading/.test(e.textContent); }; return q.state === 'success' || (st('fc-c-state') && st('fc-items-state') && st('fc-c-notes-state') && st('fc-c-sum-state')); }"
+ },
+ {
+  "waitFor": "() => ['og8_fc_cash','og8_fc_io','og8_fc_ev','og8_fc_hist'].every((n) => { const q = WF.registry.get(n)?.query; return q && q.result && q.state !== 'executing'; })"
+ },
+ {
+  "wait": 700
+ },
+ {
+  "name": "Next 30 days: one page hero (data-own cash-30d) = the governed cash_expected_30d, exact",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); return WF.current.id === 'forecast/cash' && document.querySelector('.view:not([hidden])').querySelectorAll('.hero.page').length === 1 && !!document.querySelector('.hero.page[data-own=\"cash-30d\"]') && digits(document.querySelector('#fc-c-hero').textContent) === Math.round(num(one('og8_fc_cash').x)); }"
+ },
+ {
+  "name": "the expected line starts on today's cash (= the wealth layer's TCB debit + Timo) and ends on the hero",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); const c = echarts.getInstanceByDom(document.querySelector('#fc-c-chart')).getOption(); const f = c.series.find((x) => x.name === 'Expected').data; const h = rows('og8_fc_hist'); return f.length === 31 && Math.abs(f[0][1] - num(one('og8_fc_cash').t)) < 1 && Math.abs(num(h.at(-1).v) - num(one('og8_fc_cash').t)) < 1 && Math.abs(f.at(-1)[1] - num(one('og8_fc_cash').x)) < 1; }"
+ },
+ {
+  "name": "the lowest point named in the notes is the line's minimum",
+  "assert": "() => { const c = echarts.getInstanceByDom(document.querySelector('#fc-c-chart')).getOption(); const f = c.series.find((x) => x.name === 'Expected').data.slice(1); const low = f.reduce((m, x) => (x[1] < m[1] ? x : m)); const t = document.querySelector('#fc-c-notes-list [data-k=low]').textContent; return t.includes(OG.approx(low[1])) && t.includes(OG.dayMon(low[0])); }"
+ },
+ {
+  "name": "runway: low = the chart's lowest point (value + day), peak = its highest, end traced to the hero",
+  "assert": "() => { OG.hcOpen(document.getElementById('fc-sw-btn'), { pin: true, instant: true }); const c = echarts.getInstanceByDom(document.querySelector('#fc-c-chart')).getOption(); const f = c.series.find((x) => x.name === 'Expected').data.slice(1); const low = f.reduce((m, x) => (x[1] < m[1] ? x : m)), hi = f.reduce((m, x) => (x[1] > m[1] ? x : m)); const t = (k) => document.querySelector('#fc-runway [data-k=' + k + '] .fc-rw-lab').textContent; return t('lo').includes(OG.approx(low[1])) && t('lo').includes(OG.dayMon(low[0])) && t('hi').includes(OG.approx(hi[1])) && !!document.querySelector('#fc-runway [data-k=end] [data-trace=\"og8_fc_cash:x\"]') && /lowest|low/i.test(document.querySelector('#fc-runway').getAttribute('aria-label')) && !document.querySelector('#fc-runway .fc-rw-short'); }"
+ },
+ {
+  "name": "19 Oct (round 3): Highs and lows is no card: the Cash ahead hero line's link opens it, four points in date order (Today first, In 30 days last) with a leg between each pair",
+  "assert": "() => { OG.hcOpen(document.getElementById('fc-sw-btn'), { pin: true, instant: true }); const ks = [...document.querySelectorAll('#hc #fc-runway .fc-rw-item')].map((e) => e.dataset.k); const ok = !document.querySelector('[data-anfra-block=fc-swing]') && !!document.getElementById('fc-sw-btn').closest('#fc-c-hero-delta') && ks[0] === 'today' && ks.at(-1) === 'end' && ks.length === 4 && document.querySelectorAll('#fc-runway .fc-sw-leg').length === 3 && /between|short/.test(document.querySelector('#fc-runway .fc-rw-say').textContent); OG.hcClose(); return ok; }"
+ },
+ {
+  "name": "19 Oct: the rail has the 30-day summary above Worth knowing; Coming in and out uses the Recurring rows",
+  "assert": "() => document.querySelector('.view:not([hidden]) [data-anfra-block=fc-c-sum]').nextElementSibling === document.querySelector('.view:not([hidden]) [data-anfra-block=fc-c-notes]') && document.querySelectorAll('#fc-items-list .tx-row.fc-item').length > 0 && !!document.querySelector('#fc-items-list.sp-tx-list')"
+ },
+ {
+  "name": "runway(): a low below zero runs short; the track always holds today",
+  "assert": "() => { const v = WF.views.get('forecast/cash'); const days = [{ d: '2026-10-14', bal: 5e6, ev: [] }, ...Array.from({ length: 30 }, (_, i) => ({ d: 'd' + i, bal: i === 9 ? -2e6 : 1e6 + i, ev: [] }))]; const r = v.runway(days); return r.short && r.lo.bal === -2e6 && r.from === -2e6 && r.to === 5e6 && r.today === 5e6; }"
+ },
+ {
+  "name": "runway labels never overlap (1600)",
+  "assert": "() => { OG.hcOpen(document.getElementById('fc-sw-btn'), { pin: true, instant: true }); const rs = [...document.querySelectorAll('#fc-runway .fc-rw-lab')].map((e) => e.getBoundingClientRect()); return rs.length === 4 && rs.every((a, i) => rs.every((b, j) => i >= j || a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top)); }"
+ },
+ {
+  "click": ".view:not([hidden]) [data-action=privacy]"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "privacy: the runway's four values blur like the hero",
+  "assert": "() => { OG.hcOpen(document.getElementById('fc-sw-btn'), { pin: true, instant: true }); const vs = [...document.querySelectorAll('#fc-runway .fc-rw-lab .v')]; return document.body.classList.contains('privacy') && vs.length === 4 && vs.every((e) => getComputedStyle(e).filter !== 'none') && getComputedStyle(document.querySelector('#fc-c-hero')).filter !== 'none'; }"
+ },
+ {
+  "click": ".view:not([hidden]) [data-action=privacy]"
+ },
+ {
+  "wait": 200
+ },
+ {
+  "name": "privacy off: the runway's values are clear again",
+  "assert": "() => { OG.hcOpen(document.getElementById('fc-sw-btn'), { pin: true, instant: true }); return !document.body.classList.contains('privacy') && [...document.querySelectorAll('#fc-runway .fc-rw-lab .v')].every((e) => getComputedStyle(e).filter === 'none'); }"
+ },
+ {
+  "name": "the chart's low is a dot without words (the runway names it)",
+  "assert": "() => { const s = echarts.getInstanceByDom(document.querySelector('#fc-c-chart')).getOption().series.find((x) => x.name === 'Expected'); return s.markPoint.data.length === 1 && s.markPoint.label?.show === false; }"
+ },
+ {
+  "name": "Coming in and out: one line per expected movement, and the last day's balance after = the line on that day",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); const ev = rows('og8_fc_ev'); return document.querySelectorAll('#fc-items-list .fc-item:not(.fc-item-every)').length === ev.length && !!document.querySelector('#fc-items-list [data-trace=\"og8_fc_cash:e\"]'); }"
+ },
+ {
+  "name": "the summary: coming in = cash_ahead_in_30d; going out = out + everyday × 30; net = hero − today",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); const io = one('og8_fc_io'), k = one('og8_fc_cash'); const hs = [...document.querySelectorAll('#fc-c-sum-rows .nw-sum-hd .amt')].map((x) => x.textContent); return hs[0] === OG.approx(io.i) && hs[1] === `≈ ${OG.approx(num(io.o) + num(k.e) * 30)}` && document.querySelector('#fc-c-sum-rows .fc-net .amt').textContent === OG.approx(num(k.x) - num(k.t), true); }"
+ },
+ {
+  "name": "fix: each card payment is about a month of its spending; the hover no longer says card bills are covered elsewhere; Going out reads ≈",
+  "assert": "() => { const t = document.querySelector('#fc-items-list').textContent; return /MAX VIB/.test(t) && /TCB Visa/.test(t) && /About a month of card spending/.test(t) && /^≈/.test(document.querySelectorAll('#fc-c-sum-rows .nw-sum-hd .amt')[1].textContent) && !/reach cash through/.test(OG.hc['fc-left-out']()); }"
+ },
+ {
+  "eval": "() => { WF.go('ask'); return true; }"
+ },
+ {
+  "wait": 500
+ },
+ {
+  "eval": "() => { WF.views.get('ask').ask(OG.askRoute('Where is my net worth heading?'), 'Where is my net worth heading?'); return true; }"
+ },
+ {
+  "waitFor": "() => /in 12 months/.test(document.querySelector('.view:not([hidden])').textContent) && WF.registry.get('og8_fc_12m').query.state !== 'executing'"
+ },
+ {
+  "name": "Ask AI's 'in 12 months' is Forecast's hero (the same governed query, traced)",
+  "assert": "() => { const one = (n) => WF.registry.get(n).query.result.rows[0], rows = (n) => WF.registry.get(n).query.result.rows, num = (v) => Number(v) || 0, digits = (s) => Number(String(s).replace(/[^0-9-]/g, '')); const b = [...document.querySelectorAll('.view:not([hidden]) [data-trace=\"og8_fc_12m:p1\"]')].at(-1); return !!b && digits(b.textContent) === Math.round(num(one('og8_fc_12m').p1)); }"
+ },
+ {
+  "viewport": [
+   1545,
+   900
+  ]
+ },
+ {
+  "eval": "() => { WF.go('forecast/networth'); return true; }"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "1280px window: nothing wider than the page on forecast/networth",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "viewport": [
+   1545,
+   900
+  ]
+ },
+ {
+  "eval": "() => { WF.go('forecast/cash'); return true; }"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "1280px window: nothing wider than the page on forecast/cash",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "viewport": [
+   1365,
+   900
+  ]
+ },
+ {
+  "eval": "() => { WF.go('forecast/networth'); return true; }"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "1100px window: nothing wider than the page on forecast/networth",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "viewport": [
+   1365,
+   900
+  ]
+ },
+ {
+  "eval": "() => { WF.go('forecast/cash'); return true; }"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "1100px window: nothing wider than the page on forecast/cash",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "viewport": [
+   1033,
+   900
+  ]
+ },
+ {
+  "eval": "() => { WF.go('forecast/networth'); return true; }"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "768px window: nothing wider than the page on forecast/networth",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "viewport": [
+   1033,
+   900
+  ]
+ },
+ {
+  "eval": "() => { WF.go('forecast/cash'); return true; }"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "768px window: nothing wider than the page on forecast/cash",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "viewport": [
+   390,
+   900
+  ]
+ },
+ {
+  "eval": "() => { WF.go('forecast/networth'); return true; }"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "390px window: nothing wider than the page on forecast/networth",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "name": "road labels never overlap (390)",
+  "assert": "() => { const rs = [...document.querySelectorAll('#fc-road .fc-stop-lab')].map((e) => e.getBoundingClientRect()); return rs.length >= 4 && rs.every((a, i) => rs.every((b, j) => i >= j || a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top)); }"
+ },
+ {
+  "viewport": [
+   390,
+   900
+  ]
+ },
+ {
+  "eval": "() => { WF.go('forecast/cash'); return true; }"
+ },
+ {
+  "wait": 800
+ },
+ {
+  "name": "390px window: nothing wider than the page on forecast/cash",
+  "assert": "() => { const v = document.querySelector('.view:not([hidden])'); return v.scrollWidth <= v.clientWidth + 1; }"
+ },
+ {
+  "name": "runway labels never overlap (390)",
+  "assert": "() => { OG.hcOpen(document.getElementById('fc-sw-btn'), { pin: true, instant: true }); const rs = [...document.querySelectorAll('#fc-runway .fc-rw-lab')].map((e) => e.getBoundingClientRect()); return rs.length === 4 && rs.every((a, i) => rs.every((b, j) => i >= j || a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top)); }"
+ }
+]

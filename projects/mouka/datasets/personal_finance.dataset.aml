@@ -1,0 +1,1065 @@
+// The governed semantic layer over the synthetic cspipeline replica.
+// One definition per number; every definition reconciles with cspipeline (store.py,
+// cashback.py) and is checked by tests/check_semantic.py.
+
+const spend_detail = [
+  r(fct_ledger.line_date),
+  r(dim_sources.label),
+  r(fct_ledger.merchant),
+  r(fct_ledger.description),
+  r(dim_categories.category),
+  r(fct_ledger.flow_type),
+  r(fct_ledger.amount_vnd),
+  r(fct_ledger.note),
+]
+
+const inflow_detail = [
+  r(fct_ledger.line_date),
+  r(dim_sources.label),
+  r(fct_ledger.flow_type),
+  r(fct_ledger.merchant),
+  r(fct_ledger.description),
+  r(fct_ledger.amount_vnd),
+]
+
+const reward_detail = [
+  r(dim_reward_cycles.cycle_label),
+  r(fct_ledger.line_date),
+  r(fct_ledger.merchant),
+  r(dim_categories.category),
+  r(fct_ledger.currency),
+  r(fct_ledger.native_amount),
+  r(fct_ledger.amount_vnd),
+]
+
+Dataset personal_finance {
+  label: 'Personal finance'
+  description: '''
+# Personal finance (synthetic)
+
+The money of **Pham Thu Ha**, a fictional product designer in Ho Chi Minh City, from
+Apr 2025 to the data as-of date. **Every value is synthetic.** It has the shape of a real
+personal-finance pipeline (cspipeline) and none of its data.
+
+## What it can answer
+- **Where the money goes:** spend by category, merchant, card or account, weekday, hour.
+- **Income and saving:** salary, bonuses, savings rate, deposits, gold and stock buys.
+- **Budgets:** monthly limits by category and source, with cspipeline's overflow buffer.
+- **MAX VIB points:** each 16th→15th cycle's spend, points, pace and ₫/day to the cap.
+- **Balances:** each account's balance, the TCB card statement, Timo money pots.
+
+## What it cannot answer
+- **Net worth:** term deposits, gold and stocks are recorded as money moved, not valued.
+- **Pot balances:** the data starts after the pots were opened, so pot figures are net
+  flows since tracking began.
+- **MAX VIB debt:** VIB alerts carry purchases only; repayments show on TCB debit as card payments.
+
+## Definitions that matter
+- **Spend** (cspipeline's "money out") is counted when money is spent: a card purchase, or an account debit
+  that is real consumption. Paying a card bill, moving money between own accounts or pots,
+  saving and investing are never spend. Money sent to Mom is spend (`family_support`).
+- Dates are Vietnam local time. "Today" is the **data as-of date** (`data_as_of`), not the
+  wall clock: pace and per-day figures stay right on a dashboard opened days after a rebuild.
+'''
+  data_source_name: 'finance'
+  owner: 'hoang.do@holistics.io'
+
+  models: [
+    fct_ledger, fct_card_statements, fct_budget_months, fct_recurring, fct_cash_ahead,
+    dim_dates, dim_sources, dim_categories, dim_reward_cycles,
+  ]
+
+  // fct_recurring (series projected from the ledger) stands alone: its metrics read the whole data, as of today.
+  // fct_cash_ahead (the next 30 days of spendable cash, built on fct_recurring) stands alone the same way.
+  // fct_ledger is the main fact and keeps every link active. fct_budget_months is a second
+  // fact on the same dims (a galaxy); Anfra rejects loops of active links, so its category
+  // and source links are inactive and every budget metric switches them on.
+  relationships: [
+    relationship(fct_ledger.line_date > dim_dates.date_key, true),
+    relationship(fct_ledger.src > dim_sources.src, true),
+    relationship(fct_ledger.category > dim_categories.category, true),
+    relationship(fct_ledger.statement_id > fct_card_statements.id, true),
+    relationship(fct_ledger.reward_cycle_key > dim_reward_cycles.cycle_key, true),
+    relationship(fct_budget_months.month_start > dim_dates.date_key, true),
+    relationship(fct_budget_months.category > dim_categories.category, false),
+    relationship(fct_budget_months.src > dim_sources.src, false),
+  ]
+
+  // ================================================================ Spend (money out)
+
+  metric spend {
+    label: 'Spend'
+    type: 'number'
+    description: '''Real spend (cspipeline's "money out", real spending): card purchases plus account debits that are consumption.
+Excludes card bill payments, own transfers, pot moves, saving and investing, and reversed charges. Money sent to Mom counts.'''
+    definition: @aql fct_ledger | sum(fct_ledger.spend_vnd) ;;
+    format: '#,###0'
+  }
+  metric spend_lines {
+    label: 'Spend lines'
+    type: 'number'
+    description: 'Number of lines that are spend.'
+    definition: @aql fct_ledger | where(fct_ledger.is_spend is true) | count(fct_ledger.line_id) ;;
+    format: '#,###0'
+  }
+  metric card_spend {
+    label: 'Card spend'
+    type: 'number'
+    description: 'Spend on the two credit cards (TCB Visa, MAX VIB), by transaction date.'
+    definition: @aql fct_ledger | where(fct_ledger.line_kind == 'card') | sum(fct_ledger.spend_vnd) ;;
+    format: '#,###0'
+  }
+  metric account_spend {
+    label: 'Account spend'
+    type: 'number'
+    description: 'Spend paid straight from TCB debit or Timo (QR, bills, Mom).'
+    definition: @aql fct_ledger | where(fct_ledger.line_kind == 'account') | sum(fct_ledger.spend_vnd) ;;
+    format: '#,###0'
+  }
+  metric refunds {
+    label: 'Card refunds'
+    type: 'number'
+    description: 'Merchant refunds credited to a card (TRA LAI HANG HOA). Not points cash-outs, not bill payments.'
+    definition: @aql fct_ledger | where(fct_ledger.flow_group == 'refund') | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric reimbursements {
+    label: 'Reimbursements'
+    type: 'number'
+    description: 'Money friends pay back to Ha for lunch, Grab, cinema or gifts.'
+    definition: @aql fct_ledger | where(fct_ledger.flow_group == 'reimbursement') | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric not_spend {
+    label: 'Not counted as spending'
+    type: 'number'
+    description: '''Money that moved but is neither spend nor income: own transfers and card bill payments, saving and investing,
+friend paybacks, card refunds and card rewards. Gross amounts, in and out both positive.'''
+    definition: @aql fct_ledger | where(fct_ledger.flow_group not in ['spend', 'income']) | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric not_spend_lines {
+    label: 'Lines not counted as spending'
+    type: 'number'
+    description: 'Ledger lines that are neither spend nor income (the rows behind Not counted as spending).'
+    definition: @aql fct_ledger | where(fct_ledger.flow_group not in ['spend', 'income']) | count(fct_ledger.line_id) ;;
+    format: '#,###0'
+  }
+  metric net_spend {
+    label: 'Net spend'
+    type: 'number'
+    description: 'What spending cost Ha herself: spend − card refunds − reimbursements. Reimbursements are booked by the month they arrive.'
+    definition: @aql spend - coalesce(refunds, 0) - coalesce(reimbursements, 0) ;;
+    format: '#,###0'
+  }
+  metric elapsed_days {
+    label: 'Days elapsed'
+    type: 'number'
+    description: 'Calendar days in the period up to the data as-of date. The denominator of per-day figures. It counts calendar days, not days with spend: a category or source filter does not shrink it (before 16 Oct 2026 it did, which inflated per-day and per-month figures for one category).'
+    definition: @aql dim_dates | count_if(dim_dates.is_elapsed) | of_all(dim_categories, dim_sources) ;;
+    format: '#,###0'
+  }
+  metric avg_daily_spend {
+    label: 'Average daily spend'
+    type: 'number'
+    description: 'spend ÷ days elapsed in the period, so the month in progress is not diluted by days still to come.'
+    definition: @aql safe_divide(spend, elapsed_days) ;;
+    format: '#,###0'
+  }
+  metric avg_ticket {
+    label: 'Average ticket'
+    type: 'number'
+    description: 'spend ÷ spend lines.'
+    definition: @aql safe_divide(spend, spend_lines) ;;
+    format: '#,###0'
+  }
+  metric spend_prev_month {
+    label: 'Spend, previous month'
+    type: 'number'
+    description: 'Spend one month earlier. Needs a month dimension (dim_dates.date_key | month()) or a date filter.'
+    definition: @aql spend | relative_period(dim_dates.date_key, interval(-1 month)) ;;
+    format: '#,###0'
+  }
+  metric spend_mom_change_pct {
+    label: 'Spend change vs previous month'
+    type: 'number'
+    description: '(spend − spend previous month) ÷ spend previous month.'
+    definition: @aql safe_divide(spend - spend_prev_month, spend_prev_month) ;;
+    format: '0.0%'
+  }
+  metric spend_mtd {
+    label: 'Spend, month to date'
+    type: 'number'
+    description: 'Running spend from the 1st of the month. Use with a day dimension (dim_dates.date_key).'
+    definition: @aql spend | period_to_date('month', dim_dates.date_key) ;;
+    format: '#,###0'
+  }
+  metric spend_share_pct {
+    label: 'Share of spend'
+    type: 'number'
+    description: 'Each row\'s spend as a share (0–1) of the explore\'s grand total.'
+    definition: @aql percent_of_total(spend, 'grand_total') ;;
+    format: '0.0%'
+  }
+  metric family_support {
+    label: 'Family support'
+    type: 'number'
+    description: 'Money sent to Mom after each payday. Counted in spend, tagged Other.'
+    definition: @aql fct_ledger | where(fct_ledger.flow_type == 'family_support') | sum(fct_ledger.spend_vnd) ;;
+    format: '#,###0'
+  }
+  metric subscription_spend {
+    label: 'Subscription spend'
+    type: 'number'
+    description: 'Spend tagged Subscription (Netflix, Spotify, iCloud, ChatGPT…).'
+    definition: @aql fct_ledger | where(fct_ledger.category == 'Subscription') | sum(fct_ledger.spend_vnd) ;;
+    format: '#,###0'
+  }
+  metric active_subscriptions {
+    label: 'Active subscriptions'
+    type: 'number'
+    description: 'Distinct merchants charged under Subscription in the period.'
+    definition: @aql fct_ledger | where(fct_ledger.category == 'Subscription') | where(fct_ledger.is_spend is true) | count_distinct(fct_ledger.merchant) ;;
+    format: '#,###0'
+  }
+  metric foreign_currency_spend {
+    label: 'Foreign-currency spend'
+    type: 'number'
+    description: 'Spend on lines charged in a foreign currency (USD on MAX VIB), in VND at the bank\'s rate.'
+    definition: @aql fct_ledger | where(fct_ledger.is_foreign_currency is true) | sum(fct_ledger.spend_vnd) ;;
+    format: '#,###0'
+  }
+
+
+  // ================================================================ Income & saving
+
+  metric income {
+    label: 'Income'
+    type: 'number'
+    description: 'Salary + bonuses + interest. Excludes reimbursements, own transfers and savings maturities.'
+    definition: @aql fct_ledger | where(fct_ledger.flow_group == 'income') | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric salary {
+    label: 'Salary'
+    type: 'number'
+    definition: @aql fct_ledger | where(fct_ledger.flow_type == 'salary') | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric bonus {
+    label: 'Bonuses'
+    type: 'number'
+    description: 'Lunar New Year (Tet) and mid-year bonuses.'
+    definition: @aql fct_ledger | where(fct_ledger.flow_type == 'bonus') | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric cash_in {
+    label: 'Cash in'
+    type: 'number'
+    description: 'Every credit to TCB debit and Timo, as cspipeline\'s "cash in". Includes own transfers, pot withdrawals and maturities, so it overstates income; use income for analysis.'
+    definition: @aql fct_ledger | where(fct_ledger.line_kind == 'account') | where(fct_ledger.direction == 'in') | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric external_inflow {
+    label: 'External inflow'
+    type: 'number'
+    description: 'Money from outside Ha\'s own accounts: income + reimbursements.'
+    definition: @aql fct_ledger | where(fct_ledger.flow_group in ['income', 'reimbursement']) | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric saved_and_invested {
+    label: 'Saved & invested'
+    type: 'number'
+    description: 'New term deposits, gold and stock buys.'
+    definition: @aql fct_ledger | where(fct_ledger.flow_group == 'save_invest') | where(fct_ledger.direction == 'out') | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric savings_matured {
+    label: 'Savings matured'
+    type: 'number'
+    description: 'Term deposits that came back to the account.'
+    definition: @aql fct_ledger | where(fct_ledger.flow_type == 'saving_maturity') | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric net_saving {
+    label: 'Net saving'
+    type: 'number'
+    description: 'saved & invested − savings matured: money newly put away in the period.'
+    definition: @aql coalesce(saved_and_invested, 0) - coalesce(savings_matured, 0) ;;
+    format: '#,###0'
+  }
+  metric surplus {
+    label: 'Surplus'
+    type: 'number'
+    description: 'income − net spend: what the period left to save.'
+    definition: @aql coalesce(income, 0) - coalesce(net_spend, 0) ;;
+    format: '#,###0'
+  }
+  metric savings_rate {
+    label: 'Savings rate'
+    type: 'number'
+    description: 'surplus ÷ income. Uses net spend, so refunds and what friends pay back are not counted as Ha\'s cost.'
+    definition: @aql safe_divide(surplus, income) ;;
+    format: '0.0%'
+  }
+  metric spend_to_income {
+    label: 'Spend to income'
+    type: 'number'
+    description: 'spend ÷ income.'
+    definition: @aql safe_divide(spend, income) ;;
+    format: '0.0%'
+  }
+  metric cash_flow_net {
+    label: 'Net'
+    type: 'number'
+    description: 'income − spend: Wealthfolio\'s Spending header "Net".'
+    definition: @aql coalesce(income, 0) - coalesce(spend, 0) ;;
+    format: '#,###0'
+  }
+  metric cash_flow_net_pct {
+    label: 'Net cash flow, share of income'
+    type: 'number'
+    description: 'cash_flow_net ÷ income: the share of income left after all spend. Shown next to net cash flow (income − spend), where savings_rate (which uses net spend) would not add up.'
+    definition: @aql safe_divide(cash_flow_net, income) ;;
+    format: '#,##0.0%'
+  }
+  metric spend_monthly_avg {
+    label: 'Spend per average month'
+    type: 'number'
+    description: 'average daily spend × 30.4375: spend for an average-length month, so a month in progress is not diluted.'
+    definition: @aql avg_daily_spend * 30.4375 ;;
+    format: '#,###0'
+  }
+  metric cash_flow_monthly_avg {
+    label: 'Net per average month'
+    type: 'number'
+    description: 'net (income − spend) ÷ days elapsed × 30.4375.'
+    definition: @aql safe_divide(cash_flow_net, elapsed_days) * 30.4375 ;;
+    format: '#,###0'
+  }
+
+  // ================================================================ Balances
+
+  metric account_balance {
+    label: 'Account balance'
+    type: 'number'
+    description: '''Closing balance: the balance after the last movement in the period.
+Semi-additive: break it down by source (dim_sources.src). A month with no movement on an account has no value for it.'''
+    definition: @aql fct_ledger | where(fct_ledger.line_kind == 'account') | max_by(fct_ledger.running_balance_vnd, fct_ledger.balance_seq) ;;
+    format: '#,###0'
+  }
+  metric total_cash {
+    label: 'Total cash'
+    type: 'number'
+    description: 'Sum of each account\'s closing balance (TCB debit + Timo spend account). Excludes pots and term deposits.'
+    definition: @aql unique(dim_sources.src) | select(v: account_balance) | sum(v) ;;
+    format: '#,###0'
+  }
+  metric card_statement_balance {
+    label: 'TCB statement balance'
+    type: 'number'
+    description: 'Outstanding balance on the latest TCB statement in the period.'
+    definition: @aql fct_card_statements | where(fct_card_statements.is_synthetic is false) | max_by(fct_card_statements.outstanding_balance_vnd, fct_card_statements.period_end) ;;
+    format: '#,###0'
+  }
+  metric card_min_payment {
+    label: 'TCB minimum payment'
+    type: 'number'
+    description: 'Minimum payment on the latest TCB statement in the period.'
+    definition: @aql fct_card_statements | where(fct_card_statements.is_synthetic is false) | max_by(fct_card_statements.min_payment_vnd, fct_card_statements.period_end) ;;
+    format: '#,###0'
+  }
+  metric card_payment_due {
+    label: 'TCB payment due'
+    type: 'date'
+    description: 'Due date of the latest TCB statement in the period.'
+    definition: @aql fct_card_statements | where(fct_card_statements.is_synthetic is false) | max_by(fct_card_statements.payment_due_date, fct_card_statements.period_end) ;;
+  }
+  metric pot_contributions {
+    label: 'Pot contributions'
+    type: 'number'
+    description: 'Money moved into Timo money pots.'
+    definition: @aql fct_ledger | where(fct_ledger.pot_direction == 'in') | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric pot_withdrawals {
+    label: 'Pot withdrawals'
+    type: 'number'
+    description: 'Money taken out of Timo money pots.'
+    definition: @aql fct_ledger | where(fct_ledger.pot_direction == 'out') | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric pot_net_flow {
+    label: 'Pot net flow'
+    type: 'number'
+    description: 'contributions − withdrawals. Over all time it is the change in pot balance since tracking began, not the balance itself.'
+    definition: @aql coalesce(pot_contributions, 0) - coalesce(pot_withdrawals, 0) ;;
+    format: '#,###0'
+  }
+
+  // ================================================================ Budgets
+
+  metric budget_limit {
+    label: 'Budget limit'
+    type: 'number'
+    description: 'Sum of monthly limits. Mixing scopes double counts; filter fct_budget_months.scope_type or break down by fct_budget_months.scope_label.'
+    definition: @aql fct_budget_months | sum(fct_budget_months.limit_vnd) | with_relationships(fct_budget_months.category > dim_categories.category, fct_budget_months.src > dim_sources.src) ;;
+    format: '#,###0'
+  }
+  metric budget_spent {
+    label: 'Budget spent'
+    type: 'number'
+    description: 'Spent against the budget after overflow, as on the cspipeline Budgets page: a capped category shows its limit, and the buffer shows its own spend plus every overflow.'
+    definition: @aql fct_budget_months | sum(fct_budget_months.spent_vnd) | with_relationships(fct_budget_months.category > dim_categories.category, fct_budget_months.src > dim_sources.src) ;;
+    format: '#,###0'
+  }
+  metric budget_raw_spent {
+    label: 'Budget raw spent'
+    type: 'number'
+    description: 'Spend in the budget\'s scope before any overflow. Equals spend for that category or source and month.'
+    definition: @aql fct_budget_months | sum(fct_budget_months.raw_spent_vnd) | with_relationships(fct_budget_months.category > dim_categories.category, fct_budget_months.src > dim_sources.src) ;;
+    format: '#,###0'
+  }
+  metric budget_overflow_to_buffer {
+    label: 'Moved to buffer'
+    type: 'number'
+    description: 'Excess above a category limit moved into the overflow buffer.'
+    definition: @aql fct_budget_months | sum(fct_budget_months.over_to_buffer_vnd) | with_relationships(fct_budget_months.category > dim_categories.category, fct_budget_months.src > dim_sources.src) ;;
+    format: '#,###0'
+  }
+  metric budget_remaining {
+    label: 'Budget remaining'
+    type: 'number'
+    description: 'limit − spent. Negative when over.'
+    definition: @aql fct_budget_months | sum(fct_budget_months.remaining_vnd) | with_relationships(fct_budget_months.category > dim_categories.category, fct_budget_months.src > dim_sources.src) ;;
+    format: '#,###0'
+  }
+  metric budget_used_pct {
+    label: 'Budget used'
+    type: 'number'
+    description: 'budget spent ÷ budget limit.'
+    definition: @aql safe_divide(budget_spent, budget_limit) ;;
+    format: '0.0%'
+  }
+  metric budget_limit_categories {
+    label: 'Category budgets'
+    type: 'number'
+    description: 'Sum of monthly category limits only (source budgets left out, so nothing is counted twice).'
+    definition: @aql fct_budget_months | where(fct_budget_months.scope_type == 'category') | sum(fct_budget_months.limit_vnd) | with_relationships(fct_budget_months.category > dim_categories.category, fct_budget_months.src > dim_sources.src) ;;
+    format: '#,###0'
+  }
+  metric budget_savings_target {
+    label: 'Savings target'
+    type: 'number'
+    description: 'income − category budgets: what is left to save if every category spends its limit.'
+    definition: @aql coalesce(income, 0) - coalesce(budget_limit_categories, 0) ;;
+    format: '#,###0'
+  }
+  // ---- budget vs the month so far (16 Oct 2026, mouka-v2): one base for the headline, the pace line and the pill.
+  // Budget metrics read the budget table; spend_budgeted reads the ledger on the same categories (they agree:
+  // the envelope overflow moves money between categories, not out of them).
+  metric period_days {
+    label: 'Days in period'
+    type: 'number'
+    description: 'Calendar days in the period (elapsed or not). With a month filter: the days in that month.'
+    definition: @aql dim_dates | count(dim_dates.date_key) | of_all(dim_categories, dim_sources) ;;
+    format: '#,###0'
+  }
+  metric days_left {
+    label: 'Days left'
+    type: 'number'
+    description: 'Calendar days in the period after the data as-of date. 0 for a past month.'
+    definition: @aql dim_dates | count_if(dim_dates.is_elapsed is false) | of_all(dim_categories, dim_sources) ;;
+    format: '#,###0'
+  }
+  metric budget_spent_categories {
+    label: 'Spent against category budgets'
+    type: 'number'
+    description: 'Spend in the tags that have a category budget (after overflow). Bills and other unbudgeted tags are not in it: see spend_unbudgeted.'
+    definition: @aql fct_budget_months | where(fct_budget_months.scope_type == 'category') | sum(fct_budget_months.spent_vnd) | with_relationships(fct_budget_months.category > dim_categories.category, fct_budget_months.src > dim_sources.src) ;;
+    format: '#,###0'
+  }
+  metric budget_remaining_categories {
+    label: 'Left to spend'
+    type: 'number'
+    description: 'Category budgets − spent against them. Negative when over. Source (card) budgets are left out so nothing counts twice.'
+    definition: @aql coalesce(budget_limit_categories, 0) - coalesce(budget_spent_categories, 0) ;;
+    format: '#,###0'
+  }
+  metric budget_left_per_day {
+    label: 'Left to spend per day'
+    type: 'number'
+    description: 'Left to spend ÷ days left in the period: what can go out each remaining day and still end on budget. Empty for a past month.'
+    definition: @aql safe_divide(budget_remaining_categories, days_left) ;;
+    format: '#,###0'
+  }
+  metric budget_pace_expected {
+    label: 'Budget pace'
+    type: 'number'
+    description: 'Category budgets × days elapsed ÷ days in the period: where spending would be today if it ran evenly to the limit.'
+    definition: @aql budget_limit_categories * safe_divide(elapsed_days, period_days) ;;
+    format: '#,###0'
+  }
+  metric budget_pace_gap {
+    label: 'Gap to budget pace'
+    type: 'number'
+    description: 'Spent against category budgets − budget pace. Negative = under pace (room to spare), positive = ahead of pace.'
+    definition: @aql coalesce(budget_spent_categories, 0) - coalesce(budget_pace_expected, 0) ;;
+    format: '#,###0'
+  }
+  metric budget_pace_status {
+    label: 'Budget status'
+    type: 'text'
+    description: 'over budget (spent more than the category budgets) · ahead of pace (spending faster than an even pace to the limit) · on track.'
+    definition: @aql case(when: budget_remaining_categories < 0, then: 'over budget', when: budget_pace_gap > 0, then: 'ahead of pace', else: 'on track') ;;
+  }
+  metric spend_budgeted {
+    label: 'Spend in budgeted categories'
+    type: 'number'
+    description: 'Ledger spend in tags that have a category budget. Same base as the budget table, so it can be drawn by day.'
+    definition: @aql spend | where(dim_categories.has_category_budget == true) ;;
+    format: '#,###0'
+  }
+  metric spend_budgeted_mtd {
+    label: 'Spend in budgeted categories, month to date'
+    type: 'number'
+    description: 'Running spend in budgeted tags from the 1st of the month. Use with a day dimension: the line the budget pace is compared with.'
+    definition: @aql spend_budgeted | period_to_date('month', dim_dates.date_key) ;;
+    format: '#,###0'
+  }
+  metric spend_unbudgeted {
+    label: 'Spend outside budgets'
+    type: 'number'
+    description: 'Ledger spend in tags with no category budget (Bills, Well-being, Learning, untagged). spend = spend_budgeted + spend_unbudgeted.'
+    definition: @aql spend | where(dim_categories.has_category_budget == false) ;;
+    format: '#,###0'
+  }
+  metric salary_latest {
+    label: 'Latest salary'
+    type: 'number'
+    description: 'The most recent salary payment, whatever period is selected: what the next one is expected to be.'
+    definition: @aql fct_ledger | where(fct_ledger.flow_type == 'salary') | max_by(fct_ledger.amount_vnd, fct_ledger.line_date) | of_all(dim_dates) ;;
+    format: '#,###0'
+  }
+  metric income_planned {
+    label: 'Income for the plan'
+    type: 'number'
+    description: 'Income in the period, plus the latest salary when no salary has landed in it yet. Before payday the plan uses the salary you expect, not ₫0.'
+    definition: @aql coalesce(income, 0) + case(when: coalesce(salary, 0) == 0, then: coalesce(salary_latest, 0), else: 0) ;;
+    format: '#,###0'
+  }
+  metric savings_target_planned {
+    label: 'Savings target (planned)'
+    type: 'number'
+    description: 'Income for the plan − category budgets: what is left to save if every category spends its limit, counting the expected salary before it lands.'
+    definition: @aql income_planned - coalesce(budget_limit_categories, 0) ;;
+    format: '#,###0'
+  }
+
+  // ---- recurring series (fct_recurring): what is expected next, from history
+  metric recurring_due_30d {
+    label: 'Bills expected, next 30 days'
+    type: 'number'
+    description: 'Sum of the latest charge of every recurring bill series (Subscriptions, Bills) expected in the 30 days after the as-of date. An expectation from history.'
+    definition: @aql fct_recurring | where(fct_recurring.kind == 'bill' and fct_recurring.days_to_due <= 30) | sum(fct_recurring.expected_vnd) ;;
+    format: '#,###0'
+  }
+  metric recurring_due_30d_count {
+    label: 'Bills expected, next 30 days (count)'
+    type: 'number'
+    description: 'Recurring bill series expected in the 30 days after the as-of date.'
+    definition: @aql fct_recurring | count_if(fct_recurring.kind == 'bill' and fct_recurring.days_to_due <= 30) ;;
+    format: '#,###0'
+  }
+  metric recurring_due_14d {
+    label: 'Bills expected, next 14 days'
+    type: 'number'
+    description: 'As recurring_due_30d, for the 14 days after the as-of date.'
+    definition: @aql fct_recurring | where(fct_recurring.kind == 'bill' and fct_recurring.days_to_due <= 14) | sum(fct_recurring.expected_vnd) ;;
+    format: '#,###0'
+  }
+  metric recurring_due_14d_count {
+    label: 'Bills expected, next 14 days (count)'
+    type: 'number'
+    description: 'Recurring bill series expected in the 14 days after the as-of date.'
+    definition: @aql fct_recurring | count_if(fct_recurring.kind == 'bill' and fct_recurring.days_to_due <= 14) ;;
+    format: '#,###0'
+  }
+  metric income_expected_30d {
+    label: 'Salary expected, next 30 days'
+    type: 'number'
+    description: 'The latest salary of every payer whose next payday falls in the 30 days after the as-of date.'
+    definition: @aql fct_recurring | where(fct_recurring.kind == 'income' and fct_recurring.days_to_due <= 30) | sum(fct_recurring.expected_vnd) ;;
+    format: '#,###0'
+  }
+  metric next_payday {
+    label: 'Next payday'
+    type: 'date'
+    description: 'The earliest expected salary date after the as-of date.'
+    definition: @aql fct_recurring | where(fct_recurring.kind == 'income') | min(fct_recurring.next_due) ;;
+  }
+
+  // ---- cash ahead (fct_cash_ahead, Forecast › Next 30 days): what is expected in and out of total_cash, and where it lands
+  metric cash_ahead_in_30d {
+    label: 'Cash expected in, next 30 days'
+    type: 'number'
+    description: 'Money expected into TCB debit and Timo in the 30 days after the as-of date (paydays). An expectation from history.'
+    definition: @aql fct_cash_ahead | where(fct_cash_ahead.amount_vnd > 0) | sum(fct_cash_ahead.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric cash_ahead_out_30d {
+    label: 'Cash expected out, next 30 days'
+    type: 'number'
+    description: 'Money expected out of TCB debit and Timo in the 30 days after the as-of date: card payments and money sent to family. Positive. Everyday spending is separate (everyday_spend_daily).'
+    definition: @aql (fct_cash_ahead | where(fct_cash_ahead.amount_vnd < 0) | sum(fct_cash_ahead.amount_vnd)) * -1 ;;
+    format: '#,###0'
+  }
+  metric cash_ahead_net_30d {
+    label: 'Cash expected in − out, next 30 days'
+    type: 'number'
+    description: 'cash_ahead_in_30d − cash_ahead_out_30d, read in one pass over fct_cash_ahead.'
+    definition: @aql fct_cash_ahead | sum(fct_cash_ahead.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric everyday_spend {
+    label: 'Everyday spending from the bank accounts'
+    type: 'number'
+    description: 'What was spent straight from TCB debit and Timo (flow_type account_spend: not card payments, family, transfers or saving).'
+    definition: @aql fct_ledger | where(fct_ledger.flow_type == 'account_spend' and fct_ledger.src in ['tcb_debit', 'timo']) | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric everyday_spend_daily {
+    label: 'Everyday spending a day'
+    type: 'number'
+    description: 'everyday_spend over the elapsed days of the period. Forecast reads it over the last 90 days.'
+    definition: @aql safe_divide(everyday_spend, elapsed_days) ;;
+    format: '#,###0'
+  }
+  metric cash_expected_30d {
+    label: 'Spendable cash in 30 days'
+    type: 'number'
+    description: 'Spendable cash now (total_cash: TCB debit + Timo) + cash expected in − cash expected out − everyday spending a day × 30. A straight expectation from history, not a forecast of what you will do. Filter the last 90 days, so the everyday rate is recent and the balance is today.'
+    definition: @aql total_cash + coalesce(cash_ahead_net_30d, 0) - everyday_spend_daily * 30 ;;
+    format: '#,###0'
+  }
+
+  metric budgets_over_limit {
+    label: 'Budgets over limit'
+    type: 'number'
+    description: 'Budget-months whose spent is above the limit.'
+    definition: @aql fct_budget_months | count_if(fct_budget_months.status == 'over') | with_relationships(fct_budget_months.category > dim_categories.category, fct_budget_months.src > dim_sources.src) ;;
+    format: '#,###0'
+  }
+  metric budgets_at_warning {
+    label: 'Budgets at warning'
+    type: 'number'
+    description: 'Budget-months at or above their warn % but not over.'
+    definition: @aql fct_budget_months | count_if(fct_budget_months.status == 'warning') | with_relationships(fct_budget_months.category > dim_categories.category, fct_budget_months.src > dim_sources.src) ;;
+    format: '#,###0'
+  }
+
+  // ================================================================ MAX VIB rewards
+
+  metric reward_qualifying_spend {
+    label: 'Points-qualifying spend'
+    type: 'number'
+    description: 'MAX VIB purchases, reversed charges excluded: the spend the 8% rate applies to.'
+    definition: @aql fct_ledger | where(fct_ledger.is_reward_qualifying is true) | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric cycle_cap {
+    label: 'Cycle cap'
+    type: 'number'
+    hidden: true
+    definition: @aql dim_reward_cycles | max(dim_reward_cycles.reward_cap_vnd) ;;
+  }
+  metric cycle_threshold {
+    label: 'Cycle threshold'
+    type: 'number'
+    hidden: true
+    definition: @aql dim_reward_cycles | max(dim_reward_cycles.threshold_vnd) ;;
+  }
+  metric cycle_days_in {
+    label: 'Cycle days'
+    type: 'number'
+    hidden: true
+    definition: @aql dim_reward_cycles | max(dim_reward_cycles.days_in_cycle) ;;
+  }
+  metric cycle_days_left_open {
+    label: 'Cycle days left (open)'
+    type: 'number'
+    hidden: true
+    definition: @aql dim_reward_cycles | max(dim_reward_cycles.days_left_if_open) ;;
+  }
+  metric cycle_days_elapsed_open {
+    label: 'Cycle days elapsed (open)'
+    type: 'number'
+    hidden: true
+    definition: @aql dim_reward_cycles | max(dim_reward_cycles.days_elapsed_if_open) ;;
+  }
+  metric cycle_points {
+    label: 'Cycle points'
+    type: 'number'
+    hidden: true
+    description: 'Points for one cycle: min(cap, floor(spend × cap ÷ threshold)). Only meaningful at the cycle grain; use points_earned.'
+    definition: @aql
+      case(
+        when: floor(coalesce(reward_qualifying_spend, 0) * cycle_cap / cycle_threshold) > cycle_cap, then: cycle_cap,
+        else: floor(coalesce(reward_qualifying_spend, 0) * cycle_cap / cycle_threshold)
+      )
+    ;;
+  }
+  metric cycle_projected_spend {
+    label: 'Cycle projected spend'
+    type: 'number'
+    hidden: true
+    definition: @aql floor(coalesce(reward_qualifying_spend, 0) * cycle_days_in / cycle_days_elapsed_open) ;;
+  }
+  metric points_earned {
+    label: 'Points earned'
+    type: 'number'
+    description: '''MAX VIB points, worked out per 16th→15th cycle and summed: min(1,000,000, floor(spend × 8%)), the rate rung in cashback_milestones (cspipeline cashback._reward_at).
+1 point = ₫1 when cashed out.'''
+    definition: @aql unique(dim_reward_cycles.cycle_key) | select(v: cycle_points) | sum(v) ;;
+    format: '#,###0'
+  }
+  metric points_paid {
+    label: 'Points cashed out'
+    type: 'number'
+    description: 'Points cash-outs credited to the card ("Max Card cashback" on the statement), attributed to the cycle they pay for. They arrive 2–7 days after the close.'
+    definition: @aql fct_ledger | where(fct_ledger.flow_type == 'reward_redemption') | sum(fct_ledger.amount_vnd) ;;
+    format: '#,###0'
+  }
+  metric points_pending {
+    label: 'Points pending'
+    type: 'number'
+    description: 'points earned − points cashed out: earned but not yet credited (normally the cycle in progress).'
+    definition: @aql coalesce(points_earned, 0) - coalesce(points_paid, 0) ;;
+    format: '#,###0'
+  }
+  metric cap_gap {
+    label: 'Spend to the cap'
+    type: 'number'
+    description: 'Per cycle, threshold − qualifying spend when below the cap, else 0, summed. For a closed cycle it is the shortfall.'
+    definition: @aql
+      unique(dim_reward_cycles.cycle_key)
+        | select(v: case(
+            when: coalesce(reward_qualifying_spend, 0) < cycle_threshold,
+            then: cycle_threshold - coalesce(reward_qualifying_spend, 0),
+            else: 0))
+        | sum(v)
+    ;;
+    format: '#,###0'
+  }
+  metric points_left_to_cap {
+    label: 'Points still available'
+    type: 'number'
+    description: 'Open cycles only: cap − points earned so far.'
+    definition: @aql
+      unique(dim_reward_cycles.cycle_key)
+        | select(v: case(when: cycle_days_left_open is null, then: 0, else: cycle_cap - cycle_points))
+        | sum(v)
+    ;;
+    format: '#,###0'
+  }
+  metric daily_spend_needed {
+    label: 'Daily spend to reach the cap'
+    type: 'number'
+    description: '''Open cycles only: ceil(spend to the cap ÷ (days left + 1)), counting the as-of day as a spending day (cspipeline cashback.daily_needed). 0 once the cap is reached.
+Use with the current cycle (dim_reward_cycles.is_current).'''
+    definition: @aql
+      unique(dim_reward_cycles.cycle_key)
+        | select(v: case(
+            when: cycle_days_left_open is null, then: null,
+            when: coalesce(reward_qualifying_spend, 0) < cycle_threshold,
+            then: ceil((cycle_threshold - coalesce(reward_qualifying_spend, 0)) / (cycle_days_left_open + 1)),
+            else: 0))
+        | sum(v)
+    ;;
+    format: '#,###0'
+  }
+  metric projected_cycle_spend {
+    label: 'Projected cycle spend'
+    type: 'number'
+    description: 'Cycle in progress: spend so far × days in cycle ÷ days elapsed (cspipeline milestone_progress). Closed cycles have no projection.'
+    definition: @aql unique(dim_reward_cycles.cycle_key) | select(v: cycle_projected_spend) | sum(v) ;;
+    format: '#,###0'
+  }
+  metric projected_points {
+    label: 'Projected points'
+    type: 'number'
+    description: 'Points the projected spend would earn, capped.'
+    definition: @aql
+      unique(dim_reward_cycles.cycle_key)
+        | select(v: case(
+            when: floor(cycle_projected_spend * cycle_cap / cycle_threshold) > cycle_cap, then: cycle_cap,
+            else: floor(cycle_projected_spend * cycle_cap / cycle_threshold)))
+        | sum(v)
+    ;;
+    format: '#,###0'
+  }
+  metric cycles_maxed {
+    label: 'Cycles at the cap'
+    type: 'number'
+    description: 'Cycles whose qualifying spend reached the threshold.'
+    definition: @aql
+      unique(dim_reward_cycles.cycle_key)
+        | select(v: case(when: coalesce(reward_qualifying_spend, 0) < cycle_threshold, then: 0, else: 1))
+        | sum(v)
+    ;;
+    format: '#,###0'
+  }
+  metric reward_status {
+    label: 'Cycle status'
+    type: 'text'
+    description: '''maxed (spend reached the cap) · on_pace (the projection reaches it) · behind, as in cspipeline cashback.py. For a closed cycle the actual spend is judged.
+Only meaningful at the cycle grain (break down by dim_reward_cycles.cycle_key or cycle_label).'''
+    definition: @aql
+      case(
+        when: coalesce(reward_qualifying_spend, 0) > cycle_threshold - 1, then: 'maxed',
+        when: coalesce(cycle_projected_spend, coalesce(reward_qualifying_spend, 0)) < cycle_threshold, then: 'behind',
+        else: 'on_pace'
+      )
+    ;;
+  }
+
+  // ================================================================ Data quality
+
+  metric lines {
+    label: 'Lines'
+    type: 'number'
+    description: 'Ledger lines of any kind.'
+    definition: @aql fct_ledger | count(fct_ledger.line_id) ;;
+    format: '#,###0'
+  }
+  metric untagged_spend {
+    label: 'Uncategorised spend'
+    type: 'number'
+    description: 'Spend with no category tag yet.'
+    definition: @aql fct_ledger | where(fct_ledger.category == '(chưa phân loại)') | sum(fct_ledger.spend_vnd) ;;
+    format: '#,###0'
+  }
+  metric untagged_spend_lines {
+    label: 'Lines to tag'
+    type: 'number'
+    description: 'Spend lines with no category yet: Wealthfolio\'s "N to tag".'
+    definition: @aql fct_ledger | where(fct_ledger.is_spend is true) | where(fct_ledger.category == '(chưa phân loại)') | count(fct_ledger.line_id) ;;
+    format: '#,###0'
+  }
+  metric category_coverage_pct {
+    label: 'Category coverage'
+    type: 'number'
+    description: 'Share of spend (by amount) that carries a category tag.'
+    definition: @aql safe_divide(spend - coalesce(untagged_spend, 0), spend) ;;
+    format: '0.0%'
+  }
+  metric auto_tagged_share {
+    label: 'Auto-tagged share'
+    type: 'number'
+    description: 'Of categorised spend, the share tagged by rule rather than by hand.'
+    definition: @aql safe_divide(fct_ledger | where(fct_ledger.category_source == 'auto') | sum(fct_ledger.spend_vnd), spend - coalesce(untagged_spend, 0)) ;;
+    format: '0.0%'
+  }
+  metric data_complete_through {
+    label: 'Complete through'
+    type: 'date'
+    description: 'The earliest of each source\'s latest line, over all the data: every source has lines up to this date. A period that ends later may be missing a source\'s spending (a card statement not loaded yet).'
+    definition: @aql unique(dim_sources.src) | select(last: fct_ledger | max(fct_ledger.line_date)) | min(last) | of_all(dim_dates) ;;
+  }
+  metric data_as_of {
+    label: 'Data as of'
+    type: 'date'
+    description: 'Latest date with a money line in the selection. Over the whole dataset it is the build date.'
+    definition: @aql fct_ledger | max(fct_ledger.line_date) ;;
+  }
+
+  // ================================================================ Organisation
+
+  view {
+    group spend_metrics {
+      metric spend
+      metric net_spend
+      metric card_spend
+      metric account_spend
+      metric spend_lines
+      metric avg_daily_spend
+      metric avg_ticket
+      metric spend_prev_month
+      metric spend_mom_change_pct
+      metric spend_mtd
+      metric spend_share_pct
+      metric refunds
+      metric reimbursements
+      metric not_spend
+      metric not_spend_lines
+      metric family_support
+      metric subscription_spend
+      metric active_subscriptions
+      metric foreign_currency_spend
+      metric elapsed_days
+    }
+    group income_saving {
+      metric cash_flow_net
+      metric cash_flow_net_pct
+      metric spend_monthly_avg
+      metric cash_flow_monthly_avg
+      metric income
+      metric salary
+      metric bonus
+      metric cash_in
+      metric external_inflow
+      metric saved_and_invested
+      metric savings_matured
+      metric net_saving
+      metric surplus
+      metric savings_rate
+      metric spend_to_income
+    }
+    group balances {
+      metric account_balance
+      metric total_cash
+      metric card_statement_balance
+      metric card_min_payment
+      metric card_payment_due
+      metric pot_contributions
+      metric pot_withdrawals
+      metric pot_net_flow
+    }
+    group budgets {
+      metric budget_limit
+      metric budget_spent
+      metric budget_raw_spent
+      metric budget_overflow_to_buffer
+      metric budget_remaining
+      metric budget_used_pct
+      metric budget_limit_categories
+      metric budget_savings_target
+      metric budgets_over_limit
+      metric budgets_at_warning
+      metric period_days
+      metric days_left
+      metric budget_spent_categories
+      metric budget_remaining_categories
+      metric budget_left_per_day
+      metric budget_pace_expected
+      metric budget_pace_gap
+      metric budget_pace_status
+      metric spend_budgeted
+      metric spend_budgeted_mtd
+      metric spend_unbudgeted
+      metric salary_latest
+      metric income_planned
+      metric savings_target_planned
+    }
+    group recurring {
+      metric recurring_due_30d
+      metric recurring_due_30d_count
+      metric recurring_due_14d
+      metric recurring_due_14d_count
+      metric income_expected_30d
+      metric next_payday
+    }
+    group cash_ahead {
+      metric cash_ahead_in_30d
+      metric cash_ahead_out_30d
+      metric cash_ahead_net_30d
+      metric everyday_spend
+      metric everyday_spend_daily
+      metric cash_expected_30d
+    }
+    group max_vib_rewards {
+      metric reward_qualifying_spend
+      metric points_earned
+      metric points_paid
+      metric points_pending
+      metric cap_gap
+      metric points_left_to_cap
+      metric daily_spend_needed
+      metric projected_cycle_spend
+      metric projected_points
+      metric cycles_maxed
+      metric reward_status
+    }
+    group data_quality {
+      metric untagged_spend_lines
+      metric lines
+      metric untagged_spend
+      metric category_coverage_pct
+      metric auto_tagged_share
+      metric data_as_of
+      metric data_complete_through
+    }
+    model fct_ledger {
+    }
+    model dim_dates {
+    }
+    model dim_sources {
+    }
+    model dim_categories {
+    }
+    model dim_reward_cycles {
+    }
+    model fct_card_statements {
+    }
+    model fct_budget_months {
+    }
+  }
+
+  context {
+    analysis {
+      underlying_data {
+        metric spend {
+          view spend_lines {
+            label: 'Spend lines'
+            fields: spend_detail
+          }
+        }
+        metric income {
+          view income_lines {
+            label: 'Income lines'
+            fields: inflow_detail
+          }
+        }
+        metric reimbursements {
+          view payback_lines {
+            label: 'Paybacks'
+            fields: inflow_detail
+          }
+        }
+        metric points_earned {
+          view qualifying_lines {
+            label: 'Qualifying MAX VIB purchases'
+            fields: reward_detail
+          }
+        }
+      }
+
+      breakdown {
+        group time {
+          label: 'Time'
+          fields: [
+            r(dim_dates.month_start),
+            r(dim_dates.week_start),
+            r(dim_dates.weekday_name),
+            r(fct_ledger.hour_of_day),
+          ]
+        }
+        group where_it_goes {
+          label: 'Where it goes'
+          fields: [
+            r(dim_categories.category_group),
+            r(dim_categories.category),
+            r(fct_ledger.merchant),
+          ]
+        }
+        group instrument {
+          label: 'Card or account'
+          fields: [
+            r(dim_sources.instrument),
+            r(dim_sources.label),
+          ]
+        }
+      }
+    }
+  }
+}

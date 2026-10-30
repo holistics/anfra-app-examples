@@ -1,0 +1,372 @@
+// The money ledger: every card line and every account movement, one row each, with
+// one sign convention and one flow taxonomy. Most metrics in personal_finance read it.
+Model fct_ledger {
+  type: 'query'
+  label: 'Ledger'
+  description: '''
+**Grain:** one money line. Each card line (reversed charges excluded, as in every
+cspipeline spend view) and each bank account movement appears once.
+
+**Spend** is counted when money is spent (a card purchase, an account debit), never when
+the card bill is paid: a card payment is a `transfer`. Inflows get a real taxonomy
+(salary, bonus, interest, friend paybacks, own transfers, savings maturities),
+because cspipeline's "cash in" lumps them all together.
+
+Dates are Vietnam local time, computed in SQL, so they do not depend on the query timezone.
+'''
+  data_source_name: 'finance'
+  query: @sql
+    WITH rung AS (
+      SELECT cycle_close_day FROM cashback_milestones
+      WHERE src = 'vib_credit' AND active AND accrual = 'rate'
+    ),
+    card AS (
+      SELECT
+        'c' || c.id                                            AS line_id,
+        'card'                                                 AS line_kind,
+        CASE c.bank WHEN 'TCB' THEN 'credit' WHEN 'VIB' THEN 'vib_credit' ELSE c.bank END AS src,
+        c.txn_date                                             AS line_date,
+        CAST(t.occurred_at AT TIME ZONE 'Asia/Ho_Chi_Minh' AS TIMESTAMP) AS line_at_local,
+        CASE WHEN c.amount_minor > 0 THEN 'out' ELSE 'in' END  AS direction,
+        abs(c.amount_minor)                                    AS amount_vnd,
+        -c.amount_minor                                        AS signed_amount_vnd,
+        CASE
+          WHEN t.source = 'vib_reward'                     THEN 'reward_redemption'
+          WHEN c.amount_minor > 0                          THEN 'purchase'
+          WHEN c.description ILIKE '%THANH TOAN NO THE%'   THEN 'card_payment'
+          ELSE 'card_refund'
+        END                                                    AS flow_type,
+        CAST(NULL AS VARCHAR)                                  AS pipeline_flow,
+        c.amount_minor > 0                                     AS is_spend,
+        coalesce(c.category, '(chưa phân loại)')             AS category,
+        c.category_source,
+        coalesce(c.merchant, c.description)                    AS merchant,
+        c.description, c.note, c.statement_id,
+        c.currency, c.native_amount_minor                      AS native_amount,
+        t.fx_rate,
+        CAST(NULL AS BIGINT)                                   AS running_balance_vnd,
+        CAST(NULL AS BIGINT)                                   AS balance_seq,
+        CAST(NULL AS VARCHAR)                                  AS pot_name,
+        CAST(NULL AS VARCHAR)                                  AS pot_direction
+      FROM card_transactions_tagged c
+      JOIN transactions t ON t.id = c.id
+    ),
+    acct AS (
+      SELECT
+        'a' || m.id, 'account', m.src,
+        CAST(m.occurred_at AT TIME ZONE 'Asia/Ho_Chi_Minh' AS DATE),
+        CAST(m.occurred_at AT TIME ZONE 'Asia/Ho_Chi_Minh' AS TIMESTAMP),
+        CASE m.direction WHEN 'D' THEN 'out' ELSE 'in' END,
+        m.amount_minor,
+        CASE m.direction WHEN 'D' THEN -m.amount_minor ELSE m.amount_minor END,
+        CASE WHEN m.direction = 'D' THEN CASE
+            WHEN m.flow IN ('settlement', 'othercard')                         THEN 'card_payment'
+            WHEN m.flow = 'timo'                                               THEN 'own_transfer'
+            WHEN m.flow = 'internal' AND m.description ILIKE '%Pot - %'        THEN 'pot_move'
+            WHEN m.flow = 'internal' AND m.description ILIKE '%to TD%'         THEN 'term_deposit'
+            WHEN m.flow = 'internal'                                           THEN 'own_transfer'
+            WHEN m.flow = 'savings'                                            THEN 'saving_deposit'
+            WHEN m.flow = 'investment'                                         THEN 'investment'
+            WHEN m.flow = 'mom'                                                THEN 'family_support'
+            WHEN m.is_spend                                                    THEN 'account_spend'
+            ELSE 'other_outflow' END
+        ELSE CASE
+            WHEN m.description ILIKE '%TRA LUONG%'                             THEN 'salary'
+            WHEN ' ' || upper(m.description) || ' ' LIKE '% THUONG %'            THEN 'bonus'
+            WHEN m.description ILIKE '%THANH TOAN LAI%'                        THEN 'interest'
+            WHEN m.description ILIKE '%Pot - Withdraw%'                        THEN 'pot_move'
+            WHEN m.description ILIKE '%TAT TOAN TIET KIEM%'                    THEN 'saving_maturity'
+            WHEN m.src = 'timo' AND m.description ILIKE '%chuyen tien tu TCB%' THEN 'own_transfer'
+            WHEN m.src = 'tcb_debit' AND m.description ILIKE '%chuyen tien%'   THEN 'friend_payback'
+            ELSE 'other_inflow' END
+        END,
+        m.flow,
+        m.is_spend,
+        coalesce(m.category, '(chưa phân loại)'), m.category_source,
+        m.counterparty, m.description, m.note, CAST(NULL AS BIGINT),
+        m.currency, m.amount_minor, CAST(NULL AS DECIMAL(18, 6)),
+        bm.running_balance_minor,
+        row_number() OVER (PARTITION BY m.src ORDER BY m.occurred_at, m.id),
+        nullif(regexp_extract(m.description, '(?:Money|Shared) Pot - (?:Withdraw from|Contribute to) (.+)$', 1), ''),
+        CASE WHEN m.description ILIKE '%Pot - Contribute to%' THEN 'in'
+             WHEN m.description ILIKE '%Pot - Withdraw from%'  THEN 'out' END
+      FROM account_movements_resolved m
+      JOIN bank_movements bm ON bm.id = m.id
+    ),
+    lines AS (SELECT * FROM card UNION ALL SELECT * FROM acct)
+    SELECT
+      l.*,
+      CASE
+        WHEN flow_type IN ('purchase', 'account_spend', 'family_support')                       THEN 'spend'
+        WHEN flow_type IN ('salary', 'bonus', 'interest')                                        THEN 'income'
+        WHEN flow_type = 'friend_payback'                                                        THEN 'reimbursement'
+        WHEN flow_type = 'card_refund'                                                           THEN 'refund'
+        WHEN flow_type = 'reward_redemption'                                                     THEN 'reward'
+        WHEN flow_type IN ('card_payment', 'own_transfer', 'pot_move')                           THEN 'transfer'
+        WHEN flow_type IN ('saving_deposit', 'term_deposit', 'saving_maturity', 'investment')    THEN 'save_invest'
+        ELSE 'other'
+      END                                                                       AS flow_group,
+      -- A readable name for the line (C14): known brands and payees by name, QR prefixes and reference suffixes
+      -- dropped, the rest title-cased. Display only; merchant keeps the raw text. No backslashes in AML SQL.
+      CASE
+        WHEN l.merchant ILIKE '%chuyen tien gui me%'                        THEN 'Mom'
+        WHEN l.merchant ILIKE 'PHAM THU HA chuyen tien%'
+          OR l.merchant ILIKE 'Transfer from %'                             THEN 'Own transfer'
+        WHEN l.merchant ILIKE 'Money Pot - Contribute to %'                 THEN 'To pot · ' || regexp_replace(l.merchant, '^Money Pot - Contribute to ', '')
+        WHEN l.merchant ILIKE 'Money Pot - Withdraw from %'                 THEN 'From pot · ' || regexp_replace(l.merchant, '^Money Pot - Withdraw from ', '')
+        WHEN l.merchant ILIKE '%LUMEN LABS TRA LUONG%'                      THEN 'Salary · Lumen Labs'
+        WHEN l.merchant ILIKE '%LUMEN LABS THUONG%'                         THEN 'Bonus · Lumen Labs'
+        WHEN l.merchant ILIKE 'THANH TOAN NO THE%'
+          OR l.merchant ILIKE 'PHAM THU HA%THE TIN DUNG%'
+          OR l.merchant ILIKE 'PHAM THU HA%TRA NO%'                         THEN 'Card bill payment'
+        WHEN l.merchant ILIKE '%(đổi điểm)%' OR l.merchant ILIKE 'Hoàn tiền%'  THEN 'MAX VIB points cash-out'
+        WHEN l.merchant ILIKE 'THANH TOAN LAI%'                             THEN 'Interest'
+        WHEN l.merchant ILIKE 'MO TIET KIEM%'                               THEN 'Term deposit opened'
+        WHEN l.merchant ILIKE 'TAT TOAN TIET KIEM%'                         THEN 'Term deposit matured'
+        WHEN l.merchant ILIKE 'NAP TIEN TK CHUNG KHOAN SSI%'                THEN 'SSI top-up'
+        WHEN l.merchant ILIKE 'VIETTEL TRA SAU%'                            THEN 'Viettel'
+        WHEN l.merchant ILIKE 'EVNHCMC%'                                    THEN 'EVN HCMC'
+        WHEN l.merchant ILIKE '%GRAB*FOOD%' OR upper(l.merchant) LIKE '%GRABFOOD%'     THEN 'GrabFood'
+        WHEN upper(l.merchant) LIKE '%SHOPEEFOOD%'                          THEN 'ShopeeFood'
+        WHEN upper(l.merchant) LIKE '%APPLE ICLOUD%'                        THEN 'iCloud'
+        WHEN upper(l.merchant) LIKE '%OPENAI%'                              THEN 'OpenAI'
+        WHEN upper(l.merchant) LIKE '%YOUTUBE%'                             THEN 'YouTube'
+        WHEN upper(l.merchant) LIKE '%FPT TELECOM%'                         THEN 'FPT Telecom'
+        WHEN upper(l.merchant) LIKE '%LONG CHAU%'                           THEN 'Long Châu'
+        WHEN upper(l.merchant) LIKE '%BACH HOA XANH%'                       THEN 'Bách Hóa Xanh'
+        WHEN upper(l.merchant) LIKE '%PHUC LONG%'                           THEN 'Phúc Long'
+        WHEN upper(l.merchant) LIKE '%CGV%'                                 THEN 'CGV'
+        WHEN upper(l.merchant) LIKE '%PIZZA 4P%'                            THEN 'Pizza 4P''s'
+        WHEN upper(l.merchant) LIKE '%AEON MALL%'                           THEN 'Aeon Mall'
+        WHEN upper(l.merchant) LIKE '%MINISO%'                              THEN 'Miniso'
+        WHEN upper(l.merchant) LIKE '%GUARDIAN%'                            THEN 'Guardian'
+        WHEN upper(l.merchant) LIKE '%HIGHLANDS%'                           THEN 'Highlands Coffee'
+        WHEN upper(l.merchant) LIKE '%CALIFORNIA FITNESS%'                  THEN 'California Fitness'
+        WHEN upper(l.merchant) LIKE '%KATINAT%'                             THEN 'Katinat'
+        WHEN upper(l.merchant) LIKE '%UNIQLO%'                              THEN 'Uniqlo'
+        WHEN upper(l.merchant) LIKE '%PHARMACITY%'                          THEN 'Pharmacity'
+        WHEN upper(l.merchant) LIKE '%TIKI%'                                THEN 'Tiki'
+        WHEN upper(l.merchant) LIKE '%WINMART%'                             THEN 'WinMart'
+        WHEN upper(l.merchant) LIKE '%XANH SM%'                             THEN 'Xanh SM'
+        WHEN l.merchant ILIKE '% chuyen tien %'                             THEN array_to_string(list_transform(string_split(lower(split_part(l.merchant, ' chuyen tien', 1)), ' '), w -> upper(w[1]) || w[2:]), ' ')
+        ELSE array_to_string(list_transform(string_split(lower(trim(regexp_replace(regexp_replace(regexp_replace(
+               l.merchant, '^(Thanh toan QR |QR - )', ''), ' - [A-Za-z0-9]+$', ''), ' (Q[0-9]+|GO VAP|PHU NHUAN|SAI GON KAFE Q[0-9]+|[0-9]+)$', ''))), ' '),
+               w -> upper(w[1]) || w[2:]), ' ')
+      END                                                                       AS merchant_display,
+      CASE WHEN is_spend THEN amount_vnd ELSE 0 END                             AS spend_vnd,
+      src = 'vib_credit' AND flow_type = 'purchase'                             AS is_reward_qualifying,
+      currency <> 'VND'                                                         AS is_foreign_currency,
+      hour(line_at_local)                                                       AS hour_of_day,
+      CASE
+        WHEN src = 'vib_credit' AND flow_type = 'purchase' THEN
+          'vib_credit:' || strftime(CASE WHEN day(line_date) > r.cycle_close_day
+               THEN make_date(year(line_date), month(line_date), r.cycle_close_day) + INTERVAL 1 MONTH
+               ELSE make_date(year(line_date), month(line_date), r.cycle_close_day) END, '%Y-%m-%d')
+        WHEN src = 'vib_credit' AND flow_type = 'reward_redemption' THEN
+          'vib_credit:' || strftime(CASE WHEN day(line_date) > r.cycle_close_day
+               THEN make_date(year(line_date), month(line_date), r.cycle_close_day)
+               ELSE make_date(year(line_date), month(line_date), r.cycle_close_day) - INTERVAL 1 MONTH END, '%Y-%m-%d')
+      END                                                                       AS reward_cycle_key
+    FROM lines l
+    LEFT JOIN rung r ON true
+  ;;
+
+  dimension line_id {
+    label: 'Line ID'
+    type: 'text'
+    primary_key: true
+    description: 'Primary key: \'c\'+transactions.id for a card line, \'a\'+bank_movements.id for an account line.'
+    definition: @sql {{ #SOURCE.line_id }};;
+  }
+  dimension line_kind {
+    label: 'Line kind'
+    type: 'text'
+    description: 'card (a card statement / email line) or account (a bank account movement).'
+    definition: @sql {{ #SOURCE.line_kind }};;
+  }
+  dimension src {
+    label: 'Source'
+    type: 'text'
+    hidden: true
+    description: 'credit · vib_credit · tcb_debit · timo. Joins dim_sources.'
+    definition: @sql {{ #SOURCE.src }};;
+  }
+  dimension line_date {
+    label: 'Date'
+    type: 'date'
+    hidden: true
+    description: 'Local (Asia/Ho_Chi_Minh) date. Card lines use the transaction date, not the posting date. Joins dim_dates.'
+    definition: @sql {{ #SOURCE.line_date }};;
+  }
+  dimension line_at_local {
+    label: 'Time (local)'
+    type: 'datetime'
+    description: 'Vietnam wall-clock time, no zone. NULL for TCB PDF statement lines, which carry a date only. Correct in a UTC query; a query or app with a timezone shifts it again, so use line_at there.'
+    definition: @sql {{ #SOURCE.line_at_local }};;
+  }
+  dimension line_at {
+    label: 'Time'
+    type: 'datetime'
+    description: 'The instant the line happened. It shows in the query\'s timezone, so an app set to Asia/Ho_Chi_Minh reads Vietnam time. NULL for TCB PDF statement lines.'
+    definition: @sql {{ #SOURCE.line_at_local }} AT TIME ZONE 'Asia/Ho_Chi_Minh';;
+  }
+  dimension hour_of_day {
+    label: 'Hour of day'
+    type: 'number'
+    description: '0–23, local. NULL for TCB PDF lines.'
+    definition: @sql {{ #SOURCE.hour_of_day }};;
+  }
+  dimension direction {
+    label: 'Direction'
+    type: 'text'
+    description: 'out or in, relative to the instrument: a card purchase is out, a card refund or bill payment is in.'
+    definition: @sql {{ #SOURCE.direction }};;
+  }
+  dimension amount_vnd {
+    label: 'Amount (VND)'
+    type: 'number'
+    description: 'Absolute amount in VND. USD lines are converted at the bank\'s rate.'
+    definition: @sql {{ #SOURCE.amount_vnd }};;
+  }
+  dimension signed_amount_vnd {
+    label: 'Signed amount (VND)'
+    type: 'number'
+    description: 'In positive, out negative.'
+    definition: @sql {{ #SOURCE.signed_amount_vnd }};;
+  }
+  dimension flow_type {
+    label: 'Flow type'
+    type: 'text'
+    description: 'What the line is: purchase, account_spend, family_support, salary, bonus, interest, friend_payback, card_refund, reward_redemption, card_payment, own_transfer, pot_move, saving_deposit, term_deposit, saving_maturity, investment.'
+    definition: @sql {{ #SOURCE.flow_type }};;
+  }
+  dimension flow_group {
+    label: 'Flow group'
+    type: 'text'
+    description: 'spend · income · reimbursement · refund · reward · transfer · save_invest · other. \'other\' is expected to be empty; a test guards it.'
+    definition: @sql {{ #SOURCE.flow_group }};;
+  }
+  dimension pipeline_flow {
+    label: 'Pipeline flow'
+    type: 'text'
+    description: 'cspipeline\'s resolved account flow (settlement, timo, internal, othercard, savings, investment, mom, other), kept for parity. NULL on card lines.'
+    definition: @sql {{ #SOURCE.pipeline_flow }};;
+  }
+  dimension is_spend {
+    label: 'Is spend'
+    type: 'truefalse'
+    description: 'Real consumption: a card purchase, or an account debit that is not a card payment, own transfer, pot move, saving or investment (cspipeline is_spend). Money sent to Mom counts.'
+    definition: @sql {{ #SOURCE.is_spend }};;
+  }
+  dimension spend_vnd {
+    label: 'Spend amount (VND)'
+    type: 'number'
+    description: 'amount_vnd when is_spend, else 0.'
+    definition: @sql {{ #SOURCE.spend_vnd }};;
+  }
+  dimension category {
+    label: 'Category'
+    type: 'text'
+    hidden: true
+    description: 'One of the 11 tags, or \'(chưa phân loại)\'. Joins dim_categories.'
+    definition: @sql {{ #SOURCE.category }};;
+  }
+  dimension category_source {
+    label: 'Category source'
+    type: 'text'
+    description: 'auto (rule) or user (tagged by hand). NULL when untagged.'
+    definition: @sql {{ #SOURCE.category_source }};;
+  }
+  dimension merchant {
+    label: 'Merchant / counterparty'
+    type: 'text'
+    description: 'Card merchant, or the account movement\'s counterparty text.'
+    definition: @sql {{ #SOURCE.merchant }};;
+  }
+  dimension merchant_display {
+    label: 'Merchant (display name)'
+    type: 'text'
+    description: 'A readable name for the merchant or payee: known brands and payees by name (Mom, Salary · Lumen Labs, Long Châu), QR prefixes and payment references dropped, everything else title-cased. Display only: merchant keeps the raw bank text.'
+    definition: @sql {{ #SOURCE.merchant_display }};;
+  }
+  dimension description {
+    label: 'Description'
+    type: 'text'
+    description: 'The bank\'s line text.'
+    definition: @sql {{ #SOURCE.description }};;
+  }
+  dimension note {
+    label: 'Note'
+    type: 'text'
+    description: 'The user\'s free-text note.'
+    definition: @sql {{ #SOURCE.note }};;
+  }
+  dimension statement_id {
+    label: 'Statement ID'
+    type: 'number'
+    hidden: true
+    description: 'Card lines only. Joins fct_card_statements.'
+    definition: @sql {{ #SOURCE.statement_id }};;
+  }
+  dimension reward_cycle_key {
+    label: 'Reward cycle key'
+    type: 'text'
+    hidden: true
+    description: 'MAX VIB lines only. A purchase maps to the 16th→15th cycle that contains it; a points cash-out maps to the cycle that closed before it. Joins dim_reward_cycles.'
+    definition: @sql {{ #SOURCE.reward_cycle_key }};;
+  }
+  dimension is_reward_qualifying {
+    label: 'Is reward-qualifying'
+    type: 'truefalse'
+    description: 'A MAX VIB purchase (reversed charges are already excluded). The spend the points rate applies to.'
+    definition: @sql {{ #SOURCE.is_reward_qualifying }};;
+  }
+  dimension currency {
+    label: 'Currency'
+    type: 'text'
+    description: 'Native currency.'
+    definition: @sql {{ #SOURCE.currency }};;
+  }
+  dimension native_amount {
+    label: 'Native amount'
+    type: 'number'
+    description: 'Amount in the native currency\'s minor unit (USD cents). Equal to amount_vnd for VND lines, signed as the source.'
+    definition: @sql {{ #SOURCE.native_amount }};;
+  }
+  dimension fx_rate {
+    label: 'FX rate'
+    type: 'number'
+    description: 'VND per unit for foreign-currency card lines.'
+    definition: @sql {{ #SOURCE.fx_rate }};;
+  }
+  dimension is_foreign_currency {
+    label: 'Is foreign currency'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.is_foreign_currency }};;
+  }
+  dimension running_balance_vnd {
+    label: 'Balance after (VND)'
+    type: 'number'
+    description: 'Account lines only: the account balance right after this movement.'
+    definition: @sql {{ #SOURCE.running_balance_vnd }};;
+  }
+  dimension balance_seq {
+    label: 'Balance sequence'
+    type: 'number'
+    hidden: true
+    description: 'Account lines only: 1, 2, 3… in booking order per account. Picks the closing balance.'
+    definition: @sql {{ #SOURCE.balance_seq }};;
+  }
+  dimension pot_name {
+    label: 'Pot'
+    type: 'text'
+    description: 'Timo money pot for a pot contribution or withdrawal.'
+    definition: @sql {{ #SOURCE.pot_name }};;
+  }
+  dimension pot_direction {
+    label: 'Pot direction'
+    type: 'text'
+    description: 'in (contribute to the pot) or out (withdraw from it).'
+    definition: @sql {{ #SOURCE.pot_direction }};;
+  }
+}

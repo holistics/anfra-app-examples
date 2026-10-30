@@ -1,0 +1,339 @@
+/* Spending (Overview · Recurring · Cash flow). Page-only rules; tokens only, no literal colours (ds-lint). The shared pieces
+   (card head, hero block, list rows, tiles, chips, day headers, the split bar, ranges, key) are in ds/components.css. */
+
+/* ---------- rows you can open: a quiet hover that bleeds into the card padding, the open one stays tinted */
+.sp-open .lrow[role="button"], .sp-open .lline[role="button"] { margin: 0 calc(-1 * var(--sp-2)); padding-left: var(--sp-2); padding-right: var(--sp-2); border-radius: var(--r-sm); }
+.sp-open .lrow[role="button"]:hover, .sp-open .lline[role="button"]:hover { background: var(--row-hover); }
+.sp-open .lrow[role="button"]:hover .t { text-decoration: none; }
+.sp-open .lrow.active, .sp-open .lline.active { background: var(--fill-subtle); }
+.sp-open [role="button"]:focus-visible { outline: none; box-shadow: inset var(--focus-ring); }
+
+/* ---------- Overview › Spending: the peak sentence under the heat grid */
+.sp-note { margin: var(--sp-3) 0 0; font-size: var(--fs-2); color: var(--ink-2); }
+
+/* ---------- Overview › Transactions: chips, the totals line, day groups, Show more */
+#sp-chips:not(:empty) { margin-bottom: var(--sp-3); }
+.sp-tx-sum { padding-bottom: var(--sp-1); font-size: var(--fs-2); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.sp-tx-list .lrow { border-bottom: 1px solid var(--rule); }
+.sp-day .lrow:last-child { border-bottom: 0; }
+.sp-tx-list .lrow .t, .sp-tx-list .lrow-end .v { font-size: var(--fs-body); }
+.sp-tx-list .lrow .t { font-weight: var(--fw-regular); }   /* 18 Oct: merchant names regular, amounts carry the weight */
+.sp-tx-list .lrow-end .v .amt { font-weight: var(--fw-medium); }
+.sp-tx-list .lrow-main .s { color: var(--ink-3); }   /* the account line, a step lighter (18 Oct) */
+.sp-tx-list .lrow.dim .t, .sp-tx-list .lrow.dim .v { color: var(--ink-2); }
+.sp-tx-list .lrow-end .v .pos { color: var(--pos-ink); }
+.day-head .pos { color: var(--pos-ink); }
+.sp-more { display: flex; justify-content: center; margin-top: var(--sp-4); }
+.sp-more:has(> [hidden]) { display: none; }
+
+/* ---------- Overview › Categories: Home's category row type + a share bar under each row */
+.sp-cats { display: grid; gap: 2px; }
+.sp-cat { margin: 0 calc(-1 * var(--sp-2)); padding: var(--sp-1) var(--sp-2) var(--sp-2); border-radius: var(--r-sm); cursor: pointer; }
+.sp-cat:hover { background: var(--row-hover); }
+.sp-cat.active { background: var(--fill-subtle); }
+.sp-cat:focus-visible { outline: none; box-shadow: inset var(--focus-ring); }
+.sp-cat .lline { min-height: 36px; }
+.sp-cat .lline .t, .sp-cat .lline .v { font-size: var(--fs-row); font-weight: var(--fw-medium); color: var(--ink); }
+.sp-cat .lline .t { font-weight: var(--fw-regular); }   /* 18 Oct: names regular, amounts medium */
+.sp-cat .lline .a { font-size: var(--fs-2); font-weight: var(--fw-medium); }
+.sp-bar { height: 4px; margin-left: calc(var(--tile) + var(--sp-2) + 2px); border-radius: var(--r-sm); background: var(--fill-subtle); overflow: hidden; }
+.sp-bar > div { height: 100%; min-width: 3px; border-radius: inherit; }
+/* Accounts (18 Oct): the same row as a category, on a neutral tile with a terracotta bar; the share is quiet. With one account
+   picked (the list's 'src' filter) the others step back */
+.sp-acct .lline .a, .sp-cat .lline .a .sh { color: var(--ink-3); font-weight: var(--fw-regular); font-variant-numeric: tabular-nums; }
+.sp-acct .sp-bar > div { background: var(--chart-hist); }   /* 18 Oct, Nhi: the Transfer tag's taupe */
+.sp-acct.dim { opacity: .55; }
+/* the head's % switch (18 Oct): off hides the shares on Accounts and Categories */
+.hide-pct .sp-acct .lline .a, .hide-pct .sp-cat .lline .a { display: none; }
+.hide-pct .sp-acct .lline, .hide-pct .sp-cat .lline { grid-template-columns: var(--tile) minmax(0, 1fr) minmax(52px, auto); }   /* the amount stays flush right */
+.sp-acct.dim:hover, .sp-acct.dim:focus-visible { opacity: 1; }
+
+/* ---------- drill-downs in the rail (category, merchant, transaction, series, month) */
+.sp-insp { display: grid; gap: var(--sp-5); }
+.sp-insp .label { margin-bottom: var(--sp-2); }
+.sp-insp .label .muted { font-weight: var(--fw-regular); }
+.sp-insp .hero.pos { color: var(--pos-ink); }
+.sp-insp .sub { margin-top: var(--sp-1); }
+.chart.sp-insp-chart { height: 160px; }
+.sp-facts { display: grid; gap: var(--sp-3); margin: 0; }
+.sp-facts > div { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: var(--sp-3); font-size: var(--fs-2); }
+.sp-facts dt { color: var(--ink-2); }
+.sp-facts dd { margin: 0; min-width: 0; color: var(--ink); overflow-wrap: anywhere; }
+.sp-facts .mono { font: var(--fs-label)/1.5 var(--mono); color: var(--ink-2); }
+.sp-insp-act { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.sp-insp .lline { min-height: 32px; }
+.sp-insp .lline .t, .sp-insp .lline .v { font-size: var(--fs-2); }
+
+/* ---------- Cash flow */
+.cf-foot { margin: var(--sp-3) 0 0; font-size: var(--fs-label); color: var(--ink-3); text-align: center; }   /* lighter, last (18 Oct) */
+.chart.cf-sankey { height: 360px; }
+.cf-rows { display: grid; }
+.cf-row .lline { min-height: 36px; }
+.cf-row .lline .t, .cf-row .lline .v { font-size: var(--fs-row); }
+.cf-row .lline .v { font-weight: var(--fw-medium); }
+.cf-row .lline .a { font-size: var(--fs-2); color: var(--ink-2); }
+.cf-row .sp-bar { margin-bottom: var(--sp-2); }
+.cf-row.dim .lline .t, .cf-row.dim .lline .v { color: var(--ink-2); font-weight: var(--fw-regular); }
+.cf-sub { margin: -6px 0 var(--sp-2); font-size: var(--fs-label); color: var(--ink-3); }
+.cf-sep { height: 1px; margin: var(--sp-3) 0; background: var(--rule); }
+.cf-label { margin-bottom: var(--sp-1); }
+/* Cash flow › This period as a Summary (18 Oct): the Net worth Summary's rows (css/home.css) + the ratios in a grey box */
+/* 18 Oct, Nhi: the group lines read like Net worth's child rows (Chứng khoán SSI): regular, --ink-2, one 30px pitch */
+#cf-sum-rows .nw-sum-grp + .nw-sum-grp { margin-top: 0; }
+#cf-sum-rows .nw-sum-gline { min-height: 30px; }
+#cf-sum-rows .nw-sum-gline .t { font-weight: var(--fw-regular); color: var(--ink-2); }
+.cf-ratios { display: grid; gap: var(--sp-1); margin-top: var(--sp-4); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-md); background: var(--tint); }
+.cf-ratio .lline { min-height: 30px; }
+.cf-ratio .lline .t, .cf-ratio .lline .v { font-size: var(--fs-2); }
+.cf-ratio .lline .v { font-weight: var(--fw-medium); }
+.cf-ratio .cf-sub { margin: -4px 0 var(--sp-1); }
+.cf-note, .rc-note { margin: var(--sp-2) 0 0; font-size: var(--fs-2); color: var(--ink-2); }
+
+/* ---------- Recurring */
+/* Coming up (18 Oct, Nhi): the Transactions list's rows and day heads (#rc-list is also .sp-tx-list); a stale dot after the name */
+.rc-list .tx-row .t { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+#rc-list .tx-row .lrow-end .v { grid-template-columns: 148px 64px 112px; column-gap: var(--sp-5); }   /* tag · the due date · the amount (18 Oct, Nhi) */
+.rc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-acct { flex: none; font-size: var(--fs-label); color: var(--ink-3); }
+.rc-when { font-size: var(--fs-2); color: var(--date-ink); font-variant-numeric: tabular-nums; }
+.rc-when.soon { color: var(--warn-ink); font-weight: var(--fw-medium); }
+@container (max-width: 420px) { .rc-acct { display: none; } }
+.rc-cal { margin-top: var(--sp-2); }
+.rc-cal .week .c { min-height: 92px; }
+.rc-sub .lrow-end, .rc-sub .lrow-end > .v { display: flex; align-items: center; gap: var(--sp-4); }   /* the sparkline sits beside the amount */
+.rc-sub-v { min-width: 96px; }
+.rc-sub-v { display: grid; justify-items: end; gap: 2px; }
+.rc-sub .badge { font-size: var(--fs-label); }
+.rc-sub .badge .i { width: 11px; height: 11px; }
+.rc-spark { display: block; width: 88px; height: 26px; }
+@container (max-width: 420px) { .rc-spark { display: none; } }
+.lrow.dim .t, .lrow.dim .lrow-end .v { color: var(--ink-3); }
+.hero.rc-commit-v { margin-bottom: 2px; }
+/* Coming up in the rail (18 Oct, Nhi: compact): the card-bill anatomy on top (label over a rail-sized number, a quiet line),
+   then the lines on tighter columns: tile · name · date · amount */
+.rc-upc-top { margin-bottom: var(--sp-2); }
+.rc-upc-top .rc-big { margin-bottom: var(--sp-1); }
+.rc-upc-sub { font-size: var(--fs-2); color: var(--ink-meta); }
+/* Monthly commitments (18 Oct): a group line (swatch · name ⌄ · what it holds · subtotal), then its rows */
+.rc-grp { margin-top: var(--sp-3); }
+.rc-grp + .rc-grp { margin-top: var(--sp-2); }   /* 18 Oct, Nhi: like the Net worth Summary's groups */
+.rc-grp:has(> .rc-gline [aria-expanded="false"]) + .rc-grp { margin-top: 0; }   /* folded groups sit together */
+/* the column head and every bill / subscription line share one grid: name (+ account, flag) · sparkline · last month */
+.rc-colh, .lline.rc-cl { display: grid; grid-template-columns: minmax(0, 1fr) 96px 112px; column-gap: var(--sp-4); align-items: center; }
+.rc-colh { margin: var(--sp-3) 0 calc(-1 * var(--sp-1)); font-size: var(--fs-label); color: var(--ink-3); text-align: right; }
+.rc-colh > span:nth-child(2) { text-align: center; }
+.rc-grp .lline.rc-cl { min-height: 30px; margin: 0 calc(-1 * var(--sp-2)); padding: 0 var(--sp-2) 0 calc(var(--sp-2) + 22px); border-radius: var(--r-sm); }
+.rc-cl .t { display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0; font-size: var(--fs-2); color: var(--ink-2); }   /* 18 Oct: Net worth's child rows */
+.rc-cl .a { display: flex; justify-content: center; }
+.rc-cl .v { font-size: var(--fs-2); font-weight: var(--fw-medium); }
+.rc-cl.dim .rc-name, .rc-cl.dim .v { color: var(--ink-3); }
+.rc-flag { flex: none; padding: 1px 6px; border-radius: var(--r-sm); background: var(--fill-subtle); font-size: var(--fs-label); color: var(--ink-2); }
+.rc-flag.miss { background: var(--warn-tint); color: var(--warn-ink-strong); }
+.rc-cl .badge { flex: none; align-self: center; font-size: var(--fs-label); }
+.rc-cl .badge .i { width: 11px; height: 11px; }
+.sp-open .rc-cl[role="button"]:hover { background: var(--row-hover); }
+@container (max-width: 520px) { .rc-colh, .lline.rc-cl { grid-template-columns: minmax(0, 1fr) 96px; } .rc-colh > span:nth-child(2), .rc-cl .a { display: none; } }
+.rc-gline { grid-template-columns: 10px minmax(0, 1fr) auto minmax(52px, auto); column-gap: var(--sp-3); min-height: 32px; }   /* no divider (18 Oct, Nhi: like Net worth) */
+.rc-gline .t { font-weight: var(--fw-medium); }
+.rc-gline .a { font-size: var(--fs-2); color: var(--ink-3); }
+.rc-gline .v { font-size: var(--fs-2); font-weight: var(--fw-medium); }
+.rc-miss { color: var(--warn-ink); font-weight: var(--fw-medium); }
+@container (max-width: 520px) { .rc-colh { display: none; } }
+.rc-split { margin: var(--sp-4) 0 var(--sp-2); }
+.rc-part { min-height: 36px; grid-template-columns: 10px minmax(0, 1fr) auto minmax(52px, auto); column-gap: var(--sp-3); }
+.rc-part .t, .rc-part .v { font-size: var(--fs-row); }
+.rc-part .v { font-weight: var(--fw-medium); }
+.rc-part .a { font-size: var(--fs-2); }
+/* Card bills (17 Oct, Nhi: scannable): every card block = head (tile · name · one status pill) · label · big number · label/value rows */
+.rc-bh { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.rc-bh .tile { --tile: 24px; }
+.rc-bh .t { flex: 1; display: flex; align-items: center; font-size: var(--fs-row); font-weight: var(--fw-medium); }
+.rc-block > .label { margin-bottom: var(--sp-1); font-size: var(--fs-2); color: var(--ink-3); }
+.rc-big { margin: 0 0 var(--sp-3); font: var(--fw-hero) var(--fs-card-hero)/var(--lh-tight) var(--font-hero); letter-spacing: var(--ls-tight); font-variant-numeric: tabular-nums; }
+.rc-big .of { font: var(--fw-regular) var(--fs-2) var(--sans); letter-spacing: 0; color: var(--ink-2); }
+/* the facts under the headline sit in one grey box (18 Oct, Nhi); values a step heavier than their labels */
+.rc-kv { padding: var(--sp-1) var(--sp-3); border-radius: var(--r-md); background: var(--tint); }
+.rc-block .lline { min-height: 32px; }
+.rc-block .lline .t, .rc-block .lline .v { font-size: var(--fs-2); }
+.rc-block .lline .t { color: var(--ink-2); }
+.rc-block .lline .v { color: var(--ink); font-weight: var(--fw-medium); }
+.rc-block .progress { margin-bottom: var(--sp-3); }
+.rc-due { flex: none; padding: 2px var(--sp-2); border-radius: var(--r-sm); background: var(--fill-subtle); font-size: var(--fs-label); color: var(--ink-2); }
+.rc-due.soon { background: var(--warn-tint); color: var(--warn-ink-strong); }   /* text on the tint: the strong ink (≥ 4.5:1 in every theme) */
+.rc-due.ok { background: var(--pos-tint); color: var(--pos-ink); }
+.rc-due.neg { background: var(--neg-tint); color: var(--neg-ink); }
+.dpill.warn { background: var(--warn-tint); color: var(--warn-ink-strong); }
+/* Recurring › Monthly commitments in the rail (18 Oct): the card-bill anatomy, then folded group lines */
+/* the commitments head (18 Oct): a quiet label, the total under it (8px, Nhi), a quiet share of salary, then air before the bar */
+.rc-commit-top { margin-bottom: var(--sp-4); }
+.rc-commit-top > .label { margin-bottom: var(--sp-2); color: var(--ink-3); }
+.rc-commit-top .rc-big { margin-bottom: 2px; }
+.rc-commit-top .rc-upc-sub { color: var(--ink-meta); }
+#rc-commit-hero-delta { font-size: var(--fs-label); }   /* 19 Oct, Nhi: "6.5% of salary" a step smaller */
+#rc-commit-c .rc-split { margin-top: 0; }
+/* Payday (18 Oct): tile · when (+ the date and who) · the amount; a thin track from the last payday to the next, today a dot */
+.rc-pay { display: grid; grid-template-columns: var(--tile) minmax(0, 1fr) auto; align-items: center; column-gap: var(--sp-3); }
+.rc-pay-t .t { font-size: var(--fs-row); color: var(--ink); }
+.rc-pay-t .s { margin-top: 2px; font-size: var(--fs-label); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-pay .dpill { font-size: var(--fs-2); }   /* 19 Oct, Nhi: the payday badge at 13px */
+/* the month between paydays as a progress bar, not a slider (19 Oct, Nhi): no thumb, a thicker filled bar, and the days
+   gone said in words between the two paydays */
+.rc-track { position: relative; height: 8px; margin: var(--sp-4) 0 var(--sp-2); border-radius: 999px; background: var(--fill-subtle); overflow: hidden; }
+.rc-track .fill { height: 100%; border-radius: inherit; background: var(--flow-in); }
+.rc-track-k { display: grid; grid-template-columns: 1fr auto 1fr; font-size: var(--fs-label); color: var(--ink-3); }
+.rc-track-k > :nth-child(2) { color: var(--ink-2); }
+.rc-track-k > :last-child { text-align: right; }
+
+/* ---------- Spending › Credit (18 Oct, simplified): per card one scan line + one quiet line; Details folds open the rest */
+.cr-cards { margin-top: var(--sp-4); }
+.cr-card { padding: var(--sp-3) 0; border-top: 1px solid var(--rule); }
+.cr-card:first-child { border-top: 0; padding-top: 0; }
+.cr-line { display: flex; align-items: center; gap: var(--sp-3); min-height: 36px; }
+.cr-line .tile { --tile: 28px; }
+.cr-line .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-row); color: var(--ink); }
+/* the cards in the rail (18 Oct): name and amount on one line, the status pill under the name; then the quiet line and
+   Details under it */
+#cr-cards-c .cr-line { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; grid-template-areas: "tile t v" "tile pill pill"; column-gap: var(--sp-3); row-gap: var(--sp-1); align-items: center; }
+#cr-cards-c .cr-line .tile { grid-area: tile; align-self: start; }
+#cr-cards-c .cr-line .t { grid-area: t; }
+#cr-cards-c .cr-line .v { grid-area: v; }
+#cr-cards-c .cr-line .rc-due { grid-area: pill; justify-self: start; }
+#cr-cards-c .cr-quiet { flex-direction: column; align-items: flex-start; gap: 2px; margin: var(--sp-1) 0 0 calc(28px + var(--sp-3)); }
+.cr-line .v { font-size: var(--fs-row); font-weight: var(--fw-medium); color: var(--ink); font-variant-numeric: tabular-nums; }
+.cr-quiet { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-left: calc(28px + var(--sp-3)); font-size: var(--fs-label); color: var(--ink-meta); }   /* 18 Oct, Nhi: a step smaller */
+.cr-quiet .em { color: var(--ink-2); }
+.cr-more { margin: var(--sp-3) 0 0 calc(28px + var(--sp-3)); }
+.cr-sub-h { margin: var(--sp-4) 0 var(--sp-1); font-size: var(--fs-2); font-weight: var(--fw-medium); color: var(--ink-2); }
+.cr-st .lline { min-height: 40px; border-bottom: 1px solid var(--rule); }
+.cr-st:last-child .lline { border-bottom: 0; }
+.cr-st .lline .t, .cr-st .lline .v { font-size: var(--fs-2); }
+.cr-st .lline .v { font-weight: var(--fw-medium); }
+.cr-due { font-size: var(--fs-2); color: var(--ink-3); }
+@container (max-width: 520px) { .cr-quiet, .cr-more { margin-left: 0; } .cr-quiet { flex-wrap: wrap; } }
+/* Cashback: the cycle, one quiet line, a strip of the past cycles (bar height = earned of the cap, green when maxed) */
+.cr-cb-big { margin: var(--sp-3) 0 var(--sp-2); }
+.cr-cb-q { margin: var(--sp-2) 0 0; }
+.cr-strip-row { display: flex; align-items: flex-end; gap: var(--sp-3); margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--rule); }
+.cr-strip { display: flex; align-items: flex-end; gap: 3px; height: 28px; }
+.cr-strip > span { width: 10px; height: calc(var(--h) * 100%); border-radius: 2px; background: var(--warn); opacity: .8; }
+.cr-strip > span.max { background: var(--budget); opacity: 1; }
+.cr-strip-k { font-size: var(--fs-2); color: var(--ink-3); }
+.cr-strip-k .em { color: var(--ink-2); }
+#cr-cb-c .cr-quiet:not(.cr-cb-q) { margin: var(--sp-2) 0 0; justify-content: flex-start; }
+#cr-cb-c .cr-more { margin-left: 0; }
+.cr-cyc .lline { min-height: 32px; }
+.cr-cyc .lline .t, .cr-cyc .lline .v { font-size: var(--fs-2); }
+.cr-cyc .lline .v { font-weight: var(--fw-medium); }
+
+/* Transactions (17 Oct): air between the hero (+ the date range picker) and the list */
+[data-anfra-block="sp-tx"] .hero-row { margin-bottom: var(--sp-4); }
+
+/* Transactions list (17 Oct, Nhi): merchant first, then a quiet tag (the category's icon on its colour, as in Categories),
+   then the amount; more air between days; quiet day heads and day totals */
+.sp-tx-list .tx-row { grid-template-columns: minmax(0, 1fr) auto; }
+.sp-tx-list .tx-row .lrow-end .v { display: grid; grid-template-columns: 148px 112px; align-items: center; column-gap: var(--sp-3); }
+.sp-tx-list .tx-row .lrow-end .amt { text-align: right; }
+.tx-tag { justify-self: start; display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 2px var(--sp-2) 2px 3px; border-radius: 999px;
+  background: var(--fill-subtle); color: var(--ink-2); font-size: var(--fs-label); line-height: 1.3; font-weight: var(--fw-regular); }
+.tx-ic { flex: none; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--c); color: var(--cat-icon); }
+.tx-ic .i { width: 10px; height: 10px; }
+.tx-tl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tx-between { color: var(--ink-3); }
+.sp-day + .sp-day { margin-top: var(--sp-5); }
+.sp-tx-list .day-head .t { font-size: var(--fs-2); font-weight: var(--fw-regular); color: var(--ink-3); }
+.sp-tx-list .day-head .v, .sp-tx-list .day-head .v .amt { font-size: var(--fs-label); font-weight: var(--fw-regular); color: var(--ink-3); }
+@container (max-width: 480px) {   /* a phone: the tag shrinks to its icon; the label stays for screen readers (clipped, not removed) */
+  .sp-tx-list .tx-row .lrow-end .v { grid-template-columns: 22px auto; } #rc-list .tx-row .lrow-end .v { grid-template-columns: 22px 52px auto; } .tx-tag { padding: 2px; gap: 0; }
+  .tx-tl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } }
+
+/* the head's search: an icon that expands into the field (open = the field, the icon steps out) */
+.tx-search { display: inline-flex; align-items: center; }
+.tx-search:not(.open) .head-search { display: none; }
+.tx-search.open .tx-search-btn { display: none; }
+@container (max-width: 520px) { .card-head:has(.tx-search.open) .tx-search { order: 9; flex: 1 0 100%; } }
+
+/* drill-down sections (17 Oct, Nhi: scannable): a quiet label row with its aside on the right, then the content */
+.ins-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--sp-2); font-size: var(--fs-2); color: var(--ink-2); }
+.ins-a { font-size: var(--fs-label); color: var(--ink-3); }
+.ins-kpis.kpis { padding: var(--sp-3); }
+.ins-kpis .k { font-size: var(--fs-label); color: var(--ink-3); }
+.ins-kpis .v { font-size: var(--fs-row); font-weight: var(--fw-medium); }
+.ins-sec .lline { min-height: 32px; }
+.ins-sec .lline .t, .ins-sec .lline .v { font-size: var(--fs-2); }
+.tx-search .search.head-search { width: 168px; }
+.tx-search .head-search input:focus-visible { outline: none; box-shadow: none; }
+@container (max-width: 520px) {
+  .tx-search .search.head-search { width: 100%; }
+}
+
+/* Transactions › summary strip under the hero (17 Oct, Nhi: the reference's tinted bar of label · value pairs) */
+/* one row when it fits, else an aligned grid of label · value pairs */
+.tx-sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); column-gap: var(--sp-5); row-gap: var(--sp-2); margin: var(--sp-4) 0 var(--sp-2); padding: var(--sp-3) var(--sp-4);   /* 18 Oct, Nhi: more air under the hero */
+  border-radius: var(--r-md); background: var(--tint); }
+.tx-sum:empty { display: none; }
+.ts-i { display: inline-flex; align-items: baseline; gap: var(--sp-2); white-space: nowrap; }
+.ts-i .k { font-size: var(--fs-2); color: var(--ink-3); }
+.ts-i .v { font-size: var(--fs-row); color: var(--ink); font-variant-numeric: tabular-nums; }
+.ts-i .v.pos { color: var(--pos-ink); }
+[data-anfra-block="sp-tx"] .hero-row { margin-bottom: 0; }
+#tx-sum + #sp-chips:not(:empty) { margin-top: var(--sp-3); }
+#sp-chips + .sp-tx-list, .tx-sum + #sp-chips:empty + .sp-tx-list { margin-top: var(--sp-5); }   /* 18 Oct, Nhi: more air before the first day */
+
+/* the head's filter button: an icon; a count badge when filters are on */
+.tx-filter-btn { position: relative; }
+.tx-filter-btn.on { color: var(--ink); background: var(--fill-subtle); border-radius: var(--r-sm); }
+.fbadge { position: absolute; top: 3px; right: -2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; display: grid; place-items: center;
+  background: var(--ai); color: var(--on-ink); font-size: 10px; font-weight: var(--fw-medium); line-height: 1; }
+
+/* the filter popover: three sections (Categories · Merchants · Amount) that scroll inside, the actions pinned under them;
+   OG.showPop caps its height at the room under the anchor */
+.popover.filter-pop { display: flex; flex-direction: column; width: 380px; max-width: calc(100vw - 32px); padding: var(--sp-4) var(--sp-4) var(--sp-3); }
+.filter-pop .ph { flex: none; margin-bottom: var(--sp-2); color: var(--ink); font-weight: var(--fw-medium); }
+.fp-body { display: grid; align-content: start; gap: var(--sp-4); flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0 calc(-1 * var(--sp-4)); padding: 0 var(--sp-4) var(--sp-1); }
+.fp-sec + .fp-sec { padding-top: var(--sp-4); border-top: 1px solid var(--rule); }
+.fp-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--sp-2); font-size: var(--fs-2); color: var(--ink-2); font-weight: var(--fw-medium); }
+.fp-n { font-size: var(--fs-label); color: var(--ink-3); font-weight: var(--fw-regular); }
+.fp-chips, .fp-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.fp-chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 var(--sp-3) 0 6px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--surface); color: var(--ink-2); font: inherit; font-size: var(--fs-2); cursor: pointer; transition: background var(--dur-fast), border-color var(--dur-fast); }
+.fp-chip.sm { padding: 0 var(--sp-3); }
+.fp-chip:hover { border-color: var(--ink-3); }
+.fp-chip[aria-pressed="true"] { background: var(--fill-active); border-color: var(--ink-2); color: var(--ink); }
+.fp-chip:focus-visible, .fp-opt:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.fp-search.search { width: 100%; height: 34px; margin-bottom: var(--sp-2); }
+.fp-search input { font-size: var(--fs-2); }
+.fp-list { display: grid; max-height: 170px; overflow: auto; margin: 0 calc(-1 * var(--sp-2)); }
+.fp-opt { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: var(--sp-3); min-height: 34px; padding: 0 var(--sp-2);
+  border: 0; border-radius: var(--r-sm); background: none; color: var(--ink); font: inherit; font-size: var(--fs-2); text-align: left; cursor: pointer; }
+.fp-opt:hover { background: var(--row-hover); }
+.fp-opt .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-opt .n { font-size: var(--fs-label); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.fp-opt .box { width: 18px; height: 18px; }
+.fp-empty { padding: var(--sp-2); font-size: var(--fs-2); color: var(--ink-3); }
+.fp-range { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.fp-range label { display: grid; gap: 4px; font-size: var(--fs-label); color: var(--ink-3); }
+.fp-range input { height: var(--ctl-h); padding: 0 var(--sp-2); border: 1px solid var(--border); border-radius: var(--r-ctl); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: var(--fs-2); font-variant-numeric: tabular-nums; min-width: 0; }
+.fp-range input:focus-visible { outline: none; border-color: var(--focus-border); box-shadow: var(--focus-halo); }
+.fp-dash { padding-bottom: 9px; color: var(--ink-3); }
+.filter-pop .pf { flex: none; gap: var(--sp-2); margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--rule); }
+/* a narrow Transactions card: the title keeps its own line, the picker and the icons go on the next one */
+@container (max-width: 520px) {
+  [data-anfra-block="sp-tx"] .card-head { flex-wrap: wrap; height: auto; row-gap: var(--sp-1); padding-top: var(--sp-3); }
+  [data-anfra-block="sp-tx"] .card-head > .grow { flex-basis: 100%; height: 0; }
+  [data-anfra-block="sp-tx"] .card-head .head-ctl { margin-right: auto; }
+}
+
+}
+/* the ratios hover card (Cash flow › This period): a plain list inside the card */
+.hc .cf-ratios { margin: var(--sp-2) 0 0; padding: 0; background: none; min-width: 260px; }
+.cr-more .rc-kv .lline { min-height: 32px; }
+.cr-more .rc-kv .lline .t, .cr-more .rc-kv .lline .v { font-size: var(--fs-2); }
+.cr-more .rc-kv .lline .t { color: var(--ink-2); }
+.cr-more .rc-kv .lline .v { color: var(--ink); font-weight: var(--fw-medium); }
+/* Transactions › the rail's breakdown card (18 Oct, Nhi): the switch IS the title (the active segment names the view), then
+   ⓘ, then the % switch on the right; the h2 stays for screen readers only. No fold: a 4-column rail has no room for it. */
+[data-anfra-block="sp-break"] > .card-head > .card-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+[data-anfra-block="sp-break"] > .card-head .head-ctl { order: -1; }
+/* the merchants' "3 times" line reads like the list's account line (18 Oct, Nhi) */
+#sp-merch-rows .lrow-main .s { color: var(--ink-3); }

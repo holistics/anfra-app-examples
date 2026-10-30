@@ -1,0 +1,234 @@
+/* mouka layout: the app shell (sidebar → icon rail → bottom bar), the page header + tabs, and the 12-column content grid
+   that js/pages.js arranges cards on. Values come from ds/tokens.css.
+
+   Breakpoints are FRAME widths (the app runs inside Anfra's frame, ~265px narrower than the browser window):
+     xl ≥ 1280   sidebar --nav-w        main 8 / rail 4      e.g. a 1600px window
+     lg 1024–1279 sidebar --nav-w-lg    main 8 / rail 4      a 1440px laptop (frame ≈ 1166)
+     md 900–1023  icon rail             main 8 / rail 4      a 1280px laptop (frame ≈ 1006)
+     sm 600–899   icon rail             one column; the rail's cards side by side under it   tablets
+     xs < 600     bottom tab bar        one column            phones
+   Media queries can't read variables, so these four numbers (max-width 1279 / 1023 / 899 / 599, min-width 1280 / 1024 / 900 / 600) are the only widths an @media rule in
+   this app may use (tests/app/ds-lint.sh checks). Inside a card, @container queries do the reflow. */
+
+/* ---------- breakpoint tokens: what changes per frame width */
+@media (max-width: 1279px) { :root { --gap: var(--gap-lg); --page-pad-x: var(--page-pad-x-lg); --nav-w: var(--nav-w-lg); } }
+@media (max-width: 1023px) { :root { --nav-w: var(--nav-rail-w); } }
+@media (max-width: 899px)  { :root { --gap: var(--gap-sm); --page-pad-x: var(--page-pad-x-sm); --chart-h: var(--chart-h-sm); } }
+@media (max-width: 599px)  { :root { --card-pad: var(--card-pad-xs); --chart-h: var(--chart-h-xs); --head-h: var(--head-h-xs); } }
+
+/* ---------- shell */
+.shell { display: grid; min-height: 100vh; }   /* columns: see the sidebar's three states below */
+.sidebar { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: var(--sp-4) var(--sp-2); border-right: 1px solid var(--border); background: var(--page); overflow-y: auto; overflow-x: hidden; }
+.brand { display: flex; align-items: center; gap: var(--sp-2); padding: 2px var(--sp-2) 0; height: 36px; font: 400 var(--fs-card-hero)/1 var(--serif); letter-spacing: var(--ls-tight); color: var(--brand-ink); white-space: nowrap; }
+.brand .logo { width: 24px; height: 24px; flex: none; }  /* the app icon (img/logo.png: Nhi's 200px mark, 19 Oct) */
+.nav-gap { height: var(--sp-5); }
+.nav-group { font: var(--fw-medium) var(--fs-label)/1 var(--sans); letter-spacing: 0; color: var(--ink-2); padding: 0 var(--sp-4); margin: var(--sp-6) 0 var(--sp-2); white-space: nowrap; }
+.nav-item { display: flex; align-items: center; gap: var(--sp-3); width: 100%; height: var(--nav-item-h); padding: 0 var(--sp-4); border-radius: var(--r-pill); color: var(--ink-2); font-size: var(--fs-body); text-align: left; white-space: nowrap; }
+.nav-item:hover { background: var(--fill-subtle); }
+.nav-item.active { background: var(--nav-active); color: var(--ink); font-weight: var(--fw-medium); }
+.nav-item .i { width: 16px; height: 16px; }
+.nav-item .nav-chev { margin-left: auto; color: var(--ink-3); }
+.nav-item .nav-soon { margin-left: auto; height: 20px; }
+.asof-note { padding: var(--sp-2) var(--sp-4); font-size: var(--fs-label); line-height: 1.5; color: var(--ink-3); }
+.asof-note .num { color: var(--ink-2); }
+.asof-note[data-hc] { cursor: help; }
+/* the freshness dot: green when every ledger source is current, amber when one is out of sync (hover lists them) */
+.fresh-dot { display: inline-block; width: 8px; height: 8px; margin-right: var(--sp-2); border-radius: 50%; background: var(--fill-active); vertical-align: 1px; }
+.fresh-dot.ok { background: var(--pos); box-shadow: 0 0 0 3px var(--pos-tint); }
+.fresh-dot.stale { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-ring); }
+
+main#views { grid-column: 2; min-width: 0; padding: 0 var(--page-pad-x) var(--page-pad-bottom); container: views / inline-size; }   /* column 2 even when the sidebar overlays */
+.view { max-width: var(--content-max); }
+
+/* ---------- the sidebar's three states (js/shell.js sets them on <html>):
+   default   full sidebar, --nav-w (or the width dragged on its edge: --nav-w-user, set on .shell, session only)
+   .rail     icon rail: md / sm by default, or collapsed at xl / lg (the ‹ button or the [ key)
+   .nav-open md / sm only: the full sidebar slides over the page (a scrim behind it), the rail stays in the grid */
+.shell { grid-template-columns: var(--nav-w-user, var(--nav-w)) minmax(0, 1fr); transition: grid-template-columns var(--dur-sheet) var(--ease-drawer); }
+/* collapse / expand glides (19 Oct, Nhi); a drag, the [ key and the first paint switch at once (js/shell.js) */
+html.nav-resizing .shell, html.nav-instant .shell { transition: none; }
+html.rail .shell { grid-template-columns: var(--nav-rail-w) minmax(0, 1fr); }
+.brand-row { display: flex; align-items: center; gap: var(--sp-1); }
+.brand-row .brand { flex: 1; min-width: 0; overflow: hidden; }
+.nav-toggle, .nav-toggle.sq { width: 32px; height: 32px; flex: none; background: transparent; color: var(--nav-toggle-ink); }
+.nav-toggle:hover { color: var(--ink); background: var(--fill-subtle); }
+.nav-toggle .i { width: 18px; height: 18px; }
+/* the resize handle: a 1px line on the sidebar's edge with a 9px hit area; a click collapses / expands, a drag resizes (also in the
+   rail since 19 Oct); keyboard: ← → Home End, Enter collapses */
+.nav-resize { position: absolute; top: 0; right: -5px; bottom: 0; width: 9px; z-index: 5; cursor: col-resize; touch-action: none; }
+.nav-resize::after { content: ''; position: absolute; top: 0; bottom: 0; left: 4px; width: 1px; background: transparent; transition: background var(--dur-fast) var(--ease-out); }
+.nav-resize:hover::after, .nav-resize:focus-visible::after, html.nav-resizing .nav-resize::after { left: 3px; width: 3px; background: var(--chart-line); }
+.nav-resize:focus-visible { box-shadow: none; }
+html.nav-resizing, html.nav-resizing * { cursor: col-resize !important; user-select: none !important; }
+/* icon rail: the same buttons, labels hidden (each has a title), the groups become hairlines */
+/* the rail's items sit at a fixed x (not centred), so the icons stay put while the column glides between widths */
+html.rail .sidebar { padding: var(--sp-4) var(--sp-2) var(--sp-4) calc((var(--nav-rail-w) - 1px - 44px) / 2); align-items: flex-start; }
+html.rail .sidebar .asof-note { width: 44px; text-align: center; }
+/* 19 Oct, Nhi: the logo, bell and collapse button take the nav items' 44px slot, so the whole rail is one column on one rhythm */
+html.rail .brand-row { flex-direction: column; gap: 0; }
+html.rail .brand { width: 44px; height: 44px; flex: none; justify-content: center; gap: 0; padding: 0; font-size: 0; }   /* gap 0: the hidden wordmark still took the 8px gap, so the logo sat 4px left (19 Oct) */
+html.rail .nav-toggle, html.rail .nav-toggle.sq { width: 44px; height: 44px; border-radius: var(--r-pill); }
+html.rail .nav-bell .ntf-dot { top: 13px; right: 14px; }
+html.rail .nav-toggle .i { transform: scaleX(-1); }
+html.rail .sidebar .nav-item { width: 44px; height: 44px; justify-content: center; padding: 0; gap: 0; font-size: 0; }
+html.rail .sidebar .nav-item .i { width: 18px; height: 18px; }
+html.rail .sidebar .nav-item .nav-chev, html.rail .sidebar .nav-item .nav-soon { display: none; }
+html.rail .nav-group { width: 28px; height: 1px; padding: 0; margin: var(--sp-4) 0 var(--sp-4) 8px; background: var(--rule); font-size: 0; }   /* 8px: centred under the 44px items */
+html.rail .sidebar .asof-note { font-size: 0; padding: var(--sp-2) 0; }
+html.rail .asof-note .fresh-dot { margin: 0; }
+html.rail .sidebar .ds-entry { width: 44px; justify-content: center; padding: var(--sp-2) 0; }
+html.rail .sidebar .ds-entry span { display: none; }
+/* md / sm, opened: the full sidebar over the page */
+.nav-scrim { display: none; }
+html.nav-open .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 57; width: var(--nav-w-xl); box-shadow: var(--shadow-pop); animation: sheet-in-l var(--dur-sheet) var(--ease-drawer); }
+html.nav-open .nav-scrim { display: block; position: fixed; inset: 0; z-index: 56; background: var(--overlay); animation: v3-fade var(--dur) var(--ease-out); }
+/* sheets come in from the edge they live on (19 Oct, Emil's drawer recipe): the whole way, on the drawer curve */
+@keyframes sheet-in-l { from { transform: translateX(-100%); } }
+@keyframes sheet-in-r { from { transform: translateX(100%); } }
+@keyframes sheet-in-up { from { transform: translateY(100%); } }
+
+/* bottom tab bar + More sheet (xs only) */
+.tabbar, .more-sheet { display: none; }
+@media (max-width: 599px) {
+  .shell, html.rail .shell { grid-template-columns: minmax(0, 1fr); }
+  main#views { grid-column: 1; }
+  .sidebar, html.nav-open .sidebar { display: none; }
+  html.nav-open .nav-scrim { display: none; }
+  main#views { padding-bottom: calc(var(--tabbar-h) + var(--sp-6)); }
+  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: var(--tabbar-h);
+    padding: 0 var(--sp-2); background: var(--surface); border-top: 1px solid var(--border); }
+  .tabbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-1); width: auto; height: 100%; padding: 0;
+    border-radius: 0; background: none; color: var(--ink-3); font-size: var(--fs-label); font-weight: var(--fw-regular); }
+  .tabbar button:hover, .tabbar button.active { background: none; color: var(--ink); }
+  .tabbar .i { width: 20px; height: 20px; }
+  .more-sheet:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 55; background: var(--overlay); animation: v3-fade var(--dur) var(--ease-out); }
+  .more-sheet .sheet { position: absolute; left: 0; right: 0; bottom: 0; padding: var(--sp-3) var(--sp-4) calc(var(--tabbar-h) + var(--sp-4));
+    background: var(--surface); border-radius: var(--r-lg) var(--r-lg) 0 0; box-shadow: var(--shadow-pop); animation: sheet-in-up var(--dur-sheet) var(--ease-drawer); }
+  .more-sheet .grab { width: 36px; height: 4px; margin: 0 auto var(--sp-3); border-radius: var(--r-sm); background: var(--fill-active); }
+  .more-sheet .nav-item { height: 48px; }
+  .more-sheet .asof-note { padding: var(--sp-3) var(--sp-4) 0; }
+}
+
+/* ---------- page header: title + as-of pill left, the two global controls right; tabs under it */
+.head { display: flex; align-items: center; height: var(--head-h); gap: var(--sp-3); }
+.head h1 { margin: 0; font: var(--fw-title) var(--fs-page-title)/1.1 var(--font-title); letter-spacing: var(--ls-tight); white-space: nowrap; }
+.head .grow { flex: 1; }
+.head .circle { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--fill-circle); color: var(--ink-2); flex: none; }
+.head .circle:hover { background: var(--fill-active); }
+.head .circle.on { background: var(--ink); color: var(--on-ink); }
+/* the page ✦ (trace every number) wears the same AI tint as every card's ✦ */
+.head .circle.ai { background: var(--ai-tint); color: var(--ai-ink); }
+/* notifications (18 Oct, Nhi): the bell's count, then its list under it (js/notify.js) */
+/* 19 Oct, Nhi: the bell sits optically centred (a bell's mass is low: up 1px) and the count hangs off the circle's corner, clear of the bell */
+.ntf-btn { position: relative; }
+.head .ntf-btn > .i { transform: translateY(-1px); }
+.nav-bell .ntf-dot { top: 7px; right: 8px; }   /* the sidebar's bell (19 Oct): the dot on the glyph's shoulder */
+.xs-only { display: none !important; }
+@media (max-width: 599px) {
+  .head .xs-only { display: grid !important; }
+  .head { gap: var(--sp-2); }
+  .head .ntf-btn .ntf-dot { top: 7px; right: 8px; }
+  .head .circle { width: 34px; height: 34px; }   /* xs carries four (+, bell, ✦, hide): smaller so the row fits (19 Oct) */
+}
+/* + Add (19 Oct, Nhi): the header's menu of what can be added; not built yet, so each item says Soon. The one ink circle, last in the row */
+.head .circle.add-btn { background: var(--ink); color: var(--on-ink); }
+.head .circle.add-btn:hover, .head .circle.add-btn[aria-expanded=true] { background: var(--ink-2); }
+.add-menu { min-width: 200px; }
+.menu [aria-disabled=true] { color: var(--ink-2); cursor: default; }
+.menu .soon-tag { margin-left: auto; height: 20px; }
+/* the sidebar's foot (19 Oct, Nhi): who you are, with Settings and Users in a menu that opens upward */
+.side-foot { margin-top: auto; padding-top: var(--sp-3); border-top: 1px solid var(--border); }
+.me-wrap { display: flex; width: 100%; }
+.me-btn { display: flex; align-items: center; gap: var(--sp-2); width: 100%; height: 44px; padding: 0 var(--sp-2); border-radius: var(--r-md); color: var(--ink); font-size: var(--fs-body); text-align: left; white-space: nowrap; }
+.me-btn:hover, .me-btn[aria-expanded=true] { background: var(--fill-subtle); }
+.me-av { display: grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: 50%; background: var(--chart-line); color: var(--chart-on); font: var(--fw-medium) 11px/1 var(--sans); letter-spacing: .02em; }
+.me-n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.me-chev { color: var(--ink-3); }
+.side-foot .menu.me-menu { position: fixed; top: auto; right: auto; min-width: 200px; transform-origin: bottom left; }   /* fixed: the sidebar clips its overflow; js/shell.js places it above the button */
+html.rail .side-foot { width: 44px; }
+html.rail .me-btn { justify-content: center; padding: 0; gap: 0; }
+html.rail .me-btn .me-n, html.rail .me-btn .me-chev { display: none; }
+/* 19 Oct, Nhi: just a small red dot; the count is in the bell's aria-label (js/notify.js) */
+.ntf-dot { position: absolute; top: 10px; right: 11px; width: 8px; height: 8px; border-radius: 50%; background: var(--neg-ink); font-size: 0; box-shadow: 0 0 0 2px var(--page); }
+.ntf-pop { position: fixed; z-index: 60; width: min(360px, calc(100vw - 16px)); max-height: min(70vh, 520px); overflow-y: auto; padding: var(--sp-2); border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-pop); }
+.ntf-h { padding: var(--sp-2) var(--sp-2) var(--sp-1); font-size: var(--fs-label); letter-spacing: var(--ls-label); text-transform: uppercase; color: var(--ink-3); }
+.ntf-i { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; align-items: center; column-gap: var(--sp-3); width: 100%; padding: var(--sp-2); border-radius: var(--r-md); text-align: left; color: var(--ink-3); }
+.ntf-i:hover, .ntf-i:focus-visible { background: var(--row-hover); }
+.ntf-i:focus-visible { outline: none; box-shadow: inset var(--focus-ring); }
+.ntf-tone { width: 8px; height: 8px; border-radius: 50%; background: var(--info-ink); }
+.ntf-tone.warn { background: var(--warn); } .ntf-tone.neg { background: var(--neg); }
+.ntf-b { display: grid; gap: 2px; min-width: 0; }
+.ntf-t { font-size: var(--fs-2); font-weight: var(--fw-medium); color: var(--ink); }
+.ntf-s { font-size: var(--fs-label); color: var(--ink-meta); }
+.ntf-empty { padding: var(--sp-3) var(--sp-2); font-size: var(--fs-2); color: var(--ink-3); }
+.head .circle.ai .i { fill: var(--ai-ink); stroke: none; width: 16px; height: 16px; }
+.head .circle.ai.on { background: var(--ai-ink); color: var(--on-ink); }
+.head .circle.ai.on .i { fill: var(--on-ink); }
+/* page tabs: one segmented row, nothing else on it */
+.tabs { display: inline-flex; gap: 2px; margin: 0 0 var(--sp-5); padding: 3px; border-radius: var(--r-ctl); background: var(--seg-track); }
+.tab { height: calc(var(--ctl-h) - 6px); padding: 0 var(--sp-4); border-radius: calc(var(--r-ctl) - 3px); color: var(--ink-2); font-size: var(--fs-2); white-space: nowrap; }
+.tab:hover { color: var(--ink); }
+.tab.active { color: var(--ink); font-weight: var(--fw-medium); }   /* the only medium in the row */
+.tabs-gap { height: var(--sp-3); }
+@media (max-width: 599px) {
+  .head h1 { font-size: var(--fs-card-hero); }
+  .head .circle { width: 36px; height: 36px; }
+  /* four tabs (Spending, 18 Oct): each as wide as its word, sharing what's left; the row scrolls if it ever overflows */
+  .tabs { display: flex; width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .tab { flex: 1 0 auto; padding: 0 var(--sp-2); }
+}
+
+/* ---------- the 12-column content grid (OG.layout: { row: [...] } in js/pages.js)
+   A row is 12 columns; each item spans 8, 4, 6 or 12 of them, so every card edge sits on a column line.
+   A pair splits its parent into two equal halves (inside a span-8 main column that is exactly 4 + 4). */
+.row { display: grid; grid-template-columns: repeat(var(--grid-cols), minmax(0, 1fr)); gap: var(--gap); align-items: start; }
+.row > * { min-width: 0; grid-column: span var(--grid-cols); }
+.row > .span-8 { grid-column: span 8; } .row > .span-6 { grid-column: span 6; } .row > .span-4 { grid-column: span 4; }
+.stack { display: grid; gap: var(--gap); align-content: start; min-width: 0; }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); align-items: stretch; min-width: 0; }   /* a pair is one row: equal heights */
+/* the right rail stays in view while the main column scrolls (17 Oct, Nhi). --rail-top is set by OG.stickRails (js/ds/layout.js):
+   the gap when the rail fits the window; otherwise negative, so a tall rail scrolls to its end and then holds there */
+@media (min-width: 900px) { .row > .rail { position: sticky; top: var(--rail-top, var(--sp-5)); } }
+/* sm: one column; the rail's cards go side by side under the main column; xs: everything stacks */
+@media (max-width: 899px) {
+  .row > .span-8, .row > .span-6, .row > .span-4 { grid-column: span var(--grid-cols); }
+  .row > .rail { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }   /* 2 cards side by side; 1 card full width */
+}
+@media (max-width: 599px) {
+  .row > .rail, .pair { grid-template-columns: minmax(0, 1fr); }
+}
+/* the same fold when the PAGE is squeezed at a wide frame (the design panel pushes it, ~360px): the grid follows the
+   content width, not only the frame */
+@container views (max-width: 719px) {
+  .row > .rail { position: static; }
+  .row > .span-8, .row > .span-6, .row > .span-4 { grid-column: span var(--grid-cols); }
+  .row > .rail { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+}
+.row-between { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); }
+.ds-missing { padding: var(--sp-4); border: 1px dashed var(--neg); border-radius: var(--card-radius); color: var(--neg-ink); font-size: var(--fs-2); }
+
+/* ---------- inspector (OG.drawer): a right column on the page, no scrim; a sheet below md */
+.with-insp { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap); align-items: start; }
+.with-insp.open { grid-template-columns: minmax(0, 1fr) var(--inspector-w); }
+.with-insp.open .view-body .row > * { grid-column: span var(--grid-cols); }
+.view-body { min-width: 0; }
+.inspector { position: sticky; top: var(--sp-4); max-height: calc(100vh - 2 * var(--sp-4)); display: flex; flex-direction: column; min-width: 0;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--card-radius); box-shadow: var(--shadow-card); overflow: hidden; }
+.inspector[hidden] { display: none; }
+.inspector .dh { display: flex; align-items: center; gap: var(--sp-3); min-height: var(--card-head-h); padding: 0 var(--card-pad); border-bottom: 1px solid var(--rule); }
+.inspector .dh .grow { flex: 1; }
+.inspector .db { flex: 1; overflow: auto; padding: var(--card-pad); display: grid; gap: var(--sp-4); align-content: start; }
+.inspector .dfoot { display: flex; justify-content: flex-end; gap: var(--sp-2); padding: var(--sp-4) var(--card-pad); border-top: 1px solid var(--rule); }
+/* opened in a rail (OG.drawer({ rail })): the inspector takes the rail's place, the rail's cards step aside until ‹ back;
+   below 1024px the inspector is a sheet over the page, so the cards stay */
+.rail.open > :not(.inspector) { display: none; }
+.inspector .dh.has-back { padding-left: var(--sp-3); gap: var(--sp-2); }
+.with-insp.floating { position: fixed; top: var(--sp-4); right: var(--sp-4); bottom: var(--sp-4); z-index: 41; display: block; }
+.with-insp.floating .inspector { position: static; width: min(480px, 92vw); max-height: 100%; box-shadow: var(--shadow-pop); }
+@media (max-width: 1023px) {
+  .with-insp.open { grid-template-columns: minmax(0, 1fr); }
+  .rail.open > :not(.inspector) { display: revert; }
+  aside.inspector.enter { animation: sheet-in-r var(--dur-sheet) var(--ease-drawer); }   /* (aside: outranks components.css) a sheet here: it slides in from the right edge */
+  .inspector { position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw); max-height: none; z-index: 56; border-radius: var(--r-lg) 0 0 var(--r-lg); box-shadow: var(--shadow-pop); }
+}
+

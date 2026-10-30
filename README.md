@@ -25,6 +25,7 @@ Every app lives in its own folder under `projects/`.
 | [metric-log](projects/metric-log) | A plugin for Metric Tree & Decompose that keeps a running history for each metric: decisions logged next to it, and every definition change in plain language | [Demo](https://anfra-metric-log-demo.pages.holistics.dev/) | Kaia Nguyen |
 | [mouka](projects/mouka) | A personal-finance tracker: where the money went, what's coming up, how the investments are doing and where net worth is heading, every number traceable to its metric | [Demo](https://mouka.pages.holistics.dev/apps/mouka/app) | Nhi Tran |
 | [diabetes-visit-prep](projects/diabetes-visit-prep) | Prepares a diabetes clinic visit: the patient's body colored by clinical status, two years as a time-lapse, and a drill into the cause | [Demo](https://diabetes-visit-prep.pages.holistics.dev/apps/diabetes-visit-prep) | Quan Nguyen |
+| [library](projects/library) | Walk a book marketplace's catalogue as a low-poly 3D library: rooms sized by revenue, shelves filled by genre, and a book that opens into a spread with a price what-if | [Demo](https://anfra-library.pages.holistics.dev) | Zap |
 
 Apps ship without data source credentials, so some need setup before they run. Each app README says which sample data it uses.
 

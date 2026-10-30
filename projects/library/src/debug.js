@@ -8,16 +8,16 @@ import { clamp, clock } from './util.js';
 /** @typedef {import('./data.js').Axis} Axis */
 /** @typedef {{ x: number, y: number, w: number, h: number }} Rect */
 /**
- * @typedef {{ ready: boolean, setMode(mode: 'anim'|'int'): void, seek(t: number): void, setCam(cam: 'default'|'exterior'|'ladder'): void,
+ * @typedef {{ ready: boolean, setCam(cam: 'default'|'exterior'|'ladder'): void,
  *   orbit(dYawDeg: number, dPitchDeg: number): void, zoom(factor: number): void, setAxis(axis: Axis): void, hover(x: number, y: number): void, click(x: number, y: number): void,
  *   goRoom(indexOrName: number|string): void, panBy(dx: number, dz: number): void, goShelf(indexInRoom: number): void, openBook(indexOnShelf: number): void,
  *   setWhatIf(priceFactor: number): void, setGrain(g: 'day'|'week'|'month'): void, setPrice(lo: number, hi: number): void, goLevel(n: 0|1|2|3): void,
- *   state(): { level: number, room: string|null, shelf: string|null, book: string|null, axis: string, mode: string },
+ *   state(): { level: number, room: string|null, shelf: string|null, book: string|null, axis: string },
  *   screenRectOf(kind: 'room'|'shelf'|'spine'|'signpost'|'book', index: number): Rect|null, tick(dtSeconds: number): void }} LibDriver
  */
 /**
  * The engine hooks main.js hands over.
- * @typedef {{ frame: () => void, setMode: (m: 'anim'|'int') => void, seek: (t: number) => void, setCam: (c: 'default'|'exterior'|'ladder') => void,
+ * @typedef {{ frame: () => void, setCam: (c: 'default'|'exterior'|'ladder') => void,
  *   hoverAt: (x: number, y: number) => void, clickAt: (x: number, y: number) => void }} Engine
  */
 /** @param {Engine} en @returns {LibDriver} */
@@ -26,8 +26,6 @@ export function installDriver(en) {
   /** @type {LibDriver} */
   const lib = {
     ready: false,
-    setMode: (m) => en.setMode(m),
-    seek: (t) => en.seek(t),
     setCam: (c) => en.setCam(c),
     orbit(dy, dp) {
       const S = A.IS;
@@ -84,24 +82,14 @@ export function installDriver(en) {
       if (A.IS) A.goLevel(n);
     },
     state() {
-      const S = A.IS,
-        anim = A.RUN.mode === 'anim';
-      if (anim || !S)
-        return {
-          level: A.LASTF.lv,
-          room: null,
-          shelf: null,
-          book: null,
-          axis: S ? S.ds.axis : 'category',
-          mode: A.RUN.mode,
-        };
+      const S = A.IS;
+      if (!S) return { level: 0, room: null, shelf: null, book: null, axis: 'category' };
       return {
         level: S.lv,
         room: S.room >= 0 ? S.G.ar[S.room].name : null,
         shelf: S.ci >= 0 ? (S.G.meta[S.ci]?.genre ?? null) : null,
         book: S.bk >= 0 ? BOOKS[S.bk].title : null,
         axis: S.ds.axis,
-        mode: A.RUN.mode,
       };
     },
     screenRectOf,

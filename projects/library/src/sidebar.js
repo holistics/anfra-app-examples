@@ -20,7 +20,7 @@ import {
   topRow,
   factorLit,
 } from './data.js';
-import { RUN, cur, sPos, pa, isExt } from './anim.js';
+import { cur, sPos, pa, isExt } from './anim.js';
 import { RH } from './layout.js';
 import * as S from './scene.js';
 import { $, clamp, clock, dcls, ease, esc, fmtInt, fmtMoney, fmtPct, html, kids, lerp } from './util.js';
@@ -94,15 +94,9 @@ export function sidebar(E) {
     setTarget(sc);
     checkScope(E.key, ds, sc);
   }
-  const t = target || disp;
-  if (E.tween && sc) {
-    // scripted loop: the count-up is a function of loop time
-    const f0 = scopeOf(E.tween.key, E.tween.ds) || sc;
-    for (const k of NUMK) disp[k] = lerp(f0[k], sc[k], E.tween.e);
-  } else {
-    const e = ease((clock.t - tgtT) / 0.7);
-    for (const k of NUMK) disp[k] = lerp(from[k], t[k], e);
-  }
+  const t = target || disp,
+    e = ease((clock.t - tgtT) / 0.7);
+  for (const k of NUMK) disp[k] = lerp(from[k], t[k], e);
   $('#rev').textContent = fmtMoney(disp.rev);
   html($('#revd'), `<span class="${dcls(disp.d)}">${fmtPct(disp.d)} units</span>`);
   $('#a_u').textContent = fmtInt(disp.u);
@@ -357,7 +351,7 @@ export function bookAnim(E) {
   S.canvas.style.filter =
     blur > 0.01 ? `blur(${(blur * 7).toFixed(1)}px) brightness(${(1 - blur * 0.5).toFixed(2)})` : '';
   bkEl.style.opacity = String(o);
-  bkEl.style.pointerEvents = RUN.mode === 'int' && o > 0.5 ? 'auto' : 'none';
+  bkEl.style.pointerEvents = o > 0.5 ? 'auto' : 'none';
   S.book.visible = show;
   if (!show) return;
   const A = E.st.aT;

@@ -1,5 +1,5 @@
-// Time: the per-frame scene update (rooms, spines, readers), the 22 s Animated timeline, and the
-// Interactive state machine. Both produce a Frame context that the renderer, sidebar and labels read.
+// Time: the per-frame scene update (rooms, spines, readers) and the interactive state machine, which
+// produces the Frame context that the renderer, sidebar and labels read.
 import * as THREE from 'three';
 import {
   BOOKS,
@@ -50,16 +50,11 @@ import { clamp, lerp, ease, outBack, settle } from './util.js';
  * Everything one frame needs.
  * @typedef {{ st: Seg, P: Pose, lv: number, amb: number, G: Layout, axis: Axis, room: number, ci: number, hb: number, bk: number, hRoom: number,
  *   focus: boolean, fci: number, fade: number, refill: number, slide: number, hc: number, caseLift: number, bookLift: number,
- *   o1: number, c1: number, knob: number, P2: Pose|null, key: Key, ds: DataState, tween: { key: Key, ds: DataState, e: number } | null, plo: number, phi: number,
+ *   o1: number, c1: number, knob: number, P2: Pose|null, key: Key, ds: DataState, plo: number, phi: number,
  *   tipF: (() => Tip|null)|null, tipOp: number, say: [string, string], grain: Grain }} Frame
  */
 
-export const LOOP = 22;
-/** Which engine drives the frame: Interactive (the product) or the scripted loop (driver only). */
-/** The level the last rendered frame showed (for the driver's state() in the scripted loop). */
-export const LASTF = { lv: 0 };
-export const RUN = { mode: /** @type {'int'|'anim'} */ ('int') };
-/** Debug camera override (driver setCam). */
+/** Camera: the building's interior, the exterior orbit, or the driver's ladder close-up. */
 export const VIEW = { cam: /** @type {'default'|'exterior'|'ladder'} */ ('default') };
 export const isExt = () => VIEW.cam === 'exterior';
 
@@ -206,7 +201,7 @@ function fly(rt, f, o) {
   o[2] = lerp(a[2], b[2], u);
   return o;
 }
-/** The spine marked as the shelf's best seller (it breathes). */
+/** The spine marked as the catalogue's best seller (it breathes). */
 export const TOP = { b: -1 };
 /** @param {Seg} st @param {Frame} E */
 export function updSpines(st, E) {
@@ -218,7 +213,8 @@ export function updSpines(st, E) {
   if (sl) S.drawSPA(E.ci, st.aT);
   RC.clear();
   strk.visible = !!st.arc;
-  let gOn = (ghSp.visible = E.fade > 0 && E.fci >= 0); /** @type {THREE.MeshStandardMaterial} */
+  let gOn = (ghSp.visible = E.fade > 0 && E.fci >= 0);
+  /** @type {THREE.MeshStandardMaterial} */
   (ghSp.material).opacity = 1 - E.fade;
   if (E.fade >= 1) gOn = ghSp.visible = false;
   let topSeen = false;
@@ -465,8 +461,8 @@ export function updRooms(t, st, E) {
     (c, i) => (c.rotation.z = clamp(0.035 + 0.04 * Math.sin(t * 0.9 + i * 0.7), -0.03, 0.09)),
   ); // swing into the room only
   S.fan.rotation.y = t * 2.2;
-  S.hands[0].rotation.x = (-t / LOOP) * Math.PI * 2;
-  S.hands[1].rotation.x = ((-t / LOOP) * Math.PI) / 6 - 1.2;
+  S.hands[0].rotation.x = (-t / 22) * Math.PI * 2; // the wall clock: one turn of the second hand per 22 s
+  S.hands[1].rotation.x = ((-t / 22) * Math.PI) / 6 - 1.2;
   S.CATS.forEach((c) => {
     const u = t + c.ph;
     c.tail.rotation.y = Math.sin(u * 3) * 0.25 * Math.pow(Math.max(0, Math.sin(u * 0.9)), 3) + 0.4;
@@ -612,247 +608,6 @@ export function orbX(az, dp, zm = 1) {
   );
   p.y = Math.max(p.y, S.fH(p.x, p.z) + 1.2);
   return { ...X, p };
-}
-
-/* ---------- Animated: the scripted 22 s loop over prefetched governed results ---------- */
-/**
- * Choices made from the data once it has loaded: the room (13–17 when present), its top shelf, the
- * third best-selling title on it, and the DataStates whose snapshots each step shows.
- * @typedef {{ room: number, C0: number, BK: number, GP: Layout, P: Poses & { P2: Pose }, P1b: Pose, s0: DataState, sA: DataState, sRoom: DataState, sSh: DataState, sShP: DataState,
- *   sBk: (f: number) => DataState, steps: number[], roomName: string, genre: string, title: string, share: number }} Script
- */
-/** @type {Script|null} */
-export let AS = null;
-export const WHATIF_STEPS = [1, 0.95, 0.9, 0.85];
-/** Prefetch every result the loop shows, then fix the script. @returns {Promise<void>} */
-export async function prepareScript() {
-  const s0 = defaultState();
-  await request(s0, NEED.all);
-  const roomName = LY.A.ar.some((a) => a.name === '13–17') ? '13–17' : LY.A.ar[2].name,
-    room = LY.A.ar.findIndex((a) => a.name === roomName),
-    C0 = room * 8;
-  const shelf = LY.A.meta[C0];
-  if (!shelf) throw new Error('the scripted room has no shelves');
-  const sA = { ...s0, axis: /** @type {Axis} */ ('age') },
-    sRoom = { ...sA, room: roomName },
-    sSh = { ...sRoom, genre: shelf.genre };
-  const bk = shelf.books[Math.min(2, shelf.books.length - 1)];
-  /** @param {number} f @returns {DataState} */
-  const sBk = (f) => ({ ...sSh, isbn: bk.isbn, factor: f });
-  const sShP = { ...sSh, lo: Math.max(PRICE.min, 10), hi: Math.min(PRICE.max, 30) };
-  await request(sA, NEED.all);
-  await request(sRoom, NEED.room);
-  await request(sSh, NEED.sh);
-  for (const f of WHATIF_STEPS) await request(sBk(f), NEED.bk);
-  await request(sShP, NEED.sh);
-  await request({ ...sShP, room: null, genre: null }, ['rooms_age']);
-  const P = poses(LY.A, room, C0);
-  if (!P.P2) throw new Error('no shelf pose');
-  const P1b = { ...panP(P.P1, v3(-1.4, 0, -0.6)), late: 0 };
-  AS = {
-    room,
-    C0,
-    BK: bk.idx,
-    GP: priceLayout(LY.A, priceSet(sShP)),
-    P: { ...P, P2: P.P2 },
-    P1b,
-    s0,
-    sA,
-    sRoom,
-    sSh,
-    sShP,
-    sBk,
-    steps: WHATIF_STEPS,
-    roomName,
-    genre: shelf.genre,
-    title: bk.title,
-    share: LY.A.ar[room].share,
-  };
-}
-/** @param {number} t @param {Script} A @returns {Seg} */
-function seg(t, A) {
-  const GC = LY.C,
-    GA = LY.A,
-    GP = A.GP,
-    J = S.jit;
-  if (t < 3.3) return { gF: GC, gT: GC, m: 0, aF: GC, aT: GC, f: () => 0 };
-  if (t < 6)
-    return {
-      gF: GC,
-      gT: GA,
-      m: ease((t - 3.3) / 1.7),
-      aF: GC,
-      aT: GA,
-      arc: 5.5,
-      f: (b) => clamp((t - 3.5 - J[b].d * 1.3) / 1.1),
-    };
-  if (t < 18.2 || t >= 20) {
-    if (t < 20.7) return { gF: GA, gT: GA, m: 0, aF: GA, aT: GA, f: () => 0 };
-    return {
-      gF: GA,
-      gT: GC,
-      m: ease((t - 20.7) / 1.1),
-      aF: GA,
-      aT: GC,
-      arc: 5.5,
-      f: (b) => clamp((t - 20.8 - J[b].d * 0.5) / 0.7),
-    };
-  }
-  if (t < 19.4)
-    return {
-      gF: GA,
-      gT: GA,
-      m: 0,
-      aF: GA,
-      aT: GP,
-      slide: 1,
-      f: (b) => ease((t - 18.55 - GA.slot[b] * 0.012) / 0.4),
-    };
-  return {
-    gF: GA,
-    gT: GA,
-    m: 0,
-    aF: GP,
-    aT: GA,
-    slide: 1,
-    f: (b) => ease((t - 19.45 - GA.slot[b] * 0.008) / 0.4),
-  };
-}
-/** @param {number} t @returns {Pose} */
-const P0 = (t) => P0az(Math.sin((t / LOOP) * Math.PI * 2) * 0.07);
-/** @param {number} t @param {Script} A @returns {[Pose, number]} */
-function camAt(t, A) {
-  if (VIEW.cam === 'ladder') return [S.PL2, 1];
-  if (VIEW.cam === 'exterior') return [S.PEX, 0];
-  const { Pa, Pc, P1, P2 } = A.P,
-    P1b = A.P1b;
-  /** @param {Pose} X @param {Pose} Y @param {number} a @param {number} b */
-  const M = (X, Y, a, b) => mixP(X, Y, ease((t - a) / (b - a)));
-  if (t < 6) return [P0(t), 0];
-  if (t < 6.6) return [M(P0(t), Pa, 6, 6.6), 1];
-  if (t < 7.1) return [M(Pa, Pc, 6.6, 7.1), 1];
-  if (t < 7.6) return [Pc, 1];
-  if (t < 8.2) return [M(Pc, P1, 7.6, 8.2), 1];
-  if (t < 9) return [M(P1, P1b, 8.2, 9), 1];
-  if (t < 9.9) return [M(P1b, P2, 9, 9.9), 2];
-  if (t < 20) return [P2, t >= 12 && t < 18 ? 3 : 2];
-  if (t < 20.5) return [M(P2, P1, 20, 20.5), 1];
-  if (t < 20.9) return [M(P1, Pa, 20.5, 20.9), 0];
-  if (t < 21.6) return [M(Pa, P0(t), 20.9, 21.6), 0];
-  return [P0(t), 0];
-}
-/** @param {number} t @returns {number} */
-const hoverLift = (t) => ease((t - 10.45) / 0.25) * (1 - ease((t - 12.0) / 0.2));
-/** Scope timeline: [from t, level key, price lo/hi]. @type {[number, Key, boolean][]} */
-const scTL = [
-  [0, 'all', false],
-  [6, 'room', false],
-  [9, 'sh', false],
-  [12, 'bk', false],
-  [18.5, 'sh', true],
-  [19.5, 'sh', false],
-  [20.05, 'all', false],
-];
-/** @param {number} t @returns {Frame} */
-export function animE(t) {
-  const A = /** @type {Script} */ (AS),
-    st = seg(t, A),
-    [P, lv] = camAt(t, A),
-    axis = /** @type {Axis} */ (t >= 3.15 && t < 20.7 ? 'age' : 'category');
-  let si = 0;
-  for (let i = 0; i < scTL.length; i++) if (t >= scTL[i][0]) si = i;
-  const [, key, pr] = scTL[si];
-  const pfv = t < 18.1 ? 0 : t < 18.6 ? ease((t - 18.1) / 0.5) : t < 19.45 ? 1 : 1 - ease((t - 19.45) / 0.45),
-    knob = 1 - 0.15 * ease((t - 14.6) / 1.9);
-  // the numbers step through the prefetched what-if results as the knob passes them
-  const fShown = A.steps.reduce((best, f) => (Math.abs(f - knob) < Math.abs(best - knob) ? f : best), 1);
-  /** The data state a timeline step shows at time tt. @param {Key} k @param {boolean} p @param {number} tt @returns {DataState} */
-  const dsAt = (k, p, tt) =>
-    k === 'all'
-      ? tt >= 3.15 && tt < 20.7
-        ? A.sA
-        : A.s0
-      : k === 'room'
-        ? A.sRoom
-        : k === 'sh'
-          ? p
-            ? A.sShP
-            : A.sSh
-          : A.sBk(tt > 14.5 ? fShown : 1);
-  const ds = dsAt(key, pr, t);
-  // the scope card counts up from the previous step's numbers on the timeline itself, so a seek lands on exact values
-  const [tc] = scTL[si],
-    prev = scTL[Math.max(0, si - 1)],
-    tween = si ? { key: prev[1], ds: dsAt(prev[1], prev[2], tc - 0.01), e: ease((t - tc) / 0.7) } : null;
-  /** @type {(() => Tip|null)|null} */ let tipF = null;
-  let tipOp = 0;
-  if (t > 8.3 && t < 9.05) {
-    tipF = () => caseTip(LY.A, A.C0);
-    tipOp = ease((t - 8.3) / 0.2) * (1 - ease((t - 8.9) / 0.15));
-  }
-  if (t > 10.45 && t < 12.1) {
-    tipF = () => bookTip(A.BK, LY.A, A.sSh);
-    tipOp = ease((t - 10.45) / 0.25) * (1 - ease((t - 11.95) / 0.15));
-  }
-  const say = sayAt(t, A);
-  return {
-    st,
-    P,
-    lv,
-    amb: t,
-    G: axis === 'age' ? LY.A : LY.C,
-    axis,
-    room: A.room,
-    ci: A.C0,
-    hb: A.BK,
-    bk: t > 12 && t < 18.5 ? A.BK : -1,
-    hRoom: -1,
-    focus: t > 9 && t < 20.3,
-    fci: A.C0,
-    fade: ease((t - 9) / 0.4) * (1 - ease((t - 20) / 0.4)),
-    refill: t >= 6 && t < 8 ? t - 6 : -1,
-    slide: t >= 9 && t < 10.4 ? t - 9 : -1,
-    hc: A.C0,
-    caseLift: t > 8.2 && t < 9.1 ? ease((t - 8.3) / 0.25) * (1 - ease((t - 8.9) / 0.2)) : 0,
-    bookLift: hoverLift(t),
-    o1: t - 12,
-    c1: t >= 17.25 ? t - 17.25 : -1,
-    knob,
-    P2: A.P.P2,
-    key,
-    ds,
-    tween,
-    plo: lerp(PRICE.min, A.sShP.lo, pfv),
-    phi: lerp(PRICE.max, A.sShP.hi, pfv),
-    tipF,
-    tipOp,
-    say,
-    grain: 'week',
-  };
-}
-/** @param {number} t @param {Script} A @returns {[string, string]} */
-function sayAt(t, A) {
-  /** @type {[number, string, string][]} */
-  const SAY = [
-    [
-      0,
-      `Six rooms, ${BOOKS.length.toLocaleString('en-US')} books.`,
-      'Footprint is share of revenue; a brighter lamp means growth.',
-    ],
-    [3.2, 'Regroup by target age.', 'Same explore, one dimension swapped. The building rebuilds around it.'],
-    [
-      6,
-      `${A.roomName} · ${(A.share * 100).toFixed(1)}% of revenue`,
-      'Eight shelves, ranked by revenue; fill is the genre’s share of the room.',
-    ],
-    [9, `Top shelf: ${A.genre}`, 'Spines sorted by units, top sellers first.'],
-    [12, A.title, 'What if the price drops 15%? The governed units_whatif answers.'],
-    [18.2, `Price $${A.sShP.lo} – $${A.sShP.hi}`, 'Out-of-range books slide off; the shelf refills.'],
-    [20, 'Back out to the library', 'Every step was a filter chip on one explore.'],
-  ];
-  let i = 0;
-  for (let k = 0; k < SAY.length; k++) if (t >= SAY[k][0]) i = k;
-  return [SAY[i][1], SAY[i][2]];
 }
 
 /* ---------- tips (numbers from the governed results) ---------- */
@@ -1295,7 +1050,6 @@ export function interE(now) {
     P2: IS.P2,
     key,
     ds,
-    tween: null,
     plo: clamp(ds.lo, PRICE.min, PRICE.max),
     phi: clamp(ds.hi, PRICE.min, PRICE.max),
     tipF,

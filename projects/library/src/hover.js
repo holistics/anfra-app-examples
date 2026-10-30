@@ -3,7 +3,7 @@
 // into a 2D polygon; the pointer is tested against those, nearest by depth wins. Clicks use the same hulls.
 import * as THREE from 'three';
 import { BOOKS } from './data.js';
-import { IS, RUN, cur, sPos, pa, isExt } from './anim.js';
+import { IS, cur, sPos, pa, isExt } from './anim.js';
 import { AJ, BH, CD, CW, PL, RH } from './layout.js';
 import * as S from './scene.js';
 import { VP } from './sidebar.js';
@@ -203,7 +203,7 @@ const slug = (s) =>
  */
 export function sceneObjects() {
   /** @type {SceneObject[]} */ const list = [];
-  if (RUN.mode !== 'int' || !IS) return { sig: '', list };
+  if (!IS) return { sig: '', list };
   /** @param {string} id @param {string} label @param {string} query @param {{ x: number, y: number, w: number, h: number }|null} r */
   const add = (id, label, query, r) => {
     if (r && r.x < VP.w && r.y < VP.h && r.x + r.w > 0 && r.y + r.h > 0 && r.w > 0.5 && r.h > 0.5)

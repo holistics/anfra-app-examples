@@ -697,7 +697,8 @@ export const door = new THREE.Mesh(
 );
 add(door, 0, 1.7, D / 2 + 0.54);
 {
-  const lv = /** @type {[number, number, number, number][]} */ ([]); /** @type {[number, number][]} */
+  const lv = /** @type {[number, number, number, number][]} */ ([]);
+  /** @type {[number, number][]} */
   const walls = [
     [-D / 2 - 0.58, 0],
     [W / 2 + 0.58, 1],

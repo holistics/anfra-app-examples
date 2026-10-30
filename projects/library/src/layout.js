@@ -61,7 +61,8 @@ export function tm(items, x, z, w, d, out) {
 /** Eight bookcases in the best grid for the room. @param {Rect} r @returns {Case[]} */
 export function casesIn(r) {
   const m = 1.0,
-    fr = 2.4; /** @type {{ cols: number, rows: number, s: number }|null} */
+    fr = 2.4;
+  /** @type {{ cols: number, rows: number, s: number }|null} */
   let best = null;
   for (const cols of [4, 2, 8, 1]) {
     const rows = 8 / cols,

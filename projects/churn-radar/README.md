@@ -23,7 +23,3 @@ Synthetic, written by `scripts/generate_data.py` (seeded): the same fictional "I
 ## Copilot (optional)
 
 The optional copilot works like AI Margin Radar's: `node scripts/ai-proxy.mjs` with `OPENAI_API_KEY` in a git-ignored `.env.local`. The key stays on your machine.
-
-## Video
-
-The demo video is scripted, recorded and captioned from `video/`. The rendered video is not in the repo.

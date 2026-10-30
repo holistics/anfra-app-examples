@@ -1,9 +1,2 @@
 data/
 .env.local
-video/node_modules/
-video/raw/
-video/.venv/
-video/assets/
-video/models/
-deploy/build/
-deploy/gateway-linux-amd64

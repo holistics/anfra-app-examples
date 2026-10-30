@@ -29,26 +29,87 @@ export function installDriver(en) {
     setMode: (m) => en.setMode(m),
     seek: (t) => en.seek(t),
     setCam: (c) => en.setCam(c),
-    orbit(dy, dp) { const S = A.IS; if (!S) return; const ext = A.isExt(); S.orbit = ext ? S.orbit + dy * D2R : clamp(S.orbit + dy * D2R, -.9, .9); S.pitchT = ext ? clamp(S.pitchT + dp * D2R, -.25, 1.07) : clamp(S.pitchT + dp * D2R, -.21, .21); },
-    zoom(f) { const S = A.IS; if (!S) return; S.zoomT = A.isExt() ? clamp(S.zoomT * f, .6, 1) : clamp(S.zoomT * f, .72, 1); },
-    setAxis: (a) => { if (A.IS) A.setAxis(a); },
+    orbit(dy, dp) {
+      const S = A.IS;
+      if (!S) return;
+      const ext = A.isExt();
+      S.orbit = ext ? S.orbit + dy * D2R : clamp(S.orbit + dy * D2R, -0.9, 0.9);
+      S.pitchT = ext ? clamp(S.pitchT + dp * D2R, -0.25, 1.07) : clamp(S.pitchT + dp * D2R, -0.21, 0.21);
+    },
+    zoom(f) {
+      const S = A.IS;
+      if (!S) return;
+      S.zoomT = A.isExt() ? clamp(S.zoomT * f, 0.6, 1) : clamp(S.zoomT * f, 0.72, 1);
+    },
+    setAxis: (a) => {
+      if (A.IS) A.setAxis(a);
+    },
     hover: (x, y) => en.hoverAt(x, y),
-    click: (x, y) => { en.hoverAt(x, y); en.clickAt(x, y); },
-    goRoom(r) { const S = A.IS; if (!S) return; const i = typeof r === 'number' ? r : S.G.ar.findIndex((a) => a.name === r); A.goRoom(i); },
-    panBy: (dx, dz) => { if (A.IS) A.panBy(dx, dz); },
-    goShelf(k) { const S = A.IS; if (S && S.room >= 0) A.goShelf(S.room * 8 + k); },
-    openBook(j) { const S = A.IS; if (!S || S.ci < 0) return; for (let b = 0; b < BOOKS.length; b++) if (S.asg.asg[b] === S.ci && S.asg.slot[b] === j) { A.openBook(b); return; } },
-    setWhatIf: (f) => { if (A.IS) A.setWhatIf(f); },
-    setGrain: (g) => { if (A.IS) A.setGrain(g); },
-    setPrice: (lo, hi) => { if (A.IS) A.setPrice(lo, hi); },
-    goLevel: (n) => { if (A.IS) A.goLevel(n); },
+    click: (x, y) => {
+      en.hoverAt(x, y);
+      en.clickAt(x, y);
+    },
+    goRoom(r) {
+      const S = A.IS;
+      if (!S) return;
+      const i = typeof r === 'number' ? r : S.G.ar.findIndex((a) => a.name === r);
+      A.goRoom(i);
+    },
+    panBy: (dx, dz) => {
+      if (A.IS) A.panBy(dx, dz);
+    },
+    goShelf(k) {
+      const S = A.IS;
+      if (S && S.room >= 0) A.goShelf(S.room * 8 + k);
+    },
+    openBook(j) {
+      const S = A.IS;
+      if (!S || S.ci < 0) return;
+      for (let b = 0; b < BOOKS.length; b++)
+        if (S.asg.asg[b] === S.ci && S.asg.slot[b] === j) {
+          A.openBook(b);
+          return;
+        }
+    },
+    setWhatIf: (f) => {
+      if (A.IS) A.setWhatIf(f);
+    },
+    setGrain: (g) => {
+      if (A.IS) A.setGrain(g);
+    },
+    setPrice: (lo, hi) => {
+      if (A.IS) A.setPrice(lo, hi);
+    },
+    goLevel: (n) => {
+      if (A.IS) A.goLevel(n);
+    },
     state() {
-      const S = A.IS, anim = A.RUN.mode === 'anim';
-      if (anim || !S) return { level: A.LASTF.lv, room: null, shelf: null, book: null, axis: S ? S.ds.axis : 'category', mode: A.RUN.mode };
-      return { level: S.lv, room: S.room >= 0 ? S.G.ar[S.room].name : null, shelf: S.ci >= 0 ? S.G.meta[S.ci]?.genre ?? null : null, book: S.bk >= 0 ? BOOKS[S.bk].title : null, axis: S.ds.axis, mode: A.RUN.mode };
+      const S = A.IS,
+        anim = A.RUN.mode === 'anim';
+      if (anim || !S)
+        return {
+          level: A.LASTF.lv,
+          room: null,
+          shelf: null,
+          book: null,
+          axis: S ? S.ds.axis : 'category',
+          mode: A.RUN.mode,
+        };
+      return {
+        level: S.lv,
+        room: S.room >= 0 ? S.G.ar[S.room].name : null,
+        shelf: S.ci >= 0 ? (S.G.meta[S.ci]?.genre ?? null) : null,
+        book: S.bk >= 0 ? BOOKS[S.bk].title : null,
+        axis: S.ds.axis,
+        mode: A.RUN.mode,
+      };
     },
     screenRectOf,
-    tick(dt) { clock.manual = true; clock.t += Math.max(0, dt); en.frame(); },
+    tick(dt) {
+      clock.manual = true;
+      clock.t += Math.max(0, dt);
+      en.frame();
+    },
   };
   /** @type {Window & { __lib?: LibDriver }} */ (window).__lib = lib;
   return lib;

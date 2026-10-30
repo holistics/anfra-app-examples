@@ -1,0 +1,4 @@
+# anfra: data source credentials
+.anfra/data_sources.yml
+
+node_modules/

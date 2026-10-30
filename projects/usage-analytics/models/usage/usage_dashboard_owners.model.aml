@@ -1,0 +1,10 @@
+Model usage_dashboard_owners {
+  type: 'table'
+  label: 'Owned Dashboards'
+  description: 'The assets table again, as the dashboards a person owns (owner_id). Use it to count the dashboards each person owns; metrics have no owner.'
+  data_source_name: 'usage_duckdb'
+  table_name: 'public.assets'
+
+  dimension asset_id { label: 'Dashboard ID' type: 'number' primary_key: true hidden: true }
+  dimension owner_id { label: 'Owner ID' type: 'number' hidden: true }
+}

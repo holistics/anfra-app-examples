@@ -1,0 +1,14 @@
+Model usage_events {
+  type: 'table'
+  label: 'Events'
+  description: 'One row per request: a person opened a dashboard (view) or a metric was computed for them (query). Wed 22 Apr to Tue 20 Oct 2026 (180 days), in local time (Asia/Ho_Chi_Minh). The shape a server-side request log could take: who, when, which dashboard or metric.'
+  data_source_name: 'usage_duckdb'
+  table_name: 'public.events'
+
+  dimension event_id { label: 'Event ID' type: 'number' primary_key: true hidden: true }
+  dimension occurred_at { label: 'Occurred At' type: 'datetime' description: 'When it happened, local time without a zone.' }
+  dimension user_id { label: 'User ID' type: 'number' hidden: true }
+  dimension asset_id { label: 'Asset ID' type: 'number' hidden: true }
+  dimension action { label: 'Action' type: 'text' description: "'view' (a dashboard opened), 'query' (a metric computed) or 'export' (a dashboard exported to a file)." }
+  dimension parent_dashboard_id { label: 'Parent Dashboard ID' type: 'number' hidden: true description: 'For a query a dashboard ran: that dashboard. Empty for a query someone ran on their own.' }
+}

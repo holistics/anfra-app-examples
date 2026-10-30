@@ -1,0 +1,11 @@
+Model usage_dashboards {
+  type: 'table'
+  label: 'Showing Dashboards'
+  description: 'The assets table again, as the dashboard that shows a metric (usage_dashboard_metrics.dashboard_asset_id). Use it with usage_assets.name to list which dashboards show each metric, or which metrics a dashboard shows.'
+  data_source_name: 'usage_duckdb'
+  table_name: 'public.assets'
+
+  dimension asset_id { label: 'Dashboard ID' type: 'number' primary_key: true hidden: true }
+  dimension name { label: 'Dashboard' type: 'text' description: 'Data App path of the dashboard showing the metric.' }
+  dimension label { label: 'Dashboard Title' type: 'text' }
+}

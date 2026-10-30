@@ -1,0 +1,149 @@
+Dataset usage {
+  label: 'Usage analytics'
+  description: '''Who uses Pulse Gym's dashboards and metrics: a synthetic, fictional 180-day log (Wed 22 Apr to Tue 20 Oct 2026, local time) of 40 people, 14 dashboards and 45 metrics, generated and checked by samples/usage/db/build_duckdb.py. Anfra does not record usage today; the log is the shape a server-side request log could take.
+
+Definitions:
+- A view is one dashboard opened.
+- A query is one metric computed. Opening a dashboard queries each metric on it, unless anyone opened the same dashboard in the 4 hours before (the answer comes from the cache). The data team also queries metrics on their own.
+- An active person is anyone with an event in the period.
+- Data ends on 20 Oct 2026: use that, not today, as "now".
+
+Gotchas:
+- Every event has one date, usage_events.occurred_at. Filter it for the period. Leave it off for the catalog counts (assets_total, people_total) and for the true last view.
+- A dashboard and a metric can share a title (Member Retention). Group by usage_assets.name, which is unique, and tell them apart with usage_assets.asset_type.
+- A dashboard or a person with no events only appears when a catalog count (assets_total, people_total) is selected.
+- parent_dashboard_id, the dashboard that ran a metric query, has no relationship. Which metrics a dashboard shows comes from usage_dashboard_metrics.'''
+  data_source_name: 'usage_duckdb'
+  models: [
+    usage_users,
+    usage_assets,
+    usage_dashboards,
+    usage_dashboard_metrics,
+    usage_dashboard_owners,
+    usage_events,
+  ]
+  relationships: [
+    relationship(usage_dashboard_owners.owner_id > usage_users.user_id, true),
+    relationship(usage_events.user_id > usage_users.user_id, true),
+    relationship(usage_events.asset_id > usage_assets.asset_id, true),
+    relationship(usage_dashboard_metrics.metric_asset_id > usage_assets.asset_id, true),
+    relationship(usage_dashboard_metrics.dashboard_asset_id > usage_dashboards.asset_id, true),
+  ]
+
+  // ---- Activity ----
+  metric views {
+    label: 'Views'
+    type: 'number'
+    description: 'Dashboards opened.'
+    definition: @aql count(usage_events.event_id) | where(usage_events.action == 'view') ;;
+    format: '#,##0'
+  }
+  metric metric_queries {
+    label: 'Metric Queries'
+    type: 'number'
+    description: 'Times a metric was computed: by a dashboard someone opened, or by someone on their own.'
+    definition: @aql count(usage_events.event_id) | where(usage_events.action == 'query') ;;
+    format: '#,##0'
+  }
+  metric dashboards_viewed {
+    label: 'Dashboards Viewed'
+    type: 'number'
+    description: 'Distinct dashboards opened at least once in the period.'
+    definition: @aql count_distinct(usage_events.asset_id) | where(usage_events.action == 'view') ;;
+    format: '#,##0'
+  }
+  metric metrics_queried {
+    label: 'Metrics Queried'
+    type: 'number'
+    description: 'Distinct metrics computed at least once in the period.'
+    definition: @aql count_distinct(usage_events.asset_id) | where(usage_events.action == 'query') ;;
+    format: '#,##0'
+  }
+
+  // ---- People ----
+  metric viewers {
+    label: 'Viewers'
+    type: 'number'
+    description: 'Distinct people who opened a dashboard.'
+    definition: @aql count_distinct(usage_events.user_id) | where(usage_events.action == 'view') ;;
+    format: '#,##0'
+  }
+  metric queriers {
+    label: 'People Querying'
+    type: 'number'
+    description: 'Distinct people a metric was computed for, from a dashboard or on their own.'
+    definition: @aql count_distinct(usage_events.user_id) | where(usage_events.action == 'query') ;;
+    format: '#,##0'
+  }
+  metric active_people {
+    label: 'Active People'
+    type: 'number'
+    description: 'Distinct people with any event in the period.'
+    definition: @aql count_distinct(usage_events.user_id) ;;
+    format: '#,##0'
+  }
+
+  // ---- Catalog: counts that do not need an event ----
+  metric assets_total {
+    label: 'Assets'
+    type: 'number'
+    description: 'Dashboards and metrics in the catalog, used or not. Select it to keep a dashboard or metric with no events in the result.'
+    definition: @aql count_distinct(usage_assets.asset_id) ;;
+    format: '#,##0'
+  }
+  metric people_total {
+    label: 'People'
+    type: 'number'
+    description: 'People with access, active or not. Select it to keep a person with no events in the result.'
+    definition: @aql count_distinct(usage_users.user_id) ;;
+    format: '#,##0'
+  }
+  metric dashboards_owned {
+    label: 'Dashboards Owned'
+    type: 'number'
+    description: 'Dashboards a person owns, whether anyone opens them or not. Group by usage_users.email. Ignores the event filters.'
+    definition: @aql count_distinct(usage_dashboard_owners.asset_id) ;;
+    format: '#,##0'
+  }
+  metric on_dashboards {
+    label: 'On Dashboards'
+    type: 'number'
+    description: 'Dashboards that show the metric, grouped by usage_assets.name. Ignores the event filters.'
+    definition: @aql count_distinct(usage_dashboard_metrics.dashboard_asset_id) ;;
+    format: '#,##0'
+  }
+
+  // ---- Recency ----
+  metric last_viewed_at {
+    label: 'Last Viewed'
+    type: 'datetime'
+    description: 'When a dashboard was last opened. Empty for a dashboard never opened. Leave the date filter off for the true last time.'
+    definition: @aql max(usage_events.occurred_at) | where(usage_events.action == 'view') ;;
+  }
+  metric last_query_at {
+    label: 'Last Queried'
+    type: 'datetime'
+    description: 'When a metric was last computed. Empty for a metric never queried.'
+    definition: @aql max(usage_events.occurred_at) | where(usage_events.action == 'query') ;;
+  }
+  metric last_active_at {
+    label: 'Last Active'
+    type: 'datetime'
+    description: 'When a person last opened a dashboard or had a metric computed. Empty for someone never active.'
+    definition: @aql max(usage_events.occurred_at) ;;
+  }
+  metric days_since_last_view {
+    label: 'Days Since Last View'
+    type: 'number'
+    description: 'Whole days between the last view and 20 Oct 2026, the end of the log. Empty for a dashboard never opened.'
+    definition: @aql date_diff('day', last_viewed_at, @2026-10-20) ;;
+    format: '#,##0'
+  }
+  metric days_idle {
+    label: 'Days Not Opened'
+    type: 'number'
+    description: 'Whole days to 20 Oct 2026 since a dashboard was last opened or, if never, since it was created. Filter it (greater than N - 1) for the dashboards not opened in N days; group by usage_assets.name with assets_total selected.'
+    definition: @aql date_diff('day', coalesce(last_viewed_at, max(usage_assets.created_on)), @2026-10-20) ;;
+    format: '#,##0'
+  }
+}

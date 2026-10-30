@@ -1,0 +1,11 @@
+Model usage_dashboard_metrics {
+  type: 'table'
+  label: 'Dashboard Metrics'
+  description: 'Which metrics each dashboard shows: 49 links.'
+  data_source_name: 'usage_duckdb'
+  table_name: 'public.dashboard_metrics'
+
+  dimension link_id { label: 'Link ID' type: 'number' primary_key: true hidden: true definition: @sql {{ #SOURCE.dashboard_asset_id }} * 1000 + {{ #SOURCE.metric_asset_id }} ;; }
+  dimension dashboard_asset_id { label: 'Dashboard ID' type: 'number' hidden: true }
+  dimension metric_asset_id { label: 'Metric ID' type: 'number' hidden: true }
+}

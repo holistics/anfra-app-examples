@@ -30,6 +30,7 @@ Every app lives in its own folder under `projects/`.
 | [hiring-board](projects/hiring-board) | Every hiring question on one page: where each candidate is, where good candidates come from, which interview steps are slow, and whether headcount lands on plan | [Demo](https://anfra-heidi.pages.holistics.dev/apps/DIY/hiring-board) | Di Hoang |
 | [love-line](projects/love-line) | A dating app's funnel as a metro line: of every 1,000 profiles members see, how many lead to a date, and why riders get off at each stop | [Demo](https://anfra-heidi.pages.holistics.dev/apps/DIY/love-line) | Di Hoang |
 | [holynews](projects/holynews) | A company's Slack as a newspaper: what everyone applauded, what is heating up, what blew over, and how the office feels | Coming soon | Di Hoang |
+| [usage-analytics](projects/usage-analytics) | A plugin for admins that shows which dashboards and metrics get used, which can be retired, and who has gone quiet | [Demo](https://thang-lk.pages.holistics.dev/apps/usage-xray) | Thang Kim |
 
 Apps ship without data source credentials, so some need setup before they run. Each app README says which sample data it uses.
 

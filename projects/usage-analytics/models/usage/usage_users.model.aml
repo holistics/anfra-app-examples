@@ -1,0 +1,12 @@
+Model usage_users {
+  type: 'table'
+  label: 'People'
+  description: 'Everyone at Pulse Gym with access to its dashboards and metrics: 40 people. The person behind each event.'
+  data_source_name: 'usage_duckdb'
+  table_name: 'public.users'
+
+  dimension user_id { label: 'User ID' type: 'number' primary_key: true hidden: true }
+  dimension name { label: 'Name' type: 'text' description: 'Display name, unique.' }
+  dimension email { label: 'Email' type: 'text' description: 'Work email on pulsegym.example, unique.' }
+  dimension joined_on { label: 'Joined On' type: 'date' description: 'The day the person got access. No event comes before it.' }
+}

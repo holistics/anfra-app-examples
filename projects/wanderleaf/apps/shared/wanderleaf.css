@@ -1,0 +1,76 @@
+/* Wanderleaf shared look: cozy, painterly, muted. Fonts: Fraunces (places), Patrick Hand (people
+   and numbers), Nunito (body), DM Mono (metric names). */
+:root {
+  --ink: #3B3A45;
+  --ink-soft: #5A5560;
+  --ink-body: #3E3A44;
+  --paper: #FFFDF7;
+  --sand: #F4ECDC;
+  --rule: #EFE6D4;
+  --blue: #4A6585;
+  --blue-dark: #2F4560;
+  --good: #2F6B52;
+  --bad: #A0412A;
+  --coin: #E9C24F;
+  --coin-edge: #B8902A;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font-family: 'Nunito', sans-serif; color: var(--ink); }
+button { font-family: inherit; color: inherit; }
+
+.paper { background: var(--paper); border-radius: 6px; box-shadow: 0 1px 0 rgba(59,58,69,0.10), 0 8px 20px rgba(59,58,69,0.16); }
+.sc { font-family: 'Fraunces', serif; font-weight: 600; }
+/* Headings: the same serif in normal case. Small caps are kept for place names only. */
+.title { font-family: 'Fraunces', serif; font-weight: 600; letter-spacing: 0; line-height: 1.15; }
+.hand { font-family: 'Patrick Hand', cursive; }
+
+/* A metric name chip: every number shows the governed metric it comes from. Clicking opens Inspect. */
+.chip { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--ink-soft); border: 0; border-bottom: 1px dotted var(--ink-soft);
+        background: none; padding: 0; white-space: nowrap; cursor: help; }
+.chip:hover { color: var(--blue-dark); border-bottom-color: var(--blue); }
+.chip:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.ghost { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 15px;
+         color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 6px; padding: 9px 14px;
+         min-height: 46px; cursor: pointer; }
+.act { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 15px;
+       color: #FFFFFF; background: var(--blue); border: 0; border-radius: 6px; padding: 9px 16px; min-height: 46px; cursor: pointer;
+       box-shadow: 0 6px 14px rgba(59,58,69,0.2); }
+.ghost:focus-visible, .act:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+
+.tile { background: var(--sand); border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.tile .lbl { font-size: 12px; color: var(--ink-soft); }
+.tile .num { font-family: 'Patrick Hand', cursive; font-size: 28px; line-height: 1.1; }
+.tile .chip { align-self: flex-start; }
+
+.close { width: 40px; height: 40px; flex: none; border-radius: 999px; border: 2px solid var(--ink); background: var(--paper);
+         color: var(--ink); font-size: 20px; line-height: 1; cursor: pointer; padding: 0; }
+
+.coin { display: inline-flex; align-items: center; gap: 6px; background: var(--ink); color: #FFFFFF; border-radius: 999px; padding: 4px 14px 4px 8px; }
+
+/* The fixed 1440 × 900 painted stage, scaled to the frame's width. */
+.stage-wrap { width: 100%; overflow: hidden; }
+.stage { position: relative; width: 1440px; height: 900px; overflow: hidden; transform-origin: 0 0; }
+
+/* Loading / error / empty states drawn over a block. */
+.state { font-size: 13px; color: var(--ink-soft); }
+.state.error { color: var(--bad); font-weight: 700; }
+.loading { opacity: 0.55; transition: opacity 0.2s; }
+
+/* Inspect drawer */
+.inspect { position: fixed; right: 16px; top: 16px; bottom: 16px; width: 420px; max-width: calc(100vw - 32px); background: #2B2A33; color: #EDE8DF;
+           border-radius: 8px; box-shadow: 0 10px 24px rgba(20,20,30,0.4); padding: 16px 18px; display: none; flex-direction: column;
+           gap: 12px; overflow: auto; z-index: 95; font-family: 'Nunito', sans-serif; }
+.inspect.open { display: flex; }
+.inspect .k { font-size: 11px; color: #B9B3A8; }
+.inspect pre { margin: 0; font-family: 'DM Mono', monospace; font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: #EDE8DF; }
+.inspect .x { margin-left: auto; width: 32px; height: 32px; border-radius: 999px; border: 1px solid #6F6A78; background: none; color: #EDE8DF; cursor: pointer; font-size: 16px; }
+.inspect .loc { font-family: 'DM Mono', monospace; font-size: 12px; color: #F6E7A6; background: none; border: 1px solid #6F6A78; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.inspect .meta { font-family: 'DM Mono', monospace; font-size: 12px; color: #B9B3A8; }
+
+.synthetic { font-size: 12px; color: var(--ink-soft); }
+
+/* A short highlight when "Show me" points at a number. */
+@keyframes wl-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(233,194,79,0); } 30% { box-shadow: 0 0 0 6px rgba(233,194,79,0.9); } }
+.pulse { animation: wl-pulse 0.9s ease-in-out 3; border-radius: 6px; }

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="80" viewBox="0 0 180 80">
+  <!-- Drawn for Wanderleaf in the flat style of the Freepik town pieces: no outlines, tone-on-tone detail -->
+  <ellipse cx="92" cy="72" rx="86" ry="6" fill="#FFFFFF" opacity=".55"/>
+  <path d="M6 50 H174 L160 70 H22 Z" fill="#FBF6EA"/>
+  <path d="M10 56 H170 L166 61 H14 Z" fill="#5EA3A6"/>
+  <path d="M22 70 H160 L163 66 H19 Z" fill="#3C7980"/>
+  <rect x="30" y="36" width="122" height="14" fill="#F6EBCF"/>
+  <rect x="44" y="24" width="94" height="12" fill="#FBF6EA"/>
+  <rect x="62" y="14" width="56" height="10" fill="#F6EBCF"/>
+  <g fill="#8FB8C8">
+    <rect x="36" y="40" width="7" height="5" rx="1"/><rect x="48" y="40" width="7" height="5" rx="1"/><rect x="60" y="40" width="7" height="5" rx="1"/>
+    <rect x="72" y="40" width="7" height="5" rx="1"/><rect x="84" y="40" width="7" height="5" rx="1"/><rect x="96" y="40" width="7" height="5" rx="1"/>
+    <rect x="108" y="40" width="7" height="5" rx="1"/><rect x="120" y="40" width="7" height="5" rx="1"/><rect x="132" y="40" width="7" height="5" rx="1"/>
+    <rect x="50" y="27" width="7" height="5" rx="1"/><rect x="62" y="27" width="7" height="5" rx="1"/><rect x="74" y="27" width="7" height="5" rx="1"/>
+    <rect x="86" y="27" width="7" height="5" rx="1"/><rect x="98" y="27" width="7" height="5" rx="1"/><rect x="110" y="27" width="7" height="5" rx="1"/>
+    <rect x="122" y="27" width="7" height="5" rx="1"/>
+  </g>
+  <g fill="#D9A66B"><circle cx="24" cy="53" r="1.6"/><circle cx="34" cy="53" r="1.6"/><circle cx="44" cy="53" r="1.6"/><circle cx="140" cy="53" r="1.6"/><circle cx="150" cy="53" r="1.6"/><circle cx="160" cy="53" r="1.6"/></g>
+  <path d="M84 14 L88 2 H104 L104 14 Z" fill="#DE8F67"/>
+  <rect x="88" y="6" width="16" height="3" fill="#FBF6EA"/>
+  <path d="M66 14 v-8 M66 6 l10 3 l-10 3" fill="#DE8F67" stroke="#B98550" stroke-width="1.2"/>
+</svg>

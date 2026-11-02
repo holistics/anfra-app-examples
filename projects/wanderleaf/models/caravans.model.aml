@@ -1,0 +1,29 @@
+Model caravans {
+  type: 'table'
+  label: 'Caravans'
+  description: 'The five book caravans. crate_capacity is how many books fit in the crates.'
+  data_source_name: 'wanderleaf'
+  table_name: 'caravans'
+
+  dimension caravan_id {
+    label: 'Caravan Id'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.caravan_id }};;
+  }
+  dimension name {
+    label: 'Caravan'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension crate_capacity {
+    label: 'Crate Capacity'
+    type: 'number'
+    definition: @sql {{ #SOURCE.crate_capacity }};;
+  }
+  dimension has_awning {
+    label: 'Has Awning'
+    type: 'truefalse'
+    definition: @sql {{ #SOURCE.has_awning }};;
+  }
+}

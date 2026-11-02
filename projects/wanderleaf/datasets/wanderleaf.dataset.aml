@@ -1,0 +1,243 @@
+Dataset wanderleaf {
+  label: 'Wanderleaf Books (synthetic)'
+  description: 'Five book caravans in the fictional town of Driftmouth Bay (synthetic data, 2024-01-01 to 2025-09-30). All facts join through trading_days (one row per spot per day), and genres are conformed through genres, so loaded, requested and sold line up.'
+  data_source_name: 'wanderleaf'
+
+  models: [spots, caravans, genres, books, trading_days, sales, genre_requests, crate_loads]
+  relationships: [
+    relationship(trading_days.spot_id > spots.spot_id, true, 'one_way'),
+    relationship(trading_days.caravan_id > caravans.caravan_id, true, 'one_way'),
+    relationship(sales.day_id > trading_days.day_id, true, 'one_way'),
+    relationship(sales.book_id > books.book_id, true, 'one_way'),
+    relationship(genre_requests.day_id > trading_days.day_id, true, 'one_way'),
+    relationship(genre_requests.genre > genres.genre, true, 'one_way'),
+    relationship(crate_loads.day_id > trading_days.day_id, true, 'one_way'),
+    relationship(crate_loads.book_id > books.book_id, true, 'one_way'),
+    relationship(books.genre > genres.genre, true, 'one_way'),
+  ]
+
+  // ---- Base metrics -------------------------------------------------------
+  metric takings {
+    label: 'Sales'
+    type: 'number'
+    description: 'Net revenue from books sold: sum(sales.net_revenue).'
+    definition: @aql sales | sum(sales.net_revenue) ;;
+    format: '[$£]#,###0'
+  }
+  metric units_sold {
+    label: 'Books Sold'
+    type: 'number'
+    description: 'sum(sales.units)'
+    definition: @aql sales | sum(sales.units) ;;
+  }
+  metric visitors {
+    label: 'Visitors'
+    type: 'number'
+    description: 'sum(trading_days.visitors)'
+    definition: @aql trading_days | sum(trading_days.visitor_count) ;;
+  }
+  metric requests {
+    label: 'Requests'
+    type: 'number'
+    description: 'Customers who asked for a genre, sold or not: sum(genre_requests.requests).'
+    definition: @aql genre_requests | sum(genre_requests.request_count) ;;
+  }
+  metric units_loaded {
+    label: 'Books Loaded'
+    type: 'number'
+    description: 'sum(crate_loads.units_loaded)'
+    definition: @aql crate_loads | sum(crate_loads.units_loaded) ;;
+  }
+  metric trading_day_count {
+    label: 'Trading Days'
+    type: 'number'
+    description: 'Number of spot-days.'
+    definition: @aql trading_days | count(trading_days.day_id) ;;
+  }
+
+  // ---- Ratios ------------------------------------------------------------
+  metric conversion {
+    label: 'Conversion'
+    type: 'number'
+    description: 'units_sold ÷ visitors'
+    definition: @aql safe_divide(units_sold * 1.0, visitors) ;;
+    format: '#,##0.0%'
+  }
+  metric sell_through {
+    label: 'Sell-through'
+    type: 'number'
+    description: 'units_sold ÷ units_loaded'
+    definition: @aql safe_divide(units_sold * 1.0, units_loaded) ;;
+    format: '#,##0%'
+  }
+  metric fill_rate {
+    label: 'Fill Rate'
+    type: 'number'
+    description: 'units_sold ÷ requests: the share of demand the crates met.'
+    definition: @aql safe_divide(units_sold * 1.0, requests) ;;
+    format: '#,##0%'
+  }
+  metric takings_per_book {
+    label: 'Sales per Book'
+    type: 'number'
+    description: 'takings ÷ units_sold: turns forecast books into forecast £.'
+    definition: @aql safe_divide(takings * 1.0, units_sold) ;;
+    format: '[$£]#,###0.00'
+  }
+
+  metric unmet_requests {
+    label: 'Requests Not Met'
+    type: 'number'
+    description: 'requests − units_sold: customers who asked and went home without a book (never below 0).'
+    definition: @aql case(when: coalesce(requests, 0) > coalesce(units_sold, 0), then: coalesce(requests, 0) - coalesce(units_sold, 0), else: 0) ;;
+  }
+  metric books_came_home {
+    label: 'Books Came Home'
+    type: 'number'
+    description: 'units_loaded − units_sold: packed books that did not sell.'
+    definition: @aql coalesce(units_loaded, 0) - coalesce(units_sold, 0) ;;
+  }
+
+  metric turned_away {
+    label: 'Customers Turned Away'
+    type: 'number'
+    description: 'Requests not met, counted per spot, day and genre, then added up (a spare Romance book cannot serve a Mystery request).'
+    definition: @aql unique(trading_days.day_id, genres.genre) | select(v: unmet_requests) | sum(v) ;;
+  }
+  metric genre_list_price {
+    label: 'Average List Price'
+    type: 'number'
+    description: 'Average catalogue list price of the books in the breakdown.'
+    definition: @aql books | avg(books.list_price) ;;
+    format: '[$£]#,###0.00'
+  }
+  metric lost_sales {
+    label: 'Lost Sales (est.)'
+    type: 'number'
+    description: 'Turned-away requests valued at the genre average list price: the sales the crates could not catch.'
+    definition: @aql unique(trading_days.day_id, genres.genre) | select(v: unmet_requests * genre_list_price) | sum(v) ;;
+    format: '[$£]#,###0'
+  }
+  metric crate_capacity_sent {
+    label: 'Crate Capacity Sent'
+    type: 'number'
+    description: 'Book slots on the caravans that traded: sum of caravans.crate_capacity over spot-days.'
+    definition: @aql trading_days | sum(caravans.crate_capacity) ;;
+  }
+  metric crate_utilisation {
+    label: 'Crate Utilisation'
+    type: 'number'
+    description: 'units_sold ÷ crate_capacity_sent: how much of the fleet capacity turned into sales.'
+    definition: @aql safe_divide(units_sold * 1.0, crate_capacity_sent) ;;
+    format: '#,##0%'
+  }
+
+  // ---- Genre mix -----------------------------------------------------------
+  metric genre_share {
+    label: 'Genre Share'
+    type: 'number'
+    description: "A genre's requests as a share of all requests in the same breakdown (e.g. within a spot)."
+    definition: @aql safe_divide(requests * 1.0, requests | of_all(genres.genre)) ;;
+    format: '#,##0%'
+  }
+  metric genre_rank_at_spot {
+    label: 'Genre Rank at Spot'
+    type: 'number'
+    description: "Rank of a genre's requests within a spot (1 = most asked for). Use with spots.name and genres.genre."
+    definition: @aql rank(order: requests | desc(), partition: spots.name) ;;
+  }
+  metric genre_town_median {
+    label: 'Town Median Requests for Genre'
+    type: 'number'
+    description: "The median across the five spots of a genre's requests."
+    definition: @aql (unique(spots.name) | select(v: requests) | median(v)) | of_all(spots.name) ;;
+  }
+  metric spot_index {
+    label: 'Spot Index'
+    type: 'number'
+    description: "A spot's requests for a genre ÷ the town-wide median for that genre. 1.0 = typical."
+    definition: @aql safe_divide(requests * 1.0, genre_town_median) ;;
+    format: '#,##0.00'
+  }
+
+  // ---- Time ----------------------------------------------------------------
+  metric takings_last_year {
+    label: 'Sales Last Year'
+    type: 'number'
+    description: 'takings shifted back 364 days (52 weeks) so weekdays line up: 2025-06-14 compares with 2024-06-15.'
+    definition: @aql takings | relative_period(trading_days.date, interval(-364 days)) ;;
+    format: '[$£]#,###0'
+  }
+  metric score_vs_last_year {
+    label: 'Score vs Last Year'
+    type: 'number'
+    description: 'takings ÷ takings_last_year − 1'
+    definition: @aql safe_divide(takings * 1.0, takings_last_year) - 1 ;;
+    format: '+#,##0%'
+  }
+  metric running_takings {
+    label: 'Running Sales'
+    type: 'number'
+    description: 'running_total of takings over the season (along trading_days.date).'
+    definition: @aql takings | running_total(trading_days.date) ;;
+    format: '[$£]#,###0'
+  }
+
+  // ---- Per-day averages and the weather effect -----------------------------
+  metric avg_daily_takings {
+    label: 'Average Daily Sales'
+    type: 'number'
+    description: 'Mean sales per spot-day (days with no sales count as £0).'
+    definition: @aql unique(trading_days.day_id) | select(v: coalesce(takings, 0)) | avg(v) ;;
+    format: '[$£]#,###0'
+  }
+  metric weather_effect {
+    label: 'Weather Effect (rain vs sun)'
+    type: 'number'
+    description: 'Average daily sales on rain days ÷ on sun days − 1, at a spot, within the months in the filter.'
+    definition: @aql safe_divide((avg_daily_takings | where(trading_days.weather == 'rain')) * 1.0, avg_daily_takings | where(trading_days.weather == 'sun')) - 1 ;;
+    format: '+#,##0%'
+  }
+
+  // ---- Forecast inputs: medians of similar past days ------------------------
+  // Filter trading_days to the similar days (spot, weekday, weather, cruise_in_port, date before the plan day).
+  metric forecast_takings {
+    label: 'Forecast Sales'
+    type: 'number'
+    description: 'Median sales over the similar past days in the filter.'
+    definition: @aql unique(trading_days.day_id) | select(v: coalesce(takings, 0)) | median(v) ;;
+    format: '[$£]#,###0'
+  }
+  metric forecast_takings_low {
+    label: 'Forecast Sales (low)'
+    type: 'number'
+    description: '25th percentile of sales over the similar past days.'
+    definition: @aql unique(trading_days.day_id) | select(v: coalesce(takings, 0)) | percentile_cont(v, 0.25) ;;
+    format: '[$£]#,###0'
+  }
+  metric forecast_takings_high {
+    label: 'Forecast Sales (high)'
+    type: 'number'
+    description: '75th percentile of sales over the similar past days.'
+    definition: @aql unique(trading_days.day_id) | select(v: coalesce(takings, 0)) | percentile_cont(v, 0.75) ;;
+    format: '[$£]#,###0'
+  }
+  metric forecast_requests {
+    label: 'Forecast Requests'
+    type: 'number'
+    description: 'Median daily requests over the similar past days in the filter.'
+    definition: @aql unique(trading_days.day_id) | select(v: coalesce(requests, 0)) | median(v) ;;
+  }
+  metric forecast_units_sold {
+    label: 'Forecast Books Sold'
+    type: 'number'
+    description: 'Median daily books sold over the similar past days in the filter.'
+    definition: @aql unique(trading_days.day_id) | select(v: coalesce(units_sold, 0)) | median(v) ;;
+  }
+  metric similar_day_count {
+    label: 'Similar Days'
+    type: 'number'
+    description: 'How many past days the forecast medians are taken over.'
+    definition: @aql trading_days | count(trading_days.day_id) ;;
+  }
+}

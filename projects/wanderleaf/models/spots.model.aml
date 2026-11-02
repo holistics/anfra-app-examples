@@ -1,0 +1,36 @@
+Model spots {
+  type: 'table'
+  label: 'Spots'
+  description: 'The five places in Driftmouth Bay where a caravan can park.'
+  data_source_name: 'wanderleaf'
+  table_name: 'spots'
+
+  dimension spot_id {
+    label: 'Spot Id'
+    type: 'number'
+    primary_key: true
+    definition: @sql {{ #SOURCE.spot_id }};;
+  }
+  dimension name {
+    label: 'Spot'
+    type: 'text'
+    definition: @sql {{ #SOURCE.name }};;
+  }
+  dimension area_type {
+    label: 'Area Type'
+    type: 'text'
+    definition: @sql {{ #SOURCE.area_type }};;
+  }
+  dimension map_x {
+    label: 'Map X'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.map_x }};;
+  }
+  dimension map_y {
+    label: 'Map Y'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.map_y }};;
+  }
+}

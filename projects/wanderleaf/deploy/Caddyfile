@@ -1,0 +1,36 @@
+# Password gate in front of anfra serve (proto's own password page is static-site only).
+# gate/login.html sets wl_auth=sha256(password); a request passes only with the matching cookie.
+{
+	admin off
+	auto_https off
+}
+
+# anfra only answers requests addressed to its own loopback host (Host and Origin).
+(anfra) {
+	reverse_proxy 127.0.0.1:7878 {
+		header_up Host 127.0.0.1:7878
+		header_up Origin http://127.0.0.1:7878
+	}
+}
+
+:8080 {
+	# Probes stay open.
+	handle /health {
+		import anfra
+	}
+	# The app runs in a sandboxed (opaque-origin) frame that sends no cookies, so its
+	# static scripts, CSS and art load without the gate. Data (/api) and the page stay gated.
+	handle /appserve/files/shared/* {
+		import anfra
+	}
+	@authed header_regexp Cookie (^|;\s*)wl_auth={$WL_TOKEN}(;|$)
+	handle @authed {
+		redir / /apps/wanderleaf
+		import anfra
+	}
+	handle {
+		root * /srv/gate
+		rewrite * /login.html
+		file_server
+	}
+}

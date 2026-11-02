@@ -1,0 +1,96 @@
+Model trading_days {
+  type: 'query'
+  label: 'Trading Days'
+  description: 'One row per spot per day: which caravan parked there, the weather, any event, and visitors. Every fact table joins through here, so spot, caravan, date, weather and event filter all metrics alike.'
+  data_source_name: 'wanderleaf'
+  query: @sql
+    select
+      td.*,
+      strftime(td.date, '%Y-%m-%d') || '-' || td.spot_id as day_id,
+      bool_or(td.event = 'cruise ship') over (partition by td.date) as cruise_in_port
+    from trading_days td
+  ;;
+
+  dimension day_id {
+    label: 'Spot Day Id'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.day_id }};;
+  }
+  dimension date {
+    label: 'Date'
+    type: 'date'
+    definition: @sql {{ #SOURCE.date }};;
+  }
+  dimension spot_id {
+    label: 'Spot Id'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.spot_id }};;
+  }
+  dimension caravan_id {
+    label: 'Caravan Id'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.caravan_id }};;
+  }
+  dimension weather {
+    label: 'Weather'
+    type: 'text'
+    description: 'sun, cloud, rain or storm'
+    definition: @sql {{ #SOURCE.weather }};;
+  }
+  dimension event {
+    label: 'Event'
+    type: 'text'
+    description: 'none, cruise ship, festival or exam week (at this spot)'
+    definition: @sql {{ #SOURCE.event }};;
+  }
+  dimension cruise_in_port {
+    label: 'Cruise Ship In Port'
+    type: 'truefalse'
+    description: 'True when a cruise ship is in port anywhere in town that day (the what-if toggle).'
+    definition: @sql {{ #SOURCE.cruise_in_port }};;
+  }
+  dimension weekday {
+    label: 'Weekday Number'
+    type: 'number'
+    description: '0 = Sunday … 6 = Saturday'
+    definition: @sql dayofweek({{ #SOURCE.date }});;
+  }
+  dimension weekday_name {
+    label: 'Weekday'
+    type: 'text'
+    definition: @sql dayname({{ #SOURCE.date }});;
+  }
+  dimension day_type {
+    label: 'Weekend or Weekday'
+    type: 'text'
+    description: 'weekend (Saturday, Sunday) or weekday: the forecast matches past days on this'
+    definition: @sql case when dayofweek({{ #SOURCE.date }}) in (0, 6) then 'weekend' else 'weekday' end;;
+  }
+  dimension time_of_year {
+    label: 'Time of Year'
+    type: 'text'
+    description: 'winter (Dec–Feb), spring (Mar–May), summer (Jun–Aug) or autumn (Sep–Nov): the forecast matches past days on this'
+    definition: @sql case when month({{ #SOURCE.date }}) in (12, 1, 2) then 'winter' when month({{ #SOURCE.date }}) in (3, 4, 5) then 'spring'
+      when month({{ #SOURCE.date }}) in (6, 7, 8) then 'summer' else 'autumn' end;;
+  }
+  dimension month_number {
+    label: 'Month Number'
+    type: 'number'
+    definition: @sql month({{ #SOURCE.date }});;
+  }
+  dimension season {
+    label: 'Season'
+    type: 'number'
+    definition: @sql year({{ #SOURCE.date }});;
+  }
+  dimension visitor_count {
+    label: 'Visitors (day)'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.visitors }};;
+  }
+}

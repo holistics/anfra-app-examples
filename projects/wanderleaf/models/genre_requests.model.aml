@@ -1,0 +1,33 @@
+Model genre_requests {
+  type: 'table'
+  label: 'Genre Requests'
+  description: 'Customers who asked for a genre at a spot on a day, whether or not they bought.'
+  data_source_name: 'wanderleaf'
+  table_name: 'genre_requests'
+
+  dimension request_id {
+    label: 'Request Row Id'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql strftime({{ #SOURCE.date }}, '%Y-%m-%d') || '-' || {{ #SOURCE.spot_id }} || '-' || {{ #SOURCE.genre }};;
+  }
+  dimension day_id {
+    label: 'Spot Day Id'
+    type: 'text'
+    hidden: true
+    definition: @sql strftime({{ #SOURCE.date }}, '%Y-%m-%d') || '-' || {{ #SOURCE.spot_id }};;
+  }
+  dimension genre {
+    label: 'Requested Genre'
+    type: 'text'
+    hidden: true
+    definition: @sql {{ #SOURCE.genre }};;
+  }
+  dimension request_count {
+    label: 'Requests'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.requests }};;
+  }
+}

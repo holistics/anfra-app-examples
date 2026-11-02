@@ -33,6 +33,7 @@ Every app lives in its own folder under `projects/`.
 | [ai-margin-radar](projects/ai-margin-radar) | Finds the customers whose AI usage costs more than they pay, and tests the pricing rules that fix the margin | [Demo](https://ai-margin-radar.pages.holistics.dev/apps/ai-margin-radar) |  |
 | [churn-radar](projects/churn-radar) | Flags the customers likely to leave and why, then ranks the best action to keep each one | [Demo](https://ai-margin-radar.pages.holistics.dev/apps/churn-radar) |  |
 | [usage-analytics](projects/usage-analytics) | A plugin for admins that shows which dashboards and metrics get used, which can be retired, and who has gone quiet | [Demo](https://thang-lk.pages.holistics.dev/apps/usage-xray) | Thang Kim |
+| [wanderleaf](projects/wanderleaf) | A travelling bookshop's sales: find where the money went missing, then replay that real past day with a different crate of books | [Demo](https://wanderleaf.pages.holistics.dev) | Son Hoang |
 
 Apps ship without data source credentials, so some need setup before they run. Each app README says which sample data it uses.
 

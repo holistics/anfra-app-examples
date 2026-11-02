@@ -1,0 +1,14 @@
+Model genres {
+  type: 'query'
+  label: 'Genres'
+  description: 'Conformed genre list, shared by books (stock and sales) and genre_requests (demand).'
+  data_source_name: 'wanderleaf'
+  query: @sql select distinct genre from books ;;
+
+  dimension genre {
+    label: 'Genre'
+    type: 'text'
+    primary_key: true
+    definition: @sql {{ #SOURCE.genre }};;
+  }
+}

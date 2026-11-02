@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 70" width="80" height="70">
+  <!-- Drawn for Wanderleaf in the flat style of the Freepik town pieces -->
+  <rect x="10" y="22" width="4" height="44" fill="#B98550"/><rect x="66" y="22" width="4" height="44" fill="#B98550"/>
+  <rect x="8" y="44" width="64" height="22" rx="2" fill="#D9A66B"/>
+  <rect x="8" y="44" width="64" height="5" fill="#B98550" opacity=".5"/>
+  <g fill="#8FB8C8"><rect x="14" y="36" width="9" height="8" rx="1"/></g>
+  <g fill="#DE8F67"><rect x="25" y="34" width="8" height="10" rx="1"/></g>
+  <g fill="#B3C77E"><rect x="35" y="37" width="9" height="7" rx="1"/></g>
+  <g fill="#E8C88A"><rect x="46" y="35" width="8" height="9" rx="1"/></g>
+  <g fill="#5EA3A6"><rect x="56" y="36" width="9" height="8" rx="1"/></g>
+  <path d="M2 22 L10 6 H70 L78 22 Z" fill="#DE8F67"/>
+  <path d="M18 6 L14 22 H26 L28 6 Z M38 6 L36 22 H46 L46 6 Z M56 6 L58 22 H68 L64 6 Z" fill="#FBF6EA"/>
+  <path d="M2 22 q6 7 12.6 0 q6.3 7 12.6 0 q6.3 7 12.6 0 q6.3 7 12.6 0 q6.3 7 12.6 0 q6.3 7 12.6 0" fill="#DE8F67"/>
+</svg>

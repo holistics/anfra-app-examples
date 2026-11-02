@@ -1,0 +1,5 @@
+data_sources:
+  wanderleaf:
+    type: duckdb
+    connection:
+      path: <absolute path to data/wanderleaf.duckdb>

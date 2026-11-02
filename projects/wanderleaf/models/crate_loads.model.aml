@@ -1,0 +1,40 @@
+Model crate_loads {
+  type: 'query'
+  label: 'Crate Loads'
+  description: 'Books loaded into a caravan on a day. Joined to the spot the caravan parked at that day.'
+  data_source_name: 'wanderleaf'
+  query: @sql
+    select
+      cl.*,
+      strftime(cl.date, '%Y-%m-%d') || '-' || td.spot_id as day_id,
+      strftime(cl.date, '%Y-%m-%d') || '-' || cl.caravan_id || '-' || cl.book_id as load_id
+    from crate_loads cl
+    join trading_days td on td.caravan_id = cl.caravan_id and td.date = cl.date
+  ;;
+
+  dimension load_id {
+    label: 'Load Id'
+    type: 'text'
+    primary_key: true
+    hidden: true
+    definition: @sql {{ #SOURCE.load_id }};;
+  }
+  dimension day_id {
+    label: 'Spot Day Id'
+    type: 'text'
+    hidden: true
+    definition: @sql {{ #SOURCE.day_id }};;
+  }
+  dimension book_id {
+    label: 'Book Id'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.book_id }};;
+  }
+  dimension units_loaded {
+    label: 'Units Loaded'
+    type: 'number'
+    hidden: true
+    definition: @sql {{ #SOURCE.units_loaded }};;
+  }
+}

@@ -14,7 +14,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@dicebear/core": "9.4.2",
+    "@dicebear/core": "9.4.3",
     "@dicebear/open-peeps": "9.4.2",
     "yaml": "2.8.1"
   }

@@ -3,6 +3,7 @@
 You work the identity desk at Charon's ferry. A soul arrives with papers, and the papers are a claim — the Books are the only thing that knows better, and every verdict is a live query against them.
 
 - Demo: https://anfra-amyra.pages.holistics.dev/apps/nether-v4/realm
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=qWDWwcXWkdQ)
 - Author: Amyra Nguyen
 
 [![Watch the Underworld video](https://img.youtube.com/vi/qWDWwcXWkdQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=qWDWwcXWkdQ)

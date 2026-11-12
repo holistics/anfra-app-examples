@@ -3,6 +3,7 @@
 Spot unusual weeks in revenue, orders and customers, then see where the change happened.
 
 - Demo: https://store-performance-live.pages.holistics.dev/apps/store-performance
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=cJo5C6Ar2dQ)
 - Author: Vy Huynh
 
 [![Watch the Store Performance video](https://img.youtube.com/vi/cJo5C6Ar2dQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=cJo5C6Ar2dQ)

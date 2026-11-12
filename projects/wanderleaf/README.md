@@ -3,6 +3,7 @@
 A travelling bookshop's sales: find where the money went missing, then replay that real past day with a different crate of books.
 
 - Demo: https://wanderleaf.pages.holistics.dev (password: `book`)
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=p5FuJlnMzeI)
 - Author: Son Hoang
 
 [![Watch the Wanderleaf video](https://img.youtube.com/vi/p5FuJlnMzeI/maxresdefault.jpg)](https://www.youtube.com/watch?v=p5FuJlnMzeI)

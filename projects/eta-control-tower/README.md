@@ -3,6 +3,7 @@
 Which shipments will miss their promised date, and how much value is at risk.
 
 - Demo: https://eta-tracking-live.pages.holistics.dev/apps/eta-control-tower
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=ml7Jb9mfXuY)
 - Author: Vy Huynh
 
 [![Watch the ETA Control Tower video](https://img.youtube.com/vi/ml7Jb9mfXuY/maxresdefault.jpg)](https://www.youtube.com/watch?v=ml7Jb9mfXuY)

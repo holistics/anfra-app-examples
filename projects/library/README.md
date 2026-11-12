@@ -3,6 +3,7 @@
 Walk a book marketplace's catalogue as a low-poly 3D library: rooms sized by revenue share, shelves filled by genre share, and a book that opens into a spread with a governed price what-if.
 
 - Demo: https://anfra-library.pages.holistics.dev
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=h7w-_QVEksY)
 - Author: Zap
 
 [![Watch the Library video](https://img.youtube.com/vi/h7w-_QVEksY/maxresdefault.jpg)](https://www.youtube.com/watch?v=h7w-_QVEksY)

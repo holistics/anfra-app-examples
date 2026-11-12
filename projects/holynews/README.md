@@ -5,6 +5,7 @@ Slack, as a newspaper 🗞️
 A company's Slack turned into a newspaper: what everyone applauded, what is heating up, what blew over, and how the office feels, for today, this week or this month.
 
 - Demo: https://anfra-heidi.pages.holistics.dev/apps/DIY/holynews
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=tgtAQkbsTnk)
 - Author: Di Hoang
 
 [![Watch the HolyNews video](https://img.youtube.com/vi/tgtAQkbsTnk/maxresdefault.jpg)](https://www.youtube.com/watch?v=tgtAQkbsTnk)

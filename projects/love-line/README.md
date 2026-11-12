@@ -5,6 +5,7 @@ Where love gets lost 💔
 A dating app's funnel told as a metro line: of every 1,000 profiles members see, how many lead to a date or a number, and why riders get off at each stop.
 
 - Demo: https://anfra-heidi.pages.holistics.dev/apps/DIY/love-line
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=SJES6MFzQvU)
 - Author: Di Hoang
 
 [![Watch the Love Line video](https://img.youtube.com/vi/SJES6MFzQvU/maxresdefault.jpg)](https://www.youtube.com/watch?v=SJES6MFzQvU)

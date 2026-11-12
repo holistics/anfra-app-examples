@@ -3,6 +3,7 @@
 Prepares a diabetes clinic visit: the patient's body colored organ by organ by clinical status, two years of it as a time-lapse, and a drill into the cause.
 
 - Demo: https://diabetes-visit-prep.pages.holistics.dev/apps/diabetes-visit-prep
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=9OKiT-OjONw)
 - Author: Quan Nguyen
 
 [![Watch the Diabetes Visit Prep video](https://img.youtube.com/vi/9OKiT-OjONw/maxresdefault.jpg)](https://www.youtube.com/watch?v=9OKiT-OjONw)

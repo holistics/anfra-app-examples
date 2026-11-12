@@ -5,6 +5,7 @@ Every hiring question, one page 🧑‍💼
 A People team's hiring board: where every candidate is, where good candidates come from, which interview steps are slow, and whether headcount lands on plan.
 
 - Demo: https://anfra-heidi.pages.holistics.dev/apps/DIY/hiring-board
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=y6BcGQAlGgA)
 - Author: Di Hoang
 
 [![Watch the Hiring Board video](https://img.youtube.com/vi/y6BcGQAlGgA/maxresdefault.jpg)](https://www.youtube.com/watch?v=y6BcGQAlGgA)

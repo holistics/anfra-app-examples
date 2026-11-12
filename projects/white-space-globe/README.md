@@ -5,6 +5,7 @@ Decide where to expand next year 🌍
 A 3D globe of a B2B SaaS company's customers against the size of each market: where it is strong, where the biggest untapped revenue is, and what stands in the way.
 
 - Demo: https://anfra-heidi.pages.holistics.dev/apps/DIY/coverage-globe
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=xfISRSDK17g)
 - Author: Di Hoang
 
 [![Watch the White Space Globe video](https://img.youtube.com/vi/xfISRSDK17g/maxresdefault.jpg)](https://www.youtube.com/watch?v=xfISRSDK17g)

@@ -5,6 +5,7 @@ Football prediction: enjoy Anfra and get rich through honest labour ⚽
 A prediction app that shows the numbers and the reasons behind each call (recent form, injuries, suspensions), and every call it got right or wrong.
 
 - Demo: https://football-predictions.pages.holistics.dev/apps/football-predictions/1-matches
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=uN-qoYIVMiE)
 - Author: Khai To
 
 [![Watch the Football Predictions video](https://img.youtube.com/vi/uN-qoYIVMiE/maxresdefault.jpg)](https://www.youtube.com/watch?v=uN-qoYIVMiE)

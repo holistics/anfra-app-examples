@@ -5,6 +5,7 @@ Mobile app publisher as a living galaxy 🪐
 Spot the app to inspect its health, then plan the growth that moves it.
 
 - Demo: https://galaxy-orbit.pages.holistics.dev/
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=t5nbZYidMJ8)
 - Author: Tri Duong
 
 [![Watch the Galaxy Orbit video](https://img.youtube.com/vi/t5nbZYidMJ8/maxresdefault.jpg)](https://www.youtube.com/watch?v=t5nbZYidMJ8)

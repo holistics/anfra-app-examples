@@ -3,6 +3,7 @@
 A plugin for admins: which dashboards and metrics get used, which don't, and who has gone quiet.
 
 - Demo: https://thang-lk.pages.holistics.dev/apps/usage-xray
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=rhLxIJfkjJY)
 - Author: Thang Kim
 
 [![Watch the Usage Analytics video](https://img.youtube.com/vi/rhLxIJfkjJY/maxresdefault.jpg)](https://www.youtube.com/watch?v=rhLxIJfkjJY)

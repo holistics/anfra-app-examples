@@ -3,8 +3,9 @@
 A plugin for admins: which dashboards and metrics get used, which don't, and who has gone quiet.
 
 - Demo: https://thang-lk.pages.holistics.dev/apps/usage-xray
-- Video: https://media.holistics.io/anfra/competition-2026/usage-analytics.mp4
 - Author: Thang Kim
+
+[![Watch the Usage Analytics video](https://img.youtube.com/vi/rhLxIJfkjJY/maxresdefault.jpg)](https://www.youtube.com/watch?v=rhLxIJfkjJY)
 
 It answers six questions: which dashboards matter most (ranked by views), which can be retired (not opened in the last N days, including ones never opened), which metrics nobody queries, whether usage is growing or fading, who is using it, and who has gone quiet. Install it and it works straight away.
 

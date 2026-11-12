@@ -3,7 +3,8 @@
 Flags the customers likely to leave and why, then ranks the best action to keep each one. The sequel to AI Margin Radar.
 
 - Demo: https://ai-margin-radar.pages.holistics.dev/apps/churn-radar
-- Video: https://media.holistics.io/4fe98d1a-churn-radar.mp4
+
+[![Watch the Churn Radar video](https://img.youtube.com/vi/mqQfjg4FHKo/maxresdefault.jpg)](https://www.youtube.com/watch?v=mqQfjg4FHKo)
 
 ## Run it
 

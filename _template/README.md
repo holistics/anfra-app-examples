@@ -3,8 +3,9 @@
 One-line idea.
 
 - Demo: <link>
-- Video: <link>
 - Author: <name>
+
+[![Watch the App name video](https://img.youtube.com/vi/<youtube-id>/maxresdefault.jpg)](https://www.youtube.com/watch?v=<youtube-id>)
 
 ## Run it
 

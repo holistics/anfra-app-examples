@@ -3,7 +3,8 @@
 1. Copy `_template/` to a new folder under `projects/`.
 	- Name it in kebab-case after the app, for example `football-predictions` or `metric-tree`.
 2. Put your app source in that folder.
-3. Fill in the folder's `README.md`: one-line idea, demo link, video link, author.
+3. Fill in the folder's `README.md`: one-line idea, demo link, author and video.
+	- Upload the video to the [anfra YouTube channel](https://www.youtube.com/@anfra-ai), then put its ID in the template's thumbnail link. Do not link an mp4 file.
 4. Add one row to the table in the root `README.md`.
 5. Open a pull request.
 

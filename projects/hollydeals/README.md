@@ -5,8 +5,9 @@ The untold story of every deal 🐸
 The weekly sales report, turned from a wall of text into a funnel you can click through, week by week and deal by deal.
 
 - Demo: https://hollydeals-demo.pages.holistics.dev/apps/sales-funnel
-- Video: https://media.holistics.io/anfraexample/HollyDealsPublicVideo.mp4
 - Author: Vy Huynh
+
+[![Watch the HollyDeals video](https://img.youtube.com/vi/8PPdzUGRLFY/maxresdefault.jpg)](https://www.youtube.com/watch?v=8PPdzUGRLFY)
 
 The Report tab shows one week or month at a time: what changed, where the live deals are, every deal week by week, each rep's deals, this month against last, and what customers said and asked for. The Overview tab shows where every deal ended up, what is running now and how the pipeline moved. Click a deal for its page: the story so far, one entry per weekly report, with its assessment, next steps, win chance by week, key contacts and the feedback it raised.
 

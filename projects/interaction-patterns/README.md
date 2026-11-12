@@ -3,8 +3,10 @@
 A gallery of 54 analytical interaction patterns for anfra Data Apps: filters, selections, dates and time, drilling, tables and calculations, scenarios and saved state. Each card has a trailer, a live mini Data App on the ecommerce sample, its AQL and SDK code, hand-written SQL for comparison, and a prompt to copy.
 
 - Demo: https://anfra.ai/interaction-patterns/
-- Video: https://media.holistics.io/66b3bb6d-interaction-gallery.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=mpaTIq5c8FI)
 - Author: Chinh (lelouvincx)
+
+[![Watch the Interaction Patterns video](https://img.youtube.com/vi/mpaTIq5c8FI/maxresdefault.jpg)](https://www.youtube.com/watch?v=mpaTIq5c8FI)
 
 This is a source snapshot of [holistics/anfra-interaction-patterns](https://github.com/holistics/anfra-interaction-patterns) at commit `c0a1c3de41b1ee255beb5ec10e7fad0c4155739b`. The original repository and live deployment stay there; its GitHub deployment workflow is not copied here. Run the commands below from `projects/interaction-patterns/`.
 

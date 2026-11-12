@@ -5,8 +5,10 @@ Where love gets lost 💔
 A dating app's funnel told as a metro line: of every 1,000 profiles members see, how many lead to a date or a number, and why riders get off at each stop.
 
 - Demo: https://anfra-heidi.pages.holistics.dev/apps/DIY/love-line
-- Video: https://media.holistics.io/anfra/competition-2026/love-line.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=SJES6MFzQvU)
 - Author: Di Hoang
+
+[![Watch the Love Line video](https://img.youtube.com/vi/SJES6MFzQvU/maxresdefault.jpg)](https://www.youtube.com/watch?v=SJES6MFzQvU)
 
 Guess the answer first, then ride the line. Each stop (right swipe, match, first message, reply, conversation, off the app) asks why people get off there and answers with findings: who likes back, which profile traits win a right swipe, which first messages get a reply. The profile card at the right-swipe stop lets you tick traits and watch the chance change. Every number opens to its definition and the query behind it.
 

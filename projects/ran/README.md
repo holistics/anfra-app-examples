@@ -3,8 +3,10 @@
 A running coach on your Garmin data: how your runs went, how your training is going, and whether you can reach your goal race, with a plan built from a causal model of race performance.
 
 - Demo: https://ran-demo.pages.holistics.dev
-- Video: https://media.holistics.io/anfra/demo/ran-demo.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=DGCCmo6TgG4)
 - Author: Tai Nguyen
+
+[![Watch the Ran video](https://img.youtube.com/vi/DGCCmo6TgG4/maxresdefault.jpg)](https://www.youtube.com/watch?v=DGCCmo6TgG4)
 
 ## Run it
 

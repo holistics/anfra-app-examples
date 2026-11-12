@@ -5,8 +5,10 @@ The home base for money clarity 🐈
 A personal-finance tracker: where the money went, what's coming up, how the investments are doing and where net worth is heading, with every number traceable to the metric behind it.
 
 - Demo: https://mouka.pages.holistics.dev/apps/mouka/app
-- Video: https://media.holistics.io/anfra/competition-2026/sugar-free-baby.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=Z0z15KIUehs)
 - Author: Nhi Tran (team Sugar-free Baby)
+
+[![Watch the Mouka video](https://img.youtube.com/vi/Z0z15KIUehs/maxresdefault.jpg)](https://www.youtube.com/watch?v=Z0z15KIUehs)
 
 mouka reads 18 months of one person's money: card statements, bank texts and emails, budgets, card rewards, term deposits, gold and a brokerage account. It has five pages:
 

@@ -5,8 +5,10 @@ Football prediction: enjoy Anfra and get rich through honest labour ⚽
 A prediction app that shows the numbers and the reasons behind each call (recent form, injuries, suspensions), and every call it got right or wrong.
 
 - Demo: https://football-predictions.pages.holistics.dev/apps/football-predictions/1-matches
-- Video: https://media.holistics.io/anfra/competition-2026/football-prediction-app.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=uN-qoYIVMiE)
 - Author: Khai To
+
+[![Watch the Football Predictions video](https://img.youtube.com/vi/uN-qoYIVMiE/maxresdefault.jpg)](https://www.youtube.com/watch?v=uN-qoYIVMiE)
 
 A football prediction Data App. The offline seed data is synthetic; the real-data mode uses API-Football. The "AI" is a transparent Poisson model whose every multiplier is stored as a row, so the app can show why each call was made.
 

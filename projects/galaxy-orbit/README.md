@@ -5,8 +5,10 @@ Mobile app publisher as a living galaxy 🪐
 Spot the app to inspect its health, then plan the growth that moves it.
 
 - Demo: https://galaxy-orbit.pages.holistics.dev/
-- Video: https://media.holistics.io/anfra/competition-2026/galaxy-orbit.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=t5nbZYidMJ8)
 - Author: Tri Duong
+
+[![Watch the Galaxy Orbit video](https://img.youtube.com/vi/t5nbZYidMJ8/maxresdefault.jpg)](https://www.youtube.com/watch?v=t5nbZYidMJ8)
 
 Every app is a planet, grouped by the squad that owns it. Land on one to read its health against the previous period, plan growth goals and the work behind them, follow each campaign from spend to revenue, and meet the squad that runs it. Every number is a live query, and each metric shows its definition and the AQL and SQL behind it.
 

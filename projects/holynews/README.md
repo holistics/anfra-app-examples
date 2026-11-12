@@ -5,8 +5,10 @@ Slack, as a newspaper 🗞️
 A company's Slack turned into a newspaper: what everyone applauded, what is heating up, what blew over, and how the office feels, for today, this week or this month.
 
 - Demo: https://anfra-heidi.pages.holistics.dev/apps/DIY/holynews
-- Video: https://media.holistics.io/anfra/competition-2026/holynews.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=tgtAQkbsTnk)
 - Author: Di Hoang
+
+[![Watch the HolyNews video](https://img.youtube.com/vi/tgtAQkbsTnk/maxresdefault.jpg)](https://www.youtube.com/watch?v=tgtAQkbsTnk)
 
 The front page leads with the most applauded post and the work topics heating up against their usual level. Each story opens to how it unfolded day by day, its mood, key themes and the teams talking, with a link back to every moment in Slack. Company, Business, Trending and Life & Leisure each get their own page. Topics are ranked by departments and channels, never by person.
 

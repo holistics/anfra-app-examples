@@ -5,8 +5,10 @@ For a Ho Chi Minh City evening commuter: is my route flooded right now, and will
 A single-page data app over synthetic HCMC flood data. It reads your route's current water depth and projected travel time, tells you whether to leave now or hold off — and includes a **Mayor mode** what-if simulator that toggles flood-control projects (sluices, drainage, retention ponds, raised roads) and a `years_from_now` climate dial, then shows flooded-km avoided, commute-delay cost saved, and ROI.
 
 - Demo: https://leave-now-or-wait.pages.holistics.dev/apps/flood
-- Video: https://media.holistics.io/anfra/demo/AnfraDemoVideo.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=L5nx04PrYHo)
 - Author: Khue Pham
+
+[![Watch the Leave Now Or Wait video](https://img.youtube.com/vi/L5nx04PrYHo/maxresdefault.jpg)](https://www.youtube.com/watch?v=L5nx04PrYHo)
 
 Every piece of business logic — flood risk, delay, cost, ROI — lives in **governed anfra metrics**, not in page JavaScript. The app's JS only renders D3/SVG and formats values.
 

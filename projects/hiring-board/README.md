@@ -5,8 +5,10 @@ Every hiring question, one page 🧑‍💼
 A People team's hiring board: where every candidate is, where good candidates come from, which interview steps are slow, and whether headcount lands on plan.
 
 - Demo: https://anfra-heidi.pages.holistics.dev/apps/DIY/hiring-board
-- Video: https://media.holistics.io/anfra/competition-2026/hiring-board.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=y6BcGQAlGgA)
 - Author: Di Hoang
+
+[![Watch the Hiring Board video](https://img.youtube.com/vi/y6BcGQAlGgA/maxresdefault.jpg)](https://www.youtube.com/watch?v=y6BcGQAlGgA)
 
 Four tabs share one filter bar (department, position, source, applied date). Pipeline shows the funnel from applied to hired; click a stage to list its candidates and open anyone's CV, rounds and HR notes. Candidate quality shows which sources and traits reach the final round. Interview process shows the waits between rounds, the withdrawals they cause and each interviewer's scores. Headcount compares the plan for 31 December with the forecast. Every number opens to its definition and the query behind it.
 

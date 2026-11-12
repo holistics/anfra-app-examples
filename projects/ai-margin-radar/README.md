@@ -3,7 +3,9 @@
 Finds the customers whose AI usage costs more than they pay, and tests the pricing rules that fix the margin.
 
 - Demo: https://ai-margin-radar.pages.holistics.dev/apps/ai-margin-radar
-- Video: https://media.holistics.io/bae23862-ai-margin-radar.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=_wQchYpCR0Q)
+
+[![Watch the AI Margin Radar video](https://img.youtube.com/vi/_wQchYpCR0Q/maxresdefault.jpg)](https://www.youtube.com/watch?v=_wQchYpCR0Q)
 
 ## Run it
 

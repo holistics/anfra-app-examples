@@ -3,8 +3,10 @@
 You work the identity desk at Charon's ferry. A soul arrives with papers, and the papers are a claim — the Books are the only thing that knows better, and every verdict is a live query against them.
 
 - Demo: https://anfra-amyra.pages.holistics.dev/apps/nether-v4/realm
-- Video: https://media.holistics.io/demo/nether-trailer-preview.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=qWDWwcXWkdQ)
 - Author: Amyra Nguyen
+
+[![Watch the Underworld video](https://img.youtube.com/vi/qWDWwcXWkdQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=qWDWwcXWkdQ)
 
 A narrative Data App built as an identity-verification game. Each of fifty arriving souls carries four claims (identity, permit, a supporting record, and a coin whose mint should match their birthplace), and every check resolves against the semantic layer rather than a precomputed answer: edit the world's data and cases re-grade on the next run, with no regeneration step.
 

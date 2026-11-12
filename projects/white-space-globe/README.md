@@ -5,8 +5,10 @@ Decide where to expand next year 🌍
 A 3D globe of a B2B SaaS company's customers against the size of each market: where it is strong, where the biggest untapped revenue is, and what stands in the way.
 
 - Demo: https://anfra-heidi.pages.holistics.dev/apps/DIY/coverage-globe
-- Video: https://media.holistics.io/anfra/competition-2026/white-space-globe.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=xfISRSDK17g)
 - Author: Di Hoang
+
+[![Watch the White Space Globe video](https://img.youtube.com/vi/xfISRSDK17g/maxresdefault.jpg)](https://www.youtube.com/watch?v=xfISRSDK17g)
 
 Switch the globe between customers, ARR, share of market, untapped revenue and rating, then zoom from the world into countries, US states and cities. Size vs strength plots every market by how much is left against how much the company holds, with the blockers customers name in reviews. Every number opens to its definition, its lineage down to the tables, and the query behind it.
 

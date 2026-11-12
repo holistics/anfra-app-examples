@@ -3,8 +3,10 @@
 Spot unusual weeks in revenue, orders and customers, then see where the change happened.
 
 - Demo: https://store-performance-live.pages.holistics.dev/apps/store-performance
-- Video: https://media.holistics.io/anfracompetition/AnomalyPluginVideo.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=cJo5C6Ar2dQ)
 - Author: Vy Huynh
+
+[![Watch the Store Performance video](https://img.youtube.com/vi/cJo5C6Ar2dQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=cJo5C6Ar2dQ)
 
 An online store's dashboard with anomaly detection on every trend. The headline numbers compare with the same period last year, and revenue, orders, new customers and cancellation rate each have a weekly trend. The anomaly plugin (`apps/_lib/anfra-anomaly.js`) flags the weeks that fall outside the expected range and shows where that expected value comes from. Revenue by category, by country and the top products show where a change happened.
 

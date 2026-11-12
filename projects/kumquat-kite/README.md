@@ -3,9 +3,11 @@
 - **Idea:** One record for every job, from the first conversation to the acceptance Finance verifies.
 - **What it does:** Helps teams manage clients, projects and money in one place.
 - **How it works:** Account proposes a cost change with a reason and evidence. Anfra shows how it affects profit. Official figures change only after Finance approves.
-- **Try it:** [Open the demo](https://kumquat-kite-poc-demo.pages.holistics.dev/#/welcome) · [Watch the video](https://media.holistics.io/anfra/competition-2026/crm-job-360-finance.mp4)
+- **Try it:** [Open the demo](https://kumquat-kite-poc-demo.pages.holistics.dev/#/welcome) · [Watch the video](https://www.youtube.com/watch?v=PZ9gJ7j9vwQ)
 - **Author:** Toan Pham
 - **Data:** Made-up records and a fictional example guide. No customer data or credentials are included.
+
+[![Watch the Kumquat Kite video](https://img.youtube.com/vi/PZ9gJ7j9vwQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=PZ9gJ7j9vwQ)
 
 ## Run locally
 

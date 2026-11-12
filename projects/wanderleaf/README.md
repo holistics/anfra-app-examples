@@ -3,8 +3,10 @@
 A travelling bookshop's sales: find where the money went missing, then replay that real past day with a different crate of books.
 
 - Demo: https://wanderleaf.pages.holistics.dev (password: `book`)
-- Video: https://media.holistics.io/d1bd0f8f-wanderleaf-books.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=p5FuJlnMzeI)
 - Author: Son Hoang
+
+[![Watch the Wanderleaf video](https://img.youtube.com/vi/p5FuJlnMzeI/maxresdefault.jpg)](https://www.youtube.com/watch?v=p5FuJlnMzeI)
 
 A Data App with two tabs over the `wanderleaf` dataset. **Overview** shows the shop's sales for a chosen period against the previous one: by spot, genre and weather, with the sales it missed when the crate ran out. Click any number to see the days behind it. **Play a day** puts you in one caravan on a past day. You pick a spot and pack a 40-book crate from a forecast, then that day's recorded customers arrive and you see how your crate would have done. Every figure on both tabs is a metric defined in AML, and "How it works" shows the definitions.
 

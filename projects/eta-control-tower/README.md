@@ -3,8 +3,10 @@
 Which shipments will miss their promised date, and how much value is at risk.
 
 - Demo: https://eta-tracking-live.pages.holistics.dev/apps/eta-control-tower
-- Video: https://media.holistics.io/anfracompetition/EtaControlTowerVideo.mp4
+- Video: [▶ Watch on YouTube](https://www.youtube.com/watch?v=ml7Jb9mfXuY)
 - Author: Vy Huynh
+
+[![Watch the ETA Control Tower video](https://img.youtube.com/vi/ml7Jb9mfXuY/maxresdefault.jpg)](https://www.youtube.com/watch?v=ml7Jb9mfXuY)
 
 A freight forwarder's control tower. A map shows the active shipments by lane, with arc width for the value at risk. Around it are value at risk now, delayed orders, ETA slips and on-time rate, the shipment journey stage by stage, live alerts, ETA slips by stage, the orders likely to slip and the customers at risk. Click a port, lane, stage or bar to filter; click an order for its ETA history and journey. Every number opens "How it's calculated": its definition from the semantic layer, the filters in effect, the query that ran and the orders behind it.
 

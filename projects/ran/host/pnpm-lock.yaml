@@ -13,7 +13,7 @@ importers:
         version: 0.10.1
       '@hono/node-server':
         specifier: ^2.1.4
-        version: 2.1.4(hono@4.13.13)
+        version: 2.1.4(hono@4.13.16)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -24,8 +24,8 @@ importers:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       hono:
-        specifier: ^4.13.13
-        version: 4.13.13
+        specifier: ^4.13.16
+        version: 4.13.16
       lucide-react:
         specifier: ^1.55.0
         version: 1.55.0(@types/react@19.3.0)(react@19.3.0)
@@ -1343,8 +1343,8 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
-  hono@4.13.13:
-    resolution: {integrity: sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA==}
+  hono@4.13.16:
+    resolution: {integrity: sha512-AOLOEhvrV+iH92xXCnFr/5+3KjPKcI3xP63XJtX5spAnkznPdHijlIsUTpi7/9EhWqrTCekw5c5zh1K+YsVw7A==}
     engines: {node: '>=16.9.0'}
 
   jiti@2.7.0:
@@ -1876,9 +1876,9 @@ snapshots:
     dependencies:
       openapi-fetch: 0.17.0
 
-  '@hono/node-server@2.1.4(hono@4.13.13)':
+  '@hono/node-server@2.1.4(hono@4.13.16)':
     dependencies:
-      hono: 4.13.13
+      hono: 4.13.16
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -2886,7 +2886,7 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  hono@4.13.13: {}
+  hono@4.13.16: {}
 
   jiti@2.7.0: {}
 
